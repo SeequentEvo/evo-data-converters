@@ -16,7 +16,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Data converters
 
-This repository provides sample code along with the source code for Evo-specific data converters.
+This repository provides the source code for Evo-specific data converters.
 
 When running a converter, data is imported from a supported file format, converted into geoscience objects, and then published to the Seequent Evo API.
 
@@ -26,20 +26,20 @@ The existing data converters can be used as is, or you can use them as a templat
 
 The top level sections for the repository are as follows.
 
-- [Samples](samples/README.md) - Jupyter notebooks and code samples for importing data with the existing data converters
+- [Samples](samples/README.md) - Jupyter notebook examples for importing data with the existing data converters
 - [Data Converters](src/evo/data_converters/README.md) - Source code for the data converters module (`evo.data_converters`)
 - Scripts - helper scripts for working with different types of data files
 - Tests - unit tests for the data converter module
 
 ### Evo authorisation and discovery
 
-Whether using either the Jupyter samples or undertaking development work on the data converter module itself, integration with Evo will require that you are granted access as an Evo Partner or Customer, along with access to a specific Evo Workspace. Access is granted via a token. For more information on getting started, see the [Seequent Evo Developer Portal](https://developer.seequent.com/).
+Whether using the converters or undertaking development work on the modules themselves, integration with Evo will require that you are granted access as an Evo Partner or Customer, along with access to a specific Evo Workspace. Access is granted via a token. For more information on getting started, see the [Seequent Evo Developer Portal](https://developer.seequent.com/).
 
 Refer to the [auth-and-evo-discovery](samples/auth-and-evo-discovery/python/README.md) documentation to learn how to create an Evo access token and how to perform an Evo Discovery request.
 
-## Setting up environment
+## Setting up your environment
 
-Whether using the code samples or working on development of the converters the following initial setup instructions apply.
+Whether using the converters or working on development of the converters the following initial setup instructions apply.
 
 ### Requirements
 
@@ -59,11 +59,20 @@ uv sync --all-extras
 uv run pytest tests
 ```
 
-### Publishing a new version
+## Using the data converters
+See the documentation for each converter for information on how to use the data converters to upload or download geoscience objects from Seequent Evo.
 
-On merge to main, there is a workflow to publish the new package to Artifactory. So, if you want to publish a new version of this package, bump the version number in the `pyproject.toml` file, and land your change to main!
+Currently supported converters are:
+ * [OMF](/src/evo/data_converters/omf/README.md)
+ * [RESQML](/src/evo/data_converters/resqml/README.md)
+ * [VTK](/src/evo/data_converters/vtk/README.md)
 
-If you would like a dev build of the package, one is published on PR to GitHub artifacts where it is available for 90 days.
+## Developing converters
+
+See [Data converters](/src/evo/data_converters/README.md) for information on how to work on the Evo Data Converters.
+This includes both importers and exporters.
+
+We encourage both extending the functionality of the existing converters, or adding new ones for the object formats you would like to see.
 
 ## Contributing
 
