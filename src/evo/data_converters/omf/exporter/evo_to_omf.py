@@ -27,10 +27,9 @@ from evo_schemas.objects import (
 )
 
 import evo.logging
+from evo.common.utils.cache import Cache
 from evo.data_converters.common import (
     EvoObjectMetadata,
-    EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
 )
 from evo.objects.client import ObjectAPIClient
 from evo.objects.data import ObjectSchema
@@ -40,9 +39,6 @@ from ..omf_metadata import OMFMetadata
 from .evo_lineset_to_omf import export_omf_lineset
 from .evo_pointset_to_omf import export_omf_pointset
 from .evo_surface_to_omf import export_omf_surface
-
-if TYPE_CHECKING:
-    from evo.notebooks import ServiceManagerWidget
 
 
 class OmfExporterException(Exception):
@@ -105,28 +101,25 @@ def _export_element(
 def export_omf(
     filepath: str,
     objects: list[EvoObjectMetadata],
+    service_client: ObjectServiceClient,
     omf_metadata: Optional[OMFMetadata] = None,
-    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
-    service_manager_widget: Optional["ServiceManagerWidget"] = None,
+    cache: Optional[Cache] = None,
 ) -> None:
     """Export an Evo Geoscience Object to an OMF v1 file.
 
     :param filepath: Path of the OMF file to create.
     :param objects: List of EvoObjectMetadata objects containing the UUID and version of the Evo objects to export.
+    :param service_client: Connection to the Objects Service to access Evo.
     :param omf_metadata: Optional project metadata to embed in the OMF file.
-    :param evo_workspace_metadata: Optional Evo Workspace metadata.
-    :param service_manager_widget: Optional ServiceManagerWidget for use in notebooks.
+    :param cache: (Optional) The cache to use for data downloads. Defaults to `.data/cache` dir.
 
-    One of evo_workspace_metadata or service_manager_widget is required.
 
     :raise UnsupportedObjectError: If the type of object is not supported.
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
 
-    service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata, service_manager_widget
-    )
+    data_client = service_client.get_data_client(cache if cache is not None else Cache(root="./data/cache", mkdir=True))
 
     nest_asyncio.apply()
 

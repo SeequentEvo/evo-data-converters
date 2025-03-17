@@ -67,6 +67,74 @@ Currently supported converters are:
  * [RESQML](/src/evo/data_converters/resqml/README.md)
  * [VTK](/src/evo/data_converters/vtk/README.md)
 
+ To use any of the data converters, you will need a few things:
+  * An *access token* for your user
+  * The *organisation ID*, *hub URL* and *workspace ID* that you would like to import your data to, or export it from.
+
+To get an access token, see [Apps and Tokens](https://developer.seequent.com/docs/guides/getting-started/apps-and-tokens/) in the Seequent Evo Developer portal.
+
+To find the URL of your hub, and the ID of your organisation, see [Evo Discovery](https://developer.seequent.com/docs/guides/getting-started/discovery/).
+
+For information on accessing and listing Workspaces, see [Workspaces](https://developer.seequent.com/docs/guides/workspaces/).
+
+There is more information in the [Welcome to Seequent Evo](https://developer.seequent.com/docs/guides/getting-started/) area of the Developer portal, so take a look there or ask questions in the [Community forum](https://community.seequent.com/categories/evo).
+
+### evo-client-common
+The `evo-client-common` python library can be used to login, then an organisation, hub and workspace to publish objects to.
+
+```python
+from evo.aio import AioTransport
+from evo.common import ApiConnector, BaseServiceClient
+from evo.common.utils import BackoffIncremental
+from evo.discovery import DiscoveryApiClient
+from evo.oauth import AuthorizationCodeAuthorizer, OIDCConnector
+from evo.workspaces import WorkspaceServiceClient
+
+# Configure the transport.
+transport = AioTransport(
+    user_agent="evo-client-common-poc",
+    max_attempts=3,
+    backoff_method=BackoffIncremental(2),
+    num_pools=4,
+    verify_ssl=True,
+)
+
+# Login to the Evo platform.
+# User Login
+authorizer = AuthorizationCodeAuthorizer(
+    redirect_url="<redirect_url>",
+    oidc_connector=OIDCConnector(
+        transport=transport,
+        oidc_issuer="<issuer_url>",
+        client_id="<client_id>",
+    ),
+)
+await authorizer.login()
+
+# Select an Organization.
+async with ApiConnector("https://discover.api.seequent.com", transport, authorizer) as api_connector:
+    discovery_client = DiscoveryApiClient(api_connector)
+    organizations = await discovery_client.list_organizations()
+
+selected_org = organizations[0]
+
+# Select a hub and create a connector.
+hub_connector = ApiConnector(selected_org.hubs[0].url, transport, authorizer)
+
+# Select a Workspace.
+async with hub_connector:
+    workspace_client = WorkspaceServiceClient(hub_connector, selected_org.id)
+    workspaces = await workspace_client.list_workspaces()
+
+workspace = workspaces[0]
+workspace_env = workspace.get_environment()
+
+# Interact with a service.
+async with hub_connector:
+    service_client = BaseServiceClient(workspace_env, hub_connector)
+    ...
+```
+
 ## Developing converters
 
 See [Data converters](/src/evo/data_converters/README.md) for information on how to work on the Evo Data Converters.
