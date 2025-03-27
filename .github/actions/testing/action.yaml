@@ -5,12 +5,6 @@ inputs:
   PYTHON_VERSION:
     required: true
     description: "The Python version to run the test on"
-  EVO_ARTIFACTORY_USER:
-    required: true
-    description: "Temporary"
-  EVO_ARTIFACTORY_TOKEN:
-    required: true
-    description: "Temporary"
 
 runs:
   using: "composite"
@@ -22,6 +16,4 @@ runs:
     - name: Pytest
       shell: bash
       run: |
-        export UV_INDEX_ARTIFACTORY_USERNAME=${{ inputs.EVO_ARTIFACTORY_USER }}
-        export UV_INDEX_ARTIFACTORY_PASSWORD=${{ inputs.EVO_ARTIFACTORY_TOKEN }}
         uv run pytest tests/

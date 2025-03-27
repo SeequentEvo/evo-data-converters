@@ -10,9 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/linting
-        with:
-          EVO_ARTIFACTORY_USER: ${{ vars.EVO_ARTIFACTORY_USER }}
-          EVO_ARTIFACTORY_TOKEN: ${{ secrets.EVO_ARTIFACTORY_TOKEN }}
 
   run-tests:
     name: Test
@@ -26,8 +23,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/testing
         with:
-          EVO_ARTIFACTORY_USER: ${{ vars.EVO_ARTIFACTORY_USER }}
-          EVO_ARTIFACTORY_TOKEN: ${{ secrets.EVO_ARTIFACTORY_TOKEN }}
           PYTHON_VERSION: ${{ matrix.python-version }}
 
   build-dev:
@@ -47,8 +42,6 @@ jobs:
           PACKAGE_VERSION=$VERSION.dev${{ github.run_number }}
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
           sed -i "s/^version.*=.*$/version = \"$PACKAGE_VERSION\"/" pyproject.toml
-          export UV_INDEX_ARTIFACTORY_USERNAME=${{ vars.EVO_ARTIFACTORY_USER }}
-          export UV_INDEX_ARTIFACTORY_PASSWORD=${{ secrets.EVO_ARTIFACTORY_TOKEN }}
           uv build
       
       - name: Upload artifact

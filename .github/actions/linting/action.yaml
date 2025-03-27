@@ -1,14 +1,6 @@
 name: "Linting"
 description: "Run linters"
 
-inputs:
-  EVO_ARTIFACTORY_USER:
-    required: true
-    description: "Temporary"
-  EVO_ARTIFACTORY_TOKEN:
-    required: true
-    description: "Temporary"
-
 runs:
   using: "composite"
   steps:
@@ -19,7 +11,5 @@ runs:
     - name: Ruff check and format
       shell: bash
       run: |
-        export UV_INDEX_ARTIFACTORY_USERNAME=${{ inputs.EVO_ARTIFACTORY_USER }}
-        export UV_INDEX_ARTIFACTORY_PASSWORD=${{ inputs.EVO_ARTIFACTORY_TOKEN }}
         uv run --only-dev ruff check
         uv run --only-dev ruff format --check

@@ -79,8 +79,3 @@ warn_unused_ignores = true
 # evo-object-client = { git = "https://git@github.com/seequent/evo-object-client" }
 # evo-client-common = { git = "https://git@github.com/seequent/evo-client-common" }
 # seequent-geoscience-object-schemas = { git = "https://git@github.com/seequent/geoscience-object-schemas" }
-
-[[tool.uv.index]]
-name = "artifactory"
-url = "https://seequent.jfrog.io/artifactory/api/pypi/evo-converters-packages-pypi-local/simple"
-publish-url = "https://seequent.jfrog.io/artifactory/api/pypi/evo-converters-packages-pypi-local"

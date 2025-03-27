@@ -45,39 +45,12 @@ Whether using the code samples or working on development of the converters the f
 
 - Python >= 3.10, <= 3.12
 
-### Evo Artifactory dependencies
-
-The following Evo dependencies are not yet publicly available on PyPI and need to be installed from Seequent's Artifactory package repository.
-
-- `evo-client-common`
-- `evo-object-client`
-- `seequent-geoscience-object-schemas`
-
-The Artifactory index for these has been added to the `pyproject.toml` file, but to successfully install you must have valid `UV_INDEX_ARTIFACTORY_USERNAME` and `UV_INDEX_ARTIFACTORY_PASSWORD` variables set in your environment before running `uv sync`.
-
-To obtain these values you must already have a valid login for Artifactory provided to you by Seequent and follow these steps:
-
-1. Log in to Artifactory https://seequent.jfrog.io/ui/login/
-1. Navigate to the user profile page
-1. Click Generate an Identity Token
-1. Name the token (perhaps something like "development token") and press Next
-1. Copy the token value (Don't worry if the token doesn't appear listed under the 'Identity Tokens' header, this is a bug which is being resolved - the token that was generated IS valid)
-1. Add a user environment variable to your computer named `UV_INDEX_ARTIFACTORY_USERNAME` with the value as your Bentley email address (i.e. first.last@bentley.com)
-1. Add a user environment variable to your computer named `UV_INDEX_ARTIFACTORY_PASSWORD` with the copied token as the value
-
-Note that you might need to explicitly export these, a `.env` file failed.
-
-```shell
-export UV_INDEX_ARTIFACTORY_USERNAME=<bentley email address>
-export UV_INDEX_ARTIFACTORY_PASSWORD=<your token>
-```
-
 ### Using uv
 
 This project uses [uv](https://docs.astral.sh/uv/) to manage all the python
 versions, packages etc.
 
-You will need the artifactory access above. Once that is done though, `uv sync --all-extras` will install everything you need.
+Run `uv sync --all-extras` to install everything you need.
 
 Then use `uv run <command>` to run commands.
 
