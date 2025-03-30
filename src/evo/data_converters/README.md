@@ -4,6 +4,8 @@ There are currently data converters for the following file formats:
 
 * [OMF](omf/README.md)
 * [RESQML](resqml/README.md)
+* [GOCAD](gocad/README.md)
+* [UBC](ubc/README.md)
 * [VTK](vtk/README.md)
 
 Data converters can be optionally both an importer and an exporter.
