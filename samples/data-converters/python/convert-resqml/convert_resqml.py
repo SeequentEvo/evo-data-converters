@@ -26,6 +26,6 @@ meta_data = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
 options = ResqmlConversionOptions(active_cells_only=not args.all_grid_cells)
 
 for file_name in file_names:
-    objects = convert_resqml(file_name, args.epsg_code, meta_data, None, "", options)
+    objects = convert_resqml(file_name, args.epsg_code, meta_data, None, options=options)
     for o in objects:
         print(o.json_dumps(indent=4))

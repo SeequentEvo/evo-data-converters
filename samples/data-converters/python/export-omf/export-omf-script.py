@@ -70,7 +70,7 @@ workspace_metadata = EvoWorkspaceMetadata(
     cache_root=args.cache_dir,
 )
 
-# Override default redirect url if needed
+# Override default redirect URL if needed
 if args.redirect_url:
     workspace_metadata.redirect_url = args.redirect_url
 
