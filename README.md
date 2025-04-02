@@ -59,7 +59,15 @@ uv sync --all-extras
 uv run pytest tests
 ```
 
-### Publishing a new version
+## Using the data converters
+See the documentation for each converter for information on how to use the data converters to upload or download geoscience objects from Seequent Evo.
+
+Currently supported converters are:
+ * [OMF](/src/evo/data_converters/omf/README.md)
+ * [RESQML](/src/evo/data_converters/resqml/README.md)
+ * [VTK](/src/evo/data_converters/vtk/README.md)
+ * [UBC](/src/evo/data_converters/ubc/README.md)
+ * [GOCAD](/src/evo/data_converters/gocad/README.md)
 
 On merge to main, there is a workflow to publish the new package to Artifactory. So, if you want to publish a new version of this package, bump the version number in the `pyproject.toml` file, and land your change to main!
 
