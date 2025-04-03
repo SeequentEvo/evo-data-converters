@@ -74,7 +74,6 @@ warn_redundant_casts = true
 warn_return_any = true
 warn_unused_ignores = true
 
-# Use Artifactory for now as the ssh keys seem like even more admin.
 # [tool.uv.sources]
 # evo-object-client = { git = "https://git@github.com/seequent/evo-object-client" }
 # evo-client-common = { git = "https://git@github.com/seequent/evo-client-common" }
