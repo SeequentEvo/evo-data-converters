@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 class VTKImportError(Exception):
     """Exception that is raised if there is an error during the reading of a VTK file."""
 
