@@ -24,7 +24,7 @@ New converters can be created to support additional data file types.
 
 ## Working on data converters
 
-To work on your local version of the data converters module, first follow the directions in [Setting up your environment](../../../README.md).
+To work on your local version of the data converters module, first follow the directions in [Setting up your environment.](../../../README.md)
 
 In the root directory of the project run:
 

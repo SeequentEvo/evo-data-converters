@@ -101,7 +101,7 @@ def _export_element(
 def export_omf(
     filepath: str,
     objects: list[EvoObjectMetadata],
-    service_client: ObjectServiceClient,
+    service_client: ObjectAPIClient,
     omf_metadata: Optional[OMFMetadata] = None,
     cache: Optional[Cache] = None,
 ) -> None:

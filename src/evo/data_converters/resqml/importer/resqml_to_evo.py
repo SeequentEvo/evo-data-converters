@@ -58,7 +58,7 @@ def convert_resqml(
     upload_path: str = "",
 
     :param filepath: Path to the RESQML file.
-    :param evo_workspace_metadata: Evo Workspace metadata required for creating an ObjectServiceClient and ObjectDataClient.
+    :param evo_workspace_metadata: Evo Workspace metadata required for creating an ObjectAPIClient and ObjectDataClient.
     :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.

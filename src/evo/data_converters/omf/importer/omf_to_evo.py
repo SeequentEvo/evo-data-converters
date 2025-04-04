@@ -21,7 +21,7 @@ from evo.data_converters.common import (
     publish_geoscience_objects,
 )
 from evo.data_converters.omf import OmfReaderContext
-from evo.objects.data import ObjectMetadata, ObjectServiceClient
+from evo.objects import ObjectAPIClient, ObjectMetadata
 
 from .omf_blockmodel_to_evo import convert_omf_blockmodel
 from .omf_lineset_to_evo import convert_omf_lineset
@@ -34,7 +34,7 @@ logger = evo.logging.getLogger("data_converters")
 def convert_omf(
     filepath: str,
     epsg_code: int,
-    object_service_client: ObjectServiceClient,
+    object_service_client: ObjectAPIClient,
     cache: Optional[Cache] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",

@@ -9,18 +9,18 @@ To work with OMF files the `omf2` module is used, which is a Python interface to
 https://github.com/gmggroup/omf-rust
 
 ## Publish geoscience objects from an OMF file
-__NOTE__: For some OMF geometry types there is more one possible way they could be converted to Geoscience Objects. An OMF LineSet can be used to represent more than one thing (e.g. poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to LineSegments. You may want to convert them to a different Geoscience Object depending on your use case.
+**Note**: For some OMF geometry types, there is more one possible way they could be converted to Geoscience Objects. An OMF `LineSet` can be used to represent more than one thing (e.g. poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to `LineSegments`. You may want to convert them to a different Geoscience Object, depending on your use case.
 
-The `evo-client-common` python library can be used to login, then select an organisation, hub and workspace to publish objects to. Then use `evo-objects` to get an `ObjectServiceClient`, and `evo-data-converters` to convert your file.
+The `evo-client-common` Python library can be used to log in. Then an organisation, hub, and workspace can be selected. Use `evo-objects` to get an `ObjectAPIClient`, and `evo-data-converters` to convert your file.
 
 Choose the OMF file you want to publish and set its path in the `omf_file` variable.
 Choose an EPSG code to use for the Coordinate Reference System.
 
 You may also specify tags to add to the created Geoscience objects.
 
-Then call `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectServiceClient` from above and finally a path you want the published objects to appear under in your workspace.
+Then call `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectAPIClient` from above and finally a path you want the published objects to appear under in your workspace.
 
-Note: Some geometry types are not yet supported. A warning will be shown for each element that could not be converted.
+**Note:** Some geometry types are not yet supported. A warning will be shown for each element that could not be converted.
 
 ```bash
 pip install evo-data-converters
@@ -31,13 +31,13 @@ import os
 import pprint
 
 from evo.aio import AioTransport
-from evo.common import ApiConnector
+from evo.common import APIConnector
 from evo.common.utils import BackoffIncremental
 from evo.data_converters.omf.importer import convert_omf
-from evo.discovery import DiscoveryApiClient
+from evo.discovery import DiscoveryAPIClient
 from evo.oauth import AuthorizationCodeAuthorizer, OIDCConnector
-from evo.objects import ObjectServiceClient
-from evo.workspaces import WorkspaceServiceClient
+from evo.objects import ObjectAPIClient
+from evo.workspaces import WorkspaceAPIClient
 
 # Configure the transport.
 transport = AioTransport(
@@ -61,18 +61,18 @@ authorizer = AuthorizationCodeAuthorizer(
 await authorizer.login()
 
 # Select an Organization.
-async with ApiConnector("https://discover.api.seequent.com", transport, authorizer) as api_connector:
-    discovery_client = DiscoveryApiClient(api_connector)
+async with APIConnector("https://discover.api.seequent.com", transport, authorizer) as api_connector:
+    discovery_client = DiscoveryAPIClient(api_connector)
     organizations = await discovery_client.list_organizations()
 
 selected_org = organizations[0]
 
 # Select a hub and create a connector.
-hub_connector = ApiConnector(selected_org.hubs[0].url, transport, authorizer)
+hub_connector = APIConnector(selected_org.hubs[0].url, transport, authorizer)
 
 # Select a Workspace.
 async with hub_connector:
-    workspace_client = WorkspaceServiceClient(hub_connector, selected_org.id)
+    workspace_client = WorkspaceAPIClient(hub_connector, selected_org.id)
     workspaces = await workspace_client.list_workspaces()
 
 workspace = workspaces[0]
@@ -80,7 +80,7 @@ workspace_env = workspace.get_environment()
 
 # Convert your object.
 async with hub_connector:
-    service_client = ObjectServiceClient(workspace_env, hub_connector)
+    service_client = ObjectAPIClient(workspace_env, hub_connector)
     omf_file = os.path.join(os.getcwd(), "data/input/one_of_everything.omf")
     epsg_code = 32650
 
@@ -102,13 +102,13 @@ async with hub_connector:
 ## Export objects to OMF
 
 To export an object from Evo to ane OMF file, specify the Evo Object UUID of objects you want to export and the output file path, and then call `export_omf()`.
-See documentation on the `ObjectServiceClient` for listing objects and getting their ids and versions.
+See documentation on the `ObjectAPIClient` for listing objects and getting their ids and versions.
 
 You may also specify the version of this object to export. If not specified, so it will export the latest version.
 
 You will need the same selection of organisation, hub and workspace that is needed for importing objects.
 
-__NOTE__: Some Geoscience Object types are not yet supported.
+**Note**: Some Geoscience Object types are not yet supported.
 
 ```python
 import os
@@ -139,7 +139,7 @@ export_omf(
 
 Blockmodels can be imported using the standard `convert_omf` function.
 
-Blockmodels work a little bit differently for export. These use a `BlockSyncClient` rather than the `ObjectServiceClient` to access models stored in BlockSync. Create a `BlockSyncClient` using the Environment and APIConnector in the same way you would create and `ObjectServiceClient`.
+Blockmodels work a little bit differently for export. These use a `BlockSyncClient` rather than the `ObjectAPIClient` to access models stored in BlockSync. Create a `BlockSyncClient` using the Environment and APIConnector in the same way you would create and `ObjectAPIClient`.
 
 ```python
 from evo.data_converters.common import BlockSyncClient
@@ -151,7 +151,7 @@ blocksync_client = BlockSyncClient(workspace_env, hub_connector)
 
 Specify the Object UUID of the block model object you want to export and the output file path, and then call `export_blocksync_omf()`.
 
-__NOTE__: At this stage only Regular block model types are supported.
+**Note**: At this stage only Regular block model types are supported.
 
 ```python
 import os

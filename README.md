@@ -33,7 +33,7 @@ The top level sections for the repository are as follows.
 
 ### Evo authorisation and discovery
 
-Whether using the converters or undertaking development work on the modules themselves, integration with Evo will require that you are granted access as an Evo Partner or Customer, along with access to a specific Evo Workspace. Access is granted via a token. For more information on getting started, see the [Seequent Evo Developer Portal](https://developer.seequent.com/).
+Whether using the converters or undertaking development work on the modules themselves, integration with Evo will require that you are granted access as an Evo Partner or Customer, along with access to a specific Evo Workspace. Access is granted via a token. For more information on getting started, see the [Seequent Evo Developer Portal.](https://developer.seequent.com/)
 
 Refer to the [auth-and-evo-discovery](samples/auth-and-evo-discovery/python/README.md) documentation to learn how to create an Evo access token and how to perform an Evo Discovery request.
 
@@ -66,6 +66,8 @@ Currently supported converters are:
  * [OMF](/src/evo/data_converters/omf/README.md)
  * [RESQML](/src/evo/data_converters/resqml/README.md)
  * [VTK](/src/evo/data_converters/vtk/README.md)
+ * [UBC](/src/evo/data_converters/ubc/README.md)
+ * [GOCAD](/src/evo/data_converters/gocad/README.md)
 
  To use any of the data converters, you will need a few things:
   * An *access token* for your user
@@ -73,22 +75,22 @@ Currently supported converters are:
 
 To get an access token, see [Apps and Tokens](https://developer.seequent.com/docs/guides/getting-started/apps-and-tokens/) in the Seequent Evo Developer portal.
 
-To find the URL of your hub, and the ID of your organisation, see [Evo Discovery](https://developer.seequent.com/docs/guides/getting-started/discovery/).
+To find the URL of your hub, and the ID of your organisation, see [Evo Discovery.](https://developer.seequent.com/docs/guides/getting-started/discovery/)
 
-For information on accessing and listing Workspaces, see [Workspaces](https://developer.seequent.com/docs/guides/workspaces/).
+For information on accessing and listing Workspaces, see [Workspaces.](https://developer.seequent.com/docs/guides/workspaces/)
 
-There is more information in the [Welcome to Seequent Evo](https://developer.seequent.com/docs/guides/getting-started/) area of the Developer portal, so take a look there or ask questions in the [Community forum](https://community.seequent.com/categories/evo).
+There is more information in the [Welcome to Seequent Evo](https://developer.seequent.com/docs/guides/getting-started/) area of the Developer portal, so take a look there or ask questions in the [Community forum.](https://community.seequent.com/categories/evo)
 
 ### evo-client-common
-The `evo-client-common` python library can be used to login, then an organisation, hub and workspace to publish objects to.
+The `evo-client-common` Python library can be used to log in. An organisation, hub, and workspace can be then be used to publish objects.
 
 ```python
 from evo.aio import AioTransport
-from evo.common import ApiConnector, BaseServiceClient
+from evo.common import APIConnector, BaseAPIClient
 from evo.common.utils import BackoffIncremental
-from evo.discovery import DiscoveryApiClient
+from evo.discovery import DiscoveryAPIClient
 from evo.oauth import AuthorizationCodeAuthorizer, OIDCConnector
-from evo.workspaces import WorkspaceServiceClient
+from evo.workspaces import WorkspaceAPIClient
 
 # Configure the transport.
 transport = AioTransport(
@@ -112,18 +114,18 @@ authorizer = AuthorizationCodeAuthorizer(
 await authorizer.login()
 
 # Select an Organization.
-async with ApiConnector("https://discover.api.seequent.com", transport, authorizer) as api_connector:
-    discovery_client = DiscoveryApiClient(api_connector)
+async with APIConnector("https://discover.api.seequent.com", transport, authorizer) as api_connector:
+    discovery_client = DiscoveryAPIClient(api_connector)
     organizations = await discovery_client.list_organizations()
 
 selected_org = organizations[0]
 
 # Select a hub and create a connector.
-hub_connector = ApiConnector(selected_org.hubs[0].url, transport, authorizer)
+hub_connector = APIConnector(selected_org.hubs[0].url, transport, authorizer)
 
 # Select a Workspace.
 async with hub_connector:
-    workspace_client = WorkspaceServiceClient(hub_connector, selected_org.id)
+    workspace_client = WorkspaceAPIClient(hub_connector, selected_org.id)
     workspaces = await workspace_client.list_workspaces()
 
 workspace = workspaces[0]
@@ -131,7 +133,7 @@ workspace_env = workspace.get_environment()
 
 # Interact with a service.
 async with hub_connector:
-    service_client = BaseServiceClient(workspace_env, hub_connector)
+    service_client = BaseAPIClient(workspace_env, hub_connector)
     ...
 ```
 
@@ -144,14 +146,14 @@ We encourage both extending the functionality of the existing converters, or add
 
 ## Contributing
 
-Thank you for your interest in contributing to Seequent software. Please have a look over our [contribution guide](./CONTRIBUTING.md).
+Thank you for your interest in contributing to Seequent software. Please have a look over our [contribution guide.](./CONTRIBUTING.md)
 
 ## Code of conduct
 
-We rely on an open, friendly, inclusive environment. To help us ensure this remains possible, please familiarise yourself with our [code of conduct](./CODE_OF_CONDUCT.md).
+We rely on an open, friendly, inclusive environment. To help us ensure this remains possible, please familiarise yourself with our [code of conduct.](./CODE_OF_CONDUCT.md)
 
 ## License
-Evo data converters are open source and licensed under the [Apache 2.0 license](./LICENSE.md).
+Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
 Copyright © 2025 Bentley Systems, Incorporated.
 
