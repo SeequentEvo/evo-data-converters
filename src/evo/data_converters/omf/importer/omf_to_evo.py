@@ -10,18 +10,19 @@
 #  limitations under the License.
 
 import os
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import omf2
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
 import evo.logging
-from evo.common.utils.cache import Cache
 from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
     publish_geoscience_objects,
 )
 from evo.data_converters.omf import OmfReaderContext
-from evo.objects import ObjectAPIClient, ObjectMetadata
+from evo.objects.data import ObjectMetadata
 
 from .omf_blockmodel_to_evo import convert_omf_blockmodel
 from .omf_lineset_to_evo import convert_omf_lineset
@@ -30,12 +31,15 @@ from .omf_surface_to_evo import convert_omf_surface
 
 logger = evo.logging.getLogger("data_converters")
 
+if TYPE_CHECKING:
+    from evo.notebooks import ServiceManagerWidget
+
 
 def convert_omf(
     filepath: str,
     epsg_code: int,
-    object_service_client: ObjectAPIClient,
-    cache: Optional[Cache] = None,
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
+    service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
@@ -43,13 +47,16 @@ def convert_omf(
 
     :param filepath: Path to the OMF file.
     :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
-    :param object_service_client: Connection to the Objects Service to access Evo.
-    :param cache: (Optional) The cache to use for data downloads. Defaults to `.data/cache` dir.
+    :param evo_workspace_metadata: (Optional) Evo workspace metadata.
+    :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
-    :param publish_objects: (Optional) Whether to publish the object to Evo.
 
-    Converted objects will be published to the workspace specified in the object_service_client.
+    One of evo_workspace_metadata or service_manager_widget is required.
+
+    Converted objects will be published if either of the following is true:
+    - evo_workspace_metadata.hub_url is present, or
+    - service_manager_widget was passed to this function.
 
     If problems are encountered while loading the OMF project, these will be logged as warnings.
 
@@ -63,9 +70,15 @@ def convert_omf(
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
+    publish_objects = True
     geoscience_objects = []
 
-    data_client = object_service_client.get_data_client(cache if cache is not None else Cache(root="./data/cache", mkdir=True))
+    object_service_client, data_client = create_evo_object_service_and_data_client(
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+    )
+    if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
+        logger.debug("Publishing objects will be skipped due to missing hub_url.")
+        publish_objects = False
 
     context = OmfReaderContext(filepath)
     reader = context.reader()
@@ -111,9 +124,10 @@ def convert_omf(
             geoscience_objects.append(geoscience_object)
 
     objects_metadata = None
-    logger.debug("Publishing Geoscience Objects")
-    objects_metadata = publish_geoscience_objects(
-        geoscience_objects, object_service_client, data_client, upload_path
-    )
+    if publish_objects:
+        logger.debug("Publishing Geoscience Objects")
+        objects_metadata = publish_geoscience_objects(
+            geoscience_objects, object_service_client, data_client, upload_path
+        )
 
     return objects_metadata if objects_metadata else geoscience_objects
