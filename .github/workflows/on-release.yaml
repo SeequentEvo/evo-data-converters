@@ -29,3 +29,7 @@ jobs:
 
       - name: Publish package distributions to PyPI (from dist folder)
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Upload artifact to GitHub Release
+        shell: bash
+        run: gh release upload ${{ github.event.release.tag_name }} dist/*

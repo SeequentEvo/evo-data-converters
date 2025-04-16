@@ -3,10 +3,11 @@ requires = ["setuptools"]
 
 [project]
 name = "evo-data-converters"
+description = "Convert data between geoscience formats and Evo geoscience objects to improve interoperability in geoscience applications"
 requires-python = ">=3.10"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE.md", content-type = "text/markdown" }
-version = "0.0.3"
+version = "0.1.0"
 dependencies = [
   "aiohttp",
   "evo-sdk-common>=0.1.2",
