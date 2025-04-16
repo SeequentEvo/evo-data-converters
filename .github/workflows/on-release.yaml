@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/install-uv
+        with:
+          PYTHON_VERSION: "3.10"
 
       - name: Install the project
         run: uv sync --all-extras --dev
