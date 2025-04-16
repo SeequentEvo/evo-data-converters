@@ -1,5 +1,6 @@
 <p align="center"><a href="https://seequent.com" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="https://developer.seequent.com/img/seequent-logo-dark.svg" alt="Seequent logo" width="400" /><img src="https://developer.seequent.com/img/seequent-logo.svg" alt="Seequent logo" width="400" /></picture></a></p>
 <p align="center">
+    <a href="https://pypi.org/project/evo-data-converters/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters" /></a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml"><img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt="" /></a>
 </p>
 <p align="center">
@@ -22,7 +23,17 @@ When running a converter, data is imported from a supported file format, convert
 
 The existing data converters can be used as is, or you can use them as a template for your own integration.
 
-## Repository structure
+## Pre-requisites
+
+* Python >= 3.10, <= 3.12
+
+## Installation
+
+```
+pip install evo-data-converters
+```
+
+## Usage
 
 The top level sections for the repository are as follows.
 
@@ -35,31 +46,7 @@ The top level sections for the repository are as follows.
 
 Whether using the converters or undertaking development work on the modules themselves, integration with Evo will require that you are granted access as an Evo Partner or Customer, along with access to a specific Evo Workspace. Access is granted via a token. For more information on getting started, see the [Seequent Evo Developer Portal.](https://developer.seequent.com/)
 
-Refer to the [auth-and-evo-discovery](samples/auth-and-evo-discovery/python/README.md) documentation to learn how to create an Evo access token and how to perform an Evo Discovery request.
-
-## Setting up your environment
-
-Whether using the converters or working on development of the converters the following initial setup instructions apply.
-
-### Requirements
-
-- Python >= 3.10, <= 3.12
-
-### Using uv
-
-This project uses [uv](https://docs.astral.sh/uv/) to manage all the python
-versions, packages etc.
-
-Run `uv sync --all-extras` to install everything you need.
-
-Then use `uv run <command>` to run commands.
-
-```shell
-uv sync --all-extras
-uv run pytest tests
-```
-
-## Using the data converters
+### Using the data converters
 See the documentation for each converter for information on how to use the data converters to upload or download geoscience objects from Seequent Evo.
 
 Currently supported converters are:
@@ -81,8 +68,26 @@ For information on accessing and listing Workspaces, see [Workspaces.](https://d
 
 There is more information in the [Welcome to Seequent Evo](https://developer.seequent.com/docs/guides/getting-started/) area of the Developer portal, so take a look there or ask questions in the [Community forum.](https://community.seequent.com/categories/evo)
 
-### evo-client-common
-The `evo-client-common` Python library can be used to log in. An organisation, hub, and workspace can be then be used to publish objects.
+## Contributing
+
+Thank you for your interest in contributing to Seequent software. Please have a look over our [contribution guide.](./CONTRIBUTING.md)
+
+### Using uv
+
+This project uses [uv](https://docs.astral.sh/uv/) to manage all the python
+versions, packages etc.
+
+Run `uv sync --all-extras` to install everything you need.
+
+Then use `uv run <command>` to run commands.
+
+```shell
+uv sync --all-extras
+uv run pytest tests
+```
+
+### evo-sdk-common
+The `evo-sdk-common` Python library can be used to log in. An organisation, hub, and workspace can be then be used to publish objects.
 
 ```python
 from evo.aio import AioTransport
@@ -137,16 +142,12 @@ async with hub_connector:
     ...
 ```
 
-## Developing converters
+### Developing converters
 
 See [Data converters](/src/evo/data_converters/README.md) for information on how to work on the Evo Data Converters.
 This includes both importers and exporters.
 
 We encourage both extending the functionality of the existing converters, or adding new ones for the object formats you would like to see.
-
-## Contributing
-
-Thank you for your interest in contributing to Seequent software. Please have a look over our [contribution guide.](./CONTRIBUTING.md)
 
 ## Code of conduct
 
