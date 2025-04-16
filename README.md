@@ -21,7 +21,7 @@ This repository provides the source code for Evo-specific data converters.
 
 When running a converter, data is imported from a supported file format, converted into geoscience objects, and then published to the Seequent Evo API.
 
-The existing data converters can be used as is, or you can use them as a template for your own integration.
+The existing data converters can be used without modification or used as a template for your own integration.
 
 ## Pre-requisites
 
@@ -74,7 +74,7 @@ Thank you for your interest in contributing to Seequent software. Please have a 
 
 ### Using uv
 
-This project uses [uv](https://docs.astral.sh/uv/) to manage all the python
+This project uses [uv](https://docs.astral.sh/uv/) to manage all the Python
 versions, packages etc.
 
 Run `uv sync --all-extras` to install everything you need.
