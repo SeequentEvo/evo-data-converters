@@ -4,9 +4,9 @@ The Visualization Toolkit (VTK) is open source software for manipulating and dis
 
 Refer here for more information: https://vtk.org/
 
-To work with VTK files the `vtk` python package is used, which is a Python wrapper around the underlying `vtk` C++ library.
+To work with VTK files [the `vtk` Python package](https://pypi.org/project/vtk/) is used, which is a Python wrapper around the underlying `vtk` C++ library.
 
-The VTK converter currently supports importing the following objects into Geoscience Objects:
+The VTK converter currently supports importing the following objects into geoscience objects:
 - `vtkImageData`/`vtkUniformGrid`/`vtkStructuredPoints`
   - Imported as a `regular-3d-grid` object if there are no blank cells
   - Otherwise, imported as a `regular-masked-3d-grid` object

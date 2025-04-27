@@ -9,16 +9,16 @@ To work with OMF files the `omf2` module is used, which is a Python interface to
 https://github.com/gmggroup/omf-rust
 
 ## Publish geoscience objects from an OMF file
-**Note**: For some OMF geometry types, there is more one possible way they could be converted to Geoscience Objects. An OMF `LineSet` can be used to represent more than one thing (e.g. poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to `LineSegments`. You may want to convert them to a different Geoscience Object, depending on your use case.
+**Note**: For some OMF geometry types, there is more one possible way they could be converted to geoscience objects. An OMF `LineSet` can be used to represent more than one thing (e.g. poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to `LineSegments`. You may want to convert them to a different geoscience object, depending on your use case.
 
-The `evo-client-common` Python library can be used to log in. Then an organisation, hub, and workspace can be selected. Use `evo-objects` to get an `ObjectAPIClient`, and `evo-data-converters` to convert your file.
+[The `evo-sdk-common` Python library](https://pypi.org/project/evo-sdk-common/) can be used to log in. Then an organisation, hub, and workspace can be selected. Use [`evo-objects`](https://pypi.org/project/evo-objects/) to get an `ObjectAPIClient`, and [`evo-data-converters`](https://pypi.org/project/evo-data-converters/) to convert your file.
 
 Choose the OMF file you want to publish and set its path in the `omf_file` variable.
 Choose an EPSG code to use for the Coordinate Reference System.
 
-You may also specify tags to add to the created Geoscience objects.
+You may also specify tags to add to the created geoscience objects.
 
-Then call `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectAPIClient` from above and finally a path you want the published objects to appear under in your workspace.
+Then call `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectAPIClient` from above, and finally a path you want the published objects to appear under in your workspace.
 
 **Note:** Some geometry types are not yet supported. A warning will be shown for each element that could not be converted.
 
@@ -41,7 +41,7 @@ from evo.workspaces import WorkspaceAPIClient
 
 # Configure the transport.
 transport = AioTransport(
-    user_agent="evo-client-common-poc",
+    user_agent="evo-sdk-common-example",
     max_attempts=3,
     backoff_method=BackoffIncremental(2),
     num_pools=4,
@@ -101,14 +101,14 @@ async with hub_connector:
 
 ## Export objects to OMF
 
-To export an object from Evo to ane OMF file, specify the Evo Object UUID of objects you want to export and the output file path, and then call `export_omf()`.
-See documentation on the `ObjectAPIClient` for listing objects and getting their ids and versions.
+To export an object from Evo to an OMF file, specify the Evo object UUID of objects you want to export and the output file path, and then call `export_omf()`.
+See documentation on the `ObjectAPIClient` for listing objects and getting their IDs and versions.
 
 You may also specify the version of this object to export. If not specified, so it will export the latest version.
 
-You will need the same selection of organisation, hub and workspace that is needed for importing objects.
+You will need the same selection of organisation, hub, and workspace that is needed for importing objects.
 
-**Note**: Some Geoscience Object types are not yet supported.
+**Note**: Some geoscience object types are not yet supported.
 
 ```python
 import os
@@ -135,11 +135,11 @@ export_omf(
 )
 ```
 
-## Blockmodels
+## Block models
 
-Blockmodels can be imported using the standard `convert_omf` function.
+[Block models](https://developer.seequent.com/docs/guides/blockmodel) can be imported using the standard `convert_omf` function.
 
-Blockmodels work a little bit differently for export. These use a `BlockSyncClient` rather than the `ObjectAPIClient` to access models stored in BlockSync. Create a `BlockSyncClient` using the Environment and APIConnector in the same way you would create and `ObjectAPIClient`.
+Block models work a little bit differently for export. These use a `BlockSyncClient` rather than the `ObjectAPIClient` to access models stored in BlockSync. Create a `BlockSyncClient` using the Environment and APIConnector in the same way you would create and `ObjectAPIClient`.
 
 ```python
 from evo.data_converters.common import BlockSyncClient
@@ -147,9 +147,9 @@ from evo.data_converters.common import BlockSyncClient
 blocksync_client = BlockSyncClient(workspace_env, hub_connector)
 ```
 
-### Export a blockmodel to OMF V1
+### Export a block model to OMF V1
 
-Specify the Object UUID of the block model object you want to export and the output file path, and then call `export_blocksync_omf()`.
+Specify the object UUID of the block model object you want to export and the output file path, then call `export_blocksync_omf()`.
 
 **Note**: At this stage only Regular block model types are supported.
 
@@ -177,7 +177,7 @@ export_blocksync_omf(
 print(f"File saved to {output_file}")
 ```
 
-### Download parquet file only
+### Download Parquet file only
 
 ```python
 import shutil
