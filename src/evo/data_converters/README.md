@@ -166,7 +166,7 @@ def convert_yourfiletype(
 
 ```
 
-**Note:** this example only returns the `ObjectMetadata`, with no option to not publish immediately.  Refer to the existing converter examples to see usage for the optional return of `BaseSpatialDataProperties_V1_0_1`.
+**Note:** this example only returns the `ObjectMetadata`, and will publish immediately.  Refer to the existing converter examples to see usage for the optional return of `BaseSpatialDataProperties_V1_0_1`.
 
 
 #### Parameters
