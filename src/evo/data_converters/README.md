@@ -178,7 +178,7 @@ The following parameters are passed into the convert function.  By convention th
 | `filepath`  |Path to the OMF file.  |
 | `epsg_code`        | The EPSG code to use when creating a coordinate reference system object. For information on other supported coordinate reference systems refer to [the "common data types" documentation.](https://developer.seequent.com/docs/api/fundamentals/common-data-types#coordinate-reference-systems) |
 | `evo_workspace_metadata` | (Optional) Evo workspace metadata.  |
-| `service_manager_widget` |(Optional) Service Manager Widget for use in Jupyter notebooks. |
+| `service_manager_widget` | (Optional) Service Manager Widget for use in Jupyter notebooks. |
 | `tags` | (Optional) Key value pair list of metadata tags to attach to the geoscience object. |
 | `upload_path` | (Optional) Path objects will be published under.  Defaults to the root of the workspace. |
 

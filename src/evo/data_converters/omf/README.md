@@ -9,14 +9,14 @@ To work with OMF files the `omf2` module is used, which is a Python interface to
 https://github.com/gmggroup/omf-rust
 
 ## Publish geoscience objects from an OMF file
-**Note**: For some OMF geometry types, there is more one possible way they could be converted to geoscience objects. An OMF `LineSet` can be used to represent more than one thing (e.g. poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to `LineSegments`. You may want to convert them to a different geoscience object, depending on your use case.
+**Note**: For some OMF geometry types there is more than one possible way they could be converted to geoscience objects. For example, an OMF `LineSet` can be used to represent more than one thing (poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to `LineSegments`. Depending on your use case, you may want to convert them to a different geoscience object.
 
-[The `evo-sdk-common` Python library](https://pypi.org/project/evo-sdk-common/) can be used to log in. Then an organisation, hub, and workspace can be selected. Use [`evo-objects`](https://pypi.org/project/evo-objects/) to get an `ObjectAPIClient`, and [`evo-data-converters`](https://pypi.org/project/evo-data-converters/) to convert your file.
+[The `evo-sdk-common` Python library](https://pypi.org/project/evo-sdk-common/) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://pypi.org/project/evo-objects/) to get an `ObjectAPIClient`, and [`evo-data-converters`](https://pypi.org/project/evo-data-converters/) to convert your file.
 
 Choose the OMF file you want to publish and set its path in the `omf_file` variable.
 Choose an EPSG code to use for the Coordinate Reference System.
 
-You may also specify tags to add to the created geoscience objects.
+You can also specify tags to add to the created geoscience objects.
 
 Then call `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectAPIClient` from above, and finally a path you want the published objects to appear under in your workspace.
 
@@ -101,12 +101,12 @@ async with hub_connector:
 
 ## Export objects to OMF
 
-To export an object from Evo to an OMF file, specify the Evo object UUID of objects you want to export and the output file path, and then call `export_omf()`.
+To export an object from Evo to an OMF file, specify the Evo object UUID of the object you want to export and the output file path, and then call `export_omf()`.
 See documentation on the `ObjectAPIClient` for listing objects and getting their IDs and versions.
 
 You may also specify the version of this object to export. If not specified, so it will export the latest version.
 
-You will need the same selection of organisation, hub, and workspace that is needed for importing objects.
+You will need the same selection of organisation, Evo hub, and workspace that is needed for importing objects.
 
 **Note**: Some geoscience object types are not yet supported.
 
@@ -149,7 +149,7 @@ blocksync_client = BlockSyncClient(workspace_env, hub_connector)
 
 ### Export a block model to OMF V1
 
-Specify the object UUID of the block model object you want to export and the output file path, then call `export_blocksync_omf()`.
+Specify the block model UUID of the block model object you want to export and the output file path, then call `export_blocksync_omf()`.
 
 **Note**: At this stage only Regular block model types are supported.
 
