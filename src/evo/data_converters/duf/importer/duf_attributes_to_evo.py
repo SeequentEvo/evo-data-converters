@@ -117,4 +117,4 @@ def convert_duf_single_value_attribute(
             )
         case _:
             logger.warning(f"Skipping unsupported DUF attribute data type '{value.__class__.__name__}'")
-    return None
+            return None

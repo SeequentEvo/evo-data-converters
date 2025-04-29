@@ -75,8 +75,8 @@ def convert_duf(
                 if geoscience_object.tags is None:
                     geoscience_object.tags = {}
                 geoscience_object.tags["Source"] = f"{os.path.basename(filepath)} (via Evo Data Converters)"
-                geoscience_object.tags["Stage"] = "Experimental"
                 geoscience_object.tags["InputType"] = "DUF"
+                geoscience_object.tags["Category"] = str(cat)
 
                 # Add custom tags
                 if tags:

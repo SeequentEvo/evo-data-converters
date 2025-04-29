@@ -31,9 +31,9 @@ sys.path.append(newest)
 
 import clr
 
+clr.AddReference("Deswik.Duf")
 clr.AddReference("Deswik.Entities")
 clr.AddReference("Deswik.Entities.Cad")
-clr.AddReference("Deswik.Duf")
 clr.AddReference("Deswik.Serialization")
 # isort: on
 
