@@ -1,12 +1,10 @@
 import evo.logging
-
 from evo.data_converters.duf.common import DufWrapper, ObjectCollector
 
 logger = evo.logging.getLogger("data_converters")
 
 
 class DufCollectorContext:
-
     def __init__(self, filepath: str):
         self._collector = ObjectCollector()
 

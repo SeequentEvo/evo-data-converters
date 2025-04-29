@@ -1,11 +1,10 @@
 from datetime import datetime
 from typing import Any, Optional
-from uuid import uuid4
 
-from dateutil.parser import isoparse
-import numpy as np
-import pandas as pd
+import evo.logging
 import pyarrow as pa
+from dateutil.parser import isoparse
+from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
     ContinuousAttribute_V1_1_0,
     DateTimeAttribute_V1_1_0,
@@ -19,14 +18,9 @@ from evo_schemas.components import (
 from evo_schemas.elements import (
     DateTimeArray_V1_0_1,
     FloatArray1_V1_0_1,
-    FloatArrayMd_V1_0_1,
     IntegerArray1_V1_0_1,
     StringArray_V1_0_1,
 )
-from pandas.api.types import is_datetime64_dtype
-
-import evo.logging
-from evo.objects.utils.data import ObjectDataClient
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -53,68 +47,90 @@ def convert_duf_single_value_attribute(
     if isinstance(value, str):
         try:
             value = isoparse(value)
-        except:
+        except ValueError:
             pass
 
     match value:
         case str():
-            table = pa.table([[value]], schema=pa.schema([
-                pa.field('n0', pa.string()),
-            ]))
+            table = pa.table(
+                [[value]],
+                schema=pa.schema(
+                    [
+                        pa.field("n0", pa.string()),
+                    ]
+                ),
+            )
             table = data_client.save_table(table)
             return StringAttribute_V1_1_0(
                 name=key,
                 key=key,
                 values=StringArray_V1_0_1(
-                    data=table['data'],
+                    data=table["data"],
                     length=1,
-                )
+                ),
             )
         case int():
-            table = pa.table([[value]], schema=pa.schema([
-                pa.field('n0', pa.int64()),
-            ]))
+            table = pa.table(
+                [[value]],
+                schema=pa.schema(
+                    [
+                        pa.field("n0", pa.int64()),
+                    ]
+                ),
+            )
             table = data_client.save_table(table)
             return IntegerAttribute_V1_1_0(
                 name=key,
                 key=key,
                 values=IntegerArray1_V1_0_1(
-                    data=table['data'],
+                    data=table["data"],
                     length=1,
-                    data_type=table['data_type'],
+                    data_type=table["data_type"],
                 ),
                 nan_description=NanCategorical_V1_0_1(values=[]),
             )
         case float():
-            table = pa.table([[value]], schema=pa.schema([
-                pa.field('n0', pa.float64()),
-            ]))
+            table = pa.table(
+                [[value]],
+                schema=pa.schema(
+                    [
+                        pa.field("n0", pa.float64()),
+                    ]
+                ),
+            )
             table = data_client.save_table(table)
             return ContinuousAttribute_V1_1_0(
                 name=key,
                 key=key,
                 values=FloatArray1_V1_0_1(
-                    data=table['data'],
+                    data=table["data"],
                     length=1,
-                    data_type=table['data_type'],
+                    data_type=table["data_type"],
                 ),
                 nan_description=NanContinuous_V1_0_1(values=[]),
             )
         case datetime():
-            table = pa.table([[value]], schema=pa.schema([
-                pa.field('n0', pa.timestamp('us', tz='UTC')),
-            ]))
+            table = pa.table(
+                [[value]],
+                schema=pa.schema(
+                    [
+                        pa.field("n0", pa.timestamp("us", tz="UTC")),
+                    ]
+                ),
+            )
             table = data_client.save_table(table)
             return DateTimeAttribute_V1_1_0(
                 name=key,
                 key=key,
                 values=DateTimeArray_V1_0_1(
-                    data=table['data'],
+                    data=table["data"],
                     length=1,
-                    data_type=table['data_type'],
+                    data_type=table["data_type"],
                 ),
                 nan_description=NanCategorical_V1_0_1(values=[]),
             )
         case _:
-            logger.warning(f"Skipping unsupported DUF attribute data type '{value.__class__.__name__}'")
+            logger.warning(
+                f"Skipping unsupported DUF attribute data type '{value.__class__.__name__}'"
+            )
             return None

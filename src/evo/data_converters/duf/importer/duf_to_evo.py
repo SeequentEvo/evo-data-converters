@@ -1,8 +1,6 @@
 import os
 from typing import TYPE_CHECKING, Optional
 
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
-
 import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
@@ -10,8 +8,9 @@ from evo.data_converters.common import (
     publish_geoscience_objects,
 )
 from evo.data_converters.duf import DufCollectorContext, ObjectCollector
-from evo.data_converters.duf.common.duf_wrapper import Category, Polyface, Polyline
+from evo.data_converters.duf.common.duf_wrapper import Polyface, Polyline
 from evo.objects.data import ObjectMetadata
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
 from .duf_lineset_to_evo import convert_duf_lineset
 from .duf_surface_to_evo import convert_duf_surface
@@ -56,7 +55,8 @@ def convert_duf(
     geoscience_objects = []
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+        evo_workspace_metadata=evo_workspace_metadata,
+        service_manager_widget=service_manager_widget,
     )
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing objects will be skipped due to missing hub_url.")
@@ -65,7 +65,10 @@ def convert_duf(
     context = DufCollectorContext(filepath)
     collector: ObjectCollector = context.collector
 
-    for klass, converter in ((Polyface, convert_duf_surface), (Polyline, convert_duf_lineset)):
+    for klass, converter in (
+        (Polyface, convert_duf_surface),
+        (Polyline, convert_duf_lineset),
+    ):
         objs = collector.get_objects_by_type(klass)
 
         for cat, obj in objs:
@@ -74,7 +77,9 @@ def convert_duf(
             if geoscience_object:
                 if geoscience_object.tags is None:
                     geoscience_object.tags = {}
-                geoscience_object.tags["Source"] = f"{os.path.basename(filepath)} (via Evo Data Converters)"
+                geoscience_object.tags[
+                    "Source"
+                ] = f"{os.path.basename(filepath)} (via Evo Data Converters)"
                 geoscience_object.tags["InputType"] = "DUF"
                 geoscience_object.tags["Category"] = str(cat)
 
