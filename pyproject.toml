@@ -18,6 +18,7 @@ dependencies = [
   "omf2>=0.2.0-beta.1",
   "pandas==2.2.3",
   "pyarrow",
+  "pythonnet==3.0.5",
   "pure-interface",
   "resqpy==5.1.10",
   "evo-schemas>=2024.4",
