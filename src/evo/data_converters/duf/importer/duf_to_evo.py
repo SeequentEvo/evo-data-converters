@@ -1,6 +1,8 @@
 import os
 from typing import TYPE_CHECKING, Optional
 
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+
 import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
@@ -10,7 +12,6 @@ from evo.data_converters.common import (
 from evo.data_converters.duf import DufCollectorContext, ObjectCollector
 from evo.data_converters.duf.common.duf_wrapper import Polyface, Polyline
 from evo.objects.data import ObjectMetadata
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
 from .duf_lineset_to_evo import convert_duf_lineset
 from .duf_surface_to_evo import convert_duf_surface
@@ -77,9 +78,7 @@ def convert_duf(
             if geoscience_object:
                 if geoscience_object.tags is None:
                     geoscience_object.tags = {}
-                geoscience_object.tags[
-                    "Source"
-                ] = f"{os.path.basename(filepath)} (via Evo Data Converters)"
+                geoscience_object.tags["Source"] = f"{os.path.basename(filepath)} (via Evo Data Converters)"
                 geoscience_object.tags["InputType"] = "DUF"
                 geoscience_object.tags["Category"] = str(cat)
 

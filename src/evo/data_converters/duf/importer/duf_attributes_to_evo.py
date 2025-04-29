@@ -1,10 +1,8 @@
 from datetime import datetime
 from typing import Any, Optional
 
-import evo.logging
 import pyarrow as pa
 from dateutil.parser import isoparse
-from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
     ContinuousAttribute_V1_1_0,
     DateTimeAttribute_V1_1_0,
@@ -21,6 +19,9 @@ from evo_schemas.elements import (
     IntegerArray1_V1_0_1,
     StringArray_V1_0_1,
 )
+
+import evo.logging
+from evo.objects.utils.data import ObjectDataClient
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -130,7 +131,5 @@ def convert_duf_single_value_attribute(
                 nan_description=NanCategorical_V1_0_1(values=[]),
             )
         case _:
-            logger.warning(
-                f"Skipping unsupported DUF attribute data type '{value.__class__.__name__}'"
-            )
+            logger.warning(f"Skipping unsupported DUF attribute data type '{value.__class__.__name__}'")
             return None

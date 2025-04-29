@@ -1,7 +1,5 @@
-import evo.logging
 import numpy as np
 import pyarrow as pa
-from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
     Crs_V1_0_1_EpsgCode,
     Segments_V1_2_0,
@@ -10,6 +8,9 @@ from evo_schemas.components import (
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
 from evo_schemas.objects import LineSegments_V2_1_0, LineSegments_V2_1_0_Parts
+
+import evo.logging
+from evo.objects.utils.data import ObjectDataClient
 
 from ...common.utils import vertices_bounding_box
 from ..common.duf_wrapper import Polyline
@@ -49,9 +50,7 @@ def convert_duf_lineset(
     logger.debug(f"Vertices: {vertices_array.shape}")
 
     attributes = (
-        [(xprop.Key, xprop.Value.Value[0].Value) for xprop in polyline.XProperties]
-        if polyline.XProperties
-        else []
+        [(xprop.Key, xprop.Value.Value[0].Value) for xprop in polyline.XProperties] if polyline.XProperties else []
     )
     logger.debug(f"Num Polyline Attributes: {len(attributes)}")
 
@@ -64,29 +63,19 @@ def convert_duf_lineset(
             pa.field("z", pa.float64()),
         ]
     )
-    indices_schema = pa.schema(
-        [pa.field("n0", pa.uint64()), pa.field("n1", pa.uint64())]
-    )
+    indices_schema = pa.schema([pa.field("n0", pa.uint64()), pa.field("n1", pa.uint64())])
 
     vertices_table = pa.Table.from_arrays(
-        [
-            pa.array(vertices_array[:, i], type=pa.float64())
-            for i in range(len(vertices_schema))
-        ],
+        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))],
         schema=vertices_schema,
     )
     indices_table = pa.Table.from_arrays(
-        [
-            pa.array(indices_array[:, i], type=pa.uint64())
-            for i in range(len(indices_schema))
-        ],
+        [pa.array(indices_array[:, i], type=pa.uint64()) for i in range(len(indices_schema))],
         schema=indices_schema,
     )
     parts_table = pa.Table.from_arrays(
         [pa.array([0], type=pa.uint64()), pa.array([num_vertices], type=pa.uint64())],
-        schema=pa.schema(
-            [pa.field("offset", pa.uint64()), pa.field("count", pa.uint64())]
-        ),
+        schema=pa.schema([pa.field("offset", pa.uint64()), pa.field("count", pa.uint64())]),
     )
 
     line_attributes_go = convert_duf_attributes(attributes, data_client)
@@ -95,9 +84,7 @@ def convert_duf_lineset(
         attributes=line_attributes_go,
     )
     vertices_go = Segments_V1_2_0_Vertices(**data_client.save_table(vertices_table))
-    segment_indices_go = Segments_V1_2_0_Indices(
-        **data_client.save_table(indices_table)
-    )
+    segment_indices_go = Segments_V1_2_0_Indices(**data_client.save_table(indices_table))
 
     line_segments_go = LineSegments_V2_1_0(
         name=name,

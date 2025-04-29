@@ -8,15 +8,11 @@ if not platform.system() == "Windows":
     raise RuntimeError("This script is only supported on Windows.")
 
 if not os.path.exists(r"C:\Program Files\Deswik"):
-    raise RuntimeError(
-        "Deswik.Suite is not installed. Please install Deswik.Suite to run this script."
-    )
+    raise RuntimeError("Deswik.Suite is not installed. Please install Deswik.Suite to run this script.")
 
 installs = [pth for pth in os.listdir(r"C:\Program Files\Deswik") if "Suite" in pth]
 if not installs:
-    raise RuntimeError(
-        "Deswik.Suite is not installed. Please install Deswik.Suite to run this script."
-    )
+    raise RuntimeError("Deswik.Suite is not installed. Please install Deswik.Suite to run this script.")
 
 
 # Sort by version
@@ -86,9 +82,7 @@ class DufWrapper:
         self.LoadEntitiesInternal(None, dufGuidReferences)
 
     def LoadSingleEntity(self, entityId, guidReferences):
-        return self._duf.LoadSingleEntityFromLatest(
-            entityId, guidReferences, False, None
-        )
+        return self._duf.LoadSingleEntityFromLatest(entityId, guidReferences, False, None)
 
     def LoadEntitiesInternal(self, layerGuid, dufGuidReferences):
         parents = None
@@ -101,9 +95,7 @@ class DufWrapper:
         Crit = FilterCriteria[Category]()
         Crit.Categories = Categories
         Crit.ParentIds = parents
-        for entity in self._duf.LoadFromLatest(
-            dufGuidReferences, Crit, False, True, None
-        ):
+        for entity in self._duf.LoadFromLatest(dufGuidReferences, Crit, False, True, None):
             self._doc.Loaded(Category.ModelEntities, entity)
 
     def LoadLayerEntities(self, layerGuid, guidReferences):
@@ -161,9 +153,7 @@ class DufWrapper:
         Categories.Add(category)
         Crit = FilterCriteria[Category]()
         Crit.Categories = Categories
-        for entity in self._duf.LoadFromLatest(
-            dufGuidReferences, Crit, False, True, None
-        ):
+        for entity in self._duf.LoadFromLatest(dufGuidReferences, Crit, False, True, None):
             callback(entity)
 
     def XPropertyExists(self, xprops, name):
@@ -184,20 +174,14 @@ class DufWrapper:
         Crit = FilterCriteria[Category]()
         Crit.Categories = Categories
         layers = list(self._duf.LoadFromLatest(None, Crit, False, True, None))
-        zeroLayer = next(
-            layer for layer in layers if layer.Name == self.nameOfZeroLayer
-        )
+        zeroLayer = next(layer for layer in layers if layer.Name == self.nameOfZeroLayer)
         settingsLayerName = self.nameOfZeroLayer
 
         if self.XPropertyExists(zeroLayer.XProperties, self.nameOfSettingsLayer):
             xprop = self.XPropertyGet(zeroLayer.XProperties, self.nameOfSettingsLayer)
-            settingsLayerName = (
-                xprop.Value.Value[0].Value or self.nameOfSettingsLayerDefault
-            )
+            settingsLayerName = xprop.Value.Value[0].Value or self.nameOfSettingsLayerDefault
 
-        settingsLayer = next(
-            (layer for layer in layers if layer.Name == settingsLayerName), None
-        )
+        settingsLayer = next((layer for layer in layers if layer.Name == settingsLayerName), None)
 
         if settingsLayer is None:
             settingsLayer = zeroLayer
@@ -207,29 +191,21 @@ class DufWrapper:
 
 class ObjectCollector:
     def __init__(self, verbose=False):
-        self._objs: dict[Category, dict[type, BaseEntity]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+        self._objs: dict[Category, dict[type, BaseEntity]] = defaultdict(lambda: defaultdict(list))
         self._verbose = verbose
 
     def Loaded(self, category, item):
         self._objs[category][type(item)].append(item)
         if self._verbose:
-            print(
-                f"Loaded from category {category} entity of type {item.GetType().FullName} with guid {item.Guid}."
-            )
+            print(f"Loaded from category {category} entity of type {item.GetType().FullName} with guid {item.Guid}.")
 
-    def get_objects(
-        self, category: Category, object_type: BaseEntity
-    ) -> list[BaseEntity]:
+    def get_objects(self, category: Category, object_type: BaseEntity) -> list[BaseEntity]:
         return self._objs[category][object_type]
 
     def get_objects_by_category(self, category: Category) -> list[BaseEntity]:
         return [obj for cat_objs in self._objs[category].values() for obj in cat_objs]
 
-    def get_objects_by_type(
-        self, object_type: type
-    ) -> list[tuple[Category, BaseEntity]]:
+    def get_objects_by_type(self, object_type: type) -> list[tuple[Category, BaseEntity]]:
         return [
             (cat, obj)
             for cat, cat_objs in self._objs.items()
