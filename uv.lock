@@ -336,7 +336,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-common"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/common" }
 dependencies = [
     { name = "aiohttp" },
@@ -379,7 +379,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-gocad"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/gocad" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -398,7 +398,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-omf"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/omf" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -429,7 +429,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-resqml"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/resqml" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -456,7 +456,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-ubc"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/ubc" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -475,7 +475,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-vtk"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/vtk" }
 dependencies = [
     { name = "evo-data-converters-common" },

@@ -1,6 +1,3 @@
-[build-system]
-requires = ["setuptools"]
-
 [project]
 name = "evo-data-converters"
 description = "Convert data between geoscience formats and Evo geoscience objects to improve interoperability in geoscience applications"
@@ -35,10 +32,6 @@ omf2 = { git = "https://github.com/gmggroup/omf-rust", subdirectory = "omf-pytho
 [tool.uv.workspace]
 members = ["packages/*"]
 
-[tool.setuptools.packages.find]
-exclude = ["data"]
-namespaces = true
-
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -67,3 +60,13 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_return_any = true
 warn_unused_ignores = true
+
+[build-system]
+requires = ["hatchling", "hatch-fancy-pypi-readme"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+include = ["packages"]
+
+[tool.hatch.build.targets.wheel]
+include = ["packages"]
