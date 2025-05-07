@@ -11,7 +11,6 @@ version = "0.1.0"
 dependencies = [
   "evo-data-converters-common",
   "evo-data-converters-gocad",
-  "evo-data-converters-omf",
   "evo-data-converters-resqml",
   "evo-data-converters-ubc",
   "evo-data-converters-vtk",
@@ -26,14 +25,18 @@ dev = [
 [tool.uv.sources]
 evo-data-converters-common = { workspace = true }
 evo-data-converters-gocad = { workspace = true }
-evo-data-converters-omf = { workspace = true }
 evo-data-converters-resqml = { workspace = true }
 evo-data-converters-ubc = { workspace = true }
 evo-data-converters-vtk = { workspace = true }
-omf2 = { git = "https://github.com/gmggroup/omf-rust", subdirectory = "omf-python" }
 
 [tool.uv.workspace]
-members = ["packages/*"]
+members = [
+  "packages/common",
+  "packages/gocad",
+  "packages/resqml",
+  "packages/ubc",
+  "packages/vtk",
+]
 
 [tool.setuptools.packages.find]
 exclude = ["data"]
