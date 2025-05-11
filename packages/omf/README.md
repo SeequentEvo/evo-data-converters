@@ -17,17 +17,87 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python >= 3.10, <= 3.12
+* Python virtual environment with Python 3.10, 3.11, or 3.12
+* Git
 
 ## Installation
 
-**Note:** This project depends on `omf2`, which is not available in PyPI yet. You must install it from source before you can use this project.
+The `omf` data-converter package depends upon the `omf2` package which is not yet available in PyPI. 
 
-```
-pip install -e "git+https://github.com/gmggroup/omf-rust.git#egg=omf2&subdirectory=omf-python"
+Follow the steps below to install the `omf` data-converter package for your operating system.
 
-pip install evo-data-converters
-```
+### Windows
+1. Install the Visual Studio 2022 C++ build tools (Community edition) from [Download Visual Studio Tools](https://visualstudio.microsoft.com/downloads/). 
+1. Run the Visual Studio installer and follow the instructions until you reach this screen:
+    ![Visual Studio Installer Screen](./images/install_vs.png)
+
+1. Under **Visual Studio Build Tools 2022**, click the **Modify** button.
+1. Tick the box for **Desktop development with C++** and then click the button in the bottom right corner to install it. NOTE: The installation requires several GB of disk space and may take several minutes to complete.
+   ![Visual Studio Workloads](./images/vs_workloads.png)
+
+1. Download the 64-bit Rust install from [![](https://www.rust-lang.org/static/images/favicon-16x16.png)Install Rust](https://www.rust-lang.org/tools/install).
+
+1. If your web browser shows this error, follow the steps below:
+    <br>
+    ![Rust error - app isn't commonly downloaded](./images/rust_error1.png)
+
+    a. Click the three dots and then click <b>Keep</b>.
+    <br>
+    ![Rust error - keep the app](./images/rust_error2.png)
+
+    b. Expand the options and click <b>Keep anyway</b>.
+    <br>
+    ![Rust error - keep anyway](./images/rust_error3.png)
+
+1. Run the Rust installer and follow the instructions.
+
+	a. Enter **y** when asked if you want to proceed.
+
+    b. Enter **1** to proceed with the standard installation.
+
+    c. Press **Enter** when installation is complete.
+
+1. Open your terminal and switch to the folder containing your Python environment.
+
+        cd C:\Users\<username>\path\to\sample\code
+1. Check to see if your Python virtual environment is activated.
+
+        `echo $env:VIRTUAL_ENV`
+1. Check the resulting output. If the file path for your virtual environment is not shown, enter the following command to activate it.
+
+        .\.venv\Scripts\activate
+1. Download the **omf source code** from GitHub.
+
+        pip install -e "git+https://github.com/gmggroup/omf-rust.git#egg=omf2&subdirectory=omf-python"
+1. Install the **evo-data-converters** package.
+
+        pip install evo-data-converters
+1. The **omf package** will compile and install into your Python environment.
+
+### macOS
+1. Open your terminal app.
+2. Install the **Xcode build tools** by entering the command in the terminal window and follow the instructions. If you already have the Xcode tools, you will see an warning message that you can ignore.
+
+        xcode-select --install  
+3. Install the **Rust build tools** by entering this command in the terminal window and following the instructions.
+
+        curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+4. If required, switch to the folder containing your Python environment.
+
+        cd ~/path/to/sample/code
+5. Ensure your virtual environment is activated.
+
+        where python
+6. Check the resulting output. If the file path for your virtual environment is not printed, enter the following command to activate it.
+
+        source ./.venv/bin/activate
+7. Download the **omf source code** from GitHub.
+
+        pip install -e "git+https://github.com/gmggroup/omf-rust.git#egg=omf2&subdirectory=omf-python"
+8. Install the **evo-data-converters** package.
+
+        pip install evo-data-converters
+9. The **omf package** will compile and install into your Python environment.
 
 ## OMF
 
