@@ -22,14 +22,15 @@ When running a converter, data is imported from a supported file format, convert
 
 The existing data converters can be used without modification or used as a template for your own integration.
 
-| Package | Version |
-| --- | --- |
+| Package                                                 | Version                                                                                                                                                        |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [evo-data-converters-common](packages/common/README.md) | <a href="https://pypi.org/project/evo-data-converters-common/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-common" /></a> |
-| [evo-data-converters-gocad](packages/gocad/README.md) | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a> |
-| [evo-data-converters-omf](packages/omf/README.md) | <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-omf" /></a> |
+| [evo-data-converters-duf](packages/duf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-duf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" /></a>       |
+| [evo-data-converters-gocad](packages/gocad/README.md)   | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a>   |
+| [evo-data-converters-omf](packages/omf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-omf" /></a>       |
 | [evo-data-converters-resqml](packages/resqml/README.md) | <a href="https://pypi.org/project/evo-data-converters-resqml/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-resqml" /></a> |
-| [evo-data-converters-ubc](packages/ubc/README.md) | <a href="https://pypi.org/project/evo-data-converters-ubc/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ubc" /></a> |
-| [evo-data-converters-vtk](packages/vtk/README.md) | <a href="https://pypi.org/project/evo-data-converters-vtk/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-vtk" /></a> |
+| [evo-data-converters-ubc](packages/ubc/README.md)       | <a href="https://pypi.org/project/evo-data-converters-ubc/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ubc" /></a>       |
+| [evo-data-converters-vtk](packages/vtk/README.md)       | <a href="https://pypi.org/project/evo-data-converters-vtk/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-vtk" /></a>       |
 
 ## Pre-requisites
 
@@ -50,6 +51,7 @@ Currently supported converters are:
  * [VTK](packages/vtk/README.md)
  * [UBC](packages/ubc/README.md)
  * [GOCAD](packages/gocad/README.md)
+ * [DUF](packages/duf/README.md)
 
  To use any of the data converters, you will need a few things:
   * An *access token* for your user
