@@ -153,7 +153,7 @@ def test_convert_list_of_attrs(
     for attribute_go, expected_attr, expected_value in zip(result, expected_attrs, expected_values):
         assert isinstance(attribute_go, type(expected_attr))
 
-        expected_attr.values.data = attribute_go.values.data  # Unknown before creation
+        expected_attr.values.data = attribute_go.values.data  # Unknown before creation so update now
         assert attribute_go == expected_attr
 
         parquet_file = path.join(str(data_client.cache_location), attribute_go.values.data)

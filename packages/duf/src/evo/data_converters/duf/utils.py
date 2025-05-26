@@ -1,4 +1,4 @@
-from evo.data_converters.duf.common import DufWrapper
+from evo.data_converters.duf.common import DufWrapper, InvalidDufFileException
 
 
 def is_duf(filepath: str) -> bool:
@@ -6,7 +6,7 @@ def is_duf(filepath: str) -> bool:
     try:
         with DufWrapper(filepath, None) as instance:
             instance.LoadSettings()
-    except Exception:
+    except InvalidDufFileException:
         return False
     else:
         return True
