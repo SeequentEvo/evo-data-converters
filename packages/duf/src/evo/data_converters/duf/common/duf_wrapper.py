@@ -200,13 +200,13 @@ class ObjectCollector:
         if self._verbose:
             print(f"Loaded from category {category} entity of type {item.GetType().FullName} with guid {item.Guid}.")
 
-    def get_objects(self, category: Category, object_type: BaseEntity) -> list[BaseEntity]:
+    def get_objects_with_category_of_type(self, category: Category, object_type: BaseEntity) -> list[BaseEntity]:
         return self._objs[category][object_type]
 
-    def get_objects_by_category(self, category: Category) -> list[BaseEntity]:
+    def get_objects_with_category(self, category: Category) -> list[BaseEntity]:
         return [obj for cat_objs in self._objs[category].values() for obj in cat_objs]
 
-    def get_objects_by_type(self, object_type: type) -> list[tuple[Category, BaseEntity]]:
+    def get_objects_of_type(self, object_type: type) -> list[tuple[Category, BaseEntity]]:
         return [
             (cat, obj)
             for cat, cat_objs in self._objs.items()
@@ -214,6 +214,13 @@ class ObjectCollector:
             for obj in objs
             if issubclass(klass, object_type)
         ]
+
+    def get_all_objects_by_type(self):
+        return {
+            klass: [(cat, obj) for obj in objs]
+            for cat, cat_objs in self._objs.items()
+            for klass, objs in cat_objs.items()
+        }
 
     def get_all_objects(self) -> list[BaseEntity]:
         return [obj for cat_objs in self._objs.values() for obj in cat_objs.values()]

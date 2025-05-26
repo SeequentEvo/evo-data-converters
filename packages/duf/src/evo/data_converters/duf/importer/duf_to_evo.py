@@ -66,11 +66,12 @@ def convert_duf(
     with DufCollectorContext(filepath) as context:
         collector: ObjectCollector = context.collector
 
-    for klass, converter in (
-        (Polyface, convert_duf_surface),
-        (Polyline, convert_duf_lineset),
-    ):
-        objs = collector.get_objects_by_type(klass)
+    converters = {Polyface: convert_duf_surface, Polyline: convert_duf_lineset}
+
+    for klass, objs in collector.get_all_objects_by_type():
+        if (converter := converters.get(klass)) is None:
+            logger.warning(f"Unsupported DUF object type: {klass.__name__}, ignoring {len(objs)} objects.")
+            continue
 
         for cat, obj in objs:
             geoscience_object = converter(obj, data_client, epsg_code)
