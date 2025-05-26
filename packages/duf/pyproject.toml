@@ -16,10 +16,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pytest",
+    "requests-mock",
 ]
 
 [tool.ruff]
-src = ["src"]
+src = ["src", "tests"]
 line-length = 120
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]

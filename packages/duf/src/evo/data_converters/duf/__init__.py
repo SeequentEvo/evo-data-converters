@@ -1,4 +1,4 @@
-from .common import ObjectCollector
+from .common import ObjectCollector, Polyface, Polyline
 from .duf_reader_context import DufCollectorContext
 from .utils import is_duf
 
