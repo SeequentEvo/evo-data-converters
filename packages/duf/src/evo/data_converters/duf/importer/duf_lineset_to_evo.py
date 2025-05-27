@@ -12,15 +12,15 @@ from evo_schemas.objects import LineSegments_V2_1_0, LineSegments_V2_1_0_Parts
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 
-from ...common.utils import vertices_bounding_box
-from ..common.duf_wrapper import Polyline
-from ..common.utils import get_name
+from evo.data_converters.common.utils import vertices_bounding_box
+from ..common import Polyline
 from .duf_attributes_to_evo import convert_duf_attributes
+from .utils import get_name
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def convert_duf_lineset(
+def convert_duf_polyline(
     polyline: Polyline,
     data_client: ObjectDataClient,
     epsg_code: int,
@@ -78,11 +78,15 @@ def convert_duf_lineset(
         schema=pa.schema([pa.field("offset", pa.uint64()), pa.field("count", pa.uint64())]),
     )
 
-    line_attributes_go = convert_duf_attributes(attributes, data_client)
-    segment_parts_go = LineSegments_V2_1_0_Parts(
-        chunks=IndexArray2_V1_0_1(**data_client.save_table(parts_table)),
-        attributes=line_attributes_go,
-    )
+    if attributes:
+        # Use parts to store object-level attributes
+        line_attributes_go = convert_duf_attributes(attributes, data_client)
+        segment_parts_go = LineSegments_V2_1_0_Parts(
+            chunks=IndexArray2_V1_0_1(**data_client.save_table(parts_table)),
+            attributes=line_attributes_go,
+        )
+    else:
+        segment_parts_go = None
     vertices_go = Segments_V1_2_0_Vertices(**data_client.save_table(vertices_table))
     segment_indices_go = Segments_V1_2_0_Indices(**data_client.save_table(indices_table))
 

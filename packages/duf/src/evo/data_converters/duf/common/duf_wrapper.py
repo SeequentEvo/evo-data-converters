@@ -43,7 +43,7 @@ clr.AddReference("Deswik.Serialization")
 # Some imports below are unused but imported here to ensure the setup code above has run
 from Deswik.Duf import CompressionMethod, DufImplementation, FilterCriteria, NotDufFileException
 from Deswik.Entities import BaseEntity
-from Deswik.Entities.Cad import Activator, Category, Polyface, Polyline, Upgrader  # noqa: F401
+from Deswik.Entities.Cad import Activator, Category, Layer, Polyface, Polyline, Upgrader  # noqa: F401
 from Deswik.Serialization import GuidReferences
 from System import Guid, NullReferenceException
 from System.Collections.Generic import List
@@ -62,9 +62,19 @@ class DufFileNotFoundException(FileNotFoundError):
 class ObjectCollector:
     def __init__(self, verbose=False):
         self._objs: dict[Category, dict[type, BaseEntity]] = defaultdict(lambda: defaultdict(list))
+        self._layers_by_guid: dict[Guid, Layer] = {}
         self._verbose = verbose
 
     def Loaded(self, category, item):
+        if category == Category.Layers:
+            if not isinstance(item, Layer):
+                raise TypeError(f"Expected Layer, got {type(item).__name__}")
+            self._layers_by_guid[item.Guid] = item
+        elif hasattr(item, "Layer"):
+            # Sometimes the loaded layer on the object is not the same as the one in the layer collection, fix this
+            if item.Layer is not None and item.Layer is not self._layers_by_guid[item.Layer.Guid]:
+                item.Layer = self._layers_by_guid[item.Layer.Guid]
+
         self._objs[category][type(item)].append(item)
         if self._verbose:
             print(f"Loaded from category {category} entity of type {item.GetType().FullName} with guid {item.Guid}.")
@@ -102,7 +112,7 @@ class DufWrapper:
     nameOfSettingsLayerDefault = "_DW_SETTINGS"
     DufCompressionMethod = CompressionMethod.Snappy
 
-    def __init__(self, path: str, collector: ObjectCollector | None):
+    def __init__(self, path: str, collector: ObjectCollector | None = None):
         if not os.path.exists(path):
             raise DufFileNotFoundException(f"DUF file not found: {path}")
 
@@ -161,6 +171,11 @@ class DufWrapper:
             lambda item: self._collector.Loaded(Category.Document, item),
         )
         self.LoadTopLevelEntitiesOfType(
+            Category.Layers,
+            dufGuidReferences,
+            lambda item: self._collector.Loaded(Category.Layers, item),
+        )
+        self.LoadTopLevelEntitiesOfType(
             Category.LineTypes,
             dufGuidReferences,
             lambda item: self._collector.Loaded(Category.LineTypes, item),
@@ -169,11 +184,6 @@ class DufWrapper:
             Category.Images,
             dufGuidReferences,
             lambda item: self._collector.Loaded(Category.Images, item),
-        )
-        self.LoadTopLevelEntitiesOfType(
-            Category.Layers,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(Category.Layers, item),
         )
         self.LoadTopLevelEntitiesOfType(
             Category.TextStyles,

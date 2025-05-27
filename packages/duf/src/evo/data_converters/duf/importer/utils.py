@@ -1,6 +1,6 @@
 import re
 
-from .duf_wrapper import BaseEntity
+from ..common.duf_wrapper import BaseEntity
 
 
 def validify(name: str) -> str:

@@ -17,14 +17,13 @@ from evo.data_converters.duf import is_duf, DufFileNotFoundException
 
 
 def test_should_detect_duf_file_as_duf():
-    duf_file = Path(__file__).parent.parent / "data" / "pit_mesh.duf"
-    assert is_duf(str(duf_file.resolve()))
+    duf_file = str((Path(__file__).parent.parent / "data" / "pit_mesh.duf").resolve())
+    assert is_duf(duf_file)
 
 
 def test_should_not_detect_non_duf_file_as_duf():
-    duf_file = Path(__file__).parent.parent / "data" / "not_duf.duf"
-    res = is_duf(str(duf_file.resolve()))
-    assert not res
+    duf_file = str((Path(__file__).parent.parent / "data" / "not_duf.duf").resolve())
+    assert not is_duf(duf_file)
 
 
 def test_should_raise_expected_exception_when_file_not_found():

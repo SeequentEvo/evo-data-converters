@@ -14,14 +14,14 @@ import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 
 from evo.data_converters.common.utils import vertices_bounding_box
-from ..common.duf_wrapper import Polyface
-from ..common.utils import get_name
+from ..common import Polyface
+from .utils import get_name
 from .duf_attributes_to_evo import convert_duf_attributes
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def convert_duf_surface(
+def convert_duf_polyface(
     surface: Polyface,
     data_client: ObjectDataClient,
     epsg_code: int,

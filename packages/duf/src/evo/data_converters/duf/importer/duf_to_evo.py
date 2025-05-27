@@ -1,20 +1,19 @@
 import os
 from typing import TYPE_CHECKING, Optional
 
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
-
 import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
 )
-from evo.data_converters.duf import DufCollectorContext, ObjectCollector
-from ..common.duf_wrapper import Polyface, Polyline
 from evo.objects.data import ObjectMetadata
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
-from .duf_lineset_to_evo import convert_duf_lineset
-from .duf_surface_to_evo import convert_duf_surface
+from ..common import ObjectCollector, Polyface, Polyline
+from ..duf_reader_context import DufCollectorContext
+from .duf_lineset_to_evo import convert_duf_polyline
+from .duf_surface_to_evo import convert_duf_polyface
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -66,7 +65,7 @@ def convert_duf(
     with DufCollectorContext(filepath) as context:
         collector: ObjectCollector = context.collector
 
-    converters = {Polyface: convert_duf_surface, Polyline: convert_duf_lineset}
+    converters = {Polyface: convert_duf_polyface, Polyline: convert_duf_polyline}
 
     for klass, objs in collector.get_all_objects_by_type():
         if (converter := converters.get(klass)) is None:
