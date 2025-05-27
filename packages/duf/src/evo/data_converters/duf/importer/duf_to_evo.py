@@ -67,8 +67,9 @@ def convert_duf(
 
     converters = {Polyface: convert_duf_polyface, Polyline: convert_duf_polyline}
 
-    for klass, objs in collector.get_all_objects_by_type():
-        if (converter := converters.get(klass)) is None:
+    for klass, objs in collector.get_all_objects_by_type().items():
+        converter = next((conv for conv_klass, conv in converters.items() if issubclass(klass, conv_klass)), None)
+        if converter is None:
             logger.warning(f"Unsupported DUF object type: {klass.__name__}, ignoring {len(objs)} objects.")
             continue
 

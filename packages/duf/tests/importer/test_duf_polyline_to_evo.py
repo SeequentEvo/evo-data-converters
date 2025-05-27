@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 from os import path
-from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
@@ -21,15 +20,13 @@ from evo_schemas.components import (
 )
 from evo_schemas.objects import LineSegments_V2_1_0
 
-from evo.data_converters.duf import DufCollectorContext, Polyline
+from evo.data_converters.duf import Polyline
 from evo.data_converters.duf.importer import convert_duf_polyline
 
 
 @pytest.fixture(scope="module")
-def polyline_obj():
-    duf_file = str((Path(__file__).parent.parent / "data" / "polyline.duf").resolve())
-    with DufCollectorContext(duf_file) as context:
-        return context.collector.get_objects_of_type(Polyline)[0][1]
+def polyline_obj(simple_objects):
+    return simple_objects.get_objects_of_type(Polyline)[0][1]
 
 
 def test_should_convert_duf_polyline_geometry(polyline_obj, data_client):
