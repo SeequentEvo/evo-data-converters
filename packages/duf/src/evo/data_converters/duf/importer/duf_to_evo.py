@@ -12,8 +12,8 @@ from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
 from ..common import ObjectCollector, Polyface, Polyline
 from ..duf_reader_context import DufCollectorContext
-from .duf_lineset_to_evo import convert_duf_polyline
-from .duf_surface_to_evo import convert_duf_polyface
+from .duf_polyface_to_evo import convert_duf_polyface
+from .duf_polyline_to_evo import convert_duf_polyline
 
 logger = evo.logging.getLogger("data_converters")
 

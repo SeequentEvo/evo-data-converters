@@ -81,18 +81,22 @@ def convert_duf_polyface(
         schema=indices_schema,
     )
 
-    parts_table = pa.Table.from_arrays(
-        [pa.array([0], type=pa.uint64()), pa.array([num_vertices], type=pa.uint64())],
-        schema=pa.schema([pa.field("offset", pa.uint64()), pa.field("count", pa.uint64())]),
-    )
+    if attributes:
+        # Use parts to store object-level attributes
+        surface_attributes_go = convert_duf_attributes(attributes, data_client)
+        parts_table = pa.Table.from_arrays(
+            [pa.array([0], type=pa.uint64()), pa.array([num_vertices], type=pa.uint64())],
+            schema=pa.schema([pa.field("offset", pa.uint64()), pa.field("count", pa.uint64())]),
+        )
+        mesh_parts_go = EmbeddedTriangulatedMesh_V2_1_0_Parts(
+            chunks=IndexArray2_V1_0_1(**data_client.save_table(parts_table)),
+            attributes=surface_attributes_go,
+        )
+    else:
+        mesh_parts_go = None
 
-    surface_attributes_go = convert_duf_attributes(attributes, data_client)
     mesh_vertices_go = Triangles_V1_2_0_Vertices(**data_client.save_table(vertices_table))
     mesh_triangle_indices_go = Triangles_V1_2_0_Indices(**data_client.save_table(indices_table))
-    mesh_parts_go = EmbeddedTriangulatedMesh_V2_1_0_Parts(
-        chunks=IndexArray2_V1_0_1(**data_client.save_table(parts_table)),
-        attributes=surface_attributes_go,
-    )
 
     triangle_mesh_go = TriangleMesh_V2_1_0(
         name=name,
