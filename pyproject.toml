@@ -7,6 +7,7 @@ license = { file = "LICENSE.md", content-type = "text/markdown" }
 version = "0.1.0"
 dependencies = [
   "evo-data-converters-common",
+  "evo-data-converters-duf",
   "evo-data-converters-gocad",
   "evo-data-converters-omf",
   "evo-data-converters-resqml",
@@ -22,6 +23,7 @@ dev = [
 
 [tool.uv.sources]
 evo-data-converters-common = { workspace = true }
+evo-data-converters-duf = { workspace = true }
 evo-data-converters-gocad = { workspace = true }
 evo-data-converters-omf = { workspace = true }
 evo-data-converters-resqml = { workspace = true }
