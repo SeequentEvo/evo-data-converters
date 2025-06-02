@@ -5,20 +5,28 @@ changelog:
     labels:
       - ignore-for-release
   categories:
+    - title: evo-data-converters-common
+      labels:
+        - common
+    - title: evo-data-converters-gocad
+      labels:
+        - gocad
+    - title: evo-data-converters-omf
+      labels:
+        - omf
+    - title: evo-data-converters-resqml
+      labels:
+        - resqml
+    - title: evo-data-converters-ubc
+      labels:
+        - ubc
+    - title: evo-data-converters-vtk
+      labels:
+        - vtk
     - title: Breaking Changes 🛠
       labels:
         - semver-major
         - breaking-change
-    - title: New Features 🎉
-      labels:
-        - semver-minor
-        - enhancement
-        - feature
-    - title: Bug Fixes 🐛
-      labels:
-        - semver-patch
-        - bugfix
-        - bug
     - title: Other Changes
       labels:
         - "*"
