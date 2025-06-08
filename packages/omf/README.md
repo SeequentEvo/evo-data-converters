@@ -96,7 +96,7 @@ Follow the steps below to install the `omf` data-converter package for your oper
         pip install -e "git+https://github.com/gmggroup/omf-rust.git#egg=omf2&subdirectory=omf-python"
 8. Install the **evo-data-converters** package.
 
-        pip install evo-data-converters
+        pip install evo-data-converters-omf
 9. The **omf package** will compile and install into your Python environment.
 
 ## OMF
