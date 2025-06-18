@@ -16,7 +16,28 @@ env:
 jobs:
   run-tests:
     if: startsWith(github.event.release.tag_name, 'evo-data-converters-omf@')
-    uses: ./.github/workflows/run-all-tests.yaml
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+        package:
+          - common
+          - omf
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/testing
+        with:
+          PACKAGE: ${{ matrix.package }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
 
   build-and-publish:
     name: Build and publish package

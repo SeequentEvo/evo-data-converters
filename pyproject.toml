@@ -14,6 +14,12 @@ dependencies = [
   "evo-data-converters-vtk",
 ]
 
+[project.urls]
+Source = "https://github.com/SeequentEvo/evo-python-sdk"
+Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
+Homepage = "https://www.seequent.com/"
+Documentation = "https://developer.seequent.com/"
+
 [dependency-groups]
 dev = [
   "mypy",

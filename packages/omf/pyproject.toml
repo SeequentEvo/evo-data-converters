@@ -8,6 +8,7 @@ dynamic = ["readme"]
 authors = [
     { name = "Seequent", email = "support@seequent.com" }
 ]
+
 dependencies = [
     "evo-data-converters-common",
     "pandas",
@@ -15,6 +16,12 @@ dependencies = [
     # Dependency is unstable. Provide a constraint when we have some published.
     "omf2"
 ]
+
+[project.urls]
+Source = "https://github.com/SeequentEvo/evo-python-sdk"
+Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
+Homepage = "https://www.seequent.com/"
+Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
 dev = [
