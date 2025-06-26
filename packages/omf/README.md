@@ -29,25 +29,25 @@ Follow the steps below to install the `omf` data-converter package for your oper
 ### Windows
 1. Install the Visual Studio 2022 C++ build tools (Community edition) from [Download Visual Studio Tools](https://visualstudio.microsoft.com/downloads/). 
 1. Run the Visual Studio installer and follow the instructions until you reach this screen:
-    ![Visual Studio Installer Screen](./images/install_vs.png)
+    ![Visual Studio Installer Screen](https://github.com/SeequentEvo/evo-data-converters/raw/main/packages/omf/images/install_vs.png)
 
 1. Under **Visual Studio Build Tools 2022**, click the **Modify** button.
 1. Tick the box for **Desktop development with C++** and then click the button in the bottom right corner to install it. NOTE: The installation requires several GB of disk space and may take several minutes to complete.
-   ![Visual Studio Workloads](./images/vs_workloads.png)
+   ![Visual Studio Workloads](https://github.com/SeequentEvo/evo-data-converters/raw/main/packages/omf/images/vs_workloads.png)
 
 1. Download the 64-bit Rust install from [![](https://www.rust-lang.org/static/images/favicon-16x16.png)Install Rust](https://www.rust-lang.org/tools/install).
 
 1. If your web browser shows this error, follow the steps below:
     <br>
-    ![Rust error - app isn't commonly downloaded](./images/rust_error1.png)
+    ![Rust error - app isn't commonly downloaded](https://github.com/SeequentEvo/evo-data-converters/raw/main/packages/omf/images/rust_error1.png)
 
     a. Click the three dots and then click <b>Keep</b>.
     <br>
-    ![Rust error - keep the app](./images/rust_error2.png)
+    ![Rust error - keep the app](https://github.com/SeequentEvo/evo-data-converters/raw/main/packages/omf/images/rust_error2.png)
 
     b. Expand the options and click <b>Keep anyway</b>.
     <br>
-    ![Rust error - keep anyway](./images/rust_error3.png)
+    ![Rust error - keep anyway](https://github.com/SeequentEvo/evo-data-converters/raw/main/packages/omf/images/rust_error3.png)
 
 1. Run the Rust installer and follow the instructions.
 
