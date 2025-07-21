@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<VTKFile type="vtkMultiBlockDataSet" version="1.0" byte_order="LittleEndian">
+  <vtkMultiBlockDataSet>
+    <DataSet index="0" file="collection/image_data.vti" name="Image_data"/>
+    <DataSet index="1" file="collection/image_data_masked.vti" name="Image_data_masked"/>
+    <DataSet index="2" file="collection/rectilinear_grid.vtr" name="Rectilinear_grid"/>
+    <DataSet index="3" file="collection/unstructured_grid_hexa.vtu" name="Unstructured_grid_hexa"/>
+    <DataSet index="4" file="collection/unstructured_grid_tetra.vtu" name="Unstructured_grid_tetra"/>
+    <DataSet index="5" file="collection/unstructured_grid_wedge.vtu" name="Unstructured_grid_wedge"/>
+  </vtkMultiBlockDataSet>
+</VTKFile>
