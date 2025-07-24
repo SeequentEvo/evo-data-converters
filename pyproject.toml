@@ -22,8 +22,9 @@ Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
 dev = [
+  "pre-commit >= 4",
+  "ruff==0.9.1",              # keep in sync with .pre-commit-config.yaml
   "mypy",
-  "ruff",
 ]
 
 [tool.uv.sources]
