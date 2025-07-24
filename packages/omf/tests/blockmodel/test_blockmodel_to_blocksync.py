@@ -246,6 +246,7 @@ class TestOMFToBlockSyncConverter(TestCase):
             create_req_url = f"{self.metadata.hub_url}/blockmodel/orgs/{self.metadata.org_id}/workspaces/{self.metadata.workspace_id}/block-models"
             add_cols_url = f"{self.metadata.hub_url}/blockmodel/orgs/{self.metadata.org_id}/workspaces/{self.metadata.workspace_id}/block-models/{test_blockmodel_id}/blocks"
             upload_url = "mock://localhost/job-status-url/uploaded"
+            metadata_url = f"{self.metadata.hub_url}/blockmodel/orgs/{self.metadata.org_id}/workspaces/{self.metadata.workspace_id}/block-models/{test_blockmodel_id}"
 
             # create block model request
             mock.register_uri(
@@ -290,11 +291,41 @@ class TestOMFToBlockSyncConverter(TestCase):
                 json={"status_code": 200, "job_status": "COMPLETE"},
             )
 
-            go_objects = convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650)
-            self.assertListEqual([], go_objects)
+            mock.get(
+                url=metadata_url,
+                headers={"Authorisation": "token"},
+                json={
+                    "status_code": 200,
+                    "bm_uuid": test_blockmodel_id,
+                    "name": "block model",
+                    "model_origin": {"x": 0, "y": 0, "z": 0},
+                    "size_options": {
+                        "model_type": "regular",
+                        "n_blocks": {"nx": 2, "ny": 2, "nz": 2},
+                        "block_size": {"x": 10.0, "y": 10.0, "z": 10.0},
+                    },
+                },
+            )
+
+            objects = convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650)
+            self.assertListEqual(
+                [
+                    {
+                        "block model UUID": test_blockmodel_id,
+                        "name": "block model",
+                        "model origin": {"x": 0, "y": 0, "z": 0},
+                        "size options": {
+                            "model_type": "regular",
+                            "n_blocks": {"nx": 2, "ny": 2, "nz": 2},
+                            "block_size": {"x": 10.0, "y": 10.0, "z": 10.0},
+                        },
+                    }
+                ],
+                objects,
+            )
 
             history = mock.request_history
-            self.assertEqual(mock.call_count, 6)
+            self.assertEqual(mock.call_count, 7)
             self.assertEqual(history[0].method, "POST")  # create
             self.assertEqual(history[0].url, create_req_url)
             self.assertEqual(history[1].method, "GET")  # check
@@ -307,3 +338,5 @@ class TestOMFToBlockSyncConverter(TestCase):
             self.assertEqual(history[4].url, upload_url)
             self.assertEqual(history[5].method, "GET")  # check
             self.assertEqual(history[5].url, job_status_test_url)
+            self.assertEqual(history[6].method, "GET")  # metadata
+            self.assertEqual(history[6].url, metadata_url)

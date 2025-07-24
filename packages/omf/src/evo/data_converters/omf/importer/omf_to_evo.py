@@ -42,7 +42,7 @@ def convert_omf(
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
-) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
+) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata | dict]:
     """Converts an OMF file into Geoscience Objects.
 
     :param filepath: Path to the OMF file.
@@ -65,13 +65,14 @@ def convert_omf(
     In this library they are converted to LineSegments. You may want to convert them to a different Geoscience Object
     depending on your use case.
 
-    :return: List of Geoscience Objects, or list of ObjectMetadata if published.
+    :return: List of Geoscience Objects and Block Models, or list of ObjectMetadata and Block Models if published.
 
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
     publish_objects = True
     geoscience_objects = []
+    block_models = []
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
@@ -106,7 +107,7 @@ def convert_omf(
             case omf2.LineSet():
                 geoscience_object = convert_omf_lineset(element, project, reader, data_client, epsg_code)
             case omf2.BlockModel():
-                convert_omf_blockmodel(object_service_client, element, reader, epsg_code)
+                block_models = convert_omf_blockmodel(object_service_client, element, reader, epsg_code)
             case _:
                 continue
 
@@ -130,4 +131,4 @@ def convert_omf(
             geoscience_objects, object_service_client, data_client, upload_path
         )
 
-    return objects_metadata if objects_metadata else geoscience_objects
+    return objects_metadata + block_models if objects_metadata else geoscience_objects + block_models

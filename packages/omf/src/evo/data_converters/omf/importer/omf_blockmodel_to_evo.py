@@ -8,6 +8,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+from typing import Any
 
 import nest_asyncio
 import omf2
@@ -34,7 +35,7 @@ def _create_block_sync_client(environment: Environment, api_connector: APIConnec
 
 def convert_omf_blockmodel(
     object_service_client: ObjectAPIClient, element: omf2.Element, reader: omf2.Reader, epsg_code: int
-) -> None:
+) -> list[dict[str, Any]]:
     """Converts an OMF file to BlockSync Objects and creates an empty model on BlockSync.
 
     :param object_service_client: Client which holds the metadata for connecting to the Evo service.
@@ -47,6 +48,7 @@ def convert_omf_blockmodel(
     environment = object_service_client._environment
     api_connector = object_service_client._connector
     nest_asyncio.apply()
+    block_model_metadata = []
 
     if environment.hub_url == "":
         # This should only apply when running the convert-omf notebook
@@ -61,6 +63,7 @@ def convert_omf_blockmodel(
                 if block_sync_model:
                     block_model_id, block_model, block_table = block_sync_model
                     upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
+                    block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
             case omf2.Grid3Regular():
                 if geometry.subblocks:
                     match geometry.subblocks:
@@ -73,6 +76,7 @@ def convert_omf_blockmodel(
                                 element, client, reader, epsg_code
                             )
                             upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
+                            block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
                         case _:
                             logger.warning(
                                 f"Skipping block model with unsupported subblocks type '{geometry.subblocks.__class__.__name__}'"
@@ -83,6 +87,9 @@ def convert_omf_blockmodel(
                         element, client, reader, epsg_code
                     )
                     upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
+                    block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
+
+    return block_model_metadata
 
 
 def upload_block_data_to_blockmodels(
