@@ -21,7 +21,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Installation
 
-```
+```shell
 pip install evo-data-converters-gocad
 ```
 

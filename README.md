@@ -65,15 +65,18 @@ There is more information in the [Welcome to Seequent Evo](https://developer.see
 
 ### Setting up and running Jupyter notebooks
 
+To get up and running with this repository, including all Jupyter notebook examples in it, you will first need to
+[install UV.](https://docs.astral.sh/uv/)
+
 Notebooks can be run in your tool of choice (e.g. VS Code). To use Jupyter (the default):
 
-```
+```shell
 uv sync --all-extras
 ```
 
 Then in the directory of the notebook(s) you want to run, type:
 
-```
+```shell
 jupyter notebook
 ```
 
@@ -82,6 +85,14 @@ It should open a browser where you can open the notebooks for the current direct
 ## Contributing
 
 Thank you for your interest in contributing to Seequent software. Please have a look over our [contribution guide.](./CONTRIBUTING.md)
+
+### Install pre-commit hooks
+
+Once you've installed UV, install pre-commit hooks. These are used to standardise development workflows for all contributors:
+
+```shell
+uv run pre-commit install
+```
 
 ### Developing converters
 

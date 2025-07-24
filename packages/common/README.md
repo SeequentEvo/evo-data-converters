@@ -21,7 +21,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Installation
 
-```
+```shell
 pip install evo-data-converters-common
 ```
 
@@ -63,7 +63,7 @@ To work on your local version of the data converters module, first follow the di
 
 In the root directory of the project run:
 
-```
+```shell
 uv sync --all-extras
 ```
 
@@ -73,7 +73,7 @@ Within `packages/common` the directory structure for converters comprises a top 
 common modules that are usable across all converters. In the other `packages` folders are various supported data
 converter packages that build on the "common" library:
 
-```
+```text
 .
 ├── common/
 ├── omf/
@@ -84,7 +84,7 @@ converter packages that build on the "common" library:
 Expanding this out, each converter type contains an `importer` directory, an `exporter` directory (if supported), and
 any other utility modules specific to this converter type:
 
-```
+```text
 .
 ├── common/src/evo/data_converters/common/
 │   ├── __init__.py
