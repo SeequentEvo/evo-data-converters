@@ -50,6 +50,7 @@ class OMFReaderContext:
             logger.debug(f"{filepath} detected as OMF v1, converting to a temporary v2 file.")
             self._temp_file = NamedTemporaryFile(mode="w+b", suffix=".omf")
             converter = omf2.Omf1Converter()
+            converter = self._set_converter_limits(converter)
             converter.convert(filepath, self._temp_file.name)
 
             logger.debug(f"Converted {filepath} to OMFv2 using temporary file {self._temp_file.name}")
@@ -57,3 +58,17 @@ class OMFReaderContext:
 
         logger.debug(f"Loading omf2.Reader with {filepath}")
         return omf2.Reader(filepath)
+
+    def _set_converter_limits(self, converter: omf2.Omf1Converter) -> omf2.Omf1Converter:
+        """
+        Increase JSON bytes minimum limit if needed, which allows for opening a wider variety of OMF1 files.
+        """
+        limits = converter.limits()
+        json_bytes_minimum = 100 * 1024 * 1024  # 100mb
+
+        if limits.json_bytes and limits.json_bytes > json_bytes_minimum:
+            return converter
+
+        limits.json_bytes = json_bytes_minimum
+        converter.set_limits(limits)
+        return converter
