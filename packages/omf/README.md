@@ -99,6 +99,12 @@ Follow the steps below to install the `omf` data-converter package for your oper
         pip install evo-data-converters-omf
 9. The **omf package** will compile and install into your Python environment.
 
+Once omf2 has been installed, you can install this package:
+
+```shell
+pip install evo-data-converter-omf
+```
+
 ## OMF
 
 Open Mining Format (OMF) is a standard backed by the Global Mining Guidelines Group.
@@ -112,7 +118,7 @@ https://github.com/gmggroup/omf-rust
 ### Publish geoscience objects from an OMF file
 **Note**: For some OMF geometry types there is more than one possible way they could be converted to geoscience objects. For example, an OMF `LineSet` can be used to represent more than one thing (poly-lines, drillholes, a wireframe mesh, etc). In this example they are converted to `LineSegments`. Depending on your use case, you may want to convert them to a different geoscience object.
 
-[The `evo-sdk-common` Python library](https://pypi.org/project/evo-sdk-common/) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://pypi.org/project/evo-objects/) to get an `ObjectAPIClient`, and [`evo-data-converters-common`](https://pypi.org/project/evo-data-converters-common/) to convert your file.
+[The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-common`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) to convert your file.
 
 Choose the OMF file you want to publish and set its path in the `omf_file` variable.
 Choose an EPSG code to use for the Coordinate Reference System.
@@ -129,31 +135,20 @@ import pprint
 
 from evo.aio import AioTransport
 from evo.common import APIConnector
-from evo.common.utils import BackoffIncremental
 from evo.data_converters.omf.importer import convert_omf
 from evo.discovery import DiscoveryAPIClient
-from evo.oauth import AuthorizationCodeAuthorizer, OIDCConnector
+from evo.oauth import AuthorizationCodeAuthorizer, OAuthConnector
 from evo.objects import ObjectAPIClient
 from evo.workspaces import WorkspaceAPIClient
 
 # Configure the transport.
-transport = AioTransport(
-    user_agent="evo-sdk-common-example",
-    max_attempts=3,
-    backoff_method=BackoffIncremental(2),
-    num_pools=4,
-    verify_ssl=True,
-)
+transport = AioTransport(user_agent="evo-sdk-common-example")
 
 # Login to the Evo platform.
 # User Login
 authorizer = AuthorizationCodeAuthorizer(
     redirect_url="<redirect_url>",
-    oidc_connector=OIDCConnector(
-        transport=transport,
-        oidc_issuer="<issuer_url>",
-        client_id="<client_id>",
-    ),
+    oauth_connector=OAuthConnector(transport=transport, client_id="<client_id>"),
 )
 await authorizer.login()
 
@@ -241,7 +236,7 @@ Block models work a little bit differently for export. These use a `BlockSyncCli
 ```python
 from evo.data_converters.common import BlockSyncClient
 
-blocksync_client = BlockSyncClient(workspace_env, hub_connector)
+blocksync_client = BlockSyncClient(environment, connector)
 ```
 
 #### Export a block model to OMF V1

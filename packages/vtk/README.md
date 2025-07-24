@@ -21,11 +21,11 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Installation
 
-```
+```shell
 pip install evo-data-converters-vtk
 ```
 
-# VTK
+## VTK
 
 The Visualization Toolkit (VTK) is open source software for manipulating and displaying scientific data
 
@@ -43,7 +43,6 @@ The VTK converter currently supports importing the following objects into geosci
   - Imported as an `unstructured-tet-grid` object if all cells are tetrahedrons
   - Imported as an `unstructured-hex-grid` object if all cells are hexahedrons
   - Otherwise, imported as an `unstructured-grid` object
-
 
 ## Code of conduct
 

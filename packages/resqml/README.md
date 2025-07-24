@@ -21,7 +21,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Installation
 
-```
+```shell
 pip install evo-data-converters-resqml
 ```
 
@@ -32,6 +32,10 @@ RESQML is an XML based standard for geoscience data.
 Refer here for more information: https://www.energistics.org/resqml-data-standards/
 
 To work with RESQML files [the `resqpy` Python package](https://pypi.org/project/resqpy/) is used.
+
+## Usage
+
+For examples of using this package, see the [Jupyter notebooks.](samples/convert-resqml)
 
 ### Limitations
 
