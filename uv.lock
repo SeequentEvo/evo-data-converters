@@ -386,7 +386,7 @@ requires-dist = [
     { name = "aiohttp" },
     { name = "evo-objects", specifier = ">=0.1.0" },
     { name = "evo-schemas", specifier = ">=2024.4" },
-    { name = "evo-sdk-common", specifier = ">=0.1.3" },
+    { name = "evo-sdk-common", specifier = ">=0.3.0" },
     { name = "nest-asyncio" },
     { name = "numpy", specifier = "<2.0.0" },
     { name = "pyarrow" },
@@ -547,7 +547,7 @@ wheels = [
 
 [[package]]
 name = "evo-sdk-common"
-version = "0.1.3"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pure-interface" },

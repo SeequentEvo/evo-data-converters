@@ -20,7 +20,7 @@ from evo.common import APIConnector, Environment, NoAuth
 from evo.common.interfaces import ITransport
 from evo.common.utils.cache import Cache
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError, MissingConnectionDetailsError
-from evo.oauth import AuthorizationCodeAuthorizer, ClientCredentialsAuthorizer, OAuthScopes, OIDCConnector
+from evo.oauth import AuthorizationCodeAuthorizer, ClientCredentialsAuthorizer, OAuthScopes, OAuthConnector
 from evo.objects import ObjectAPIClient
 from evo.objects.utils.data import ObjectDataClient
 
@@ -38,15 +38,14 @@ class EvoWorkspaceMetadata:
     client_secret: str = ""
     user_id: str = ""
     hub_url: str = ""
-    redirect_url: str = "http://localhost:3000/signin-oidc"
-    oidc_issuer: str = ""
+    redirect_url: str = "http://localhost:3000/signin-callback"
     cache_root: str = "./data/cache"
 
     def has_authentication_code_params(self) -> bool:
-        return bool(self.client_id and self.hub_url and self.oidc_issuer and self.redirect_url)
+        return bool(self.client_id and self.hub_url and self.redirect_url)
 
     def has_client_credentials_params(self) -> bool:
-        return bool(self.client_id and self.client_secret and self.oidc_issuer and self.user_id)
+        return bool(self.client_id and self.client_secret and self.user_id)
 
 
 @dataclass
@@ -60,10 +59,9 @@ async def _authorization_code_authorizer(
 ) -> AuthorizationCodeAuthorizer:
     authorizer = AuthorizationCodeAuthorizer(
         redirect_url=metadata.redirect_url,
-        scopes=OAuthScopes.openid | OAuthScopes.evo_discovery | OAuthScopes.evo_object,
-        oidc_connector=OIDCConnector(
+        scopes=OAuthScopes.evo_discovery | OAuthScopes.evo_object,
+        oauth_connector=OAuthConnector(
             transport=transport,
-            oidc_issuer=metadata.oidc_issuer,
             client_id=metadata.client_id,
         ),
     )
@@ -76,17 +74,12 @@ async def client_credentials_authorizer(
     transport: ITransport, metadata: EvoWorkspaceMetadata
 ) -> ClientCredentialsAuthorizer:
     authorizer = ClientCredentialsAuthorizer(
-        oidc_connector=OIDCConnector(
+        oauth_connector=OAuthConnector(
             transport=transport,
-            oidc_issuer=metadata.oidc_issuer,
             client_id=metadata.client_id,
             client_secret=metadata.client_secret,
         ),
-        scopes=OAuthScopes.openid
-        | OAuthScopes.evo_discovery
-        | OAuthScopes.evo_workspace
-        | OAuthScopes.evo_object
-        | OAuthScopes.evo_file,
+        scopes=OAuthScopes.evo_discovery | OAuthScopes.evo_workspace | OAuthScopes.evo_object | OAuthScopes.evo_file,
     )
     await authorizer.authorize()
 

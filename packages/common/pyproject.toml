@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-common"
 description = "Python framework for building data converters between common geoscience data formats"
-version = "0.1.2"
+version = "0.2.0"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
@@ -11,7 +11,7 @@ authors = [
 
 dependencies = [
     "aiohttp",
-    "evo-sdk-common>=0.1.3",
+    "evo-sdk-common>=0.3.0",
     "evo-objects>=0.1.0",
     "evo-schemas>=2024.4",
     "nest_asyncio",
