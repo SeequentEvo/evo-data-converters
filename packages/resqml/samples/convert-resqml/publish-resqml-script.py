@@ -52,7 +52,6 @@ parser.add_argument("--org-id", help="UUID of the organization the workspace bel
 parser.add_argument("--workspace-id", help="The workspace UUID.")
 
 parser.add_argument("--client-id", help="The OAuth client ID, as registered with the OAuth provider.", default="")
-parser.add_argument("--base-uri", help="The OAuth server base URI.", default="")
 parser.add_argument("--redirect-url", help="The local URL to redirect the user back to after authorisation", default="")
 
 parser.add_argument(
@@ -102,7 +101,6 @@ workspace_metadata = EvoWorkspaceMetadata(
     hub_url=args.hub_url,
     org_id=args.org_id,
     workspace_id=args.workspace_id,
-    base_uri=args.base_uri,
     cache_root=args.cache_dir,
 )
 
