@@ -59,7 +59,7 @@ async def _authorization_code_authorizer(
 ) -> AuthorizationCodeAuthorizer:
     authorizer = AuthorizationCodeAuthorizer(
         redirect_url=metadata.redirect_url,
-        scopes=OAuthScopes.evo_discovery | OAuthScopes.evo_object,
+        scopes=OAuthScopes.all_evo,
         oauth_connector=OAuthConnector(
             transport=transport,
             client_id=metadata.client_id,
@@ -79,7 +79,7 @@ async def client_credentials_authorizer(
             client_id=metadata.client_id,
             client_secret=metadata.client_secret,
         ),
-        scopes=OAuthScopes.evo_discovery | OAuthScopes.evo_workspace | OAuthScopes.evo_object | OAuthScopes.evo_file,
+        scopes=OAuthScopes.all_evo,
     )
     await authorizer.authorize()
 
