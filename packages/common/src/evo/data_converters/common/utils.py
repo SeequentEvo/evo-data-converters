@@ -114,7 +114,7 @@ def convert_rotation(rotation: Rotation) -> Rotation_V1_1_0:
 def get_object_tags(path: str, input_type: str, extra_tags: dict = None) -> dict[str, str]:
     return {
         "Source": f"{path} (via Evo Data Converters)",
-        "Stage": "Experimental",
+        "Stage": "Experimental",  # TODO: stages is now a separate API, update or remove this
         "InputType": input_type,
         **(extra_tags if extra_tags else {}),
     }

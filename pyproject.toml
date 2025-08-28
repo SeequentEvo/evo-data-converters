@@ -7,6 +7,7 @@ license = { file = "LICENSE.md", content-type = "text/markdown" }
 version = "0.1.0"
 dependencies = [
   "evo-data-converters-common",
+  "evo-data-converters-duf ; platform_system == \"Windows\"",
   "evo-data-converters-gocad",
   "evo-data-converters-omf",
   "evo-data-converters-resqml",
@@ -20,6 +21,11 @@ Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
 Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
+notebooks = [
+    "evo-sdk-common[notebooks]<=0.2.0",
+    "notebook>=7.4.3",
+]
+
 [dependency-groups]
 dev = [
   "pre-commit >= 4",
@@ -29,6 +35,7 @@ dev = [
 
 [tool.uv.sources]
 evo-data-converters-common = { workspace = true }
+evo-data-converters-duf = { workspace = true }
 evo-data-converters-gocad = { workspace = true }
 evo-data-converters-omf = { workspace = true }
 evo-data-converters-resqml = { workspace = true }

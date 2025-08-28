@@ -64,7 +64,7 @@ To work on your local version of the data converters module, first follow the di
 In the root directory of the project run:
 
 ```shell
-uv sync --all-extras
+uv sync --all-packages --all-extras
 ```
 
 ### General converter architecture

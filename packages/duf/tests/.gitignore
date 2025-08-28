@@ -1,0 +1,6 @@
+# Created by test runs
+temp/
+
+# Created by Deswik CAD
+data/**/
+*.lck
