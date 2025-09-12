@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using SharedCode;
+using SimpleDuf;
 using Deswik.Entities.Cad;
 using Deswik.Entities;
 using Deswik.Duf;
@@ -37,19 +37,6 @@ namespace ConsoleAppNet46
             return null;
         }
 
-        private static Layer GetLayer(DufDocument doc, string layer_str)
-        {
-            List<ItemHeader> layer_headers = doc.Duf.GetEntityHeadersWithName(Category.Layers, layer_str);
-            ItemHeader layer_header = layer_headers[0];
-            Guid layer_guid = layer_header.EntityGuid;
-
-            BaseEntity base_entity = doc.GetEntityByGuid(layer_guid);
-            Layer layer = base_entity as Layer;
-
-            return layer;
-        }
-
-
         static void Main(string[] args)
         {
             var source_duf = args[0];
@@ -63,10 +50,9 @@ namespace ConsoleAppNet46
 
             using (var docBefore = new DufDocument(dest_duf))
             {
-                docBefore.LoadReferenceEntities();
-                docBefore.LoadModelEntities();
+                docBefore.Load();
 
-                Layer layer = GetLayer(docBefore, "0");
+                Layer layer = docBefore.GetLayerByName("0");
                 var layer_xprops_before = layer.XProperties;
 
                 Console.WriteLine($"Key present before: {layer_xprops_before.ContainsKey(new_key)}");
@@ -89,10 +75,9 @@ namespace ConsoleAppNet46
             // Reload the file.
             using (var docAfter = new DufDocument(dest_duf))
             {
-                docAfter.LoadReferenceEntities();
-                //docAfter.LoadModelEntities(); // Uncomment to load model entities
+                docAfter.Load();
 
-                Layer layer = GetLayer(docAfter, "0");
+                Layer layer = docAfter.GetLayerByName("0");
                 var new_key_exists = layer.XProperties.ContainsKey(new_key);
                 var new_keys_value = new_key_exists ? layer.XProperties[new_key].Value.First().Value : "";
 

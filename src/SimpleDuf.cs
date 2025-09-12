@@ -11,7 +11,7 @@ using Deswik.Entities;
 using Deswik.Entities.Cad;
 using Deswik.Serialization;
 
-namespace SharedCode
+namespace SimpleDuf
 {
     public class DufDocument : IDisposable
     {
@@ -19,7 +19,7 @@ namespace SharedCode
 
         public string Path { get; protected set; }
 
-        public DufImplementation<Category> Duf { get; private set; }
+        private DufImplementation<Category> _duf { get; set; }
 
         private GuidReferences _guidReferences;
 
@@ -33,7 +33,7 @@ namespace SharedCode
         {
             Path = path;
 
-            Duf = new DufImplementation<Category>(Path, new Deswik.Entities.Cad.Activator(), new Deswik.Entities.Cad.Upgrader());
+            _duf = new DufImplementation<Category>(Path, new Deswik.Entities.Cad.Activator(), new Deswik.Entities.Cad.Upgrader());
 
             _guidReferences = new GuidReferences();
 
@@ -52,9 +52,28 @@ namespace SharedCode
             _entitiesByCategory[Category.Document] = new List<BaseEntity>();
         }
 
+        // TODO - Probably best not to give the client the option of having an unloaded document
+        public void Load()
+        {
+            LoadReferenceEntities();
+            LoadModelEntities();
+        }
+
         public void Dispose()
         {
-            Duf?.Dispose();
+            _duf?.Dispose();
+        }
+
+        public Layer GetLayerByName(string layer_str)
+        {
+            List<ItemHeader> layer_headers = _duf.GetEntityHeadersWithName(Category.Layers, layer_str);
+            ItemHeader layer_header = layer_headers[0];
+            Guid layer_guid = layer_header.EntityGuid;
+
+            BaseEntity base_entity = GetEntityByGuid(layer_guid);
+            Layer layer = base_entity as Layer;
+
+            return layer;
         }
 
         public BaseEntity GetEntityByGuid(Guid guid)
@@ -62,7 +81,7 @@ namespace SharedCode
             return _guidReferences?.GetEntity(guid);
         }
 
-        public void LoadModelEntities(Guid? layerGuid = null)
+        private void LoadModelEntities(Guid? layerGuid = null)
         {
             var loadedItems = new ConcurrentQueue<BaseEntity>();
             List<Guid?> parents = null;
@@ -73,7 +92,7 @@ namespace SharedCode
             }
 
             var loadTask = Task.Run(() => {
-                Duf.LoadFromLatestWithConcurrentQueue(loadedItems, _guidReferences, new FilterCriteria<Category> { ParentIds = parents, Categories = new List<Category> { Category.ModelEntities } }, false, true, null);
+                _duf.LoadFromLatestWithConcurrentQueue(loadedItems, _guidReferences, new FilterCriteria<Category> { ParentIds = parents, Categories = new List<Category> { Category.ModelEntities } }, false, true, null);
             });
 
             while (TaskNotFinished(loadTask) || !loadedItems.IsEmpty)
@@ -88,7 +107,7 @@ namespace SharedCode
             }
         }
 
-        public void LoadReferenceEntities()
+        private void LoadReferenceEntities()
         {
             LoadTopLevelEntitiesOfType(Category.Palette);
             LoadTopLevelEntitiesOfType(Category.LineTypes);
@@ -114,8 +133,8 @@ namespace SharedCode
 
         public void Save(string saveAsPath = null)
         {
-            var existingDocGuid = Duf?.Header != null ? Duf.LoadFromLatest(null, new FilterCriteria<Category> { Categories = new List<Category> { Category.Document } }, true, false, null).FirstOrDefault()?.Guid : null;
-            Duf.Save(GetSaveSets(existingDocGuid), GetUserName(), saveAsPath, true);
+            var existingDocGuid = _duf?.Header != null ? _duf.LoadFromLatest(null, new FilterCriteria<Category> { Categories = new List<Category> { Category.Document } }, true, false, null).FirstOrDefault()?.Guid : null;
+            _duf.Save(GetSaveSets(existingDocGuid), GetUserName(), saveAsPath, true);
         }
 
         private void AddLoadedEntity(Category category, BaseEntity entity)
@@ -145,7 +164,7 @@ namespace SharedCode
         {
             var loadedItems = new ConcurrentQueue<BaseEntity>();
             var loadTask = Task.Run(() => {
-                Duf.LoadFromLatestWithConcurrentQueue(loadedItems, _guidReferences, new FilterCriteria<Category> { Categories = new List<Category> { category } }, false, true, null);
+                _duf.LoadFromLatestWithConcurrentQueue(loadedItems, _guidReferences, new FilterCriteria<Category> { Categories = new List<Category> { category } }, false, true, null);
             });
 
             while (TaskNotFinished(loadTask) || !loadedItems.IsEmpty)
@@ -227,7 +246,7 @@ namespace SharedCode
             {
                 var figure = modelEntities[entityMetadata.Position];
                 var layerGuid = figure.Layer.Guid;
-                var header = Duf.GetEntityHeader(figure.Guid);
+                var header = _duf.GetEntityHeader(figure.Guid);
 
                 if (header is ItemHeader ih)
                 {
