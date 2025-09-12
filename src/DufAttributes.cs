@@ -575,7 +575,9 @@ namespace SharedCode
                         {
                             var asString = value.ToString();
 
-                            typedValue = string.IsNullOrEmpty(asString) ? DateTime.Now : DateTime.Parse(asString);
+                            // TODO This code seems reasonable, but when I created a date with the Deswik.CAD UI, the datetime seemed to be a string.
+                            //typedValue = string.IsNullOrEmpty(asString) ? DateTime.Now : DateTime.Parse(asString);
+                            typedValue = asString;
                         }
 
                         break;

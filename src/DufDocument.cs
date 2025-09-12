@@ -206,6 +206,7 @@ namespace SharedCode
             }
 
             _entitiesByCategory[category].Add(entity);
+            _guidReferences.AddEntity(entity);
         }
 
         public void AddEntity(BaseEntity entity, Guid? parentGuid)
