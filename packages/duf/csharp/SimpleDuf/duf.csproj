@@ -1,0 +1,103 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>SimpleDuf</AssemblyName>
+    <RootNamespace>SimpleDuf</RootNamespace>
+    <Deterministic>true</Deterministic>
+
+    <!-- Keep your existing AssemblyInfo.cs file -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!-- Helpful for .NET Framework apps -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+
+    <!-- The SDK being installed adjacent to the project file results in the SDK being explored for reference assembly DLLs.
+         That's not what we want, because we want to use the 4.7.2 reference assemblies retrieved with Nuget.
+         It's a bit concerning to set this to `false`. TODO Reorganise directories so this isn't necessary.  -->
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <!-- <EnableDefaultItems>false</EnableDefaultItems> -->
+
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	<PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+	
+  <!-- Configurable vendor install location; override with -p:DeswikRoot="C:\Path\to\Deswik.Suite 2024.1" -->
+  <PropertyGroup>
+    <DeswikRoot Condition="'$(DeswikRoot)'==''">$(ProgramW6432)\Deswik\Deswik.Suite 2024.1</DeswikRoot>
+  </PropertyGroup>
+	
+
+  <!-- Supplies the .NET Framework 4.7.2 reference assemblies so dotnet build works without the Developer Pack -->
+  <!-- <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup> -->
+
+<!-- Remove any accidental .NETCoreApp ref pack references -->
+  <!-- <Target Name="RemoveNetCoreRefPackFromReferences" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)"
+                   Condition="$([System.String]::Copy('%(ReferencePath.Identity)').IndexOf('\packs\Microsoft.NETCore.App.Ref\', System.StringComparison.OrdinalIgnoreCase)) &gt;= 0" />
+    </ItemGroup>
+    <Message Importance="High" Text="ReferencePath after removing NETCoreApp.Ref: @(ReferencePath)" />
+  </Target> -->
+
+  <!-- Ensure the correct .NET Framework refs are present -->
+  <!-- <Target Name="EnsureFrameworkRefs" AfterTargets="RemoveNetCoreRefPackFromReferences" BeforeTargets="CoreCompile"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(FrameworkPathOverride)' != ''">
+    <ItemGroup>
+      <ReferencePath Include="$(FrameworkPathOverride)\mscorlib.dll" />
+      <ReferencePath Include="$(FrameworkPathOverride)\System.dll" />
+      <ReferencePath Include="$(FrameworkPathOverride)\System.Core.dll" />
+      <ReferencePath Include="$(FrameworkPathOverride)\System.Runtime.dll" Condition="Exists('$(FrameworkPathOverride)\System.Runtime.dll')" />
+      <ReferencePath Include="$(FrameworkPathOverride)\System.Xml.dll" Condition="Exists('$(FrameworkPathOverride)\System.Xml.dll')" />
+      <ReferencePath Include="$(FrameworkPathOverride)\System.Xml.Linq.dll" Condition="Exists('$(FrameworkPathOverride)\System.Xml.Linq.dll')" />
+      <ReferencePath Include="$(FrameworkPathOverride)\System.Data.dll" Condition="Exists('$(FrameworkPathOverride)\System.Data.dll')" />
+    </ItemGroup>
+    <Message Importance="High" Text="ReferencePath after adding NET472 refs: @(ReferencePath)" />
+  </Target> -->
+
+  <!-- Optional: enables compiling net472 on machines without the .NET Framework Developer Pack -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Deswik.Core.Structures">
+      <HintPath>$(DeswikRoot)\Deswik.Core.Structures.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Duf">
+      <HintPath>$(DeswikRoot)\Deswik.Duf.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Entities">
+      <HintPath>$(DeswikRoot)\Deswik.Entities.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Entities.Base">
+      <HintPath>$(DeswikRoot)\Deswik.Entities.Base.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Entities.Cad">
+      <HintPath>$(DeswikRoot)\Deswik.Entities.Cad.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Gold">
+      <HintPath>$(DeswikRoot)\Deswik.Gold.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Serialization">
+      <HintPath>$(DeswikRoot)\Deswik.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Snappy">
+      <HintPath>$(DeswikRoot)\Deswik.Snappy.dll</HintPath>
+    </Reference>
+    <Reference Include="Snappier">
+      <HintPath>$(DeswikRoot)\Snappier.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+
+  <!-- SDK-style auto-includes your .cs and common content; no need to list Compile/Reference/System.* -->
+</Project>
