@@ -43,20 +43,7 @@ namespace SharedCode
 
         private XProperties EnsureXProperties()
         {
-            XProperties xprops = null;
-
-            if (_layer != null)
-            {
-                xprops = _layer.XProperties;
-
-                if (xprops is null)
-                {
-                    xprops = new XProperties();
-                    _layer.XProperties = xprops;
-                }
-            }
-
-            return xprops;
+            return DufDocument.EnsureXProperties(_layer);
         }
 
         public int Count
@@ -307,6 +294,7 @@ namespace SharedCode
             public const string Locked = "Locked";
             public const string DisplayMode = "DisplayMode";
             public const string WeightField = "WeightField";
+            public const string AttributeCount = "AttributeCount";
 
             private static Dictionary<string, Dictionary<int, AttributePropertyNames>> _propertyNameCache = new Dictionary<string, Dictionary<int, AttributePropertyNames>>();
 

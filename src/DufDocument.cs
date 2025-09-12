@@ -160,6 +160,27 @@ namespace SharedCode
             _addedEntityMetadata[entity.Guid] = metadata;
         }
 
+        public static XProperties EnsureXProperties(Primary entity)
+        {
+            XProperties xprops = null;
+
+            if (entity != null)
+            {
+                xprops = entity.XProperties;
+
+                if (xprops is null)
+                {
+                    xprops = new XProperties();
+                    // If no properties are set, it seems like the XProperties are null when the file is reloaded
+                    XPropertySet(xprops, "_dw_AttributeCount", 0);
+                    entity.XProperties = xprops;
+
+                }
+            }
+
+            return xprops;
+        }
+
         public void SetMetadataForEntity(BaseEntity entity, Guid? parentGuid)
         {
             if (parentGuid is null)
@@ -182,11 +203,12 @@ namespace SharedCode
             SetMetadataForEntity(entity, new EntityMetadata(minBounds, maxBounds));
         }
 
-        public void AddEntity(BaseEntity entity)
+        public void AddEntity(Primary entity)
         {
             var type = entity.GetType();
 
             EnsureEntityHasGuidAndHandle(entity);
+            EnsureXProperties(entity);
 
             if (!_typeToCategoryMap.TryGetValue(type, out var category))
             {
@@ -209,19 +231,19 @@ namespace SharedCode
             _guidReferences.AddEntity(entity);
         }
 
-        public void AddEntity(BaseEntity entity, Guid? parentGuid)
+        public void AddEntity(Primary entity, Guid? parentGuid)
         {
             SetMetadataForEntity(entity, parentGuid);
             AddEntity(entity);
         }
 
-        public void AddEntity(BaseEntity entity, Vector3_dp? minBounds, Vector3_dp? maxBounds, Guid? parentGuid)
+        public void AddEntity(Primary entity, Vector3_dp? minBounds, Vector3_dp? maxBounds, Guid? parentGuid)
         {
             SetMetadataForEntity(entity, minBounds, maxBounds, parentGuid);
             AddEntity(entity);
         }
 
-        public void AddEntity(BaseEntity entity, Vector3_dp? minBounds, Vector3_dp? maxBounds)
+        public void AddEntity(Primary entity, Vector3_dp? minBounds, Vector3_dp? maxBounds)
         {
             SetMetadataForEntity(entity, minBounds, maxBounds);
             AddEntity(entity);

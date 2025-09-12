@@ -94,6 +94,51 @@ namespace SimpleDuf
         }
     }
 
+    // TODO This class was set up to provide generic access to DufList<Vector3_dp> and DufList<Vector4_dp>. There's got to be a better way...
+    // As it is, it will work, but there is a lot of dynamic overhead added which might be significant. It might have been better to just duplicate
+    // Code or use macros.
+    internal class VecList3D
+    {
+        private object _vecList;
+        internal int Count;
+
+        internal VecList3D(DufList<Vector3_dp> vec3)
+        {
+            _vecList = vec3;
+            Count = vec3.Count;
+        }
+
+        internal VecList3D(DufList<Vector4_dp> vec4)
+        {
+            _vecList = vec4;
+            Count = vec4.Count;
+        }
+
+        public static implicit operator VecList3D(DufList<Vector3_dp> vec3) => new VecList3D(vec3);
+        public static implicit operator VecList3D(DufList<Vector4_dp> vec4) => new VecList3D(vec4);
+
+        internal void GetXYZ(int i, out double x, out double y, out double z)
+        {
+            var vecList3 = _vecList as DufList<Vector3_dp>;
+            if (vecList3 != null)
+            {
+                x = vecList3[i].X;
+                y = vecList3[i].Y;
+                z = vecList3[i].Z;
+                return;
+            }
+            var vecList4 = _vecList as DufList<Vector4_dp>;
+            if (vecList4 != null)
+            {
+                x = vecList4[i].X;
+                y = vecList4[i].Y;
+                z = vecList4[i].Z;
+                return;
+            }
+            throw new Exception("Bad type");
+        }
+    }
+
     public class SimpleFigure : SimpleEntity
     {
         // TODO I'm avoiding modifying DufDocuments for now. But there's no reason this class should have to keep track of its parent.
@@ -109,17 +154,8 @@ namespace SimpleDuf
             // TODO Guard against bad types. Probably better done in the Attribute class.
             attribute.SetOnEntity(Entity, value);
         }
-    }
 
-    public class SimplePolyline : SimpleFigure
-    {
-        
-
-        public SimplePolyline(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
-        {
-        }
-
-        static void GetBounds(DufList<Vector4_dp> vertices, out Vector3_dp minBounds, out Vector3_dp maxBounds)
+        internal static void GetBounds(VecList3D vertices, out Vector3_dp minBounds, out Vector3_dp maxBounds)
         {
             double minX = double.MaxValue;
             double minY = double.MaxValue;
@@ -128,11 +164,9 @@ namespace SimpleDuf
             double maxY = double.MinValue;
             double maxZ = double.MinValue;
 
-            foreach (var vertex in vertices)
+            for (int i = 0; i < vertices.Count; i++)
             {
-                var x = vertex.X;
-                var y = vertex.Y;
-                var z = vertex.Z;
+                vertices.GetXYZ(i, out var x, out var y, out var z);      
 
                 if (x < minX) { minX = x; }
                 if (x > maxX) { maxX = x; }
@@ -145,6 +179,15 @@ namespace SimpleDuf
             minBounds = new Vector3_dp(minX, minY, minZ);
             maxBounds = new Vector3_dp(maxX, maxY, maxZ);
         }
+    }
+
+    public class SimplePolyline : SimpleFigure
+    {
+        public SimplePolyline(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
+        {
+        }
+
+        
 
         public void SetVertices3D(double[] vertices, bool ensureClosed = false)
         {
@@ -196,6 +239,71 @@ namespace SimpleDuf
         }
     }
 
+    public class SimplePolyface : SimpleFigure
+    {
+        public SimplePolyface(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
+        {
+        }
+
+        public void SetVertices3D(double[] vertices, int[] triangles)
+        {
+            var polyface = Entity as dwPolyface;
+            if (polyface == null)
+            {
+                // TODO better exception
+                throw new Exception("Bad type");
+            }
+
+            if (vertices.Length % 3 != 0)
+            {
+                // TODO throw better exception?
+                throw new Exception("Vertices length not a multiple of 3");
+            }
+
+            if (triangles.Length % 3 != 0)
+            {
+                // TODO throw better exception?
+                throw new Exception("Triangles length not a multiple of 3");
+            }
+
+            var verticesCount = vertices.Length;
+            int vertexCapacity = verticesCount / 3;
+            var trianglesCount = triangles.Length;
+
+
+            var vertexList = new DufList<Vector3_dp>(vertexCapacity);
+            var faceList = new DufList<int>(trianglesCount);
+
+            int i = 0;
+            while (i < verticesCount)
+            {
+                var x = vertices[i++];
+                var y = vertices[i++];
+                var z = vertices[i++];
+
+                vertexList.Add(new Vector3_dp(x, y, z));
+            }
+            i = 0;
+            while (i < trianglesCount)
+            {
+                faceList.Add(triangles[i++] + 1);  // 1-indexed TODO review
+                faceList.Add(triangles[i++] + 1);
+                faceList.Add(triangles[i++] + 1);
+                faceList.Add(triangles[i - 3] + 1);  // Close the triangle
+                faceList.Add(-1);  // TODO What is the 5th value?
+
+            }
+
+            polyface.VertexList = vertexList;
+            polyface.FaceList = faceList;
+
+            GetBounds(polyface.VertexList, out var minBounds, out var maxBounds);
+
+
+            Duf.SetMetadataForEntity(polyface, minBounds, maxBounds, _parentLayer);
+        }
+
+    }
 
     public class Duf
     {
@@ -235,6 +343,18 @@ namespace SimpleDuf
         public SimpleEntity NewPolyline(SimpleLayer parentLayer)
         {
             return NewPolyline(parentLayer.Guid);
+        }
+
+        public SimpleEntity NewPolyface(Guid parentLayer)
+        {
+            var newPolyface = new dwPolyface();
+            AddFigure(newPolyface, parentLayer);
+            return new SimplePolyface(_duf, newPolyface.Guid, parentLayer);
+        }
+
+        public SimpleEntity NewPolyface(SimpleLayer parentLayer)
+        {
+            return NewPolyface(parentLayer.Guid);
         }
 
         public void Save()

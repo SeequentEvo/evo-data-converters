@@ -78,6 +78,33 @@ namespace ConsoleAppNet46
             maxBounds = new Vector3_dp(maxX, maxY, maxZ);
         }
 
+        static void GetBounds(DufList<Vector3_dp> vertices, out Vector3_dp minBounds, out Vector3_dp maxBounds)
+        {
+            double minX = double.MaxValue;
+            double minY = double.MaxValue;
+            double minZ = double.MaxValue;
+            double maxX = double.MinValue;
+            double maxY = double.MinValue;
+            double maxZ = double.MinValue;
+
+            foreach (var vertex in vertices)
+            {
+                var x = vertex.X;
+                var y = vertex.Y;
+                var z = vertex.Z;
+
+                if (x < minX) { minX = x; }
+                if (x > maxX) { maxX = x; }
+                if (y < minY) { minY = y; }
+                if (y > maxY) { maxY = y; }
+                if (z < minZ) { minZ = z; }
+                if (z > maxZ) { maxZ = z; }
+            }
+
+            minBounds = new Vector3_dp(minX, minY, minZ);
+            maxBounds = new Vector3_dp(maxX, maxY, maxZ);
+        }
+
         static dwPolyline CreatePolyline(double[] vertices, bool closeIfNecessary = false)
         {
             var polyline = new dwPolyline();
@@ -128,11 +155,73 @@ namespace ConsoleAppNet46
             return polyline;
         }
 
+        static dwPolyface CreatePolyface(double[] vertices, int[] triangles)
+        {
+            var polyface = new dwPolyface();
+            if (polyface == null)
+            {
+                // TODO better exception
+                throw new Exception("Bad type");
+            }
+
+            if (vertices.Length % 3 != 0)
+            {
+                // TODO throw better exception?
+                throw new Exception("Vertices length not a multiple of 3");
+            }
+
+            if (triangles.Length % 3 != 0)
+            {
+                // TODO throw better exception?
+                throw new Exception("Triangles length not a multiple of 3");
+            }
+
+            var verticesCount = vertices.Length;
+            int vertexCapacity = verticesCount / 3;
+            var trianglesCount = triangles.Length;
+
+
+            var vertexList = new DufList<Vector3_dp>(vertexCapacity);
+            var faceList = new DufList<int>(trianglesCount);
+
+            int i = 0;
+            while (i < verticesCount)
+            {
+                var x = vertices[i++];
+                var y = vertices[i++];
+                var z = vertices[i++];
+
+                vertexList.Add(new Vector3_dp(x, y, z));
+            }
+            i = 0;
+            while (i < trianglesCount)
+            {
+                faceList.Add(triangles[i++]);
+                faceList.Add(triangles[i++]);
+                faceList.Add(triangles[i++]);
+                faceList.Add(triangles[i - 2]);  // Close the triangle
+                faceList.Add(-1);  // TODO What is the 5th value?
+
+            }
+
+            polyface.VertexList = vertexList;
+            polyface.FaceList = faceList;
+
+            return polyface;
+        }
+
         static void AddPolyline(DufDocument doc, dwPolyline polyline)
         {
             GetBounds(polyline.VertexList, out var minBounds, out var maxBounds);
 
             doc.AddEntity(polyline, minBounds, maxBounds, polyline.Layer?.Guid);
+        }
+
+        static void AddPolyface(DufDocument doc, dwPolyface polyface)
+        {
+            GetBounds(polyface.VertexList, out var minBounds, out var maxBounds);
+            doc.AddEntity(polyface, minBounds, maxBounds, polyface.Layer?.Guid);
+
         }
 
         static void Main(string[] args)
@@ -141,7 +230,7 @@ namespace ConsoleAppNet46
             string new_value = "new_value";
 
             // Setup the .duf file
-            var path = @"C:\Dev\evo-data-converters\packages\duf\tests\data\brachiopod_with_attrs.duf";
+            var path = @"C:\Dev\evo-data-converters\packages\duf\tests\data\polyline_attrs_boat.duf";
             var path2 = @"C:\Dev\evo-data-converters\packages\duf\tests\data\brachiopod_with_attrs-copy.duf";
             File.Copy(path, path2, true);
 
@@ -160,11 +249,16 @@ namespace ConsoleAppNet46
                 var poly1 = CreatePolyline(new double[] { 0, 0, 0, 5, 0, 0, 5, 5, 0, 0, 5, 0 });
                 var poly2 = CreatePolyline(new double[] { 0, 0, 0, -7, 0, 0, -7, -7, 0, 0, -7, 0 }, true);
 
+                var polyFace = CreatePolyface(new double[] { 0, 0, 0, 1, 0, 0, 0, 0, 1 }, new int[] { 0, 1, 2 });
+
                 poly1.Layer = subLayer;
                 poly2.Layer = topLayer;
+                polyFace.Layer = topLayer;
 
                 AddPolyline(docBefore, poly1);
                 AddPolyline(docBefore, poly2);
+
+                AddPolyface(docBefore, polyFace);
 
                 DufAttributes.Attribute stringAttr = new DufAttributes.Attribute() { Name = "String Attribute" };
                 DufAttributes.Attribute dateTimeAttr = new DufAttributes.Attribute() { Name = "DateTime Attribute", Type = DufAttributes.Attribute.AttributeType.DateTime };
@@ -213,6 +307,7 @@ namespace ConsoleAppNet46
                 //docAfter.LoadModelEntities(); // Uncomment to load model entities
 
                 Layer layer = GetLayer(docAfter, "0");
+                Layer topLayer = GetLayer(docAfter, "NEW_TOP_LAYER");
                 var new_key_exists = layer.XProperties.ContainsKey(new_key);
                 var new_keys_value = new_key_exists ? layer.XProperties[new_key].Value.First().Value : "";
 
