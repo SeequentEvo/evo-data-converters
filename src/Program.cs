@@ -49,17 +49,19 @@ namespace ConsoleAppNet46
             return layer;
         }
 
+
         static void Main(string[] args)
         {
+            var source_duf = args[0];
+            var dest_duf = args[1];
+
             string new_key = "new_key";
             string new_value = "new_value";
 
             // Setup the .duf file
-            var path = @"..\..\..\demo.duf";
-            var path2 = @"..\..\..\demo_with_attributes.duf";
-            File.Copy(path, path2, true);
+            File.Copy(source_duf, dest_duf, true);
 
-            using (var docBefore = new DufDocument(path2))
+            using (var docBefore = new DufDocument(dest_duf))
             {
                 docBefore.LoadReferenceEntities();
                 docBefore.LoadModelEntities();
@@ -85,7 +87,7 @@ namespace ConsoleAppNet46
             }
 
             // Reload the file.
-            using (var docAfter = new DufDocument(path2))
+            using (var docAfter = new DufDocument(dest_duf))
             {
                 docAfter.LoadReferenceEntities();
                 //docAfter.LoadModelEntities(); // Uncomment to load model entities
