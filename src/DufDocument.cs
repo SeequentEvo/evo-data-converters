@@ -35,6 +35,8 @@ namespace SharedCode
 
         private ulong _maxHandleId;
 
+        private Dictionary<string, Guid> _newLayers;
+
         public DufDocument(string path)
         {
             FilePath = path;
@@ -72,6 +74,8 @@ namespace SharedCode
             _entitiesByCategory[Category.Lights] = new List<BaseEntity>();
             _entitiesByCategory[Category.ModelEntities] = new List<BaseEntity>();
             _entitiesByCategory[Category.Document] = new List<BaseEntity>();
+
+            _newLayers = new Dictionary<string, Guid>();
         }
 
         public void Dispose()
@@ -251,6 +255,11 @@ namespace SharedCode
 
         public Layer AddLayer(string name, Guid? parentGuid = null)
         {
+            if (LayerExists(name))
+            {
+                throw new ArgumentException($"Layer with name {name} already exists");
+            }
+
             Layer parent = null;
 
             if (parentGuid is Guid)
@@ -262,6 +271,7 @@ namespace SharedCode
             var newLayer = new Layer() { Name = name, Frozen = false };
 
             AddEntity(newLayer);
+            _newLayers.Add(name, newLayer.Guid);
 
             return newLayer;
         }
@@ -495,6 +505,38 @@ namespace SharedCode
             }
 
             return exists;
+        }
+
+        private Guid? GetLayerGuid(string layerStr)
+        {
+            List<ItemHeader> layer_headers = Duf.GetEntityHeadersWithName(Category.Layers, layerStr);
+            if (layer_headers.Count > 0)
+            {
+                return layer_headers[0].EntityGuid;
+            }
+            if (_newLayers.ContainsKey(layerStr))
+            {
+                return _newLayers[layerStr];
+            }
+            return null;
+        }
+
+        public Layer GetLayer(string layerStr)
+        {
+            Guid? layerGuid = GetLayerGuid(layerStr);
+            if (!layerGuid.HasValue)
+            {
+                throw new ArgumentException($"Layer {layerStr} does not exist");
+            }
+            BaseEntity base_entity = GetEntityByGuid(layerGuid.Value);
+            Layer layer = base_entity as Layer;
+
+            return layer;
+        }
+
+        public bool LayerExists(string layer_str)
+        {
+            return GetLayerGuid(layer_str).HasValue;
         }
     }
 }

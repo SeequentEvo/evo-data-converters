@@ -39,18 +39,6 @@ namespace ConsoleAppNet46
             return null;
         }
 
-        private static Layer GetLayer(DufDocument doc, string layer_str)
-        {
-            List<ItemHeader> layer_headers = doc.Duf.GetEntityHeadersWithName(Category.Layers, layer_str);
-            ItemHeader layer_header = layer_headers[0];
-            Guid layer_guid = layer_header.EntityGuid;
-
-            BaseEntity base_entity = doc.GetEntityByGuid(layer_guid);
-            Layer layer = base_entity as Layer;
-
-            return layer;
-        }
-
         static void GetBounds(DufList<Vector4_dp> vertices, out Vector3_dp minBounds, out Vector3_dp maxBounds)
         {
             double minX = double.MaxValue;
@@ -239,7 +227,7 @@ namespace ConsoleAppNet46
                 docBefore.LoadReferenceEntities();
                 docBefore.LoadModelEntities();
 
-                Layer zeroLayer = GetLayer(docBefore, "0");
+                Layer zeroLayer = docBefore.GetLayer("0");
 
                 // Add layers
                 var subLayer = docBefore.AddLayer("NEW_SUB_LAYER", zeroLayer.Guid);
@@ -306,10 +294,13 @@ namespace ConsoleAppNet46
                 docAfter.LoadReferenceEntities();
                 //docAfter.LoadModelEntities(); // Uncomment to load model entities
 
-                Layer layer = GetLayer(docAfter, "0");
-                Layer topLayer = GetLayer(docAfter, "NEW_TOP_LAYER");
+                Layer layer = docAfter.GetLayer("0");
+                Layer topLayer = docAfter.GetLayer("NEW_TOP_LAYER");
                 var new_key_exists = layer.XProperties.ContainsKey(new_key);
                 var new_keys_value = new_key_exists ? layer.XProperties[new_key].Value.First().Value : "";
+
+                bool exists1 = docAfter.LayerExists("0");
+                bool exists2 = docAfter.LayerExists("blah");
 
                 Console.WriteLine($"Key present after reload: {new_key_exists}, value is '{new_keys_value}'");
             }

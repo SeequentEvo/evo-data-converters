@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -48,7 +49,6 @@ namespace SimpleDuf
             }
         }
     }
-
 
 
     public class SimpleLayer : SimpleEntity
@@ -311,6 +311,11 @@ namespace SimpleDuf
 
         public Duf(string path)
         {
+            if (!File.Exists(path))
+            {
+                throw new ArgumentException($"File {path} does not exist");
+            }
+
             _duf = new DufDocument(path);
             _duf.LoadReferenceEntities();
             _duf.LoadModelEntities();
@@ -355,6 +360,11 @@ namespace SimpleDuf
         public SimpleEntity NewPolyface(SimpleLayer parentLayer)
         {
             return NewPolyface(parentLayer.Guid);
+        }
+
+        public bool LayerExists(string layerName)
+        {
+            return _duf.LayerExists(layerName);
         }
 
         public void Save()
