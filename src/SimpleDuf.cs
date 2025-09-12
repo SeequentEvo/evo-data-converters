@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading.Tasks;
@@ -415,6 +414,64 @@ namespace SharedCode
             if (string.IsNullOrWhiteSpace(username)) username = "unknown";
 
             return username;
+        }
+
+        public static XProperty XPropertyGet(XProperties xprops, string name, bool addIfNonExistent = true)
+        {
+            XProperty found = null;
+
+            if (xprops is XProperties)
+            {
+                if (xprops.ContainsKey(name))
+                {
+                    found = xprops[name];
+                }
+                else if (addIfNonExistent)
+                {
+                    found = new XProperty() { Name = name };
+                    xprops.Add(found);
+                }
+            }
+
+            return found;
+        }
+
+        public static bool XPropertyExists(XProperties xprops, string name)
+        {
+            return xprops?.ContainsKey(name) ?? false;
+        }
+
+        public static bool XPropertyRemove(XProperties xprops, string name)
+        {
+            return xprops?.Remove(name) ?? false;
+        }
+
+        public static bool XPropertySet(XProperties xprops, string name, object value, bool addIfNonExistent = true)
+        {
+            var exists = false;
+
+            if (xprops is XProperties)
+            {
+                var xprop = XPropertyGet(xprops, name, addIfNonExistent);
+
+                exists = !(xprop is null);
+
+                if (exists)
+                {
+                    var propValue = new PropValue(value);
+
+                    if (xprop.Value.Any())
+                    {
+                        xprop.Value[0] = propValue;
+                    }
+                    else
+                    {
+                        xprop.Value.Add(propValue);
+                    }
+                }
+            }
+
+            return exists;
         }
     }
 }

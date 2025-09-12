@@ -166,6 +166,27 @@ namespace ConsoleAppNet46
                 AddPolyline(docBefore, poly1);
                 AddPolyline(docBefore, poly2);
 
+                DufAttributes.Attribute stringAttr = new DufAttributes.Attribute() { Name = "String Attribute" };
+                DufAttributes.Attribute dateTimeAttr = new DufAttributes.Attribute() { Name = "DateTime Attribute", Type = DufAttributes.Attribute.AttributeType.DateTime };
+                DufAttributes.Attribute doubleAttr = new DufAttributes.Attribute() { Name = "Double Attribute", Type = DufAttributes.Attribute.AttributeType.Double };
+                DufAttributes.Attribute intAttr = new DufAttributes.Attribute() { Name = "Integer Attribute", Type = DufAttributes.Attribute.AttributeType.Integer };
+
+                DufAttributes subLayerAttrs = new DufAttributes(subLayer);
+                DufAttributes topLayerAttrs = new DufAttributes(topLayer);
+
+                subLayerAttrs.Add(stringAttr, dateTimeAttr, doubleAttr, intAttr);
+                topLayerAttrs.Add(stringAttr, dateTimeAttr, doubleAttr, intAttr);
+
+                stringAttr.SetOnEntity(poly1, "Testing...");
+                dateTimeAttr.SetOnEntity(poly1, DateTime.Now);
+                doubleAttr.SetOnEntity(poly1, 123.456);
+                intAttr.SetOnEntity(poly1, 654321);
+
+                stringAttr.SetOnEntity(poly2);
+                dateTimeAttr.SetOnEntity(poly2);
+                doubleAttr.SetOnEntity(poly2);
+                intAttr.SetOnEntity(poly2);
+
                 var layer_xprops_before = zeroLayer.XProperties;
 
                 Console.WriteLine($"Key present before: {layer_xprops_before.ContainsKey(new_key)}");
