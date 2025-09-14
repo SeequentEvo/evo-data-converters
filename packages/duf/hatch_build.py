@@ -15,7 +15,7 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
 
     @property
     def dotnet_install_script(self):
-        return os.path.join(self.dotnet_path, "dotnet-install.sh")
+        return os.path.join(self.dotnet_path, "dotnet-install.ps1")
 
     @property
     def dotnet_exe(self):
@@ -53,9 +53,6 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
             "-InstallDir",
             self.dotnet_path,
         ]
-
-        print(f'_install_local_dotnet_sdk: trying to run cmd {cmd}')
-
         subprocess.run(cmd)
 
     def _build_simple_duf(self):
@@ -68,7 +65,4 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
             self.simple_duf_output_bin,
             self.simple_duf_csharp_project_file
         ]
-
-        print(f'_build_simple_duf: trying to run cmd {cmd}')
-
         subprocess.run(cmd)
