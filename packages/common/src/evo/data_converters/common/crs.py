@@ -84,6 +84,7 @@ def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_O
         crs = crs_from_any(2193)
         crs = crs_from_any("2193")
         crs = crs_from_any("EPSG:2193")
+        crs = crs_from_any("unspecified")
         crs = crs_from_any("<valid OGC WKT string>")
     """
     if crs_def is None or crs_def == "unspecified":
