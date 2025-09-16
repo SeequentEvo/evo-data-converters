@@ -8,6 +8,9 @@ changelog:
     - title: evo-data-converters-common
       labels:
         - common
+    - title: evo-data-converters-gef
+      labels:
+        - gef
     - title: evo-data-converters-gocad
       labels:
         - gocad
