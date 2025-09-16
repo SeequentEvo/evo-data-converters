@@ -9,21 +9,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from typing import Any
 from unittest.mock import patch
 from uuid import UUID
-from typing import Any
 
 import pyarrow as pa
 
-from evo.objects.parquet import ParquetLoader
 from evo.common.test_tools import (
     TestWithConnector,
     TestWithStorage,
 )
-
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
 )
+from evo.objects.parquet import ParquetLoader
 
 
 class EvoDataConvertersTestCase(TestWithConnector, TestWithStorage):
