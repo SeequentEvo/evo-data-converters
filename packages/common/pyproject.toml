@@ -15,7 +15,7 @@ dependencies = [
     "evo-objects>=0.1.0",
     "evo-schemas>=2024.4",
     "nest_asyncio",
-    "numpy",
+    "numpy==1.26.3",
     "pyarrow",
     "requests",
     "scipy",
