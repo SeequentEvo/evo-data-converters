@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-omf"
 description = "Python data converters for OMF to Evo geoscience objects"
-version = "0.1.3"
+version = "0.1.4"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
