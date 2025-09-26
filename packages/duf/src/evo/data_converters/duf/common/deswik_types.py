@@ -49,11 +49,6 @@ from System import ArgumentException, Boolean, Double, Guid, Int32, NullReferenc
 from System.Collections.Generic import List
 from System.Reflection import BindingFlags
 
-import clr
-
-clr.AddReference("SimpleDuf")
-
-from SimpleDuf import Duf
 
 __all__ = [
     # Deswik
@@ -65,7 +60,6 @@ __all__ = [
     "CompressionMethod",
     "Document",
     "Double",
-    "Duf",
     "DufList",
     "DufImplementation",
     "dwPoint",
