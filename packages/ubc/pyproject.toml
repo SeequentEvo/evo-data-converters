@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-ubc"
 description = "Python data converters for UBC to Evo geoscience objects"
-version = "0.1.1"
+version = "0.1.2"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
