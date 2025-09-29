@@ -10,6 +10,7 @@
 #  limitations under the License.
 
 import os
+import shutil
 
 import pytest
 
@@ -38,13 +39,17 @@ def data_client(evo_metadata):
 def cleanup():
     test_dir = os.path.dirname(__file__)
     files_to_clean = [
-        # TODO Getting permission error when trying to clean these
-        # os.path.join(test_dir, 'importer', 'temp'),
-        # os.path.join(test_dir, 'exporter', 'temp'),
         os.path.join(test_dir, "exporter", "test_out.duf"),
+    ]
+    directories_to_clean = [
+        os.path.join(test_dir, "importer", "temp"),
+        os.path.join(test_dir, "exporter", "temp"),
     ]
 
     yield
     for filepath in files_to_clean:
         if os.path.exists(filepath):
             os.remove(filepath)
+    for directory in directories_to_clean:
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
