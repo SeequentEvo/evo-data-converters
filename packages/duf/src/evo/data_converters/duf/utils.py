@@ -82,3 +82,24 @@ def reflect_constructors(csharp_type):
 
 def reflect_nested_type(csharp_type, nested: str):
     clr.GetClrType(csharp_type).GetNestedType(nested)
+
+
+def call_private(obj, method_name, *args):
+    current_type = obj.GetType()
+
+    # Find the first class in the hierarchy which declares the method. For whatever reason, it's not possible to
+    # get the private method of the base class indirectly.
+    while current_type is not None:
+        method_info = current_type.GetMethod(
+            method_name,
+            dw.BindingFlags.NonPublic
+            | dw.BindingFlags.Instance
+            | dw.BindingFlags.DeclaredOnly,  # Only look at methods declared at this level
+        )
+
+        if method_info is not None:
+            return method_info.Invoke(obj, args)
+
+        current_type = current_type.BaseType
+
+    raise ValueError(f"Method '{method_name}' not found in class hierarchy")

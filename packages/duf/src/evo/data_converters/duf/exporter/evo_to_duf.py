@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import os
 import shutil
 from typing import Optional
 
@@ -23,6 +22,7 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
 )
 from evo.data_converters.duf.common import deswik_types as dw
+from evo.data_converters.duf.common.consts import EMPTY_DUF
 from evo.data_converters.duf.common.conversions import EvoDUFWriter
 from evo.data_converters.duf.common.types import FetchedLines, FetchedTriangleMesh
 from evo.data_converters.duf.fetch import Fetch, FetchStatus
@@ -45,8 +45,7 @@ async def _evo_objects_to_duf_async(
 
     # I was having trouble creating a file from scratch. Newly created files have a bunch of objects that I didn't know
     # how to make. So start with an empty file made from the Deswik Cad
-    duf_file_empty = os.path.join(os.path.dirname(__file__), "duf_files", "empty.duf")
-    shutil.copy(duf_file_empty, duf_file)
+    shutil.copy(EMPTY_DUF, duf_file)
 
     # Kick off the evo downloads
     async_fetch_futures = Fetch.download_all(evo_objects, api_client, data_client)

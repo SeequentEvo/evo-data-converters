@@ -22,6 +22,11 @@ namespace SimpleDuf
         public Guid Guid { get; private set; }
         protected DufDocument Duf;
 
+        private void SetGuid(Guid guid)
+        {
+            Guid = guid;
+        }
+
 
         public SimpleEntity(DufDocument document, Guid guid)
         {
@@ -36,7 +41,7 @@ namespace SimpleDuf
             var primary = result as Primary;
             if (result == null)
             {
-                throw new Exception("Entity is not a Primary");
+                throw new InvalidOperationException("Entity is not a Primary");
             }
             return primary;
         }
@@ -56,12 +61,9 @@ namespace SimpleDuf
         private DufAttributes _attributes;
         public SimpleLayer(DufDocument document, Guid guid) : base(document, guid)
         {
-
-            var layer = Entity as Layer;
-            if (layer == null)
+            if (!(Entity is Layer layer))
             {
-                // TODO better exception
-                throw new Exception("Bad type");
+                throw new ArgumentException("Entity is not a Layer");
             }
 
             // TODO The layer should gather its attributes on construction
@@ -135,7 +137,7 @@ namespace SimpleDuf
                 z = vecList4[i].Z;
                 return;
             }
-            throw new Exception("Bad type");
+            throw new NotSupportedException("The underlying type is neither DufList<Vector3_dp> nor DufList<Vector4_dp>");
         }
     }
 
@@ -185,23 +187,29 @@ namespace SimpleDuf
     {
         public SimplePolyline(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
         {
+            if (!(Entity is dwPolyline polyline))
+            {
+                throw new ArgumentException("Entity is not a dwPolyline");
+            }
         }
 
-        
-
-        public void SetVertices3D(double[] vertices, bool ensureClosed = false)
+        private dwPolyline GetdwPolyline()
         {
             var polyline = Entity as dwPolyline;
             if (polyline == null)
             {
-                // TODO better exception
-                throw new Exception("Bad type");
+                throw new InvalidOperationException("Entity is not a dwPolyline");
             }
+            return polyline;
+        }
+
+        public void SetVertices3D(double[] vertices, bool ensureClosed = false)
+        {
+            var polyline = GetdwPolyline();
 
             if (vertices.Length % 3 != 0)
             {
-                // TODO throw better exception?
-                throw new Exception("Vertices length not a multiple of 3");
+                throw new ArgumentException("Vertices must be a multiple of 3");
             }
 
             var verticesCount = vertices.Length;
@@ -243,27 +251,34 @@ namespace SimpleDuf
     {
         public SimplePolyface(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
         {
+            if (!(Entity is dwPolyface polyface))
+            {
+                throw new ArgumentException("Entity is not a dwPolyface");
+            }
         }
 
-        public void SetVertices3D(double[] vertices, int[] triangles)
+        private dwPolyface GetdwPolyface()
         {
             var polyface = Entity as dwPolyface;
             if (polyface == null)
             {
-                // TODO better exception
-                throw new Exception("Bad type");
+                throw new InvalidOperationException("Entity is not a dwPolyface");
             }
+            return polyface;
+        }
+
+        public void SetVertices3D(double[] vertices, int[] triangles)
+        {
+            var polyface = GetdwPolyface();
 
             if (vertices.Length % 3 != 0)
             {
-                // TODO throw better exception?
-                throw new Exception("Vertices length not a multiple of 3");
+                throw new ArgumentException("Vertices must be a multiple of 3");
             }
 
             if (triangles.Length % 3 != 0)
             {
-                // TODO throw better exception?
-                throw new Exception("Triangles length not a multiple of 3");
+                throw new ArgumentException("Triangles must be a multiple of 3");
             }
 
             var verticesCount = vertices.Length;
@@ -307,7 +322,7 @@ namespace SimpleDuf
 
     public class Duf
     {
-        private DufDocument _duf;
+        public DufDocument _duf;
 
         public Duf(string path)
         {
@@ -327,14 +342,14 @@ namespace SimpleDuf
             return new SimpleLayer(_duf, newLayer.Guid);
         }
 
-        public void AddFigure(Figure figure, Guid layerGuid)
+        private void AddFigure(Figure figure, Guid layerGuid)
         {
-            _duf.AddEntity(figure, parentGuid: layerGuid);
             var layer = _duf.GetEntityByGuid(layerGuid) as Layer;
             if (layer == null)
             {
-                throw new Exception("Not a layer");
+                throw new ArgumentException("The Guid is not a layer");
             }
+            _duf.AddEntity(figure, parentGuid: layerGuid);
             figure.Layer = layer;
         }
 

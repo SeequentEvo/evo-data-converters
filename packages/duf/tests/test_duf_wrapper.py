@@ -12,6 +12,14 @@
 import pytest
 
 import evo.data_converters.duf.common.deswik_types as dw
+from evo.data_converters.duf.common.consts import EMPTY_DUF
+from evo.data_converters.duf.utils import call_private
+from packages.duf.tests.consts import BOAT_DUF
+
+
+@pytest.fixture(scope="function")
+def duf():
+    return dw.Duf(EMPTY_DUF)
 
 
 def test_cant_create_layer_with_duplicate_name():
@@ -22,9 +30,7 @@ def test_cant_create_layer_with_duplicate_name():
     >>> duf.NewLayer('new_layer')
     >>> duf.NewLayer('new_layer')
     """
-    duf_file = r"data/polyline_attrs_boat.duf"
-
-    duf = dw.Duf(duf_file)
+    duf = dw.Duf(BOAT_DUF)
 
     assert duf.LayerExists("0")
 
@@ -41,3 +47,67 @@ def test_cant_create_layer_with_duplicate_name():
 def test_missing_file():
     with pytest.raises(dw.ArgumentException):
         duf = dw.Duf("not_a_real_file.duf")  # noqa: F841
+
+
+def test_not_primary_guard(duf):
+    simple_entity = dw.SimpleEntity(duf._duf, dw.Guid.NewGuid())
+    with pytest.raises(dw.InvalidOperationException):
+        simple_entity.Entity
+
+
+def test_not_layer_guards(duf):
+    layer = duf.NewLayer("new_layer")
+    new_polyline = duf.NewPolyline(layer)
+    with pytest.raises(dw.ArgumentException):
+        dw.SimpleLayer(duf._duf, new_polyline.Guid)
+
+
+def test_not_polyline_guards(duf):
+    layer = duf.NewLayer("new_layer")
+    with pytest.raises(dw.ArgumentException):
+        new_layer = duf.NewLayer("another layer")
+        dw.SimplePolyline(duf._duf, new_layer.Guid, layer.Guid)
+
+    polyline = duf.NewPolyline(layer)
+    call_private(polyline, "SetGuid", dw.Guid.NewGuid())
+    with pytest.raises(dw.InvalidOperationException):
+        polyline.SetVertices3D([])
+
+
+def test_polyline_wrong_sized_input(duf):
+    layer = duf.NewLayer("new_layer")
+    polyline = duf.NewPolyline(layer)
+    with pytest.raises(dw.ArgumentException):
+        polyline.SetVertices3D([1.1, 2.2, 3.3, 4.4])  # Not a multiple of 3
+
+
+def test_not_polyface_guards(duf):
+    layer = duf.NewLayer("new_layer")
+    with pytest.raises(dw.ArgumentException):
+        new_layer = duf.NewLayer("another layer")
+        dw.SimplePolyface(duf._duf, new_layer.Guid, layer.Guid)
+
+    polyface = duf.NewPolyface(layer)
+    call_private(polyface, "SetGuid", dw.Guid.NewGuid())
+    with pytest.raises(dw.InvalidOperationException):
+        polyface.SetVertices3D([], [])
+
+
+def test_polyface_wrong_sized_input(duf):
+    layer = duf.NewLayer("new_layer")
+    polyface = duf.NewPolyface(layer)
+    with pytest.raises(dw.ArgumentException):
+        polyface.SetVertices3D([1.1, 2.2, 3.3, 4.4], [])  # Vertices not a multiple of 3
+    with pytest.raises(dw.ArgumentException):
+        polyface.SetVertices3D([], [1])  # Indices not a multiple of 3
+
+
+def test_bad_attribute_type_guard(duf):
+    layer = duf.NewLayer("new_layer")
+    with pytest.raises(dw.ArgumentException):
+        layer.AddAttribute("what", "ever")
+
+
+def test_add_figure_with_non_layer_guard(duf):
+    with pytest.raises(dw.ArgumentException):
+        duf.NewPolyline(dw.Guid.NewGuid())

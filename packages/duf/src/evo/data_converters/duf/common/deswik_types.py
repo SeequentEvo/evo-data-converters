@@ -45,7 +45,17 @@ from Deswik.Entities.Cad import (
     dwPoint,
 )
 from Deswik.Serialization import GuidReferences
-from System import ArgumentException, Boolean, Double, Guid, Int32, NullReferenceException, String, UInt32
+from System import (
+    ArgumentException,
+    Boolean,
+    Double,
+    Guid,
+    Int32,
+    InvalidOperationException,
+    NullReferenceException,
+    String,
+    UInt32,
+)
 from System.Collections.Generic import List
 from System.Reflection import BindingFlags
 
@@ -53,7 +63,7 @@ import clr
 
 clr.AddReference("SimpleDuf")
 
-from SimpleDuf import Duf
+from SimpleDuf import Duf, SimpleEntity, SimpleLayer, SimplePolyface, SimplePolyline
 
 __all__ = [
     # Deswik
@@ -74,6 +84,7 @@ __all__ = [
     "Figure",
     "FilterCriteria",
     "GuidReferences",
+    "InvalidOperationException",
     "ItemHeader",
     "Layer",
     "LineType",
@@ -87,6 +98,10 @@ __all__ = [
     "SaveByIndexSet",
     "SaveSet",
     "SerializationBehaviour",
+    "SimpleEntity",
+    "SimpleLayer",
+    "SimplePolyface",
+    "SimplePolyline",
     "Upgrader",
     "Vector3_dp",
     "Vector4_dp",
