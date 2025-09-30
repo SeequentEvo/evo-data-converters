@@ -11,7 +11,7 @@ using Deswik.Entities;
 using Deswik.Entities.Cad;
 using Deswik.Serialization;
 
-namespace SharedCode
+namespace DufWrapper
 {
     public class DufDocument : IDisposable
     {

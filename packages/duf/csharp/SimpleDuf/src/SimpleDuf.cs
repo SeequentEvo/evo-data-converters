@@ -12,7 +12,7 @@ using Deswik.Entities.Base;
 using Deswik.Entities.Cad;
 using Deswik.Serialization;
 
-using SharedCode;
+using DufWrapper;
 
 namespace SimpleDuf
 {
@@ -69,29 +69,15 @@ namespace SimpleDuf
             _attributes = new DufAttributes(layer);
         }
 
-        private static Dictionary<string, DufAttributes.Attribute.AttributeType> TypeLookup = new Dictionary<string, DufAttributes.Attribute.AttributeType>()
-            {
-                { "String", DufAttributes.Attribute.AttributeType.String },
-                { "DateTime", DufAttributes.Attribute.AttributeType.DateTime },
-                { "Double", DufAttributes.Attribute.AttributeType.Double },
-                { "Integer", DufAttributes.Attribute.AttributeType.Integer },
-            };
-
-        public DufAttributes.Attribute AddAttribute(string name, string type_str)
+        public DufAttributes.Attribute AddAttribute(string name, AttributeType type)
         {
-            // TODO Guard agianst adding the same attribute twice
-            // TODO Should just bind the enum if that's possible
-
-            if (TypeLookup.ContainsKey(type_str))
+            if (_attributes.HasAttribute(name))
             {
-                var newAttribute = new DufAttributes.Attribute() { Name = name, Type = TypeLookup[type_str] };
-                _attributes.Add(newAttribute);
-                return newAttribute;
+                throw new ArgumentException($"There is already an attribute with name `{name}`");
             }
-            else
-            {
-                throw new ArgumentException("Type must be one of [String, DateTime, Double, Integer]");
-            }
+            var newAttribute = new DufAttributes.Attribute() { Name = name, Type = type };
+            _attributes.Add(newAttribute);
+            return newAttribute;
         }
 
         public DufList<DufAttributes.Attribute> GetAttributes()

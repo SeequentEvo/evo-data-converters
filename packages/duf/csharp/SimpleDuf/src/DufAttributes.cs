@@ -10,10 +10,17 @@ using Deswik.Core.Structures;
 using Deswik.Duf;
 using Deswik.Entities;
 using Deswik.Entities.Cad;
-using static SharedCode.DufAttributes.Attribute;
 
-namespace SharedCode
+namespace DufWrapper
 {
+    public enum AttributeType
+    {
+        String,
+        Integer,
+        Double,
+        DateTime
+    }
+
     public class DufAttributes : IReadOnlyList<DufAttributes.Attribute>
     {
         public const string DeswikStandardAttributePrefix = "_dw_Attribute";
@@ -86,7 +93,7 @@ namespace SharedCode
             {
                 var attributePropertyNames = AttributePropertyNames.GetAttributePropertyNames(_namePrefix, i);
 
-                attr = GetFromXProperties(_layer?.XProperties, attributePropertyNames);
+                attr = Attribute.GetFromXProperties(_layer?.XProperties, attributePropertyNames);
             }
 
             return attr;
@@ -117,6 +124,11 @@ namespace SharedCode
             }
 
             return found;
+        }
+
+        public bool HasAttribute(string name)
+        {
+            return FindNameIndex(name) != -1;
         }
 
         public Attribute FindName(string name)
@@ -197,7 +209,7 @@ namespace SharedCode
 
                     propertyNames = AttributePropertyNames.GetAttributePropertyNames(_namePrefix, index);
 
-                    RemoveFromXProperties(_layer.XProperties, propertyNames);
+                    Attribute.RemoveFromXProperties(_layer.XProperties, propertyNames);
                 }
             }
         }
@@ -335,14 +347,6 @@ namespace SharedCode
 
         public class Attribute
         {
-            public enum AttributeType
-            {
-                String,
-                Integer,
-                Double,
-                DateTime
-            }
-
             [Flags]
             public enum DisplayModeConstants
             {

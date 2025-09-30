@@ -105,28 +105,31 @@ def test_polyface_wrong_sized_input(duf):
         polyface.SetVertices3D([], [1])  # Indices not a multiple of 3
 
 
-def test_bad_attribute_type_guard(duf):
-    layer = duf.NewLayer("new_layer")
-    with pytest.raises(dw.ArgumentException):
-        layer.AddAttribute("what", "ever")
-
-
 def test_add_figure_with_non_layer_guard(duf):
     with pytest.raises(dw.ArgumentException):
         duf.NewPolyline(dw.Guid.NewGuid())
 
 
+def test_add_same_attribute_twice_guard(duf):
+    layer = duf.NewLayer("new_layer")
+    layer.AddAttribute("name", dw.AttributeType.String)
+
+    with pytest.raises(dw.ArgumentException):
+        layer.AddAttribute("name", dw.AttributeType.String)
+
+
 def test_get_attributes(boat_duf):
     expected_attrs = [
-        "Part",
-        "Date",
-        "Doub",
-        "Int",
-        "Choice",
+        ("Part", dw.AttributeType.String),
+        ("Date", dw.AttributeType.DateTime),
+        ("Doub", dw.AttributeType.Double),
+        ("Int", dw.AttributeType.Integer),
+        ("Choice", dw.AttributeType.String),
     ]
 
     layer = boat_duf.GetLayer("POLYLINE 1")
     attributes = list(layer.GetAttributes())
 
-    for expected_attr_name, attr in zip(expected_attrs, attributes, strict=True):
+    for (expected_attr_name, expected_attr_type), attr in zip(expected_attrs, attributes, strict=True):
         assert expected_attr_name == attr.Name
+        assert expected_attr_type == attr.Type

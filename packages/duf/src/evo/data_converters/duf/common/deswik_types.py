@@ -64,8 +64,16 @@ import clr
 clr.AddReference("SimpleDuf")
 
 from SimpleDuf import Duf, SimpleEntity, SimpleLayer, SimplePolyface, SimplePolyline
+from DufWrapper import AttributeType
 
 __all__ = [
+    # SimpleDuf
+    "AttributeType",
+    "Duf",
+    "SimpleEntity",
+    "SimpleLayer",
+    "SimplePolyface",
+    "SimplePolyline",
     # Deswik
     "Activator",
     "BaseEntity",
@@ -75,7 +83,6 @@ __all__ = [
     "CompressionMethod",
     "Document",
     "Double",
-    "Duf",
     "DufList",
     "DufImplementation",
     "dwPoint",
@@ -98,10 +105,6 @@ __all__ = [
     "SaveByIndexSet",
     "SaveSet",
     "SerializationBehaviour",
-    "SimpleEntity",
-    "SimpleLayer",
-    "SimplePolyface",
-    "SimplePolyline",
     "Upgrader",
     "Vector3_dp",
     "Vector4_dp",

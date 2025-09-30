@@ -12,14 +12,15 @@
 import numpy
 import pandas
 
+import evo.data_converters.duf.common.deswik_types as dw
 from evo.data_converters.duf.common.types import AttributedEvoData, FetchedTriangleMesh, FetchedLines, EvoAttributes
 
 EVO_TO_DW_TYPE_CONVERSION = {
-    "string": "String",
-    "scalar": "Double",
-    "category": "String",
-    "date_time": "DateTime",
-    "integer": "Integer",
+    "string": dw.AttributeType.String,
+    "scalar": dw.AttributeType.Double,
+    "category": dw.AttributeType.String,
+    "date_time": dw.AttributeType.DateTime,
+    "integer": dw.AttributeType.Integer,
 }
 
 

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using SharedCode;
+using DufWrapper;
 using Deswik.Entities.Cad;
 using Deswik.Entities;
 using Deswik.Duf;
@@ -249,9 +249,9 @@ namespace ConsoleAppNet46
                 AddPolyface(docBefore, polyFace);
 
                 DufAttributes.Attribute stringAttr = new DufAttributes.Attribute() { Name = "String Attribute" };
-                DufAttributes.Attribute dateTimeAttr = new DufAttributes.Attribute() { Name = "DateTime Attribute", Type = DufAttributes.Attribute.AttributeType.DateTime };
-                DufAttributes.Attribute doubleAttr = new DufAttributes.Attribute() { Name = "Double Attribute", Type = DufAttributes.Attribute.AttributeType.Double };
-                DufAttributes.Attribute intAttr = new DufAttributes.Attribute() { Name = "Integer Attribute", Type = DufAttributes.Attribute.AttributeType.Integer };
+                DufAttributes.Attribute dateTimeAttr = new DufAttributes.Attribute() { Name = "DateTime Attribute", Type = AttributeType.DateTime };
+                DufAttributes.Attribute doubleAttr = new DufAttributes.Attribute() { Name = "Double Attribute", Type = AttributeType.Double };
+                DufAttributes.Attribute intAttr = new DufAttributes.Attribute() { Name = "Integer Attribute", Type = AttributeType.Integer };
 
                 DufAttributes subLayerAttrs = new DufAttributes(subLayer);
                 DufAttributes topLayerAttrs = new DufAttributes(topLayer);
