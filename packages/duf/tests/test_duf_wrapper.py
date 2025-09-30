@@ -22,7 +22,12 @@ def duf():
     return dw.Duf(EMPTY_DUF)
 
 
-def test_cant_create_layer_with_duplicate_name():
+@pytest.fixture(scope="function")
+def boat_duf():
+    return dw.Duf(BOAT_DUF)
+
+
+def test_cant_create_layer_with_duplicate_name(boat_duf):
     """
     This test is only valid for layers which existed before loading.
 
@@ -30,18 +35,16 @@ def test_cant_create_layer_with_duplicate_name():
     >>> duf.NewLayer('new_layer')
     >>> duf.NewLayer('new_layer')
     """
-    duf = dw.Duf(BOAT_DUF)
-
-    assert duf.LayerExists("0")
+    assert boat_duf.LayerExists("0")
 
     with pytest.raises(dw.ArgumentException):
-        duf.NewLayer("0")
+        boat_duf.NewLayer("0")
 
-    duf.NewLayer("new_layer")
+    boat_duf.NewLayer("new_layer")
 
-    assert duf.LayerExists("new_layer")
+    assert boat_duf.LayerExists("new_layer")
     with pytest.raises(dw.ArgumentException):
-        duf.NewLayer("new_layer")
+        boat_duf.NewLayer("new_layer")
 
 
 def test_missing_file():
@@ -111,3 +114,19 @@ def test_bad_attribute_type_guard(duf):
 def test_add_figure_with_non_layer_guard(duf):
     with pytest.raises(dw.ArgumentException):
         duf.NewPolyline(dw.Guid.NewGuid())
+
+
+def test_get_attributes(boat_duf):
+    expected_attrs = [
+        "Part",
+        "Date",
+        "Doub",
+        "Int",
+        "Choice",
+    ]
+
+    layer = boat_duf.GetLayer("POLYLINE 1")
+    attributes = list(layer.GetAttributes())
+
+    for expected_attr_name, attr in zip(expected_attrs, attributes, strict=True):
+        assert expected_attr_name == attr.Name

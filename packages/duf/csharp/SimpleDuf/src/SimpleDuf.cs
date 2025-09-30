@@ -66,7 +66,6 @@ namespace SimpleDuf
                 throw new ArgumentException("Entity is not a Layer");
             }
 
-            // TODO The layer should gather its attributes on construction
             _attributes = new DufAttributes(layer);
         }
 
@@ -92,6 +91,20 @@ namespace SimpleDuf
             else
             {
                 throw new ArgumentException("Type must be one of [String, DateTime, Double, Integer]");
+            }
+        }
+
+        public DufList<DufAttributes.Attribute> GetAttributes()
+        {
+            var result = new DufList<DufAttributes.Attribute>();
+            for (int i = 0;; i++ )
+            {
+                var attribute = _attributes[i];
+                if (attribute == null)
+                {
+                    return result;
+                }
+                result.Add(attribute);
             }
         }
     }
@@ -334,6 +347,11 @@ namespace SimpleDuf
             _duf = new DufDocument(path);
             _duf.LoadReferenceEntities();
             _duf.LoadModelEntities();
+        }
+
+        public SimpleLayer GetLayer(string name)
+        {
+            return new SimpleLayer(_duf, _duf.GetLayer(name).Guid);
         }
 
         public SimpleEntity NewLayer(string name, Guid? parentLayer = null)
