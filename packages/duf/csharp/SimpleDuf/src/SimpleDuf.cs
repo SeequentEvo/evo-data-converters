@@ -142,12 +142,8 @@ namespace SimpleDuf
 
     public class SimpleFigure : SimpleEntity
     {
-        // TODO I'm avoiding modifying DufDocuments for now. But there's no reason this class should have to keep track of its parent.
-        protected Guid _parentLayer;
-
         public SimpleFigure(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid)
         {
-            _parentLayer = parentLayer;
         }
 
         public void SetAttribute(DufAttributes.Attribute attribute, object value)
@@ -242,7 +238,7 @@ namespace SimpleDuf
             GetBounds(polyline.VertexList, out var minBounds, out var maxBounds);
 
 
-            Duf.SetMetadataForEntity(polyline, minBounds, maxBounds, _parentLayer);
+            Duf.SetMetadataForFigure(polyline, minBounds, maxBounds);
         }
     }
 
@@ -314,7 +310,7 @@ namespace SimpleDuf
             GetBounds(polyface.VertexList, out var minBounds, out var maxBounds);
 
 
-            Duf.SetMetadataForEntity(polyface, minBounds, maxBounds, _parentLayer);
+            Duf.SetMetadataForFigure(polyface, minBounds, maxBounds);
         }
 
     }
