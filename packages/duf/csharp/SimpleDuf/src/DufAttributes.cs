@@ -563,13 +563,15 @@ namespace DufWrapper
                         {
                             typedValue = (DateTime)value;
                         }
+                        else if (value is String)
+                        { 
+                            // TODO This code seems reasonable, but when I created a date with the Deswik.CAD UI, the datetime seemed to be a string.
+                            //typedValue = string.IsNullOrEmpty(value) ? DateTime.Now : DateTime.Parse(value);
+                            typedValue = value;
+                        }
                         else
                         {
-                            var asString = value.ToString();
-
-                            // TODO This code seems reasonable, but when I created a date with the Deswik.CAD UI, the datetime seemed to be a string.
-                            //typedValue = string.IsNullOrEmpty(asString) ? DateTime.Now : DateTime.Parse(asString);
-                            typedValue = asString;
+                            throw new ArgumentException($"value must be a DateTime or a String, but is a {value.GetType()}");
                         }
 
                         break;
@@ -580,11 +582,13 @@ namespace DufWrapper
                         {
                             typedValue = (double)value;
                         }
+                        else if (value is String && value.ToString() == "")
+                        {
+                            typedValue = value;
+                        }
                         else
                         {
-                            var asString = value.ToString();
-
-                            typedValue = string.IsNullOrEmpty(asString) ? 0.0 : double.Parse(asString);
+                            throw new ArgumentException($"value must be a Double, but is a {value.GetType()}");
                         }
 
                         break;
@@ -593,22 +597,40 @@ namespace DufWrapper
 
                         if (value is long)
                         {
-                            typedValue = (long)value;
+                            typedValue = value;
+                        }
+                        else if (value is String && value.ToString() == "")
+                        {
+                            typedValue = value;
                         }
                         else
                         {
-                            var asString = value.ToString();
+                            try
+                            {
+                                typedValue = long.Parse(value.ToString());
+                            }
+                            catch
+                            {
+                                throw new ArgumentException($"value must be an Integer, but is a {value.GetType()}");
+                            }
+                        }
 
-                            typedValue = string.IsNullOrEmpty(asString) ? 0 : long.Parse(asString);
+                        break;
+
+                    case AttributeType.String:
+                        if (value is String)
+                        {
+                            typedValue = value;
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"value must be a String, but is a {value.GetType()}");
                         }
 
                         break;
 
                     default:
-                    case AttributeType.String:
-
-                        typedValue = value.ToString();
-                        break;
+                        throw new NotSupportedException($"{Type} not supported");
                 }
 
                 DufDocument.XPropertySet(EnsurePrimaryXProperties(primary), Name, typedValue);

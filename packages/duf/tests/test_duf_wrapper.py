@@ -32,8 +32,9 @@ def test_cant_create_layer_with_duplicate_name(boat_duf):
     This test is only valid for layers which existed before loading.
 
     This will not fail (as of this commit):
-    >>> duf.NewLayer('new_layer')
-    >>> duf.NewLayer('new_layer')
+
+    duf.NewLayer('new_layer')
+    duf.NewLayer('new_layer')
     """
     assert boat_duf.LayerExists("0")
 
@@ -116,6 +117,38 @@ def test_add_same_attribute_twice_guard(duf):
 
     with pytest.raises(dw.ArgumentException):
         layer.AddAttribute("name", dw.AttributeType.String)
+
+
+def test_set_attribute_with_different_types(duf):
+    layer = duf.NewLayer("new_layer")
+    str_attr = layer.AddAttribute("str", dw.AttributeType.String)
+    dub_attr = layer.AddAttribute("dub", dw.AttributeType.Double)
+    int_attr = layer.AddAttribute("int", dw.AttributeType.Integer)
+    dt_attr = layer.AddAttribute("dt", dw.AttributeType.DateTime)
+
+    polyline = duf.NewPolyline(layer)
+
+    polyline.SetAttribute(str_attr, "okay")
+    with pytest.raises(dw.ArgumentException):
+        polyline.SetAttribute(str_attr, 4)
+
+    polyline.SetAttribute(int_attr, "")
+    polyline.SetAttribute(int_attr, 4)
+    with pytest.raises(dw.ArgumentException):
+        polyline.SetAttribute(int_attr, "str")
+        polyline.SetAttribute(int_attr, 1.1)
+
+    polyline.SetAttribute(dub_attr, "")
+    polyline.SetAttribute(dub_attr, 1.1)
+    with pytest.raises(dw.ArgumentException):
+        polyline.SetAttribute(dub_attr, "str")
+        polyline.SetAttribute(str_attr, 4)
+
+    polyline.SetAttribute(dt_attr, "")
+    polyline.SetAttribute(dt_attr, "2000-01-01 00:00:00")
+    polyline.SetAttribute(dt_attr, "whatever")  # Technically okay, but I'm not confident it should be
+    with pytest.raises(dw.ArgumentException):
+        polyline.SetAttribute(dt_attr, 4)
 
 
 def test_get_attributes(boat_duf):

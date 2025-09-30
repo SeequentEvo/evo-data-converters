@@ -148,7 +148,6 @@ namespace SimpleDuf
 
         public void SetAttribute(DufAttributes.Attribute attribute, object value)
         {
-            // TODO Guard against bad types. Probably better done in the Attribute class.
             attribute.SetOnEntity(Entity, value);
         }
 
