@@ -261,6 +261,8 @@ namespace SimpleDuf
             return polyface;
         }
 
+        // `triangles` is a 0-indexed, flattened 3xN array into `vertices`, one for each trianble. This is a noticible difference from the FaceList array,
+        // which is a 1-indexed flattened 5xN array into vertices. The first 4 values index into `vertices`, and the last value indicates visibility.
         public void SetVertices3D(double[] vertices, int[] triangles)
         {
             var polyface = GetdwPolyface();
@@ -295,11 +297,12 @@ namespace SimpleDuf
             i = 0;
             while (i < trianglesCount)
             {
-                faceList.Add(triangles[i++] + 1);  // 1-indexed TODO review
+                // The FaceList is 1-indexed. 
                 faceList.Add(triangles[i++] + 1);
                 faceList.Add(triangles[i++] + 1);
-                faceList.Add(triangles[i - 3] + 1);  // Close the triangle
-                faceList.Add(-1);  // TODO What is the 5th value?
+                faceList.Add(triangles[i++] + 1);
+                faceList.Add(triangles[i - 3] + 1);  // Close the triangle.
+                faceList.Add(-1);  // The 5th value indicates visibility. -1 is a default value that carries no indication.
 
             }
 
@@ -307,7 +310,6 @@ namespace SimpleDuf
             polyface.FaceList = faceList;
 
             GetBounds(polyface.VertexList, out var minBounds, out var maxBounds);
-
 
             Duf.SetMetadataForFigure(polyface, minBounds, maxBounds);
         }

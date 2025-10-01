@@ -36,8 +36,6 @@ async def _evo_objects_to_duf_async(
     api_client: ObjectAPIClient,
     data_client: ObjectDataClient,
 ):
-    # TODO It would be nice if `EvoObjectMetadata` had an `id` field instead of `object_id`, so they would be duck type
-    #  equivalent.
     evo_objects: list[EvoObjectMetadata] = [
         (obj if isinstance(obj, EvoObjectMetadata) else EvoObjectMetadata(object_id=obj.id, version_id=obj.version_id))
         for obj in evo_objects
