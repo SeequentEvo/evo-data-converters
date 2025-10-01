@@ -8,14 +8,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import os
 
-from evo.data_converters.duf.common import deswik_types as dw
-
-
-def get_xprops_value(xproperties: dw.XProperties, key: str):
-    found, value = xproperties.TryGetValue(key)
-    if not found:
-        return None
-
-    value = value.Value[0].Value
-    return value
+_THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+TEST_DATA_DIR = os.path.join(_THIS_DIR, "data")
+BOAT_DUF = os.path.join(TEST_DATA_DIR, "polyline_attrs_boat.duf")

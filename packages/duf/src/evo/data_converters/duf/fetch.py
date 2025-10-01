@@ -178,8 +178,6 @@ class _ObjectSpecificFetch:
 
 
 class FetchPolyline(_ObjectSpecificFetch):
-    # TODO re-use this for export_omf_lineset?
-
     supported_schemas = [
         "/objects/line-segments/2.0.0/line-segments.schema.json",
         "/objects/line-segments/2.1.0/line-segments.schema.json",

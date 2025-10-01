@@ -10,10 +10,17 @@ using Deswik.Core.Structures;
 using Deswik.Duf;
 using Deswik.Entities;
 using Deswik.Entities.Cad;
-using static SharedCode.DufAttributes.Attribute;
 
-namespace SharedCode
+namespace DufWrapper
 {
+    public enum AttributeType
+    {
+        String,
+        Integer,
+        Double,
+        DateTime
+    }
+
     public class DufAttributes : IReadOnlyList<DufAttributes.Attribute>
     {
         public const string DeswikStandardAttributePrefix = "_dw_Attribute";
@@ -86,7 +93,7 @@ namespace SharedCode
             {
                 var attributePropertyNames = AttributePropertyNames.GetAttributePropertyNames(_namePrefix, i);
 
-                attr = GetFromXProperties(_layer?.XProperties, attributePropertyNames);
+                attr = Attribute.GetFromXProperties(_layer?.XProperties, attributePropertyNames);
             }
 
             return attr;
@@ -117,6 +124,11 @@ namespace SharedCode
             }
 
             return found;
+        }
+
+        public bool HasAttribute(string name)
+        {
+            return FindNameIndex(name) != -1;
         }
 
         public Attribute FindName(string name)
@@ -197,7 +209,7 @@ namespace SharedCode
 
                     propertyNames = AttributePropertyNames.GetAttributePropertyNames(_namePrefix, index);
 
-                    RemoveFromXProperties(_layer.XProperties, propertyNames);
+                    Attribute.RemoveFromXProperties(_layer.XProperties, propertyNames);
                 }
             }
         }
@@ -335,14 +347,6 @@ namespace SharedCode
 
         public class Attribute
         {
-            public enum AttributeType
-            {
-                String,
-                Integer,
-                Double,
-                DateTime
-            }
-
             [Flags]
             public enum DisplayModeConstants
             {
@@ -559,13 +563,15 @@ namespace SharedCode
                         {
                             typedValue = (DateTime)value;
                         }
+                        else if (value is String)
+                        { 
+                            // TODO This code seems reasonable, but when I created a date with the Deswik.CAD UI, the datetime seemed to be a string.
+                            //typedValue = string.IsNullOrEmpty(value) ? DateTime.Now : DateTime.Parse(value);
+                            typedValue = value;
+                        }
                         else
                         {
-                            var asString = value.ToString();
-
-                            // TODO This code seems reasonable, but when I created a date with the Deswik.CAD UI, the datetime seemed to be a string.
-                            //typedValue = string.IsNullOrEmpty(asString) ? DateTime.Now : DateTime.Parse(asString);
-                            typedValue = asString;
+                            throw new ArgumentException($"value must be a DateTime or a String, but is a {value.GetType()}");
                         }
 
                         break;
@@ -576,11 +582,13 @@ namespace SharedCode
                         {
                             typedValue = (double)value;
                         }
+                        else if (value is String && value.ToString() == "")
+                        {
+                            typedValue = value;
+                        }
                         else
                         {
-                            var asString = value.ToString();
-
-                            typedValue = string.IsNullOrEmpty(asString) ? 0.0 : double.Parse(asString);
+                            throw new ArgumentException($"value must be a Double, but is a {value.GetType()}");
                         }
 
                         break;
@@ -589,22 +597,40 @@ namespace SharedCode
 
                         if (value is long)
                         {
-                            typedValue = (long)value;
+                            typedValue = value;
+                        }
+                        else if (value is String && value.ToString() == "")
+                        {
+                            typedValue = value;
                         }
                         else
                         {
-                            var asString = value.ToString();
+                            try
+                            {
+                                typedValue = long.Parse(value.ToString());
+                            }
+                            catch
+                            {
+                                throw new ArgumentException($"value must be an Integer, but is a {value.GetType()}");
+                            }
+                        }
 
-                            typedValue = string.IsNullOrEmpty(asString) ? 0 : long.Parse(asString);
+                        break;
+
+                    case AttributeType.String:
+                        if (value is String)
+                        {
+                            typedValue = value;
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"value must be a String, but is a {value.GetType()}");
                         }
 
                         break;
 
                     default:
-                    case AttributeType.String:
-
-                        typedValue = value.ToString();
-                        break;
+                        throw new NotSupportedException($"{Type} not supported");
                 }
 
                 DufDocument.XPropertySet(EnsurePrimaryXProperties(primary), Name, typedValue);

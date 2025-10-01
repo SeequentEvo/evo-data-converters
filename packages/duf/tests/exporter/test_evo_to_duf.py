@@ -110,10 +110,14 @@ def test_multiple_objects_same_name(evo_metadata, pit_mesh_attrs_path, test_out_
     # 3 objects, all with the same name
     initial_evo_objects = initial_evo_objects + initial_evo_objects + initial_evo_objects
 
+    # The renaming happens on convert to duf
     _mock_convert_to_duf(initial_evo_objects, test_out_path, evo_metadata)
+
     final_evo_objects = _mock_convert_to_evo(test_out_path, evo_metadata)
 
-    # It might not be in the end, due to round-tripping details, but somewhere the (#) should be in the name
+    # It might not be in the end, due to round-tripping details, but somewhere the (#) should be in the name.
+    # The objects might not come back in the order in which they were handled, due to async processing. So sort them.
+    final_evo_objects.sort(key=lambda x: (len(x.name), x.name))
     assert (")") not in final_evo_objects[0].name
     assert "(2)" in final_evo_objects[1].name
     assert "(3)" in final_evo_objects[2].name

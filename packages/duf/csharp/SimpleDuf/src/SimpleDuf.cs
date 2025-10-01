@@ -12,7 +12,7 @@ using Deswik.Entities.Base;
 using Deswik.Entities.Cad;
 using Deswik.Serialization;
 
-using SharedCode;
+using DufWrapper;
 
 namespace SimpleDuf
 {
@@ -21,6 +21,11 @@ namespace SimpleDuf
     {
         public Guid Guid { get; private set; }
         protected DufDocument Duf;
+
+        private void SetGuid(Guid guid)
+        {
+            Guid = guid;
+        }
 
 
         public SimpleEntity(DufDocument document, Guid guid)
@@ -36,7 +41,7 @@ namespace SimpleDuf
             var primary = result as Primary;
             if (result == null)
             {
-                throw new Exception("Entity is not a Primary");
+                throw new InvalidOperationException("Entity is not a Primary");
             }
             return primary;
         }
@@ -56,40 +61,36 @@ namespace SimpleDuf
         private DufAttributes _attributes;
         public SimpleLayer(DufDocument document, Guid guid) : base(document, guid)
         {
-
-            var layer = Entity as Layer;
-            if (layer == null)
+            if (!(Entity is Layer layer))
             {
-                // TODO better exception
-                throw new Exception("Bad type");
+                throw new ArgumentException("Entity is not a Layer");
             }
 
-            // TODO The layer should gather its attributes on construction
             _attributes = new DufAttributes(layer);
         }
 
-        private static Dictionary<string, DufAttributes.Attribute.AttributeType> TypeLookup = new Dictionary<string, DufAttributes.Attribute.AttributeType>()
-            {
-                { "String", DufAttributes.Attribute.AttributeType.String },
-                { "DateTime", DufAttributes.Attribute.AttributeType.DateTime },
-                { "Double", DufAttributes.Attribute.AttributeType.Double },
-                { "Integer", DufAttributes.Attribute.AttributeType.Integer },
-            };
-
-        public DufAttributes.Attribute AddAttribute(string name, string type_str)
+        public DufAttributes.Attribute AddAttribute(string name, AttributeType type)
         {
-            // TODO Guard agianst adding the same attribute twice
-            // TODO Should just bind the enum if that's possible
-
-            if (TypeLookup.ContainsKey(type_str))
+            if (_attributes.HasAttribute(name))
             {
-                var newAttribute = new DufAttributes.Attribute() { Name = name, Type = TypeLookup[type_str] };
-                _attributes.Add(newAttribute);
-                return newAttribute;
+                throw new ArgumentException($"There is already an attribute with name `{name}`");
             }
-            else
+            var newAttribute = new DufAttributes.Attribute() { Name = name, Type = type };
+            _attributes.Add(newAttribute);
+            return newAttribute;
+        }
+
+        public DufList<DufAttributes.Attribute> GetAttributes()
+        {
+            var result = new DufList<DufAttributes.Attribute>();
+            for (int i = 0;; i++ )
             {
-                throw new ArgumentException("Type must be one of [String, DateTime, Double, Integer]");
+                var attribute = _attributes[i];
+                if (attribute == null)
+                {
+                    return result;
+                }
+                result.Add(attribute);
             }
         }
     }
@@ -135,23 +136,18 @@ namespace SimpleDuf
                 z = vecList4[i].Z;
                 return;
             }
-            throw new Exception("Bad type");
+            throw new NotSupportedException("The underlying type is neither DufList<Vector3_dp> nor DufList<Vector4_dp>");
         }
     }
 
     public class SimpleFigure : SimpleEntity
     {
-        // TODO I'm avoiding modifying DufDocuments for now. But there's no reason this class should have to keep track of its parent.
-        protected Guid _parentLayer;
-
         public SimpleFigure(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid)
         {
-            _parentLayer = parentLayer;
         }
 
         public void SetAttribute(DufAttributes.Attribute attribute, object value)
         {
-            // TODO Guard against bad types. Probably better done in the Attribute class.
             attribute.SetOnEntity(Entity, value);
         }
 
@@ -185,23 +181,29 @@ namespace SimpleDuf
     {
         public SimplePolyline(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
         {
+            if (!(Entity is dwPolyline polyline))
+            {
+                throw new ArgumentException("Entity is not a dwPolyline");
+            }
         }
 
-        
-
-        public void SetVertices3D(double[] vertices, bool ensureClosed = false)
+        private dwPolyline GetdwPolyline()
         {
             var polyline = Entity as dwPolyline;
             if (polyline == null)
             {
-                // TODO better exception
-                throw new Exception("Bad type");
+                throw new InvalidOperationException("Entity is not a dwPolyline");
             }
+            return polyline;
+        }
+
+        public void SetVertices3D(double[] vertices, bool ensureClosed = false)
+        {
+            var polyline = GetdwPolyline();
 
             if (vertices.Length % 3 != 0)
             {
-                // TODO throw better exception?
-                throw new Exception("Vertices length not a multiple of 3");
+                throw new ArgumentException("Vertices must be a multiple of 3");
             }
 
             var verticesCount = vertices.Length;
@@ -235,7 +237,7 @@ namespace SimpleDuf
             GetBounds(polyline.VertexList, out var minBounds, out var maxBounds);
 
 
-            Duf.SetMetadataForEntity(polyline, minBounds, maxBounds, _parentLayer);
+            Duf.SetMetadataForFigure(polyline, minBounds, maxBounds);
         }
     }
 
@@ -243,27 +245,36 @@ namespace SimpleDuf
     {
         public SimplePolyface(DufDocument document, Guid guid, Guid parentLayer) : base(document, guid, parentLayer)
         {
+            if (!(Entity is dwPolyface polyface))
+            {
+                throw new ArgumentException("Entity is not a dwPolyface");
+            }
         }
 
-        public void SetVertices3D(double[] vertices, int[] triangles)
+        private dwPolyface GetdwPolyface()
         {
             var polyface = Entity as dwPolyface;
             if (polyface == null)
             {
-                // TODO better exception
-                throw new Exception("Bad type");
+                throw new InvalidOperationException("Entity is not a dwPolyface");
             }
+            return polyface;
+        }
+
+        // `triangles` is a 0-indexed, flattened 3xN array into `vertices`, one for each trianble. This is a noticible difference from the FaceList array,
+        // which is a 1-indexed flattened 5xN array into vertices. The first 4 values index into `vertices`, and the last value indicates visibility.
+        public void SetVertices3D(double[] vertices, int[] triangles)
+        {
+            var polyface = GetdwPolyface();
 
             if (vertices.Length % 3 != 0)
             {
-                // TODO throw better exception?
-                throw new Exception("Vertices length not a multiple of 3");
+                throw new ArgumentException("Vertices must be a multiple of 3");
             }
 
             if (triangles.Length % 3 != 0)
             {
-                // TODO throw better exception?
-                throw new Exception("Triangles length not a multiple of 3");
+                throw new ArgumentException("Triangles must be a multiple of 3");
             }
 
             var verticesCount = vertices.Length;
@@ -286,11 +297,12 @@ namespace SimpleDuf
             i = 0;
             while (i < trianglesCount)
             {
-                faceList.Add(triangles[i++] + 1);  // 1-indexed TODO review
+                // The FaceList is 1-indexed. 
                 faceList.Add(triangles[i++] + 1);
                 faceList.Add(triangles[i++] + 1);
-                faceList.Add(triangles[i - 3] + 1);  // Close the triangle
-                faceList.Add(-1);  // TODO What is the 5th value?
+                faceList.Add(triangles[i++] + 1);
+                faceList.Add(triangles[i - 3] + 1);  // Close the triangle.
+                faceList.Add(-1);  // The 5th value indicates visibility. -1 is a default value that carries no indication.
 
             }
 
@@ -299,15 +311,14 @@ namespace SimpleDuf
 
             GetBounds(polyface.VertexList, out var minBounds, out var maxBounds);
 
-
-            Duf.SetMetadataForEntity(polyface, minBounds, maxBounds, _parentLayer);
+            Duf.SetMetadataForFigure(polyface, minBounds, maxBounds);
         }
 
     }
 
     public class Duf
     {
-        private DufDocument _duf;
+        public DufDocument _duf;
 
         public Duf(string path)
         {
@@ -321,20 +332,25 @@ namespace SimpleDuf
             _duf.LoadModelEntities();
         }
 
+        public SimpleLayer GetLayer(string name)
+        {
+            return new SimpleLayer(_duf, _duf.GetLayer(name).Guid);
+        }
+
         public SimpleEntity NewLayer(string name, Guid? parentLayer = null)
         {
             var newLayer = _duf.AddLayer(name, parentLayer);
             return new SimpleLayer(_duf, newLayer.Guid);
         }
 
-        public void AddFigure(Figure figure, Guid layerGuid)
+        private void AddFigure(Figure figure, Guid layerGuid)
         {
-            _duf.AddEntity(figure, parentGuid: layerGuid);
             var layer = _duf.GetEntityByGuid(layerGuid) as Layer;
             if (layer == null)
             {
-                throw new Exception("Not a layer");
+                throw new ArgumentException("The Guid is not a layer");
             }
+            _duf.AddEntity(figure, parentGuid: layerGuid);
             figure.Layer = layer;
         }
 

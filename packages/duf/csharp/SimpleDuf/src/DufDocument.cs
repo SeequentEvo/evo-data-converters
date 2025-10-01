@@ -11,7 +11,7 @@ using Deswik.Entities;
 using Deswik.Entities.Cad;
 using Deswik.Serialization;
 
-namespace SharedCode
+namespace DufWrapper
 {
     public class DufDocument : IDisposable
     {
@@ -205,6 +205,20 @@ namespace SharedCode
         public void SetMetadataForEntity(BaseEntity entity, Vector3_dp? minBounds, Vector3_dp? maxBounds)
         {
             SetMetadataForEntity(entity, new EntityMetadata(minBounds, maxBounds));
+        }
+
+        public void SetMetadataForFigure(Figure figure, Vector3_dp? minBounds, Vector3_dp? maxBounds)
+        {
+            Guid? parent;
+            if (figure.Layer == null)
+            {
+                parent = null;
+            }
+            else
+            {
+                parent = figure.Layer.Guid;
+            }
+            SetMetadataForEntity(figure, minBounds, maxBounds, parent);
         }
 
         public void AddEntity(Primary entity)

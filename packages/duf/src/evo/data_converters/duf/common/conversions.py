@@ -12,14 +12,15 @@
 import numpy
 import pandas
 
+import evo.data_converters.duf.common.deswik_types as dw
 from evo.data_converters.duf.common.types import AttributedEvoData, FetchedTriangleMesh, FetchedLines, EvoAttributes
 
 EVO_TO_DW_TYPE_CONVERSION = {
-    "string": "String",
-    "scalar": "Double",
-    "category": "String",
-    "date_time": "DateTime",
-    "integer": "Integer",
+    "string": dw.AttributeType.String,
+    "scalar": dw.AttributeType.Double,
+    "category": dw.AttributeType.String,
+    "date_time": dw.AttributeType.DateTime,
+    "integer": dw.AttributeType.Integer,
 }
 
 
@@ -89,9 +90,9 @@ class EvoDUFWriter:
 
         for i, part in enumerate(mesh_triangles.parts):
             new_polyface = self._duf.NewPolyface(new_layer.layer)
-            # TODO This is an annoying amount of overhead to pay. Pythonnet converts automatically for double arrays
-            #  (and maybe even avoids a copy), but it work for numpy integer arrays. Consider handling the numpy objects
-            #  explicitly in the Duf wrapper library.
+            # It is annoying to pay this amount of overhead. Pythonnet converts automatically for double arrays
+            # (and maybe even avoids a copy), but it doesn't work for numpy integer arrays. If performance or memory
+            # becomes a concern, then consider handling the numpy objects explicitly in the C# Duf wrapper library.
             flattened_triangles = part.flatten().tolist()
             new_polyface.SetVertices3D(flattened_vertices, flattened_triangles)
 
