@@ -14,6 +14,7 @@ import asyncio
 import nest_asyncio
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
+from evo.common.exceptions import NotFoundException
 import evo.logging
 from evo.objects import ObjectAPIClient
 from evo.objects.data import ObjectMetadata
@@ -57,6 +58,16 @@ async def publish_geoscience_object(
     Publish a single Geoscience Object
     """
     logger.debug(f"Publishing Geoscience Object: {object_model}")
+
+    try:
+        existing_object = await object_service_client.download_object_by_path(path)
+        object_model.uuid = existing_object.metadata.id
+    except NotFoundException:
+        pass
+
     await data_client.upload_referenced_data(object_model.as_dict())
-    object_metadata = await object_service_client.create_geoscience_object(path, object_model.as_dict())
+    if object_model.uuid is not None:
+        object_metadata = await object_service_client.update_geoscience_object(object_model.as_dict())
+    else:
+        object_metadata = await object_service_client.create_geoscience_object(path, object_model.as_dict())
     return object_metadata
