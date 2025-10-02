@@ -13,7 +13,8 @@ import numpy
 import pandas
 
 import evo.data_converters.duf.common.deswik_types as dw
-from evo.data_converters.duf.common.types import AttributedEvoData, FetchedTriangleMesh, FetchedLines, EvoAttributes
+from evo.data_converters.duf.common.types import AttributedEvoData, FetchedTriangleMesh, FetchedLines
+from evo.data_converters.duf.common.attributes import EvoAttributes
 
 EVO_TO_DW_TYPE_CONVERSION = {
     "string": dw.AttributeType.String,
@@ -73,7 +74,11 @@ class Layer:
 
     def set_attributes_to_entity(self, dw_entity, evo_attributes: list[EvoAttributes], i: int):
         for attr in evo_attributes:
-            value = attr.values[i]
+            if attr.nan_mask is not None and attr.nan_mask[i]:
+                # Missing/None/Null values get written as the empty string
+                value = ""
+            else:
+                value = attr.values[i]
             converted = np_to_dw(value)
             dw_attr = self[attr.name]
             dw_entity.SetAttribute(dw_attr, converted)

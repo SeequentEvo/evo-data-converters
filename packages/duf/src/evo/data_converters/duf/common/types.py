@@ -15,14 +15,7 @@ from typing import Protocol
 import numpy
 from numpy.typing import NDArray
 
-
-@dataclass
-class EvoAttributes:
-    name: str
-    values: NDArray
-    type: str
-    description: str
-    nan_description: str | None
+from evo.data_converters.duf.common.attributes import EvoAttributes
 
 
 class IndexedEvoAttributes:

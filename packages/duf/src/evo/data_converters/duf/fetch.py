@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 import asyncio
-import copy
 import enum
 import json
 from dataclasses import dataclass
@@ -20,12 +19,13 @@ from typing import Optional, Any
 
 from evo.data_converters.common import EvoObjectMetadata
 from evo.objects import ObjectAPIClient
-from evo.objects.utils import ObjectDataClient, Table
+from evo.objects.utils import ObjectDataClient
 from evo_schemas import json_loads, LineSegments_V2_0_0, LineSegments_V2_1_0, LineSegments_V2_2_0, TriangleMesh_V2_1_0
 from evo_schemas.elements.serialiser import GSONEncoder, Serialiser
 
 
-from evo.data_converters.duf.common.types import EvoAttributes, FetchedTriangleMesh, FetchedLines
+from evo.data_converters.duf.common.types import FetchedTriangleMesh, FetchedLines
+from evo.data_converters.duf.common.attributes import EvoAttributes
 
 
 class FetchStatus(enum.Enum):
@@ -133,48 +133,36 @@ class _ObjectSpecificFetch:
         raise NotImplementedError()
 
     @staticmethod
-    async def _get_attributes_from_parts(
-        parts, data_client, obj_id, version_id
-    ) -> tuple[list[EvoAttributes], list[Table | None]]:
+    async def _get_attributes_from_parts(parts, data_client, obj_id, version_id) -> list[EvoAttributes]:
         attributes = []
-        lookups = []
         if parts is not None:
             for attrs in parts.attributes:
-                # TODO What is "nan_description"?
                 column = await data_client.download_table(obj_id, version_id, attrs.values.as_dict())
+
+                lookup_table = None
+                lookup_table_ref = getattr(attrs, "table", None)
+                if lookup_table_ref is not None:
+                    lookup_table = await data_client.download_table(obj_id, version_id, lookup_table_ref.as_dict())
+
+                if (nan_description_go := getattr(attrs, "nan_description", None)) is not None:
+                    nan_description = nan_description_go.values
+
                 attrs_column = EvoAttributes(
                     name=attrs.name,
-                    values=column,
                     type=attrs.attribute_type,
                     description=attrs.attribute_description,
-                    nan_description=getattr(attrs, "nan_description", None),
+                    fetched_table=column,
+                    lookup_table=lookup_table,
+                    nan_description=nan_description,
                 )
                 attributes.append(attrs_column)
 
-                lookup_table = getattr(attrs, "table", None)
-                if lookup_table is not None:
-                    lookup = await data_client.download_table(obj_id, version_id, lookup_table.as_dict())
-                    lookups.append(lookup)
-                else:
-                    lookups.append(None)
-        return attributes, lookups
+        return attributes
 
     @staticmethod
-    def _process_attrs(attributes: list[EvoAttributes], lookups: list[Table | None]) -> list[EvoAttributes]:
-        processed_attr_columns = []
-        for attr_table, lookup_table in zip(attributes, lookups):
-            attr_table = copy.copy(attr_table)
-            attr_values = numpy.asarray(attr_table.values)
-            attr_values.reshape(len(attr_values))
-            if lookup_table is None:
-                processed = attr_values
-            else:
-                lookup = {k: v for k, v in numpy.asarray(lookup_table)}
-                lookup_vec = numpy.vectorize(lookup.get)
-                processed = lookup_vec(attr_values)
-            attr_table.values = processed.reshape(len(processed))
-            processed_attr_columns.append(attr_table)
-        return processed_attr_columns
+    def _process_attrs(attributes: list[EvoAttributes]):
+        for attr in attributes:
+            attr.process()
 
 
 class FetchPolyline(_ObjectSpecificFetch):
@@ -190,7 +178,6 @@ class FetchPolyline(_ObjectSpecificFetch):
         self._chunks = None
         self._name = None
         self._attributes = None
-        self._lookups = None
 
     async def download_blobs(
         self,
@@ -209,9 +196,7 @@ class FetchPolyline(_ObjectSpecificFetch):
         else:
             self._chunks = None
 
-        self._attributes, self._lookups = await self._get_attributes_from_parts(
-            geo_object.parts, data_client, obj_id, version_id
-        )
+        self._attributes = await self._get_attributes_from_parts(geo_object.parts, data_client, obj_id, version_id)
 
     def process(self) -> FetchedLines:
         indices_table = numpy.asarray(self._indices)
@@ -237,8 +222,8 @@ class FetchPolyline(_ObjectSpecificFetch):
 
             paths.append(path)
 
-        processed_attr_columns = self._process_attrs(self._attributes, self._lookups)
-        return FetchedLines(self._name, paths, processed_attr_columns)
+        self._process_attrs(self._attributes)
+        return FetchedLines(self._name, paths, self._attributes)
 
 
 class FetchTriangleMesh(_ObjectSpecificFetch):
@@ -253,7 +238,6 @@ class FetchTriangleMesh(_ObjectSpecificFetch):
         self._vertices = None
         self._chunks = None
         self._attributes = None
-        self._lookups = None
 
     async def download_blobs(self, geo_object: TriangleMesh_V2_1_0, version_id: str, data_client):
         obj_id = geo_object.uuid
@@ -266,9 +250,7 @@ class FetchTriangleMesh(_ObjectSpecificFetch):
         else:
             self._chunks = None
 
-        self._attributes, self._lookups = await self._get_attributes_from_parts(
-            geo_object.parts, data_client, obj_id, version_id
-        )
+        self._attributes = await self._get_attributes_from_parts(geo_object.parts, data_client, obj_id, version_id)
 
     def process(self) -> FetchedTriangleMesh:
         indices_table = numpy.asarray(self._indices)
@@ -283,5 +265,5 @@ class FetchTriangleMesh(_ObjectSpecificFetch):
         for start, length in chunks_table:
             parts.append(indices_table[start : start + length])
 
-        processed_attr_columns = self._process_attrs(self._attributes, self._lookups)
-        return FetchedTriangleMesh(self._name, vertices_table, parts, processed_attr_columns)
+        self._process_attrs(self._attributes)
+        return FetchedTriangleMesh(self._name, vertices_table, parts, self._attributes)
