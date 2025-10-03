@@ -13,6 +13,7 @@ import asyncio
 import enum
 import json
 from dataclasses import dataclass
+import re
 
 import numpy
 from typing import Optional, Any
@@ -20,7 +21,15 @@ from typing import Optional, Any
 from evo.data_converters.common import EvoObjectMetadata
 from evo.objects import ObjectAPIClient
 from evo.objects.utils import ObjectDataClient
-from evo_schemas import json_loads, LineSegments_V2_0_0, LineSegments_V2_1_0, LineSegments_V2_2_0, TriangleMesh_V2_1_0
+from evo_schemas import (
+    json_loads,
+    LineSegments_V2_0_0,
+    LineSegments_V2_1_0,
+    LineSegments_V2_2_0,
+    TriangleMesh_V2_1_0,
+    TriangleMesh_V2_0_0,
+    TriangleMesh_V2_2_0,
+)
 from evo_schemas.elements.serialiser import GSONEncoder, Serialiser
 
 
@@ -55,6 +64,10 @@ class Fetch:
     async def _do_download(self, api_client: ObjectAPIClient, data_client: ObjectDataClient):
         raise NotImplementedError()
 
+    @staticmethod
+    def _get_schema_id(geo_object):
+        return geo_object.SCHEMA_ID
+
     async def download(self, api_client: ObjectAPIClient, data_client: ObjectDataClient) -> "Fetch":
         if self.status != FetchStatus.not_begun:
             raise Exception(f"{self._object_metadata.object_id} is already downloading")
@@ -67,7 +80,7 @@ class Fetch:
         geo_object: Serialiser = json_loads(json.dumps(downloaded_obj.as_dict(), cls=GSONEncoder))
 
         try:
-            self._object_specific_fetcher = self.get_fetcher(geo_object.SCHEMA_ID)
+            self._object_specific_fetcher = self.get_fetcher(self._get_schema_id(geo_object))
         except NotImplementedError:
             self.status = FetchStatus.failed
             self.status_msg = f"Schema {geo_object.SCHEMA_ID} not supported"
@@ -93,7 +106,7 @@ class Fetch:
     @classmethod
     def get_fetcher(cls, schema_id: str) -> "_ObjectSpecificFetch":
         for subclass in _ObjectSpecificFetch.__subclasses__():
-            if schema_id in subclass.supported_schemas:
+            if subclass.matches_schema_id(schema_id):
                 return subclass()
         raise NotImplementedError(f"{schema_id} not handled")
 
@@ -125,6 +138,13 @@ class Fetch:
 
 class _ObjectSpecificFetch:
     supported_schemas: list[str]
+
+    @classmethod
+    def matches_schema_id(cls, schema_id: str) -> bool:
+        for schema_regex in cls.supported_schemas:
+            if re.match(schema_regex, schema_id):
+                return True
+        return False
 
     async def download_blobs(self, geo_object: Serialiser, version_id: str, data_client):
         raise NotImplementedError()
@@ -167,9 +187,7 @@ class _ObjectSpecificFetch:
 
 class FetchPolyline(_ObjectSpecificFetch):
     supported_schemas = [
-        "/objects/line-segments/2.0.0/line-segments.schema.json",
-        "/objects/line-segments/2.1.0/line-segments.schema.json",
-        "/objects/line-segments/2.2.0/line-segments.schema.json",
+        r"/objects/line-segments/2.\d+.\d+/line-segments.schema.json",
     ]
 
     def __init__(self):
@@ -226,10 +244,12 @@ class FetchPolyline(_ObjectSpecificFetch):
         return FetchedLines(self._name, paths, self._attributes)
 
 
+TriangleMesh = TriangleMesh_V2_0_0 | TriangleMesh_V2_1_0 | TriangleMesh_V2_2_0
+
+
 class FetchTriangleMesh(_ObjectSpecificFetch):
     supported_schemas = [
-        # TODO More?
-        "/objects/triangle-mesh/2.1.0/triangle-mesh.schema.json",
+        "/objects/triangle-mesh/2.\d+.\d+/triangle-mesh.schema.json",
     ]
 
     def __init__(self):

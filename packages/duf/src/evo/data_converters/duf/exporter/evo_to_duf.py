@@ -30,6 +30,14 @@ from evo.data_converters.duf.fetch import Fetch, FetchStatus
 _EvoMetadata = ObjectMetadata | EvoObjectMetadata
 
 
+def _on_exports_failed(failures):
+    """
+    _Something_ should be done about failures, but at the moment it's a no-op. It's primary purpose is to provide a hook
+    for testing to demonstrate that failures happened.
+    """
+    pass
+
+
 async def _evo_objects_to_duf_async(
     duf_file: str,
     evo_objects: list[_EvoMetadata],
@@ -69,9 +77,9 @@ async def _evo_objects_to_duf_async(
             raise NotImplementedError(f"Unhandled object type: {type(fetched_object)}")
 
     if failures:
-        # TODO Need to test that this actually gets hit
         print("Failed to convert some objects:")
         print("\n".join(failures))
+        _on_exports_failed(failures)
 
     duf.Save()
     duf.Dispose()

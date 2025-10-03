@@ -123,5 +123,35 @@ def test_multiple_objects_same_name(evo_metadata, pit_mesh_attrs_path, test_out_
     assert "(3)" in final_evo_objects[2].name
 
 
+def test_unhandled_schema_id(evo_metadata, pit_mesh_attrs_path, test_out_path):
+    initial_evo_objects = _mock_convert_to_evo(pit_mesh_attrs_path, evo_metadata)
+
+    supported = [
+        "/objects/triangle-mesh/2.1.0/triangle-mesh.schema.json",
+        "/objects/triangle-mesh/2.0.12/triangle-mesh.schema.json",
+        "/objects/triangle-mesh/2.4.4/triangle-mesh.schema.json",
+    ]
+
+    unsupported = [
+        "/objects/triangle-mesh/1.0.0/triangle-mesh.schema.json",
+        "gibberish",
+    ]
+
+    def _run_test(mock_version_id: str, expect_success: bool):
+        with (
+            mock.patch("evo.data_converters.duf.exporter.evo_to_duf._on_exports_failed") as m,
+            mock.patch("evo.data_converters.duf.fetch.Fetch._get_schema_id", return_value=mock_version_id),
+        ):
+            _mock_convert_to_duf(initial_evo_objects, test_out_path, evo_metadata)
+            if expect_success:
+                assert m.call_count == 0
+            else:
+                assert m.call_count == 1
+
+    for schema_id in supported:
+        _run_test(schema_id, True)
+    for schema_id in unsupported:
+        _run_test(schema_id, False)
+
+
 # TODO More tests
-# TODO Test Geoscience Objects with unhandled schema ids
