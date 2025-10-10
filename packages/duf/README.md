@@ -61,10 +61,9 @@ This package has been tested with Deswik Suite version 2024.1.
 
 #### .NET Framework
 
-By default, the package will use [pythonnet](https://pythonnet.github.io/pythonnet/) to search for a .NET Framework
-runtime, which must be version 4.7.2 or later. Different runtimes can be configured using environment variables, as
-described [here](https://pythonnet.github.io/pythonnet/python.html#loading-a-runtime). However, this is untested and not
-guaranteed to be compatible with your Deswik Suite installation.
+The package uses [pythonnet](https://pythonnet.github.io/pythonnet/) to resolve the appropriate .NET runtime. For Deswik.Suite 2024.1 up until (but not including) Deswik.Suite 2025.2, .NET Framework 4.7.2 or later is required. For 2025.2 and later, .NETCoreApp 8 or later is required.
+
+If pythonnet fails to load the runtime, and you know where the runtime is installed, then you can set the environment variable DOTNET_ROOT. For other suggestions and more reading, see [here](https://pythonnet.github.io/pythonnet/python.html#loading-a-runtime). However, things described there are untested and may not work with your Deswik Suite installation.
 
 ### macOS
 
