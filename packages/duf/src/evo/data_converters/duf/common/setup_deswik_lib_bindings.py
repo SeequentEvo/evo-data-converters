@@ -74,7 +74,12 @@ sys.path.insert(0, deswik_path)
 
 if (dotnet_root := os.environ.get("DOTNET_ROOT")) is not None and not os.path.exists(dotnet_root):
     # DOTNET_ROOT was observed to be set to an unexpected value, which will cause `pythonnet.load()` to fail.
-    raise ImportError(f"The environment variable DOTNET_ROOT is set to {dotnet_root}, but there is nothing there")
+
+    # During development, DOTNET_ROOT was observed to be set to a directory that didn't exist by an application
+    # installer. It cannot be assumed to be set correctly. Instead of failing, silently ignore it (with a warning).
+    del os.environ["DOTNET_ROOT"]
+    msg = f"The environment variable DOTNET_ROOT is set to {dotnet_root}, but there is nothing there, so it is being ignored."
+    logger.warn(msg)
 
 if deswik_version >= (2025, 2):
     # Target the newer .NETCoreApp runtime
