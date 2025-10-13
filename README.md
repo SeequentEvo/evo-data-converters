@@ -52,6 +52,7 @@ Currently supported converters are:
  * [UBC](packages/ubc/README.md)
  * [GOCAD](packages/gocad/README.md)
  * [DUF](packages/duf/README.md)
+ * [AGS](packages/ags/README.md)
 
  To use any of the data converters, you will need a few things:
   * An *access token* for your user
