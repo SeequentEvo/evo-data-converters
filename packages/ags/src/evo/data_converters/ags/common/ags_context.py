@@ -62,17 +62,19 @@ class AgsContext:
         or getters for specific groups.
 
         :param filepath: path or buffer to the AGS file
-        :raises AGS4Error: Any error from python_ags4 parsing
         :raises FileNotFoundError: file not found at path
-        :raises AgsFileInvalidException: in-memory AGS file is invalid
+        :raises AgsFileInvalidException: in-memory AGS file is invalid, error while parsing, or missing required groups
         """
         self.check_ags_file(filepath)
 
-        self._tables, self._headings = AGS4.AGS4_to_dataframe(filepath, get_line_numbers=False)
+        try:
+            self._tables, self._headings = AGS4.AGS4_to_dataframe(filepath, get_line_numbers=False)
+        except AGS4.AGS4Error as e:
+            raise AgsFileInvalidException("Failed to parse AGS file") from e
 
         # Validate whether we can import these dataframes to a Downhole Collection
         if errors := self.validate_ags():
-            raise AgsFileInvalidException("AGS file is invalid:", *errors)
+            raise AgsFileInvalidException("AGS file is invalid: ", ", ".join(errors))
 
     def write_ags(self, filepath: Path | str) -> None:
         AGS4.dataframe_to_AGS4(self._tables, self._headings, filepath)
@@ -100,7 +102,7 @@ class AgsContext:
                 ags_parse_errors.pop(rule_key)
 
         if ags_parse_errors:
-            raise AgsFileInvalidException("AGS file is invalid:", list(ags_parse_errors.items()))
+            raise AgsFileInvalidException("AGS file is invalid: %s", ags4_errors_to_str(ags_parse_errors))
 
     def validate_ags(self) -> list[str]:
         """
@@ -170,3 +172,15 @@ class AgsContext:
         :param headings: List of heading strings
         """
         self._headings[group] = headings
+
+
+def ags4_errors_to_str(errors: dict[str, dict[str, str | int]]) -> str:
+    """
+    Convert an AGS4.check_file() errors dictionary to a multiline string.
+    """
+    out = str()
+    for group, error_rows in errors.items():
+        out += f"\n{group}:\n"
+        for row in error_rows:
+            out += f"  L{row['line']}, Group {row['group'] or 'NULL'}: {row['desc']}\n"
+    return out
