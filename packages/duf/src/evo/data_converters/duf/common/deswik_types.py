@@ -8,6 +8,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import sys
 
 # ruff: noqa: E402
 
@@ -61,6 +62,9 @@ from System.Reflection import BindingFlags
 
 import clr
 
+from evo.data_converters.duf.common import consts
+
+sys.path.append(consts.BIN_PATH)
 clr.AddReference("SimpleDuf")
 
 from SimpleDuf import Duf, SimpleEntity, SimpleLayer, SimplePolyface, SimplePolyline

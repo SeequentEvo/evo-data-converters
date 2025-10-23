@@ -1,9 +1,17 @@
 import os
+import shutil
 import subprocess
+import sys
 import urllib
 import urllib.request
+from pathlib import Path
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+
+
+this_dir = Path(__file__).parent.resolve()
+sys.path.insert(0, os.path.join(this_dir, "src", "evo", "data_converters", "duf", "common"))
+import consts  # noqa: E402
 
 
 class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
@@ -36,6 +44,7 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
     def initialize(self, version: str, build_data) -> None:
         self._install_local_dotnet_sdk()
         self._build_simple_duf()
+        self._move_bin_to_package()
 
     @staticmethod
     def _check_script_has_microsoft_cert(script: str):
@@ -91,3 +100,11 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
             self.simple_duf_csharp_project_file,
         ]
         subprocess.run(cmd)
+
+    def _move_bin_to_package(self):
+        source = os.path.join(self.simple_duf_csharp_project_dir, "bin", "SimpleDuf.dll")
+        dest = os.path.join(consts.BIN_PATH, "SimpleDuf.dll")
+        if os.path.exists(consts.BIN_PATH):
+            shutil.rmtree(consts.BIN_PATH)
+        os.makedirs(consts.BIN_PATH)
+        shutil.copy(source, dest)

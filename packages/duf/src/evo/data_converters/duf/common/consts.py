@@ -15,3 +15,6 @@ DESWIK_INSTALL_PATH_ENV = "DESWIK_PATH"
 _THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 DUF_FILES_DIRECTORY = os.path.join(_THIS_DIR, "..", "exporter", "duf_files")
 EMPTY_DUF = os.path.join(DUF_FILES_DIRECTORY, "empty.duf")
+DUF_ROOT = os.path.join("../../../..")
+PACKAGE_ROOT = os.path.join(DUF_ROOT, "src", "evo")
+BIN_PATH = os.path.join(PACKAGE_ROOT, "bin")
