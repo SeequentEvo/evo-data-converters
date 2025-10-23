@@ -9,18 +9,30 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .blockmodel_client import BlockSyncClient
-from .grid_data import BaseGridData, RegularGridData, TensorGridData
-from .evo_client import EvoObjectMetadata, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
-from .publish import publish_geoscience_objects
+from dataclasses import dataclass
 
-__all__ = [
-    "create_evo_object_service_and_data_client",
-    "EvoWorkspaceMetadata",
-    "BlockSyncClient",
-    "EvoObjectMetadata",
-    "publish_geoscience_objects",
-    "BaseGridData",
-    "RegularGridData",
-    "TensorGridData",
-]
+import numpy as np
+import numpy.typing as npt
+
+
+@dataclass
+class BaseGridData:
+    origin: list[float]
+    size: list[int]
+    rotation: npt.NDArray[np.float_]
+    bounding_box: list[float] | None
+    mask: npt.NDArray[np.bool_] | None
+    cell_attributes: dict[str, np.ndarray] | None
+    vertex_attributes: dict[str, np.ndarray] | None
+
+
+@dataclass
+class RegularGridData(BaseGridData):
+    cell_size: list[float]
+
+
+@dataclass
+class TensorGridData(BaseGridData):
+    cell_sizes_x: list[float]
+    cell_sizes_y: list[float]
+    cell_sizes_z: list[float]

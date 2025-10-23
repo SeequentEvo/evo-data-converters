@@ -9,6 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .vtk_to_evo import VTKImportError, convert_vtk
+from .vtk_to_evo import VTKImportError, convert_vtk, get_vtk_grids
 
-__all__ = ["VTKImportError", "convert_vtk"]
+__all__ = ["VTKImportError", "convert_vtk", "get_vtk_grids"]

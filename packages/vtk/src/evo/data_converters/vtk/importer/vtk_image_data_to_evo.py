@@ -11,6 +11,7 @@
 
 import pyarrow as pa
 import vtk
+from evo.data_converters.common import RegularGridData
 from evo_schemas.components import BoolAttribute_V1_1_0
 from evo_schemas.elements import BoolArray1_V1_0_1
 from evo_schemas.objects import Regular3DGrid_V1_2_0, RegularMasked3DGrid_V1_2_0
@@ -18,25 +19,17 @@ from evo_schemas.objects import Regular3DGrid_V1_2_0, RegularMasked3DGrid_V1_2_0
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 
-from ._utils import check_for_ghosts, common_fields, get_rotation
+from ._utils import check_for_ghosts, common_fields, get_bounding_box, get_rotation
 from .vtk_attributes_to_evo import convert_attributes
+from .vtk_attributes_to_grid import convert_attributes_for_grid
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def convert_vtk_image_data(
-    name: str,
-    image_data: vtk.vtkImageData,
-    data_client: ObjectDataClient,
-    epsg_code: int,
-) -> Regular3DGrid_V1_2_0 | RegularMasked3DGrid_V1_2_0:
-    """Convert a vtkImageData object to a Regular3DGrid or RegularMasked3DGrid object, depending on whether the
-    vtkImageData object has any blanked cells.
-    """
-
+def _extract_vtk_data(image_data: vtk.vtkImageData):
     # GetDimensions returns the number of points in each dimension, so we need to subtract 1 to get the number of cells
-    dimensions = image_data.GetDimensions()
-    dimensions = [dim - 1 for dim in dimensions]
+    size = image_data.GetDimensions()
+    size = [dim - 1 for dim in size]
     spacing = image_data.GetSpacing()
 
     # VTK supports the origin being offset from the corner of the grid, but Geoscience Objects don't.
@@ -49,6 +42,54 @@ def convert_vtk_image_data(
     vertex_data = image_data.GetPointData()
 
     mask = check_for_ghosts(image_data)
+
+    return cell_data, mask, vertex_data, origin, size, spacing
+
+
+def get_vtk_image_data(image_data: vtk.vtkImageData) -> RegularGridData:
+    cell_data, mask, vertex_data, origin, size, spacing = _extract_vtk_data(image_data)
+
+    if mask is not None and not mask.all():
+        if vertex_data.GetNumberOfArrays() > 0:
+            logger.warning("Blank cells are not supported with point data, skipping the point data")
+
+        cell_attributes = convert_attributes_for_grid(cell_data, mask=mask, grid_is_filtered=True)
+        return RegularGridData(
+            origin=origin,
+            size=list(size),
+            cell_size=list(spacing),
+            rotation=get_rotation(image_data.GetDirectionMatrix()),
+            mask=mask,
+            bounding_box=get_bounding_box(image_data),
+            cell_attributes=cell_attributes,
+            vertex_attributes=None,
+        )
+    else:
+        cell_attributes = convert_attributes_for_grid(cell_data)
+        vertex_attributes = convert_attributes_for_grid(vertex_data)
+        return RegularGridData(
+            origin=origin,
+            size=list(size),
+            cell_size=list(spacing),
+            rotation=get_rotation(image_data.GetDirectionMatrix()),
+            mask=None,
+            bounding_box=get_bounding_box(image_data),
+            cell_attributes=cell_attributes,
+            vertex_attributes=vertex_attributes,
+        )
+
+
+def convert_vtk_image_data(
+    name: str,
+    image_data: vtk.vtkImageData,
+    data_client: ObjectDataClient,
+    epsg_code: int,
+) -> Regular3DGrid_V1_2_0 | RegularMasked3DGrid_V1_2_0:
+    """Convert a vtkImageData object to a Regular3DGrid or RegularMasked3DGrid object, depending on whether the
+    vtkImageData object has any blanked cells.
+    """
+    cell_data, mask, vertex_data, origin, size, spacing = _extract_vtk_data(image_data)
+
     if mask is not None and not mask.all():
         if vertex_data.GetNumberOfArrays() > 0:
             logger.warning("Blank cells are not supported with point data, skipping the point data")
@@ -62,7 +103,7 @@ def convert_vtk_image_data(
         return RegularMasked3DGrid_V1_2_0(
             **common_fields(name, epsg_code, image_data),
             origin=origin,
-            size=list(dimensions),
+            size=list(size),
             cell_size=list(spacing),
             rotation=get_rotation(image_data.GetDirectionMatrix()),
             cell_attributes=cell_attributes,
@@ -75,7 +116,7 @@ def convert_vtk_image_data(
         return Regular3DGrid_V1_2_0(
             **common_fields(name, epsg_code, image_data),
             origin=origin,
-            size=list(dimensions),
+            size=list(size),
             cell_size=list(spacing),
             rotation=get_rotation(image_data.GetDirectionMatrix()),
             cell_attributes=cell_attributes,

@@ -16,13 +16,13 @@ import numpy as np
 import numpy.testing
 import pytest
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode, Rotation_V1_1_0
-from evo_schemas.objects import Regular3DGrid_V1_2_0, RegularMasked3DGrid_V1_2_0
+from evo.data_converters.common import RegularGridData
+from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from vtk.util.numpy_support import numpy_to_vtk
-from vtk_test_helpers import MockDataClient, add_ghost_value
+from vtk_test_helpers import add_ghost_value
 
 from evo.data_converters.vtk.importer.exceptions import GhostValueError
-from evo.data_converters.vtk.importer.vtk_image_data_to_evo import convert_vtk_image_data
+from evo.data_converters.vtk.importer.vtk_image_data_to_evo import get_vtk_image_data
 
 
 @pytest.mark.parametrize(
@@ -40,10 +40,8 @@ def test_metadata(data_object_type: Callable[[], vtk.vtkImageData]) -> None:
     vtk_data.SetSpacing(1.5, 2.5, 5.0)
 
     data_client = MagicMock()
-    result = convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
-    assert isinstance(result, Regular3DGrid_V1_2_0)
-    assert result.name == "Test"
-    assert result.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
+    result = get_vtk_image_data(vtk_data)
+    assert isinstance(result, RegularGridData)
     assert result.origin == [12.0, 10.0, -8.0]
     assert result.cell_size == [1.5, 2.5, 5.0]
     assert result.bounding_box == BoundingBox_V1_0_1(
@@ -53,6 +51,8 @@ def test_metadata(data_object_type: Callable[[], vtk.vtkImageData]) -> None:
     assert result.rotation == Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0)
     assert result.cell_attributes == []
     assert result.vertex_attributes == []
+
+    data_client.assert_not_called()
 
 
 def test_rotated_and_extent() -> None:
@@ -64,7 +64,7 @@ def test_rotated_and_extent() -> None:
     vtk_data.SetDirectionMatrix(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0)
 
     data_client = MagicMock()
-    result = convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = get_vtk_image_data(vtk_data)
     # As Geoscience Objects don't support a offset origin, the origin is shifted to the corner of the grid extent. So:
     # x origin value is shifted to 12.0 + 1.5 * 2 = 15.0
     # y origin value is shifted to 10.0 + 5.0 * -1 = 5.0  (as the grid's z-axis is pointing along the y-axis)
@@ -76,6 +76,8 @@ def test_rotated_and_extent() -> None:
     )
     assert result.size == [7, 9, 6]
     assert result.rotation == Rotation_V1_1_0(dip_azimuth=0.0, dip=90.0, pitch=0.0)
+
+    data_client.assert_not_called()
 
 
 def test_point_and_cell_data_attributes() -> None:
@@ -90,17 +92,19 @@ def test_point_and_cell_data_attributes() -> None:
     cell_data.SetName("cell_data")
     vtk_data.GetCellData().AddArray(cell_data)
 
-    data_client = MockDataClient()
-    result = convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    data_client = MagicMock()
+    result = get_vtk_image_data(vtk_data)
 
     assert len(result.vertex_attributes) == 1
-    assert result.vertex_attributes[0].name == "point_data"
-    point_attribute_table = data_client.tables[result.vertex_attributes[0].values.data]
+    assert result.vertex_attributes[0]["name"] == "point_data"
+    point_attribute_table = result.vertex_attributes[0]["values"]
     numpy.testing.assert_array_equal(point_attribute_table[0].to_numpy(), np.linspace(0, 1, 18))
     assert len(result.cell_attributes) == 1
-    assert result.cell_attributes[0].name == "cell_data"
-    cell_attribute_table = data_client.tables[result.cell_attributes[0].values.data]
+    assert result.cell_attributes[0]["name"] == "cell_data"
+    cell_attribute_table = result.cell_attributes[0]["values"]
     numpy.testing.assert_array_equal(cell_attribute_table[0].to_numpy(), np.linspace(0, 1, 4))
+
+    data_client.assert_not_called()
 
 
 def test_blanked_cell(caplog: pytest.LogCaptureFixture) -> None:
@@ -117,19 +121,20 @@ def test_blanked_cell(caplog: pytest.LogCaptureFixture) -> None:
 
     vtk_data.BlankCell(2)
 
-    data_client = MockDataClient()
-    result = convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
-    assert isinstance(result, RegularMasked3DGrid_V1_2_0)
-
-    mask_table = data_client.tables[result.mask.values.data]
-    numpy.testing.assert_array_equal(mask_table[0].to_numpy(), [True, True, False, True])
+    data_client = MagicMock()
+    result = get_vtk_image_data(vtk_data)
+    assert isinstance(result, RegularGridData)
+    mask_table = result.mask
+    numpy.testing.assert_array_equal(mask_table, [True, True, False, True])
 
     assert len(result.cell_attributes) == 1
-    assert result.cell_attributes[0].name == "cell_data"
-    cell_attribute_table = data_client.tables[result.cell_attributes[0].values.data]
+    assert result.cell_attributes[0]["name"] == "cell_data"
+    cell_attribute_table = result.cell_attributes[0]["values"]
     numpy.testing.assert_almost_equal(cell_attribute_table[0].to_numpy(), [0.0, 0.33333333, 1.0])
 
     assert "Blank cells are not supported with point data, skipping the point data" in caplog.text
+
+    data_client.assert_not_called()
 
 
 def test_blanked_point(caplog: pytest.LogCaptureFixture) -> None:
@@ -140,8 +145,10 @@ def test_blanked_point(caplog: pytest.LogCaptureFixture) -> None:
     data_client = MagicMock()
 
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        get_vtk_image_data(vtk_data)
     assert "Grid with blank points are not supported" in str(ctx.value)
+
+    data_client.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -169,5 +176,7 @@ def test_ghost(caplog: pytest.LogCaptureFixture, geometry: int, ghost_value: int
 
     data_client = MagicMock()
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        get_vtk_image_data(vtk_data)
     assert warning_message in str(ctx.value)
+
+    data_client.assert_not_called()
