@@ -19,6 +19,7 @@ dependencies = [
     "pyarrow",
     "requests",
     "scipy",
+    "pyproj>=3.7.1",
 ]
 
 [project.urls]
