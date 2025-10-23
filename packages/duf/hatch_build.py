@@ -17,30 +17,6 @@ import consts  # noqa: E402
 class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
     PLUGIN_NAME = "custom"
 
-    @property
-    def dotnet_path(self):
-        return os.path.join(self.root, ".dotnet")
-
-    @property
-    def dotnet_install_script(self):
-        return os.path.join(self.dotnet_path, "dotnet-install.ps1")
-
-    @property
-    def dotnet_exe(self):
-        return os.path.join(self.dotnet_path, "dotnet.exe")
-
-    @property
-    def simple_duf_csharp_project_dir(self):
-        return os.path.join(self.root, "csharp", "SimpleDuf")
-
-    @property
-    def simple_duf_csharp_project_file(self):
-        return os.path.join(self.simple_duf_csharp_project_dir, "duf.csproj")
-
-    @property
-    def simple_duf_output_bin(self):
-        return os.path.join(self.simple_duf_csharp_project_dir, "bin")
-
     def initialize(self, version: str, build_data) -> None:
         self._install_local_dotnet_sdk()
         self._build_simple_duf()
@@ -70,10 +46,10 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
     def _install_local_dotnet_sdk(self):
         install_source = "https://dot.net/v1/dotnet-install.ps1"
 
-        os.makedirs(self.dotnet_path, exist_ok=True)
-        urllib.request.urlretrieve(install_source, self.dotnet_install_script)
+        os.makedirs(consts.DOTNET_PATH, exist_ok=True)
+        urllib.request.urlretrieve(install_source, consts.DOTNET_INSTALL_SCRIPT)
 
-        self._check_script_has_microsoft_cert(self.dotnet_install_script)
+        self._check_script_has_microsoft_cert(consts.DOTNET_INSTALL_SCRIPT)
 
         cmd = [
             "powershell",
@@ -83,26 +59,26 @@ class ABCDEFGHIJIKLBuildHook(BuildHookInterface):
             "-NoLogo",
             "-NoProfile",
             "-File",
-            self.dotnet_install_script,
+            consts.DOTNET_INSTALL_SCRIPT,
             "-InstallDir",
-            self.dotnet_path,
+            consts.DOTNET_PATH,
         ]
         subprocess.run(cmd)
 
     def _build_simple_duf(self):
         cmd = [
-            self.dotnet_exe,
+            consts.DOTNET_EXE,
             "build",
             "--configuration",
             "Release",
             "--output",
-            self.simple_duf_output_bin,
-            self.simple_duf_csharp_project_file,
+            consts.SIMPLE_DUF_OUTPUT_BIN,
+            consts.SIMPLE_DUF_CSHARP_PROJECT_FILE,
         ]
         subprocess.run(cmd)
 
     def _move_bin_to_package(self):
-        source = os.path.join(self.simple_duf_csharp_project_dir, "bin", "SimpleDuf.dll")
+        source = os.path.join(consts.SIMPLE_DUF_CSHARP_PROJECT_DIR, "bin", "SimpleDuf.dll")
         dest = os.path.join(consts.BIN_PATH, "SimpleDuf.dll")
         if os.path.exists(consts.BIN_PATH):
             shutil.rmtree(consts.BIN_PATH)
