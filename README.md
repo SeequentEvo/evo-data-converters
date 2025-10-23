@@ -25,6 +25,7 @@ The existing data converters can be used without modification or used as a templ
 | Package                                                 | Version                                                                                                                                                        |
 |---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [evo-data-converters-common](packages/common/README.md) | <a href="https://pypi.org/project/evo-data-converters-common/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-common" /></a> |
+| [evo-data-converters-ags](packages/ags/README.md)       | <a href="https://pypi.org/project/evo-data-converters-ags/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ags" /></a>       |
 | [evo-data-converters-duf](packages/duf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-duf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" /></a>       |
 | [evo-data-converters-gocad](packages/gocad/README.md)   | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a>   |
 | [evo-data-converters-omf](packages/omf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-omf" /></a>       |
@@ -46,13 +47,13 @@ See the documentation for each converter for information on how to use the data 
 For the data converter's common framework package, see [`evo-data-converters-common`](packages/common/README.md).
 
 Currently supported converters are:
+ * [AGS](packages/ags/README.md)
+ * [DUF](packages/duf/README.md)
+ * [GOCAD](packages/gocad/README.md)
  * [OMF](packages/omf/README.md)
  * [RESQML](packages/resqml/README.md)
- * [VTK](packages/vtk/README.md)
  * [UBC](packages/ubc/README.md)
- * [GOCAD](packages/gocad/README.md)
- * [DUF](packages/duf/README.md)
- * [AGS](packages/ags/README.md)
+ * [VTK](packages/vtk/README.md)
 
  To use any of the data converters, you will need a few things:
   * An *access token* for your user
