@@ -15,13 +15,10 @@ import os
 
 import evo.logging
 
-
-DEFAULT_WINDOWS_INSTALL_ROOT = r"C:\Program Files\Deswik"
-DESWIK_INSTALL_PATH_ENV = "DESWIK_PATH"
-
+from evo.data_converters.duf.common.consts import DESWIK_INSTALL_PATH_ENV, DEFAULT_WINDOWS_INSTALL_ROOT
 
 if platform.system() != "Windows":
-    raise RuntimeError("This script is only supported on Windows.")
+    raise ImportError("DUF conversion is only supported on Windows.")
 
 
 if (deswik_path := os.getenv(DESWIK_INSTALL_PATH_ENV)) is None:
