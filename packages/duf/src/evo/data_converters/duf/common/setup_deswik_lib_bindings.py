@@ -13,6 +13,8 @@ import platform
 import sys
 import os
 
+import pythonnet
+
 import evo.logging
 
 
@@ -22,6 +24,15 @@ DESWIK_INSTALL_PATH_ENV = "DESWIK_PATH"
 
 if platform.system() != "Windows":
     raise RuntimeError("This script is only supported on Windows.")
+
+
+def get_version(path):
+    try:
+        version = path.split(" ")[-1]
+        year, month = version.split(".")
+        return int(year), int(month)
+    except (IndexError, TypeError):
+        return -1, -1
 
 
 if (deswik_path := os.getenv(DESWIK_INSTALL_PATH_ENV)) is None:
@@ -37,21 +48,23 @@ if (deswik_path := os.getenv(DESWIK_INSTALL_PATH_ENV)) is None:
     if not installs:
         raise OSError(missing_install_msg)
 
-    # Sort by version
-    def by_version(path):
-        version = path.split(" ")[-1]
-        year, month = version.split(".")
-        return int(year), int(month)
-
-    most_recent_install_dir = sorted(installs, key=by_version, reverse=True)[0]
+    most_recent_install_dir = sorted(installs, key=get_version, reverse=True)[0]
     deswik_path = os.path.join(DEFAULT_WINDOWS_INSTALL_ROOT, most_recent_install_dir)
+
+
+deswik_version = get_version(os.path.basename(deswik_path))
+
 
 if not os.path.exists(deswik_path):
     missing_install_msg = (
         f"Deswik.Suite is expected to be installed at {deswik_path}, but nothing is there. If you "
         f"know the install directory, then you can set the environment variable `DESWIK_PATH`."
     )
-    raise OSError(missing_install_msg)
+    raise ImportError(missing_install_msg)
+
+
+if deswik_version == (-1, -1):
+    raise ImportError(f"Deswik install at path {deswik_path} does not appear to have a valid version")
 
 
 logger = evo.logging.getLogger("data_converters")
@@ -59,6 +72,24 @@ logger.debug("Looking for Deswik DLLs in: %s", deswik_path)
 
 sys.path.insert(0, deswik_path)
 
+if (dotnet_root := os.environ.get("DOTNET_ROOT")) is not None and not os.path.exists(dotnet_root):
+    # DOTNET_ROOT was observed to be set to an unexpected value, which will cause `pythonnet.load()` to fail.
+
+    # During development, DOTNET_ROOT was observed to be set to a directory that didn't exist by an application
+    # installer. It cannot be assumed to be set correctly. Instead of failing, silently ignore it (with a warning).
+    del os.environ["DOTNET_ROOT"]
+    msg = f"The environment variable DOTNET_ROOT is set to {dotnet_root}, but there is nothing there, so it is being ignored."
+    logger.warn(msg)
+
+if deswik_version >= (2025, 2):
+    # Target the newer .NETCoreApp runtime
+    pythonnet.load("coreclr")
+else:
+    # Target the legacy .NET Framework runtime. It might not be necessary, because specifying "coreclr" regardless of
+    # Deswik version seemed to work. But the older Deswik versions require .NET Framework 4.7.2 so "netfx" is specified.
+    pythonnet.load("netfx")
+
+# Import clr _after_ `pythonnet.load()`.
 import clr  # noqa: E402 # Do this after modifying sys.path, so that Deswik-bundled DLLs are prioritized
 
 clr.AddReference("Deswik.Duf")
