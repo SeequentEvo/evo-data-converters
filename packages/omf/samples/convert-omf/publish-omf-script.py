@@ -28,6 +28,10 @@ parser.add_argument(
 parser.add_argument("--upload-path", help="Path to upload objects to.")
 
 parser.add_argument(
+    "--overwrite-existing-objects", action="store_true", default=False, help="Overwrite existing objects"
+)
+
+parser.add_argument(
     "--cache-dir",
     help="Local directory to store processed files. If it doesn't exist it will be created. Defaults to a temporary directory if not provided.",
 )
@@ -102,6 +106,7 @@ results = convert_omf(
     epsg_code=args.epsg_code,
     tags=tags,
     upload_path=args.upload_path,
+    overwrite_existing_objects=args.overwrite_existing_objects,
 )
 
 # Results will either be a list of BaseSpatialDataProperties_V1_0_1 if not published, or a list of ObjectMetadata if they were published

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -790,7 +790,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp" },
     { name = "evo-objects", specifier = ">=0.1.0" },
-    { name = "evo-schemas", specifier = ">=2024.4" },
+    { name = "evo-schemas", specifier = ">=2025.9.12" },
     { name = "evo-sdk-common", specifier = ">=0.4.2" },
     { name = "nest-asyncio" },
     { name = "numpy" },
@@ -967,14 +967,14 @@ wheels = [
 
 [[package]]
 name = "evo-schemas"
-version = "2024.4"
+version = "2025.9.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonpointer" },
     { name = "rfc3986-validator" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/63/440e64c502016bbf5f80f5bd44d738fb9cdb38da1f216f2f54b972564407/evo_schemas-2024.4-py3-none-any.whl", hash = "sha256:4a57713fb67af11b11627634aefe604bf2fb1cfcd25a192d48a5bb88530812fa", size = 466884, upload-time = "2025-04-14T21:27:17.768Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/a1/c63b098e8e20a0572dfc7971fa26ced78567b1c5f708a5ba7c0f91c07d63/evo_schemas-2025.9.12-py3-none-any.whl", hash = "sha256:e183c0c2efb772c8b7e645557c9eabedb4747082f06c3342842d5dc4515cafbf", size = 490710, upload-time = "2025-09-11T22:22:35.818Z" },
 ]
 
 [[package]]

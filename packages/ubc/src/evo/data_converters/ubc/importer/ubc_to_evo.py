@@ -35,6 +35,7 @@ def convert_ubc(
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
+    overwrite_existing_objects: bool = False,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts a UBC files into Geoscience Objects.
 
@@ -74,7 +75,7 @@ def convert_ubc(
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
         objects_metadata = publish_geoscience_objects(
-            geoscience_objects, object_service_client, data_client, upload_path
+            geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 
     return objects_metadata if objects_metadata else geoscience_objects

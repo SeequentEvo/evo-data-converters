@@ -11,7 +11,7 @@
 
 ## Evo
 
-Evo is a unified platform for geoscience teams. It enables access, connection, computation, and management of subsurface data. This empowers better decision-making, simplified collaboration, and accelerated innovation. Evo is built on open APIs, allowing developers to build custom integrations and applications. Our open schemas, code examples, and SDK are available for the community to use and extend. 
+Evo is a unified platform for geoscience teams. It enables access, connection, computation, and management of subsurface data. This empowers better decision-making, simplified collaboration, and accelerated innovation. Evo is built on open APIs, allowing developers to build custom integrations and applications. Our open schemas, code examples, and SDK are available for the community to use and extend.
 
 Evo is powered by Seequent, a Bentley organisation.
 
@@ -181,6 +181,7 @@ def convert_yourfiletype(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     upload_path: str = "",
+    overwrite_existing_objects: bool = False
 ) -> list[ObjectMetadata]:
     geoscience_objects = []
 
@@ -205,7 +206,7 @@ def convert_yourfiletype(
 
     # Publish the found geoscience objects to Evo
     objects_metadata = publish_geoscience_objects(
-        geoscience_objects, object_service_client, data_client, upload_path
+        geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
     )
 
     # Return the publishing response

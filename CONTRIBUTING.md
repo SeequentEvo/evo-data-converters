@@ -26,6 +26,21 @@ system, example code, steps to reproduce, etc.). We also welcome pull requests t
 
 We welcome all forms of pull requests, and strive to ensure contributions are reviewed and merged promptly.
 
+Seequent requires that all commits are signed with verified signatures. Please ensure you configure commit signing before creating a pull request. See [the GitHub documentation](https://docs.github.com/en/authentication/managing-commit-signature-verification) for more information.
+
+### Adding a new project
+A project is defined as a self-contained piece of functionality. Each new project is in a sub-folder of the `./packages/` folder in this repository. The folder name should match the package name that will be published and contain the source code for that project.
+
+Because each project is self-contained, contributors must specify maintainers for each new package. These maintainers are responsible for reviewing pull requests, ensuring code quality, maintaining security standards, and providing ongoing project maintenance. Add an entry to the [CODEOWNERS file](.github/CODEOWNERS) in the root directory, for example:
+
+```
+# Package maintainers for the new project
+packages/mypackage/  @SeequentEvo/mypackage-maintainers
+```
+
+Where possible, assign code ownership to a team rather than individuals.
+Remember that more specific rules override general ones, so package-specific entries will take precedence over the global fallback rule.
+
 ### Checklist
 
 To ensure your pull request is merged as quickly as possible, please consider the following:
@@ -36,7 +51,7 @@ To ensure your pull request is merged as quickly as possible, please consider th
 * Reference issues in your pull request if you're closing one.
 * Ensure your code has been automatically linted.
 * Verify that all tests pass, and write new tests with excellent code coverage for new code.
-* Seequent requires that all commits are signed with verified signatures. Please ensure you configure commit signing before creating a pull request. See [the GitHub documentation](https://docs.github.com/en/authentication/managing-commit-signature-verification) for more information.
+* Verify that all sample code and example notebooks can be run successfully.
 
 ### Contributor License Agreement (CLA)
 

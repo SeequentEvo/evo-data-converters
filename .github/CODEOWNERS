@@ -1,2 +1,27 @@
+# CODEOWNERS - Code ownership and review assignments
+#
+# This file defines who is responsible for reviewing and maintaining code in different parts of the repository.
+# GitHub automatically requests reviews from the specified teams/users when PRs affect their areas.
+# More specific rules override general ones.
+#
+# Format: <file-pattern> <team-or-user> [additional-teams...]
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# =============================================================================
+# GLOBAL RULES
+# =============================================================================
+
+# Global fallback - applies to all files not covered by specific rules below
 * @SeequentEvo/evo-data-converters-maintainers
-/packages/duf/ @SeequentEvo/evo-data-converters-duf-maintainers
+
+# =============================================================================
+# PACKAGE-SPECIFIC MAINTAINERS
+# =============================================================================
+
+packages/common/              @SeequentEvo/data-converters-common-maintainers
+packages/duf/                 @SeequentEvo/duf-maintainers
+packages/gocad/               @SeequentEvo/gocad-maintainers
+packages/omf/                 @SeequentEvo/omf-maintainers
+packages/resqml/              @SeequentEvo/resqml-maintainers
+packages/ubc/                 @SeequentEvo/ubc-maintainers
+packages/vtk/                 @SeequentEvo/vtk-maintainers

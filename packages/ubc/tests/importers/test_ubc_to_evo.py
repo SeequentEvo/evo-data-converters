@@ -50,6 +50,7 @@ def test_convert_ubc_success() -> None:
             mock_create_client.return_value[0],
             mock_create_client.return_value[1],
             upload_path,
+            False,
         )
 
 
