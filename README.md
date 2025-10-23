@@ -56,8 +56,8 @@ Currently supported converters are:
  * [VTK](packages/vtk/README.md)
 
  To use any of the data converters, you will need a few things:
-  * An *access token* for your user
-  * The *organisation ID*, *hub URL* and *workspace ID* that you would like to import your data to, or export it from.
+  * An Evo *access token* for your user
+  * The Evo *organisation ID*, *hub URL* and *workspace ID* that you would like to import your data to, or export it from.
 
 To get an access token, see [Apps and Tokens](https://developer.seequent.com/docs/guides/getting-started/apps-and-tokens/) in the Seequent Evo Developer portal.
 
