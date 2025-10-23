@@ -152,6 +152,3 @@ def test_unhandled_schema_id(evo_metadata, pit_mesh_attrs_path, test_out_path):
         _run_test(schema_id, True)
     for schema_id in unsupported:
         _run_test(schema_id, False)
-
-
-# TODO More tests
