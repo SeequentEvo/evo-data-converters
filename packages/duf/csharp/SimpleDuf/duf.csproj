@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>SimpleDuf</AssemblyName>
+    <RootNamespace>SimpleDuf</RootNamespace>
+    <Deterministic>true</Deterministic>
+
+
+    <!-- Helpful for .NET Framework apps. The build seems to work fine without them, but having it might avoid an issue
+         later on if there is a need to target multiple .NET Framework targets. Remove these if only modern .NET is
+         supported and there is no need to support .NET Framework. -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+
+    <!-- The SDK being installed adjacent to the project file results in the SDK being explored for reference assembly DLLs.
+         That's not what we want, because we want to use the 4.7.2 reference assemblies retrieved with Nuget.
+         It's a bit concerning to have to set this to `false`.
+         TODO: Reorganise directories so this isn't necessary.  -->
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	<PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <!-- TODO: Hook this up to the DESWIK_PATH environment variable. -->
+  <!-- Configurable vendor install location; override with -p:DeswikRoot="C:\Path\to\Deswik.Suite 2024.1" -->
+  <PropertyGroup>
+    <DeswikRoot Condition="'$(DeswikRoot)'==''">$(ProgramW6432)\Deswik\Deswik.Suite 2024.1</DeswikRoot>
+  </PropertyGroup>
+
+  <!-- TODO: Fail with better messaging if the DLLs are missing -->
+  <!-- These are the Deswik DLLs that are assumed to be installed -->
+  <ItemGroup>
+    <Reference Include="Deswik.Core.Structures">
+      <HintPath>$(DeswikRoot)\Deswik.Core.Structures.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Duf">
+      <HintPath>$(DeswikRoot)\Deswik.Duf.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Entities">
+      <HintPath>$(DeswikRoot)\Deswik.Entities.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Entities.Base">
+      <HintPath>$(DeswikRoot)\Deswik.Entities.Base.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Entities.Cad">
+      <HintPath>$(DeswikRoot)\Deswik.Entities.Cad.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Gold">
+      <HintPath>$(DeswikRoot)\Deswik.Gold.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Serialization">
+      <HintPath>$(DeswikRoot)\Deswik.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="Deswik.Snappy">
+      <HintPath>$(DeswikRoot)\Deswik.Snappy.dll</HintPath>
+    </Reference>
+    <Reference Include="Snappier">
+      <HintPath>$(DeswikRoot)\Snappier.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- SDK-style auto-includes your .cs and common content; no need to list Compile/Reference/System.* -->
+</Project>
