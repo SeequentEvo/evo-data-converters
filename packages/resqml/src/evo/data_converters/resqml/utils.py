@@ -22,6 +22,8 @@ from resqpy.model import Model, ModelContext
 from resqpy.property import Property
 from resqpy.well import Trajectory
 
+from evo.data_converters.common import crs_from_epsg_code
+
 
 def is_resqml(filepath: str) -> bool:
     r"""
@@ -126,11 +128,11 @@ def get_crs_epsg_code(model: Model, int_epsg_code: Optional[int] = None) -> Crs_
     assert model is not None
 
     if int_epsg_code is not None:
-        return Crs_EpsgCode(epsg_code=int_epsg_code)
+        return crs_from_epsg_code(int_epsg_code)
 
     crs_root = rqc.Crs(model, uuid=model.crs_uuid)
     if crs_root is not None and crs_root.epsg_code is not None:
-        return Crs_EpsgCode(epsg_code=int(crs_root.epsg_code))
+        return crs_from_epsg_code(int(crs_root.epsg_code))
 
     return None
 

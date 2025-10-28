@@ -15,16 +15,14 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 import pytest
-from evo_schemas.components import (
-    BoundingBox_V1_0_1,
-    Crs_V1_0_1_EpsgCode,
-)
+from evo_schemas.components import BoundingBox_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_1_0
 
 import evo.data_converters.duf.common.deswik_types as dw
 from evo.data_converters.duf.importer import convert_duf_polyface
 from evo.data_converters.duf.importer.duf_polyface_to_evo import indices_from_polyface, combine_duf_polyfaces
 from utils import extract_single_attr_value, extract_attr_values
+from evo.data_converters.common import crs_from_epsg_code
 
 
 @pytest.fixture(scope="module")
@@ -39,7 +37,7 @@ def test_should_convert_duf_polyface_geometry(polyface_obj, data_client):
     expected_triangle_mesh_go = TriangleMesh_V2_1_0(
         name="FACELAYER-dwPolyface-1c14ef99-e5e3-4388-bbe6-6120344712b1",  # layer name - type - object guid
         uuid=None,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         bounding_box=triangle_mesh_go.bounding_box,  # Tested later
         triangles=triangle_mesh_go.triangles,  # Tested later
     )
@@ -90,7 +88,7 @@ def test_combining_duf_polyface_geometry(multiple_objects, data_client):
     expected_triangle_mesh_go = TriangleMesh_V2_1_0(
         name="FACELAYER",
         uuid=None,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         parts=triangle_mesh_go.parts,  # Tested later
         bounding_box=triangle_mesh_go.bounding_box,  # Tested later
         triangles=triangle_mesh_go.triangles,  # Tested later

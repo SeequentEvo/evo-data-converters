@@ -19,13 +19,17 @@ import pyarrow.parquet as pq
 from evo_schemas.components import (
     BoundingBox_V1_0_1,
     ContinuousAttribute_V1_1_0,
-    Crs_V1_0_1_EpsgCode,
     NanContinuous_V1_0_1,
 )
 from evo_schemas.elements.float_array_1 import FloatArray1_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_1_0
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+    crs_from_epsg_code,
+)
+
 from evo.data_converters.omf import OMFReaderContext
 from evo.data_converters.omf.importer import convert_omf_surface
 
@@ -65,7 +69,7 @@ class TestOMFSurfaceConverter(TestCase):
         expected_triangle_mesh_go = TriangleMesh_V2_1_0(
             name=surface_element.name,
             uuid=None,
-            coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+            coordinate_reference_system=crs_from_epsg_code(epsg_code),
             bounding_box=triangle_mesh_go.bounding_box,
             triangles=triangle_mesh_go.triangles,
         )
@@ -123,7 +127,7 @@ class TestOMFSurfaceConverter(TestCase):
         expected_triangle_mesh_go = TriangleMesh_V2_1_0(
             name=surface_element.name,
             uuid=None,
-            coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+            coordinate_reference_system=crs_from_epsg_code(epsg_code),
             bounding_box=triangle_mesh_go.bounding_box,
             triangles=triangle_mesh_go.triangles,
         )

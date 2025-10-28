@@ -12,7 +12,6 @@
 import omf2
 import pyarrow as pa
 from evo_schemas.components import (
-    Crs_V1_0_1_EpsgCode,
     Triangles_V1_2_0,
     Triangles_V1_2_0_Indices,
     Triangles_V1_2_0_Vertices,
@@ -22,7 +21,8 @@ from evo_schemas.objects import TriangleMesh_V2_1_0
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 
-from ...common.utils import vertices_bounding_box
+from evo.data_converters.common.utils import vertices_bounding_box
+from evo.data_converters.common import crs_from_epsg_code
 from .omf_attributes_to_evo import convert_omf_attributes
 
 logger = evo.logging.getLogger("data_converters")
@@ -37,7 +37,7 @@ def convert_omf_surface(
 ) -> TriangleMesh_V2_1_0:
     logger.debug(f'Converting omf2 Element: "{surface.name}" to TriangleMesh_V2_0_0.')
 
-    coordinate_reference_system = Crs_V1_0_1_EpsgCode(epsg_code=epsg_code)
+    coordinate_reference_system = crs_from_epsg_code(epsg_code)
 
     geometry = surface.geometry()
 

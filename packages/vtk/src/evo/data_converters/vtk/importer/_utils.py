@@ -12,11 +12,13 @@
 import numpy as np
 import numpy.typing as npt
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode, Rotation_V1_1_0
+from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from scipy.spatial.transform import Rotation
 from vtk.util.numpy_support import vtk_to_numpy
 
 from evo.data_converters.common.utils import convert_rotation
+from evo.data_converters.common import crs_from_epsg_code
+
 
 from .exceptions import GhostValueError
 
@@ -59,7 +61,7 @@ def common_fields(name: str, epsg_code: int, dataset: vtk.vtkDataSet) -> dict:
     bounding_box = get_bounding_box(dataset)
     return {
         "name": name,
-        "coordinate_reference_system": Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        "coordinate_reference_system": crs_from_epsg_code(epsg_code),
         "bounding_box": bounding_box,
         "uuid": None,
     }

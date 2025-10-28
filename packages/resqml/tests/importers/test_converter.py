@@ -17,10 +17,10 @@ from unittest import TestCase
 from uuid import uuid4
 from zipfile import BadZipFile
 
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode
+from evo_schemas.components import BoundingBox_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_0_0
 
-from evo.data_converters.common import EvoWorkspaceMetadata
+from evo.data_converters.common import EvoWorkspaceMetadata, crs_from_epsg_code
 from evo.data_converters.resqml.importer import convert_resqml
 
 
@@ -71,7 +71,7 @@ class TestConverter(TestCase):
         expected_triangle_mesh_go = TriangleMesh_V2_0_0(
             name="surface",
             uuid=None,
-            coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+            coordinate_reference_system=crs_from_epsg_code(epsg_code),
             bounding_box=triangle_mesh_go.bounding_box,
             triangles=triangle_mesh_go.triangles,
             extensions=triangle_mesh_go.extensions,

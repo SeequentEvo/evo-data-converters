@@ -11,7 +11,6 @@
 
 import numpy as np
 from evo_schemas.components import (
-    Crs_V1_0_1_EpsgCode,
     Segments_V1_2_0,
     Segments_V1_2_0_Indices,
     Segments_V1_2_0_Vertices,
@@ -20,6 +19,7 @@ from evo_schemas.objects import LineSegments_V2_1_0, LineSegments_V2_1_0_Parts
 
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
+from evo.data_converters.common import crs_from_epsg_code
 
 import evo.data_converters.duf.common.deswik_types as dw
 from .utils import (
@@ -44,7 +44,7 @@ def _create_line_segments_obj(name, vertices_array, indices_array, parts, epsg_c
         name=name,
         uuid=None,
         bounding_box=bounding_box_go,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         segments=Segments_V1_2_0(vertices=vertices_go, indices=indices_go),
         parts=parts_go,
     )
