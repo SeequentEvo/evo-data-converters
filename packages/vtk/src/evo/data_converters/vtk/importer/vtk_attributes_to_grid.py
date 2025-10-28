@@ -9,23 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from typing import Any, Dict, List
+
 import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 import vtk
-from evo_schemas.components import (
-    CategoryAttribute_V1_1_0,
-    ContinuousAttribute_V1_1_0,
-    IntegerAttribute_V1_1_0,
-    NanCategorical_V1_0_1,
-    NanContinuous_V1_0_1,
-    OneOfAttribute_V1_2_0,
-)
-from evo_schemas.elements import FloatArray1_V1_0_1, IntegerArray1_V1_0_1, LookupTable_V1_0_1
 from vtk.util.numpy_support import vtk_to_numpy
 
 import evo.logging
-from evo.objects.utils.data import ObjectDataClient
 
 from ._utils import is_float_array, is_integer_array, is_string_array, create_table
 
@@ -33,39 +25,33 @@ logger = evo.logging.getLogger("data_converters")
 
 
 def _create_continuous_attribute(
-    data_client: ObjectDataClient,
     name: str,
     array: vtk.vtkAbstractArray,
     mask: npt.NDArray[np.bool_] | None,
     grid_is_filtered: bool,
-) -> ContinuousAttribute_V1_1_0:
+) -> Dict[str, Any]:
     values = vtk_to_numpy(array)
     # Convert to float64, as Geoscience Objects only support float64 for continuous attributes
     table = create_table(values, mask, grid_is_filtered, np.float64)
-    return ContinuousAttribute_V1_1_0(
+    return dict(
         name=name,
-        key=name,
-        nan_description=NanContinuous_V1_0_1(values=[]),
-        values=FloatArray1_V1_0_1(**data_client.save_table(table)),
+        values=table,
     )
 
 
 def _create_integer_attribute(
-    data_client: ObjectDataClient,
     name: str,
     array: vtk.vtkAbstractArray,
     mask: npt.NDArray[np.bool_] | None,
     grid_is_filtered: bool,
-) -> IntegerAttribute_V1_1_0:
+) -> Dict[str, Any]:
     values = vtk_to_numpy(array)
     # Convert to int32 or int64
     dtype = np.int64 if values.dtype in [np.uint32, np.int64] else np.int32
     table = create_table(values, mask, grid_is_filtered, dtype)
-    return IntegerAttribute_V1_1_0(
+    return dict(
         name=name,
-        key=name,
-        nan_description=NanCategorical_V1_0_1(values=[]),
-        values=IntegerArray1_V1_0_1(**data_client.save_table(table)),
+        values=table,
     )
 
 
@@ -76,12 +62,11 @@ _numpy_dtype_for_pyarrow_type = {
 
 
 def _create_categorical_attribute(
-    data_client: ObjectDataClient,
     name: str,
     array: vtk.vtkStringArray,
     mask: npt.NDArray[np.bool_] | None,
     grid_is_filtered: bool,
-) -> CategoryAttribute_V1_1_0:
+) -> Dict[str, Any]:
     values = [array.GetValue(i) for i in range(array.GetNumberOfValues())]
     arrow_array = pa.array(values, mask=~mask if mask is not None else None)
 
@@ -99,21 +84,18 @@ def _create_categorical_attribute(
     )
 
     values_table = pa.table({"values": indices})
-    return CategoryAttribute_V1_1_0(
+    return dict(
         name=name,
-        key=name,
-        nan_description=NanCategorical_V1_0_1(values=[]),
-        table=LookupTable_V1_0_1(**data_client.save_table(lookup_table)),
-        values=IntegerArray1_V1_0_1(**data_client.save_table(values_table)),
+        table=lookup_table,
+        values=values_table,
     )
 
 
-def convert_attributes(
+def convert_attributes_for_grid(
     vtk_data: vtk.vtkDataSetAttributes,
-    data_client: ObjectDataClient,
     mask: npt.NDArray[np.bool_] | None = None,
     grid_is_filtered: bool = False,
-) -> OneOfAttribute_V1_2_0:
+) -> List[Dict[str, Any]]:
     """
     Convert VTK attributes to Geoscience Objects attributes.
 
@@ -135,11 +117,11 @@ def convert_attributes(
             continue
 
         if is_float_array(array):
-            attribute = _create_continuous_attribute(data_client, name, array, mask, grid_is_filtered)
+            attribute = _create_continuous_attribute(name, array, mask, grid_is_filtered)
         elif is_integer_array(array):
-            attribute = _create_integer_attribute(data_client, name, array, mask, grid_is_filtered)
+            attribute = _create_integer_attribute(name, array, mask, grid_is_filtered)
         elif is_string_array(array):
-            attribute = _create_categorical_attribute(data_client, name, array, mask, grid_is_filtered)
+            attribute = _create_categorical_attribute(name, array, mask, grid_is_filtered)
         else:
             logger.warning(
                 f"Unsupported data type {array.GetDataTypeAsString()} for attribute {name}, skipping this attribute"

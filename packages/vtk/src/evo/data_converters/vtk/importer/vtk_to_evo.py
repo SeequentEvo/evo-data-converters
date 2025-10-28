@@ -19,6 +19,7 @@ from vtk.util.data_model import ImageData, RectilinearGrid, UnstructuredGrid  # 
 
 import evo.logging
 from evo.data_converters.common import (
+    BaseGridData,
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
@@ -27,8 +28,8 @@ from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
 
 from .exceptions import VTKConversionError, VTKImportError
-from .vtk_image_data_to_evo import convert_vtk_image_data
-from .vtk_rectilinear_grid_to_evo import convert_vtk_rectilinear_grid
+from .vtk_image_data_to_evo import convert_vtk_image_data, get_vtk_image_data
+from .vtk_rectilinear_grid_to_evo import convert_vtk_rectilinear_grid, get_vtk_rectilinear_grid
 from .vtk_unstructured_grid_to_evo import convert_vtk_unstructured_grid
 
 logger = evo.logging.getLogger("data_converters")
@@ -58,9 +59,20 @@ def _get_data_objects(filepath: str) -> list[tuple[str, vtk.vtkDataObject]]:
     return list(_get_leaf_objects(data_object, Path(filepath).stem))
 
 
+GetFunction: TypeAlias = Callable[[vtk.vtkDataObject], BaseGridData]
+
 ConverterFunction: TypeAlias = Callable[
     [str, vtk.vtkDataObject, ObjectDataClient, int], BaseSpatialDataProperties_V1_0_1
 ]
+
+_get_functions: dict[type[vtk.vtkDataObject], GetFunction] = {
+    vtk.vtkImageData: get_vtk_image_data,
+    ImageData: get_vtk_image_data,
+    vtk.vtkUniformGrid: get_vtk_image_data,
+    vtk.vtkStructuredPoints: get_vtk_image_data,
+    vtk.vtkRectilinearGrid: get_vtk_rectilinear_grid,
+    RectilinearGrid: get_vtk_rectilinear_grid,
+}
 
 _convert_functions: dict[type[vtk.vtkDataObject], ConverterFunction] = {
     vtk.vtkImageData: convert_vtk_image_data,
@@ -72,6 +84,28 @@ _convert_functions: dict[type[vtk.vtkDataObject], ConverterFunction] = {
     vtk.vtkUnstructuredGrid: convert_vtk_unstructured_grid,
     UnstructuredGrid: convert_vtk_unstructured_grid,
 }
+
+
+def get_vtk_grids(filepath: str) -> list[tuple[str, BaseGridData]]:
+    """Extract grid data from a VTK file without converting to Geoscience Objects.
+    :param filepath: Path to the VTK file.
+    :return: List of (name, BaseGridData) tuples.
+    :raise VTKImportError: If the VTK file could not be read.
+    """
+    data_objects = _get_data_objects(filepath)
+    grid_data_list = []
+    for name, data_object in data_objects:
+        get_function = _get_functions.get(type(data_object))
+        if get_function is None:
+            logger.warning(f"{type(data_object).__name__} data object are not supported.")
+            continue
+        try:
+            grid_data = get_function(data_object)
+            grid_data_list.append((name, grid_data))
+        except VTKConversionError as e:
+            logger.warning(f"{e}, skipping this grid")
+            continue
+    return grid_data_list
 
 
 def convert_vtk(

@@ -10,6 +10,7 @@
 #  limitations under the License.
 
 from .blockmodel_client import BlockSyncClient
+from .grid_data import BaseGridData, RegularGridData, TensorGridData
 from .evo_client import EvoObjectMetadata, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from .publish import publish_geoscience_objects
 
@@ -19,4 +20,7 @@ __all__ = [
     "BlockSyncClient",
     "EvoObjectMetadata",
     "publish_geoscience_objects",
+    "BaseGridData",
+    "RegularGridData",
+    "TensorGridData",
 ]
