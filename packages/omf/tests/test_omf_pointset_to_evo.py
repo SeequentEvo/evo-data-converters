@@ -14,10 +14,15 @@ from os import path
 from unittest import TestCase
 
 import pyarrow.parquet as pq
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode
+from evo_schemas.components import BoundingBox_V1_0_1
 from evo_schemas.objects import Pointset_V1_2_0
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+    crs_from_epsg_code,
+)
+
 from evo.data_converters.omf import OMFReaderContext
 from evo.data_converters.omf.importer import convert_omf_pointset
 
@@ -54,7 +59,7 @@ class TestPointsetConverter(TestCase):
         expected_pointset_go = Pointset_V1_2_0(
             name=pointset.name,
             uuid=None,
-            coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+            coordinate_reference_system=crs_from_epsg_code(epsg_code),
             bounding_box=pointset_go.bounding_box,
             locations=pointset_go.locations,
         )

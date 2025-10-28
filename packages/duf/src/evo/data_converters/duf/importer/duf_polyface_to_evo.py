@@ -11,7 +11,6 @@
 
 import numpy as np
 from evo_schemas.components import (
-    Crs_V1_0_1_EpsgCode,
     EmbeddedTriangulatedMesh_V2_1_0_Parts,
     Triangles_V1_2_0,
     Triangles_V1_2_0_Indices,
@@ -21,6 +20,7 @@ from evo_schemas.objects import TriangleMesh_V2_1_0
 
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
+from evo.data_converters.common import crs_from_epsg_code
 from numpy._typing import NDArray
 
 import evo.data_converters.duf.common.deswik_types as dw
@@ -47,7 +47,7 @@ def _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_c
         name=name,
         uuid=None,
         bounding_box=bounding_box_go,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         triangles=Triangles_V1_2_0(vertices=vertices_go, indices=indices_go),
         parts=parts_go,
     )

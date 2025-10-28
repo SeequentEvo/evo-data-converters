@@ -16,13 +16,14 @@ import numpy as np
 import numpy.testing
 import pytest
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode, Rotation_V1_1_0
+from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from evo_schemas.objects import Regular3DGrid_V1_2_0, RegularMasked3DGrid_V1_2_0
 from vtk.util.numpy_support import numpy_to_vtk
 from vtk_test_helpers import MockDataClient, add_ghost_value
 
 from evo.data_converters.vtk.importer.exceptions import GhostValueError
 from evo.data_converters.vtk.importer.vtk_image_data_to_evo import convert_vtk_image_data
+from evo.data_converters.common import crs_from_epsg_code
 
 
 @pytest.mark.parametrize(
@@ -43,7 +44,7 @@ def test_metadata(data_object_type: Callable[[], vtk.vtkImageData]) -> None:
     result = convert_vtk_image_data("Test", vtk_data, epsg_code=4326, data_client=data_client)
     assert isinstance(result, Regular3DGrid_V1_2_0)
     assert result.name == "Test"
-    assert result.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
+    assert result.coordinate_reference_system == crs_from_epsg_code(4326)
     assert result.origin == [12.0, 10.0, -8.0]
     assert result.cell_size == [1.5, 2.5, 5.0]
     assert result.bounding_box == BoundingBox_V1_0_1(

@@ -15,13 +15,14 @@ import numpy as np
 import numpy.testing
 import pytest
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode, Rotation_V1_1_0
+from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from evo_schemas.objects import Tensor3DGrid_V1_2_0
 from vtk.util.numpy_support import numpy_to_vtk
 from vtk_test_helpers import MockDataClient, add_ghost_value
 
 from evo.data_converters.vtk.importer.exceptions import GhostValueError
 from evo.data_converters.vtk.importer.vtk_rectilinear_grid_to_evo import convert_vtk_rectilinear_grid
+from evo.data_converters.common import crs_from_epsg_code
 
 
 def _create_rectilinear_grid() -> vtk.vtkRectilinearGrid:
@@ -48,7 +49,7 @@ def test_convert() -> None:
     result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
     assert isinstance(result, Tensor3DGrid_V1_2_0)
     assert result.name == "Test"
-    assert result.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
+    assert result.coordinate_reference_system == crs_from_epsg_code(4326)
     assert result.origin == [2.4, 1.2, -1.3]
     assert result.grid_cells_3d.cell_sizes_x == pytest.approx([0.8])
     assert result.grid_cells_3d.cell_sizes_y == pytest.approx([2.1, 1.8])

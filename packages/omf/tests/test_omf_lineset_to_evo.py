@@ -19,13 +19,17 @@ import pyarrow.parquet as pq
 from evo_schemas.components import (
     BoundingBox_V1_0_1,
     ContinuousAttribute_V1_1_0,
-    Crs_V1_0_1_EpsgCode,
     NanContinuous_V1_0_1,
 )
 from evo_schemas.elements.float_array_1 import FloatArray1_V1_0_1
 from evo_schemas.objects import LineSegments_V2_1_0
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+    crs_from_epsg_code,
+)
+
 from evo.data_converters.omf import OMFReaderContext
 from evo.data_converters.omf.importer import convert_omf_lineset
 
@@ -65,7 +69,7 @@ class TestOMFLineSetConverter(TestCase):
         expected_line_segments_go = LineSegments_V2_1_0(
             name=lineset_element.name,
             uuid=None,
-            coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+            coordinate_reference_system=crs_from_epsg_code(epsg_code),
             bounding_box=line_segments_go.bounding_box,
             segments=line_segments_go.segments,
         )
@@ -121,7 +125,7 @@ class TestOMFLineSetConverter(TestCase):
         expected_line_segments_go = LineSegments_V2_1_0(
             name=lineset_element.name,
             uuid=None,
-            coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+            coordinate_reference_system=crs_from_epsg_code(epsg_code),
             bounding_box=line_segments_go.bounding_box,
             segments=line_segments_go.segments,
         )

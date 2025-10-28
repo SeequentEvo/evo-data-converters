@@ -30,6 +30,8 @@ from resqpy.property import Property
 import evo.logging
 from evo.data_converters.common.hexahedrons import build_indices, build_vertices
 from evo.data_converters.common.utils import get_object_tags, vertices_bounding_box
+from evo.data_converters.common import crs_from_epsg_code
+
 from evo.data_converters.resqml.importer._attribute_converters import (
     convert_categorical_property,
     convert_continuous_property,
@@ -233,16 +235,16 @@ def _get_crs(model: Model, grid: Grid, epsg_code: int) -> CrsEpsgCode:
         default_epsg = epsg_code
     if grid.crs is None:
         logger.warning(f"Grid {grid.citation_title} {grid.uuid} does not have a CRS, defaulting to EPSG:{default_epsg}")
-        return CrsEpsgCode(epsg_code=default_epsg)
+        return crs_from_epsg_code(default_epsg)
 
     code = grid.crs.epsg_code
     if code is None:
         logger.warning(
             f"Grid {grid.citation_title} {grid.uuid} does not have an EPSG code, defaulting to EPSG:{default_epsg}"
         )
-        return CrsEpsgCode(epsg_code=default_epsg)
+        return crs_from_epsg_code(default_epsg)
     else:
-        return CrsEpsgCode(epsg_code=int(code))
+        return crs_from_epsg_code(int(code))
 
 
 def _get_cells_to_include(

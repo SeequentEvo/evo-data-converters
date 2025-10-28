@@ -16,7 +16,6 @@ import numpy
 import pyarrow as pa
 from evo_schemas.components import (
     ContinuousAttribute_V1_1_0,
-    Crs_V1_0_1_EpsgCode,
     NanContinuous_V1_0_1,
     Rotation_V1_1_0,
 )
@@ -25,6 +24,8 @@ from evo_schemas.objects import Tensor3DGrid_V1_2_0, Tensor3DGrid_V1_2_0_GridCel
 
 import evo.logging
 from evo.data_converters.common.utils import get_object_tags, grid_bounding_box
+from evo.data_converters.common import crs_from_epsg_code
+
 from evo.data_converters.ubc.importer.ubc_reader import UBCMeshFileImporter, UBCPropertyFileImporter
 from evo.objects.utils.data import ObjectDataClient
 
@@ -90,7 +91,7 @@ def get_geoscience_object_from_ubc(
         origin=origin.tolist(),
         size=size_of_dimensions,
         grid_cells_3d=grid_cells_3d,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         bounding_box=bbox,
         rotation=Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0),
         cell_attributes=cell_attributes,

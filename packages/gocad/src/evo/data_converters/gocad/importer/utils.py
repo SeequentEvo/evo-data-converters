@@ -16,7 +16,6 @@ import numpy
 import pyarrow as pa
 from evo_schemas.components import (
     ContinuousAttribute_V1_1_0,
-    Crs_V1_0_1_EpsgCode,
     NanContinuous_V1_0_1,
 )
 from evo_schemas.elements import FloatArray1_V1_0_1
@@ -26,6 +25,7 @@ from scipy.spatial.transform import Rotation
 from evo.data_converters.common.utils import check_rotation_matrix, convert_rotation, grid_bounding_box
 from evo.data_converters.gocad.importer.gocad_reader import import_gocad_voxel
 from evo.objects.utils.data import ObjectDataClient
+from evo.data_converters.common import crs_from_epsg_code
 
 
 def _create_continuous_attributes(
@@ -79,7 +79,7 @@ def get_geoscience_object_from_gocad(
         origin=rotated_origin.tolist(),
         size=grid_size.tolist(),
         cell_size=spacing.tolist(),
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         bounding_box=bbox,
         rotation=convert_rotation(Rotation.from_matrix(rotation.T)),
         cell_attributes=cell_attributes,

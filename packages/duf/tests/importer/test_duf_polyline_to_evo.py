@@ -15,16 +15,14 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 import pytest
-from evo_schemas.components import (
-    BoundingBox_V1_0_1,
-    Crs_V1_0_1_EpsgCode,
-)
+from evo_schemas.components import BoundingBox_V1_0_1
 from evo_schemas.objects import LineSegments_V2_1_0
 
 import evo.data_converters.duf.common.deswik_types as dw
 from evo.data_converters.duf.importer import convert_duf_polyline
 from evo.data_converters.duf.importer.duf_polyline_to_evo import combine_duf_polylines
 from utils import extract_single_attr_value, extract_attr_values
+from evo.data_converters.common import crs_from_epsg_code
 
 
 @pytest.fixture(scope="module")
@@ -39,7 +37,7 @@ def test_should_convert_duf_polyline_geometry(polyline_obj, data_client):
     expected_line_segments_go = LineSegments_V2_1_0(
         name="0-dwPolyline-f83a4e34-0428-431c-aed7-c554febcbc4a",  # layer name - type - object guid
         uuid=None,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         bounding_box=line_segments_go.bounding_box,  # Tested later
         segments=line_segments_go.segments,  # Tested later
     )
@@ -90,7 +88,7 @@ def test_combining_duf_polyline_geometry(multiple_objects, data_client):
     expected_line_segments_go = LineSegments_V2_1_0(
         name="LINELAYER",
         uuid=None,
-        coordinate_reference_system=Crs_V1_0_1_EpsgCode(epsg_code=epsg_code),
+        coordinate_reference_system=crs_from_epsg_code(epsg_code),
         parts=line_segments_go.parts,  # Tested later
         bounding_box=line_segments_go.bounding_box,  # Tested later
         segments=line_segments_go.segments,  # Tested later

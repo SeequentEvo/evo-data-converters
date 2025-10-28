@@ -16,7 +16,6 @@ import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 import resqpy.olio.xml_et as rqet
-from evo_schemas.components import Crs_V1_0_1_EpsgCode as CrsEpsgCode
 from evo_schemas.components import OneOfAttribute_V1_1_0 as OneOfAttribute
 from evo_schemas.components import Triangles_V1_1_0 as Triangles
 from evo_schemas.components import Triangles_V1_1_0_Indices as TrianglesIndices
@@ -29,6 +28,8 @@ from resqpy.surface import Surface
 
 import evo.logging
 from evo.data_converters.common.utils import get_object_tags, vertices_bounding_box
+from evo.data_converters.common import crs_from_epsg_code
+
 from evo.data_converters.resqml.importer._attribute_converters import (
     convert_categorical_property,
     convert_continuous_property,
@@ -85,12 +86,12 @@ def convert_surface(
     if crs is not None:
         crs.local_to_global_array(points, global_z_inc_down=False)
     if crs is not None and crs.epsg_code is not None:
-        evo_crs = CrsEpsgCode(epsg_code=int(crs.epsg_code))
+        evo_crs = crs_from_epsg_code(int(crs.epsg_code))
     else:
         logger.warning(
             f"Surface {surface.citation_title} {surface.uuid} does not have an EPSG Code , using the default {epsg_code}"
         )
-        evo_crs = CrsEpsgCode(epsg_code=epsg_code)
+        evo_crs = crs_from_epsg_code(epsg_code)
 
     (node_attributes, face_attributes, triangle_attributes) = _convert_attributes(model, surface, data_client)
 
