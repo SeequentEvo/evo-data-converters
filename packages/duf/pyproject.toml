@@ -18,6 +18,7 @@ classifiers = [
 
 [dependency-groups]
 dev = [
+    "pandas",
     "pytest",
     "requests-mock",
 ]
