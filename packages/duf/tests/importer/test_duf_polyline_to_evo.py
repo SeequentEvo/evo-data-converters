@@ -86,7 +86,7 @@ def test_combining_duf_polyline_geometry(multiple_objects, data_client):
     line_segments_go = combine_duf_polylines(polyline_objs, data_client, epsg_code)
 
     expected_line_segments_go = LineSegments_V2_1_0(
-        name="LINELAYER",
+        name="LINELAYER - polylines",
         uuid=None,
         coordinate_reference_system=crs_from_epsg_code(epsg_code),
         parts=line_segments_go.parts,  # Tested later

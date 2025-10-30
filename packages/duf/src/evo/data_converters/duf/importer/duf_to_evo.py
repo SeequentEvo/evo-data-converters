@@ -11,7 +11,7 @@
 
 import os
 from collections import defaultdict
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 
 import evo.logging
 from evo.objects.utils import ObjectDataClient
@@ -58,8 +58,10 @@ def _convert_object_list(klass, objs, data_client, epsg_code, tags):
     if (converter := _get_converter(klass, CONVERTERS, len(objs))) is None:
         return []
 
+    logger.info(f"Converting {len(objs)} objects individually using {converter}.")
+
     geoscience_objects = []
-    for obj in objs:
+    for i, obj in enumerate(objs):
         geoscience_object = converter(obj, data_client, epsg_code)
 
         if geoscience_object:
@@ -69,6 +71,9 @@ def _convert_object_list(klass, objs, data_client, epsg_code, tags):
             geoscience_object.tags.update(tags)
 
             geoscience_objects.append(geoscience_object)
+
+        if i % 100 == 0:
+            logger.info(f"Converted {i} objects")
     return geoscience_objects
 
 
@@ -80,23 +85,21 @@ def _convert_and_combine_duf_objects(
         layer_by_type = defaultdict(list)
         for obj in objs:
             layer_by_type[type(obj)].append(obj)
-        layer_converter = None
+
+        objs_to_convert_as_group: dict[Any, list] = {}
 
         # Try and find a single converter for the layer
-        for klass, _ in layer_by_type.items():
+        for klass, layer_type_objs in layer_by_type.items():
             converter = _get_converter(klass, COMBINING_CONVERTERS, warn=False)
-            if converter is None or (layer_converter is not None and converter is not layer_converter):
-                # Either no converter found, or multiple converters found for the layer
-                layer_converter = None
-                break
-            layer_converter = converter
+            if converter is None:
+                continue
 
-        if layer_converter is None:
-            # Multiple types or non-combinable types, don't combine layer
-            for klass, objs in layer_by_type.items():
-                geoscience_objects.extend(_convert_object_list(klass, objs, data_client, epsg_code, tags))
-        else:
-            geoscience_object = layer_converter(objs, data_client, epsg_code)
+            objs_so_far = objs_to_convert_as_group.setdefault(converter, [])
+            objs_so_far.extend(layer_type_objs)
+
+        for layer_converter, objs_to_convert in objs_to_convert_as_group.items():
+            logger.info(f"Converting and combining {len(objs_to_convert)} objects using {layer_converter}.")
+            geoscience_object = layer_converter(objs_to_convert, data_client, epsg_code)
 
             if geoscience_object:
                 if geoscience_object.tags is None:
@@ -175,7 +178,7 @@ def convert_duf(
 
     objects_metadata = None
     if publish_objects:
-        logger.debug("Publishing Geoscience Objects")
+        logger.debug(f"Publishing {len(geoscience_objects)} Geoscience Objects")
         objects_metadata = publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )

@@ -107,11 +107,14 @@ def combine_duf_polyfaces(
         logger.warning("No polyfaces to combine.")
         return None
 
-    name = get_name(polyfaces[0].Layer)
-    logger.debug(f'Combining polyfaces from layer: "{name}" to TriangleMesh_V2_1_0.')
+    layer = get_name(polyfaces[0].Layer)
+    name = f"{layer} - polyfaces"
+    logger.debug(f'Combining polyfaces from layer: "{layer}" to TriangleMesh_V2_1_0.')
 
     indices_arrays = []
-    for polyface in polyfaces:
+    for i, polyface in enumerate(polyfaces):
+        if i % 1000 == 0:
+            logger.info(f"Processed {i} polyfaces")
         indices_arrays.append(indices_from_polyface(polyface.FaceList))
 
     vertices_array, indices_array, parts = obj_list_and_indices_to_arrays(polyfaces, indices_arrays)

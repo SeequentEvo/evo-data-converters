@@ -90,3 +90,27 @@ def test_import_object_with_missing_attrs(evo_metadata, data_client, missing_att
 
     check_attr_values(attr1_go)
     check_attr_values(attr2_go)
+
+
+def test_combined_import_with_different_entity_types_in_layer(
+    evo_metadata, data_client, layer_with_2polylines_2meshes_2points_2texts_1face_path
+) -> None:
+    """
+    The polylines and points should get combined into one object. The meshes should get combined into another. The text and face objects should be ignored.
+    """
+    go_objects = convert_duf(
+        filepath=layer_with_2polylines_2meshes_2points_2texts_1face_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+    )
+
+    assert len(go_objects) == 2
+
+    go_objects.sort(key=str)
+    line_segments, mesh_triangles = go_objects
+
+    assert "line-segments" in line_segments.schema
+    assert line_segments.parts.attributes[0].values.length == 4  # polylines + points
+    assert "triangle-mesh" in mesh_triangles.schema
+    assert mesh_triangles.parts.attributes[0].values.length == 2

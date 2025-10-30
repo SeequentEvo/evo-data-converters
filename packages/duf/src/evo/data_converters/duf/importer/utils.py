@@ -408,13 +408,15 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
 
     attribute_specs = AttributeSpec.layer_attributes(layer)
     if num_parts > 1 or attribute_specs:
+        logger.info(f"Processing {num_parts} attributes for {len(obj_list)} entities")
+
         # We use parts to store object-level attributes, so we need at least a single part if we have any
         parts = {"offset": [], "count": [], "attributes": defaultdict(list)}
         attributes = parts["attributes"]
 
         offset = 0
         vertex_offset = 0
-        for obj, obj_indices_array in zip(obj_list, indices_arrays):
+        for i, (obj, obj_indices_array) in enumerate(zip(obj_list, indices_arrays)):
             obj_num_vertices = obj.VertexList.Count
             obj_count = len(obj_indices_array)
 
@@ -434,6 +436,9 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
                     logger.warning(f"Required attribute '{spec.name}' is missing in object {get_name(obj)}.")
 
                 attributes[spec].append(attr)
+
+            if i % 1000 == 0:
+                logger.info(f"Processed attributes for entity {i}")
     else:
         parts = None
 
