@@ -12,6 +12,7 @@
 import os
 import re
 
+import numpy
 import pytest
 from evo_schemas.objects import LineSegments_V2_1_0, TriangleMesh_V2_1_0
 
@@ -66,3 +67,26 @@ def test_import_category_with_missing_attrs(
     # that the empty string has been removed from categories on import.
     assert "" not in categories
     assert len(categories) > 0
+
+
+def test_import_object_with_missing_attrs(evo_metadata, data_client, missing_attr_and_missing_xprops_path) -> None:
+    go_objects = convert_duf(
+        filepath=missing_attr_and_missing_xprops_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+    )
+    imported_line_segments = go_objects[0]
+
+    attr1_go, attr2_go = imported_line_segments.parts.attributes
+
+    def check_attr_values(attr_go):
+        attr = data_client.load_table(attr1_go.values)
+        attr_values = attr.column(0).to_numpy()
+
+        # All of the missing values should have been imported as NaN
+        assert 0 in attr_go.nan_description.values
+        assert numpy.array_equal(attr_values, [0, 0])
+
+    check_attr_values(attr1_go)
+    check_attr_values(attr2_go)
