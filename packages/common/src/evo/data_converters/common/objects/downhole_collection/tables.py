@@ -28,11 +28,16 @@ class MeasurementTableAdapter(ABC):
         self.df: pd.DataFrame = df
         self.mapping: ColumnMapping = column_mapping
         self._validate()
+        self._prepare_dataframe()
 
     def _validate(self) -> None:
         """Ensure required columns are present"""
         if not self._find_column(self.mapping.HOLE_INDEX_COLUMNS):
             raise ValueError(f"No hole index column found. Expected one of: {self.mapping.HOLE_INDEX_COLUMNS}")
+
+    def _prepare_dataframe(self) -> None:
+        """Sorts the incoming dataframe as appropriate"""
+        pass
 
     def get_hole_index_column(self) -> str:
         """Get the column name that relates each measurement to a downhole"""
@@ -74,6 +79,14 @@ class DistanceTable(MeasurementTableAdapter):
         if not self._find_column(self.mapping.DEPTH_COLUMNS):
             raise ValueError(f"No depth column found. Expected one of: {self.mapping.DEPTH_COLUMNS}")
 
+    @override
+    def _prepare_dataframe(self) -> None:
+        # Ensure the dataframe is sorted by the hole_id and the distance column, ascending.
+        # This is necessary to ensure the hole chunks are contiguous.
+        self.df.sort_values(
+            by=[self.get_hole_index_column(), self.get_depth_column()], ascending=True, axis=0, inplace=True
+        )
+
     def get_depth_column(self) -> str:
         """Get the actual depth column name"""
         col: str | None = self._find_column(self.mapping.DEPTH_COLUMNS)
@@ -107,6 +120,14 @@ class IntervalTable(MeasurementTableAdapter):
             raise ValueError(
                 f"Missing interval columns. Expected: FROM: {self.mapping.FROM_COLUMNS}, TO: {self.mapping.TO_COLUMNS}"
             )
+
+    @override
+    def _prepare_dataframe(self) -> None:
+        # Ensure the dataframe is sorted by the hole_id and the from_distance column, ascending.
+        # This is necessary to ensure the hole chunks are contiguous.
+        self.df.sort_values(
+            by=[self.get_hole_index_column(), self.get_from_column()], ascending=True, axis=0, inplace=True
+        )
 
     def get_from_column(self) -> str:
         col: str | None = self._find_column(self.mapping.FROM_COLUMNS)
