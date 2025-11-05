@@ -11,59 +11,160 @@
 
 from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
+    BoolAttribute_V1_1_0 as BoolAttribute,
     ContinuousAttribute_V1_1_0 as ContinuousAttribute,
+    DateTimeAttribute_V1_1_0 as DateTimeAttribute,
+    IntegerAttribute_V1_1_0 as IntegerAttribute,
+    NanCategorical_V1_0_1 as NanCategorical,
     NanContinuous_V1_0_1 as NanContinuous,
     OneOfAttribute_V1_2_0_Item as OneOfAttribute_Item,
     StringAttribute_V1_1_0 as StringAttribute,
 )
 from evo_schemas.elements import (
+    BoolArray1_V1_0_1 as BoolArray1,
+    DateTimeArray_V1_0_1 as DateTimeArray,
     FloatArray1_V1_0_1 as FloatArray1,
+    IntegerArray1_V1_0_1 as IntegerArray1,
     StringArray_V1_0_1 as StringArray,
 )
 
+import evo.logging
 import pandas as pd
 import pyarrow as pa
 import typing
+from enum import Enum
+from dataclasses import dataclass
+
+logger = evo.logging.getLogger("data_converters")
+
+
+class DataType(Enum):
+    """This provides a way to map the inferred attribute type to the pyarrow data type to be stored."""
+
+    CONTINUOUS = pa.float64()
+    STRING = pa.string()
+    INTEGER = pa.int64()
+    DATETIME = pa.timestamp("us", tz="UTC")
+    BOOL = pa.bool_()
 
 
 class PyArrowTableFactory:
     @staticmethod
-    def create_continuous_table(series: pd.Series) -> pa.Table:
-        schema = pa.schema([("data", pa.float64())])
+    def create_table(series: pd.Series, data_type: DataType) -> pa.Table:
+        """Create a PyArrow table with the specified data type."""
+        schema = pa.schema([("data", data_type.value)])
         return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
 
-    @staticmethod
-    def create_string_table(series: pd.Series) -> pa.Table:
-        schema = pa.schema([("data", pa.string())])
-        return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
+
+@dataclass
+class AttributeConfig:
+    """Values required to construct an attribute."""
+
+    data_type: DataType
+    array_class: type
+    attribute_class: type
+    nan_class: type | None = None
 
 
 class AttributeFactory:
+    """Provide mapping from pandas Series -> Evo Attribute."""
+
+    CONTINUOUS_CONFIG: AttributeConfig = AttributeConfig(
+        data_type=DataType.CONTINUOUS,
+        array_class=FloatArray1,
+        attribute_class=ContinuousAttribute,
+        nan_class=NanContinuous,
+    )
+
+    STRING_CONFIG: AttributeConfig = AttributeConfig(
+        data_type=DataType.STRING,
+        array_class=StringArray,
+        attribute_class=StringAttribute,
+        nan_class=None,
+    )
+
+    INTEGER_CONFIG: AttributeConfig = AttributeConfig(
+        data_type=DataType.INTEGER,
+        array_class=IntegerArray1,
+        attribute_class=IntegerAttribute,
+        nan_class=NanCategorical,
+    )
+
+    DATETIME_CONFIG: AttributeConfig = AttributeConfig(
+        data_type=DataType.DATETIME,
+        array_class=DateTimeArray,
+        attribute_class=DateTimeAttribute,
+        nan_class=NanCategorical,
+    )
+
+    BOOL_CONFIG: AttributeConfig = AttributeConfig(
+        data_type=DataType.BOOL,
+        array_class=BoolArray1,
+        attribute_class=BoolAttribute,
+        nan_class=None,
+    )
+
+    # Mapping from inferred pandas dtype to attribute configuration
+    INFERRED_TYPE_MAP: dict[str, AttributeConfig] = {
+        # Continuous/Float types
+        "floating": CONTINUOUS_CONFIG,
+        "mixed-integer-float": CONTINUOUS_CONFIG,
+        "decimal": CONTINUOUS_CONFIG,
+        # String types
+        "string": STRING_CONFIG,
+        "unicode": STRING_CONFIG,
+        "bytes": STRING_CONFIG,
+        # Integer types
+        "integer": INTEGER_CONFIG,
+        # DateTime types
+        "datetime64": DATETIME_CONFIG,
+        "datetime": DATETIME_CONFIG,
+        "date": DATETIME_CONFIG,
+        # Boolean types
+        "boolean": BOOL_CONFIG,
+        # Categorical types
+        # "categorical" - CategoryAttribute (TODO)
+    }
+
     @staticmethod
     def create(name: str, series: pd.Series, client: ObjectDataClient) -> OneOfAttribute_Item | None:
-        nan_values_list: list[typing.Any] = list(series.attrs["nan_values"]) if "nan_values" in series.attrs else []
+        """Create an attribute from a pandas Series based on inferred type."""
+        if series.empty:
+            logger.debug(f"Got passed an empty series for attribute {name}, skipping Attribute creation.")
+            return None
+
         inferred_type: str = pd.api.types.infer_dtype(series, skipna=True)
 
-        if inferred_type in ["floating", "mixed-integer-float"]:
-            table = PyArrowTableFactory.create_continuous_table(series)
-            table_info = client.save_table(table)
-            float_array = FloatArray1.from_dict(table_info)
-            return ContinuousAttribute(
-                key=name,
-                name=name,
-                nan_description=NanContinuous(values=nan_values_list),
-                values=float_array,
+        # Get attribute configuration for inferred type
+        config: AttributeConfig | None = AttributeFactory.INFERRED_TYPE_MAP.get(inferred_type)
+        if config is None:
+            logger.warning(
+                f"Encountered unsupported attribute type, inferred {inferred_type} with no matching AttributeConfig."
             )
-
-        elif inferred_type == "string":
-            table = PyArrowTableFactory.create_string_table(series)
-            table_info = client.save_table(table)
-            string_array = StringArray.from_dict(table_info)
-            return StringAttribute(
-                key=name,
-                name=name,
-                values=string_array,
-            )
-
-        else:
             return None
+
+        # PyArrow expects datetime columns to be of a specific dtype, not just inferred
+        if config.data_type == DataType.DATETIME:
+            series = pd.to_datetime(series)
+
+        # Create and save the pyarrow table
+        table: pa.Table = PyArrowTableFactory.create_table(series, config.data_type)
+        table_info = client.save_table(table)
+
+        # Create the evo array element from saved table information
+        array_element = config.array_class.from_dict(table_info)
+
+        # Keywords args to pass to attribute constructor
+        attribute_kwargs: dict[str, typing.Any] = {
+            "key": name,
+            "name": name,
+            "values": array_element,
+        }
+
+        # Add nan_description if the attribute supports it
+        if config.nan_class is not None:
+            nan_values_list = list(series.attrs.get("nan_values", []))
+            attribute_kwargs["nan_description"] = config.nan_class(values=nan_values_list)
+
+        # Create and return the evo attribute
+        return config.attribute_class(**attribute_kwargs)

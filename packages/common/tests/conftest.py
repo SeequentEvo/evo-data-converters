@@ -61,17 +61,50 @@ def mock_data_client():
                 "length": num_rows,
             }
 
-        # IntegerArray1: single 'data' column with int type
-        if column_names == {"data"} and table.schema.field("data").type in (pa.int32(), pa.int64()):
-            dtype_str = "int32" if table.schema.field("data").type == pa.int32() else "int64"
-            return {
-                "data": None,
-                "length": num_rows,
-                "data_type": dtype_str,
-            }
+        # Single 'data' column - determine type from schema
+        if column_names == {"data"}:
+            data_field = table.schema.field("data")
+            data_type = data_field.type
 
-        # FloatArray1: single column ('values' or 'data')
-        if column_names == {"values"} or (column_names == {"data"} and table.schema.field("data").type == pa.float64()):
+            # IntegerArray1: int types
+            if data_type in (pa.int32(), pa.int64()):
+                dtype_str = "int32" if data_type == pa.int32() else "int64"
+                return {
+                    "data": None,
+                    "length": num_rows,
+                    "data_type": dtype_str,
+                }
+
+            # FloatArray1: float64
+            if data_type == pa.float64():
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+            # StringArray: string type
+            if pa.types.is_string(data_type) or pa.types.is_large_string(data_type):
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+            # DateTimeArray: timestamp types
+            if pa.types.is_timestamp(data_type):
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+            # BoolArray1: boolean type
+            if pa.types.is_boolean(data_type):
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+        # FloatArray1: single 'values' column
+        if column_names == {"values"}:
             return {
                 "data": None,
                 "length": num_rows,

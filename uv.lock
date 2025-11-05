@@ -786,6 +786,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "pandas-stubs" },
+    { name = "pyarrow-stubs" },
     { name = "pytest" },
     { name = "requests-mock" },
     { name = "ruff" },
@@ -810,6 +811,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "pandas-stubs", specifier = ">=2.3.2.250926" },
+    { name = "pyarrow-stubs", specifier = ">=20.0.0.20251104" },
     { name = "pytest", specifier = ">=8.2" },
     { name = "requests-mock" },
     { name = "ruff" },
@@ -2831,6 +2833,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/f9/4ee798dc902533159250fb4321267730bc0a107d8c6889e07c3add4fe3a5/pyarrow-21.0.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:fc0d2f88b81dcf3ccf9a6ae17f89183762c8a94a5bdcfa09e05cfe413acf0503", size = 43276625, upload-time = "2025-07-18T00:56:48.002Z" },
     { url = "https://files.pythonhosted.org/packages/5a/da/e02544d6997037a4b0d22d8e5f66bc9315c3671371a8b18c79ade1cefe14/pyarrow-21.0.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:6299449adf89df38537837487a4f8d3bd91ec94354fdd2a7d30bc11c48ef6e79", size = 44951890, upload-time = "2025-07-18T00:56:52.568Z" },
     { url = "https://files.pythonhosted.org/packages/e5/4e/519c1bc1876625fe6b71e9a28287c43ec2f20f73c658b9ae1d485c0c206e/pyarrow-21.0.0-cp313-cp313t-win_amd64.whl", hash = "sha256:222c39e2c70113543982c6b34f3077962b44fca38c0bd9e68bb6781534425c10", size = 26371006, upload-time = "2025-07-18T00:56:56.379Z" },
+]
+
+[[package]]
+name = "pyarrow-stubs"
+version = "20.0.0.20251104"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyarrow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/52/5ce506962bc64d92b572499489f16ca05e8f466bbb9ed91b032fc653e624/pyarrow_stubs-20.0.0.20251104.tar.gz", hash = "sha256:a08964a67627c28354668af64d7021fb8d51fd69322ddb8b7a9c0336e49a367b", size = 236544, upload-time = "2025-11-04T02:16:09.485Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/b8/d130c794e61a719eb5de0e64cff0e01928986aade997486730c42c79843d/pyarrow_stubs-20.0.0.20251104-py3-none-any.whl", hash = "sha256:aea08b72754e342b982cbf764ab5dbfbdf041d8cca95d3c3b89d829d48f509c8", size = 235721, upload-time = "2025-11-04T02:16:07.749Z" },
 ]
 
 [[package]]
