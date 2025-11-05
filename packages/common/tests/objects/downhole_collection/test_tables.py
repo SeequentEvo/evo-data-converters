@@ -107,6 +107,21 @@ class TestDistanceTable:
         table2 = DistanceTable(df2, ColumnMapping(DEPTH_COLUMNS=["penetrationLength", "SCPT_DPTH"]))
         assert table2.get_depth_column() == "SCPT_DPTH"
 
+    def test_prepare_dataframe_orders_columns(self) -> None:
+        df = pd.DataFrame({"hole_index": [1, 2, 1], "depth": [1.0, 1.0, 0.5], "value": [10, 20, 30]})
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]))
+
+        # ensure hole_indexes are contiguous
+        assert table.df.iloc[0]["hole_index"] == 1
+        assert table.df.iloc[1]["hole_index"] == 1
+        assert table.df.iloc[2]["hole_index"] == 2
+
+        # ensure depths are ascending
+        assert table.df.iloc[0]["depth"] == 0.5
+        assert table.df.iloc[1]["depth"] == 1.0
+        assert table.df.iloc[2]["depth"] == 1.0
+
 
 class TestIntervalTable:
     """Tests for IntervalTable adapter"""
@@ -220,6 +235,21 @@ class TestIntervalTable:
         )
         assert table.get_from_column() == "GEOL_TOP"
         assert table.get_to_column() == "GEOL_BASE"
+
+    def test_prepare_dataframe_orders_columns(self) -> None:
+        df = pd.DataFrame({"hole_index": [1, 2, 1], "SCPP_TOP": [1.0, 1.0, 0.5], "SCPP_BASE": [1.5, 1.5, 1.0]})
+
+        table = IntervalTable(df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"]))
+
+        # ensure hole_indexes are contiguous
+        assert table.df.iloc[0]["hole_index"] == 1
+        assert table.df.iloc[1]["hole_index"] == 1
+        assert table.df.iloc[2]["hole_index"] == 2
+
+        # ensure depths are ascending
+        assert table.df.iloc[0]["SCPP_TOP"] == 0.5
+        assert table.df.iloc[1]["SCPP_TOP"] == 1.0
+        assert table.df.iloc[2]["SCPP_TOP"] == 1.0
 
 
 class TestMeasurementTableFactory:
