@@ -80,8 +80,7 @@ class TestDownholeCollectionInitialization:
         assert dc.name == "Test Collection"
         assert dc.collars == valid_collars
         assert len(dc.measurements) == 0
-        assert dc.nan_values_by_attribute == {}
-        assert dc.coordinate_reference_system == "unspecified"
+        assert dc.coordinate_reference_system is None
 
     def test_init_with_epsg_code(self, valid_collars):
         """Test initialization with EPSG code."""
@@ -140,16 +139,6 @@ class TestDownholeCollectionInitialization:
         assert len(dc.measurements) == 1
         assert dc.measurements[0] == adapter
 
-    def test_init_with_nan_values(self, valid_collars):
-        """Test initialization with NaN values specification."""
-        nan_values = {"density": [-999.0, -9999.0], "porosity": [-1.0]}
-        dc = DownholeCollection(
-            collars=valid_collars,
-            name="Test Collection",
-            nan_values_by_attribute=nan_values,
-        )
-        assert dc.nan_values_by_attribute == nan_values
-
     def test_init_with_all_optional_parameters(self, valid_collars, distance_measurements_df):
         """Test initialization with all optional parameters."""
         dc = DownholeCollection(
@@ -157,7 +146,6 @@ class TestDownholeCollectionInitialization:
             name="Test Collection",
             measurements=[distance_measurements_df],
             column_mapping=ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]),
-            nan_values_by_attribute={"value": [-999.0]},
             uuid="test-uuid-123",
             coordinate_reference_system=32633,
             description="Test description",
@@ -170,7 +158,6 @@ class TestDownholeCollectionInitialization:
         assert dc.description == "Test description"
         assert dc.extensions == {"custom_field": "custom_value"}
         assert dc.tags == {"project": "test_project"}
-        assert dc.nan_values_by_attribute == {"value": [-999.0]}
 
 
 class TestAddMeasurementTable:
@@ -448,7 +435,6 @@ class TestIntegration:
             name="Mixed Test",
             measurements=[distance_measurements_df],
             coordinate_reference_system=32633,
-            nan_values_by_attribute={"value": [-999.0]},
             column_mapping=ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]),
         )
 
@@ -491,38 +477,3 @@ class TestEdgeCases:
             measurements=None,
         )
         assert len(dc.measurements) == 0
-
-    def test_empty_nan_values_dict(self, valid_collars):
-        """Test initialization with empty nan_values_by_attribute dict."""
-        dc = DownholeCollection(
-            collars=valid_collars,
-            name="Test",
-            nan_values_by_attribute={},
-        )
-        assert dc.nan_values_by_attribute == {}
-
-    def test_none_nan_values(self, valid_collars):
-        """Test initialization with None nan_values_by_attribute."""
-        dc = DownholeCollection(
-            collars=valid_collars,
-            name="Test",
-            nan_values_by_attribute=None,
-        )
-        assert dc.nan_values_by_attribute == {}
-
-    def test_multiple_attributes_nan_values(self, valid_collars):
-        """Test with multiple attributes having NaN values."""
-        nan_values = {
-            "density": [-999.0, -9999.0],
-            "porosity": [-1.0],
-            "grade": [-999.0, -99.0, -9.0],
-        }
-        dc = DownholeCollection(
-            collars=valid_collars,
-            name="Test",
-            nan_values_by_attribute=nan_values,
-        )
-        assert dc.nan_values_by_attribute == nan_values
-        assert "density" in dc.nan_values_by_attribute
-        assert "porosity" in dc.nan_values_by_attribute
-        assert "grade" in dc.nan_values_by_attribute
