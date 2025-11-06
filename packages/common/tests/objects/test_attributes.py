@@ -15,6 +15,7 @@ from datetime import datetime, date
 
 from evo_schemas.components import (
     BoolAttribute_V1_1_0 as BoolAttribute,
+    CategoryAttribute_V1_1_0 as CategoryAttribute,
     ContinuousAttribute_V1_1_0 as ContinuousAttribute,
     DateTimeAttribute_V1_1_0 as DateTimeAttribute,
     IntegerAttribute_V1_1_0 as IntegerAttribute,
@@ -156,20 +157,26 @@ class TestAttributeFactory:
         assert attribute.name == "signed_off"
         assert attribute.values is not None
 
+    def test_create_categorical_attribute(self, mock_data_client) -> None:
+        """Test creating a CategoryAttribute from categorical data."""
+        series = pd.Series(["rock", "sand", "clay", "rock", "limestone"], dtype="category")
+
+        attribute = AttributeFactory.create("lithology", series, mock_data_client)
+
+        assert isinstance(attribute, CategoryAttribute)
+        assert attribute.key == "lithology"
+        assert attribute.name == "lithology"
+        assert attribute.table is not None
+        assert attribute.values is not None
+        assert attribute.nan_description is not None
+        assert attribute.nan_description.values == [-1]
+
     def test_create_unsupported_type_returns_none(self, mock_data_client) -> None:
         """Test that unsupported types return None."""
         # Complex numbers will not be supported so use those
         series = pd.Series([1 + 2j, 3 + 4j, 5 + 6j])
 
         attribute = AttributeFactory.create("unsupported", series, mock_data_client)
-
-        assert attribute is None
-
-    def test_create_categorical_returns_none(self, mock_data_client) -> None:
-        """Test that categorical type returns None (TODO update this when supported)."""
-        series = pd.Series(["rock", "sand", "clay", "limestone"], dtype="category")
-
-        attribute = AttributeFactory.create("category", series, mock_data_client)
 
         assert attribute is None
 
@@ -192,6 +199,74 @@ class TestAttributeFactory:
         # Check that the expected pyarrow table was passed
         call_args = mock_data_client.save_table.call_args
         assert call_args.args[0] == table
+
+
+class TestCategoricalAttributeFactory:
+    """Test AttributeFactory.create_categorical_attribute()."""
+
+    def test_create_categorical_attribute_basic(self, mock_data_client) -> None:
+        series = pd.Series(["sand", "clay", "sand", "rock", "clay"], dtype="category")
+
+        attribute = AttributeFactory.create_categorical_attribute("lithology", series, mock_data_client)
+
+        assert isinstance(attribute, CategoryAttribute)
+        assert attribute.key == "lithology"
+        assert attribute.name == "lithology"
+        assert attribute.table is not None
+        assert attribute.values is not None
+
+    def test_create_categorical_attribute_with_nulls(self, mock_data_client) -> None:
+        series = pd.Series(["sand", "clay", pd.NA, "rock", pd.NA], dtype="category")
+
+        attribute = AttributeFactory.create_categorical_attribute("lithology", series, mock_data_client)
+
+        assert isinstance(attribute, CategoryAttribute)
+        assert attribute.nan_description is not None
+        assert attribute.nan_description.values == [-1]
+
+    def test_create_categorical_saves_lookup_table(self, mock_data_client) -> None:
+        series = pd.Series(["A", "B", "C", "A", "B"], dtype="category")
+
+        _ = AttributeFactory.create_categorical_attribute("code", series, mock_data_client)
+
+        # Should be called twice: once for lookup table, once for integer array
+        assert mock_data_client.save_table.call_count == 2
+
+        lookup_table = mock_data_client.save_table.call_args_list[0].args[0]
+        assert set(lookup_table.column_names) == {"key", "value"}
+        assert lookup_table.num_rows == 3  # A, B, and C
+
+        # Second call should be integer array with data column
+        second_call_table = mock_data_client.save_table.call_args_list[1].args[0]
+        assert set(second_call_table.column_names) == {"data"}
+        assert second_call_table.num_rows == 5  # 5 measurements
+
+    def test_create_categorical_attribute_codes_mapping(self, mock_data_client) -> None:
+        series = pd.Series(["sand", "clay", "sand", "rock", "clay"], dtype="category")
+
+        _ = AttributeFactory.create_categorical_attribute("lithology", series, mock_data_client)
+
+        integer_table = mock_data_client.save_table.call_args_list[1].args[0]
+        codes = integer_table["data"].to_pylist()
+
+        assert codes[0] == codes[2]  # Both "sand"
+        assert codes[1] == codes[4]  # Both "clay"
+        assert codes[0] != codes[1]  # "sand" != "clay"
+
+    def test_create_categorical_empty_series(self, mock_data_client) -> None:
+        series = pd.Series([], dtype="category")
+
+        # Use create() which checks for empty series and returns None
+        attribute = AttributeFactory.create("empty_cat", series, mock_data_client)
+
+        assert attribute is None
+
+    def test_create_defers_to_categorical_attribute(self, mock_data_client) -> None:
+        series = pd.Series(["A", "B", "A", "C"], dtype="category")
+
+        attribute = AttributeFactory.create("category_test", series, mock_data_client)
+
+        assert isinstance(attribute, CategoryAttribute)
 
 
 class TestInferredTypeMapping:
@@ -261,3 +336,19 @@ class TestEdgeCases:
         # Should get converted to a list
         assert isinstance(attribute, IntegerAttribute)
         assert isinstance(attribute.nan_description.values, list)
+
+    def test_categorical_all_nulls(self, mock_data_client) -> None:
+        series = pd.Series([pd.NA, pd.NA, pd.NA], dtype="category")
+
+        attribute = AttributeFactory.create("all_nulls", series, mock_data_client)
+
+        assert isinstance(attribute, CategoryAttribute)
+
+    def test_categorical_single_category(self, mock_data_client) -> None:
+        series = pd.Series(["sand", "sand", "sand"], dtype="category")
+
+        attribute = AttributeFactory.create("single_category", series, mock_data_client)
+
+        assert isinstance(attribute, CategoryAttribute)
+        lookup_table = mock_data_client.save_table.call_args_list[0].args[0]
+        assert lookup_table.num_rows == 1
