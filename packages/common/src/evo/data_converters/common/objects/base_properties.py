@@ -42,7 +42,7 @@ class BaseSpatialDataProperties(BaseObjectProperties):
         tags: dict[str, str] | None = None,
     ) -> None:
         super().__init__(name=name, uuid=uuid, description=description, extensions=extensions, tags=tags)
-        self.coordinate_reference_system: int | str = coordinate_reference_system or "unspecified"
+        self.coordinate_reference_system: int | str | None = coordinate_reference_system
 
     def get_bounding_box(self) -> list[float]:
         return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

@@ -41,7 +41,6 @@ class DownholeCollection(BaseSpatialDataProperties):
         name: str,
         measurements: list[MeasurementTableAdapter] | list[pd.DataFrame] | None = None,
         column_mapping: ColumnMapping | None = None,
-        nan_values_by_attribute: dict[str, list[typing.Any]] | None = None,
         uuid: str | None = None,
         coordinate_reference_system: int | str | None = None,
         description: str | None = None,
@@ -67,7 +66,6 @@ class DownholeCollection(BaseSpatialDataProperties):
         if measurements:
             for m in measurements:
                 self.add_measurement_table(m, column_mapping)
-        self.nan_values_by_attribute: dict[str, list[typing.Any]] = nan_values_by_attribute or {}
 
     def add_measurement_table(
         self, input: pd.DataFrame | MeasurementTableAdapter, column_mapping: ColumnMapping | None = None

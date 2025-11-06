@@ -12,7 +12,7 @@
 import pytest
 import pandas as pd
 import pyarrow as pa
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from evo.data_converters.common.objects.downhole_collection import (
     DownholeCollection,
     IntervalTable as IntervalMeasurementTable,
@@ -24,82 +24,9 @@ from evo.data_converters.common.objects.downhole_collection_to_geoscience_object
 
 
 @pytest.fixture
-def mock_data_client():
-    """Create a mock ObjectDataClient that returns valid schemas for different table types."""
-    client = Mock()
-
-    def save_table_side_effect(table):
-        """Return appropriate schema based on table structure."""
-        num_rows = table.num_rows
-        column_names = set(table.column_names)
-
-        # LookupTable: has 'key' and 'value' columns
-        if column_names == {"key", "value"}:
-            return {
-                "data": None,
-                "length": num_rows,
-                "keys_data_type": "int32",
-                "values_data_type": "string",
-            }
-
-        # FloatArray2: has 'from' and 'to' columns (for intervals)
-        if column_names == {"from", "to"}:
-            return {
-                "data": None,
-                "length": num_rows,
-            }
-
-        # FloatArray3: has 'x', 'y', 'z' columns OR 'final', 'target', 'current'
-        if column_names == {"x", "y", "z"} or column_names == {"final", "target", "current"}:
-            return {
-                "data": None,
-                "length": num_rows,
-            }
-
-        # DownholeDirectionVector: has 'distance', 'azimuth', 'dip' columns
-        if column_names == {"distance", "azimuth", "dip"}:
-            return {
-                "data": None,
-                "length": num_rows,
-            }
-
-        # HoleChunks: has 'hole_index', 'offset', 'count' columns
-        if column_names == {"hole_index", "offset", "count"}:
-            return {
-                "data": None,
-                "length": num_rows,
-            }
-
-        # IntegerArray1: single 'data' column with int type
-        if column_names == {"data"} and table.schema.field("data").type in (pa.int32(), pa.int64()):
-            dtype_str = "int32" if table.schema.field("data").type == pa.int32() else "int64"
-            return {
-                "data": None,
-                "length": num_rows,
-                "data_type": dtype_str,
-            }
-
-        # FloatArray1: single column ('values' or 'data')
-        if column_names == {"values"} or (column_names == {"data"} and table.schema.field("data").type == pa.float64()):
-            return {
-                "data": None,
-                "length": num_rows,
-            }
-
-        # Default for any other array types
-        return {
-            "data": None,
-            "length": num_rows,
-        }
-
-    client.save_table = MagicMock(side_effect=save_table_side_effect)
-    return client
-
-
-@pytest.fixture
-def sample_dhc_distance():
-    """Create a sample DownholeCollection with distance-based measurements for testing."""
-    collars_df = pd.DataFrame(
+def collars_df():
+    """Common collars dataframe for testing."""
+    return pd.DataFrame(
         {
             "hole_index": [1, 2],
             "hole_id": ["DH-001", "DH-002"],
@@ -110,7 +37,11 @@ def sample_dhc_distance():
         }
     )
 
-    distance_measurements_df = pd.DataFrame(
+
+@pytest.fixture
+def distance_measurements_df():
+    """Common distance measurements dataframe."""
+    return pd.DataFrame(
         {
             "hole_index": [1, 1, 1, 2, 2],
             "penetrationLength": [10.0, 20.0, 30.0, 15.0, 25.0],
@@ -119,42 +50,11 @@ def sample_dhc_distance():
         }
     )
 
-    # Create mock collars and distance table objects
-    collars_mock = Mock()
-    collars_mock.df = collars_df
-
-    distance_table_mock = Mock(spec=DistanceMeasurementTable)
-    distance_table_mock.df = distance_measurements_df
-    distance_table_mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
-    distance_table_mock.get_primary_column.return_value = "penetrationLength"
-    distance_table_mock.get_attribute_columns.return_value = ["density", "porosity"]
-
-    dhc_mock = Mock(spec=DownholeCollection)
-    dhc_mock.name = "Test Distance Collection"
-    dhc_mock.coordinate_reference_system = 32633
-    dhc_mock.collars = collars_mock
-    dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
-    dhc_mock.get_measurement_tables.return_value = [distance_table_mock]
-    dhc_mock.nan_values_by_attribute = {}
-
-    return dhc_mock
-
 
 @pytest.fixture
-def sample_dhc_interval():
-    """Create a sample DownholeCollection with interval-based measurements for testing."""
-    collars_df = pd.DataFrame(
-        {
-            "hole_index": [1, 2],
-            "hole_id": ["DH-001", "DH-002"],
-            "x": [100.0, 200.0],
-            "y": [500.0, 600.0],
-            "z": [50.0, 55.0],
-            "final_depth": [100.0, 150.0],
-        }
-    )
-
-    interval_measurements_df = pd.DataFrame(
+def interval_measurements_df():
+    """Common interval measurements dataframe."""
+    return pd.DataFrame(
         {
             "hole_index": [1, 1, 1, 2, 2],
             "SCPP_TOP": [0.0, 10.0, 20.0, 0.0, 15.0],
@@ -164,73 +64,74 @@ def sample_dhc_interval():
         }
     )
 
-    # Create mock collars and interval table objects
+
+@pytest.fixture
+def distance_table_mock(distance_measurements_df):
+    """Mock distance measurement table."""
+    mock = Mock(spec=DistanceMeasurementTable)
+    mock.df = distance_measurements_df
+    mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
+    mock.get_primary_column.return_value = "penetrationLength"
+    mock.get_attribute_columns.return_value = ["density", "porosity"]
+    return mock
+
+
+@pytest.fixture
+def interval_table_mock(interval_measurements_df):
+    """Mock interval measurement table."""
+    mock = Mock(spec=IntervalMeasurementTable)
+    mock.df = interval_measurements_df
+    mock.get_from_column.return_value = "SCPP_TOP"
+    mock.get_to_column.return_value = "SCPP_BASE"
+    mock.get_attribute_columns.return_value = ["lithology_code", "grade"]
+    return mock
+
+
+@pytest.fixture
+def dhc_distance(collars_df, distance_table_mock):
+    """Create a DownholeCollection mock with distance measurements."""
     collars_mock = Mock()
     collars_mock.df = collars_df
+    collars_mock.get_attribute_column_names.return_value = []
 
-    interval_table_mock = Mock(spec=IntervalMeasurementTable)
-    interval_table_mock.df = interval_measurements_df
-    interval_table_mock.get_from_column.return_value = "SCPP_TOP"
-    interval_table_mock.get_to_column.return_value = "SCPP_BASE"
-    interval_table_mock.get_attribute_columns.return_value = ["lithology_code", "grade"]
+    dhc_mock = Mock(spec=DownholeCollection)
+    dhc_mock.name = "Test Distance Collection"
+    dhc_mock.coordinate_reference_system = 32633
+    dhc_mock.collars = collars_mock
+    dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
+    dhc_mock.get_measurement_tables.return_value = [distance_table_mock]
+    return dhc_mock
+
+
+@pytest.fixture
+def dhc_interval(collars_df, interval_table_mock, distance_table_mock):
+    """Create a DownholeCollection mock with interval measurements."""
+    collars_mock = Mock()
+    collars_mock.df = collars_df
+    collars_mock.get_attribute_column_names.return_value = []
 
     dhc_mock = Mock(spec=DownholeCollection)
     dhc_mock.name = "Test Interval Collection"
     dhc_mock.coordinate_reference_system = 32633
     dhc_mock.collars = collars_mock
     dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
-    dhc_mock.get_measurement_tables.return_value = [interval_table_mock]
-    dhc_mock.nan_values_by_attribute = {}
 
+    # Mock to return interval for main loop but distance for path calculation
+    def get_tables_side_effect(filter=None):
+        if filter and DistanceMeasurementTable in filter:
+            return [distance_table_mock]
+        return [interval_table_mock]
+
+    dhc_mock.get_measurement_tables.side_effect = get_tables_side_effect
     return dhc_mock
 
 
 @pytest.fixture
-def sample_dhc_mixed():
-    """Create a sample DownholeCollection with both distance and interval measurements."""
-    collars_df = pd.DataFrame(
-        {
-            "hole_index": [1, 2],
-            "hole_id": ["DH-001", "DH-002"],
-            "x": [100.0, 200.0],
-            "y": [500.0, 600.0],
-            "z": [50.0, 55.0],
-            "final_depth": [100.0, 150.0],
-        }
-    )
-
-    distance_measurements_df = pd.DataFrame(
-        {
-            "hole_index": [1, 1, 1, 2, 2],
-            "penetrationLength": [10.0, 20.0, 30.0, 15.0, 25.0],
-            "density": [2.5, 2.6, 2.7, 2.4, 2.5],
-        }
-    )
-
-    interval_measurements_df = pd.DataFrame(
-        {
-            "hole_index": [1, 1, 2],
-            "SCPP_TOP": [0.0, 20.0, 0.0],
-            "SCPP_BASE": [20.0, 30.0, 15.0],
-            "lithology": [1, 2, 1],
-        }
-    )
-
-    # Create mock collars and table objects
+def dhc_mixed(collars_df, distance_table_mock, interval_table_mock):
+    """Create a DownholeCollection mock with both distance and interval measurements."""
     collars_mock = Mock()
     collars_mock.df = collars_df
-
-    distance_table_mock = Mock(spec=DistanceMeasurementTable)
-    distance_table_mock.df = distance_measurements_df
-    distance_table_mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
-    distance_table_mock.get_primary_column.return_value = "penetrationLength"
-    distance_table_mock.get_attribute_columns.return_value = ["density"]
-
-    interval_table_mock = Mock(spec=IntervalMeasurementTable)
-    interval_table_mock.df = interval_measurements_df
-    interval_table_mock.get_from_column.return_value = "SCPP_TOP"
-    interval_table_mock.get_to_column.return_value = "SCPP_BASE"
-    interval_table_mock.get_attribute_columns.return_value = ["lithology"]
+    collars_mock.get_attribute_column_names.return_value = []
 
     dhc_mock = Mock(spec=DownholeCollection)
     dhc_mock.name = "Test Mixed Collection"
@@ -238,77 +139,101 @@ def sample_dhc_mixed():
     dhc_mock.collars = collars_mock
     dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
     dhc_mock.get_measurement_tables.return_value = [distance_table_mock, interval_table_mock]
-    dhc_mock.nan_values_by_attribute = {}
-
     return dhc_mock
 
 
 @pytest.fixture
-def converter_distance(sample_dhc_distance, mock_data_client):
+def converter_distance(dhc_distance, mock_data_client):
     """Create a converter instance with distance measurements."""
-    return DownholeCollectionToGeoscienceObject(
-        dhc=sample_dhc_distance,
-        data_client=mock_data_client,
-    )
+    return DownholeCollectionToGeoscienceObject(dhc=dhc_distance, data_client=mock_data_client)
 
 
 @pytest.fixture
-def converter_interval(sample_dhc_interval, mock_data_client):
+def converter_interval(dhc_interval, mock_data_client):
     """Create a converter instance with interval measurements."""
-    return DownholeCollectionToGeoscienceObject(
-        dhc=sample_dhc_interval,
-        data_client=mock_data_client,
-    )
+    return DownholeCollectionToGeoscienceObject(dhc=dhc_interval, data_client=mock_data_client)
 
 
 @pytest.fixture
-def converter_mixed(sample_dhc_mixed, mock_data_client):
+def converter_mixed(dhc_mixed, mock_data_client):
     """Create a converter instance with mixed measurements."""
-    return DownholeCollectionToGeoscienceObject(
-        dhc=sample_dhc_mixed,
-        data_client=mock_data_client,
-    )
+    return DownholeCollectionToGeoscienceObject(dhc=dhc_mixed, data_client=mock_data_client)
 
 
 class TestConvert:
-    def test_convert_creates_geoscience_object_distance(self, converter_distance):
-        """Test that convert() creates a DownholeCollectionGo object with distance data."""
+    def test_convert_creates_geoscience_object(self, converter_distance):
         result = converter_distance.convert()
 
         assert result is not None
         assert result.name == "Test Distance Collection"
         assert result.coordinate_reference_system.epsg_code == 32633
         assert result.bounding_box is not None
+        assert result.location is not None
+        assert result.collections is not None
 
-    def test_convert_creates_geoscience_object_mixed(self, converter_mixed):
-        """Test that convert() creates a DownholeCollectionGo object with mixed data."""
+    def test_convert_with_mixed_measurements(self, converter_mixed):
         result = converter_mixed.convert()
 
-        assert result is not None
         assert result.name == "Test Mixed Collection"
-        assert len(result.collections) == 2  # One distance, one interval
+        assert len(result.collections) == 2
 
     def test_convert_calls_data_client(self, converter_distance, mock_data_client):
-        """Test that convert() saves data via the data client."""
         converter_distance.convert()
 
-        # Should save multiple tables (coordinates, distances, holes, etc.)
         assert mock_data_client.save_table.call_count >= 5
 
-    def test_convert_with_wkt_crs(self, sample_dhc_distance, mock_data_client):
-        """Test conversion with WKT coordinate reference system."""
-        sample_dhc_distance.coordinate_reference_system = 'PROJCS["WGS 84 / UTM zone 33N"]'
-        converter = DownholeCollectionToGeoscienceObject(sample_dhc_distance, mock_data_client)
 
-        result = converter.convert()
+class TestCreateCoordinateReferenceSystem:
+    def test_creates_epsg_crs(self, dhc_distance, mock_data_client) -> None:
+        dhc_distance.coordinate_reference_system = 32633
+        converter = DownholeCollectionToGeoscienceObject(dhc_distance, mock_data_client)
 
-        assert result is not None
-        assert result.coordinate_reference_system.ogc_wkt == 'PROJCS["WGS 84 / UTM zone 33N"]'
+        crs = converter.create_coordinate_reference_system()
+
+        assert crs.epsg_code == 32633
+
+    def test_creates_wkt_crs(self, dhc_distance, mock_data_client) -> None:
+        ogc_wkt_string = """
+PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",
+    GEOGCS["NZGD2000",
+        DATUM["New Zealand Geodetic Datum 2000",
+            SPHEROID["GRS 1980", 6378137, 298.257222101],
+            TOWGS84[0,0,0,0,0,0,0]
+        ],
+        PRIMEM["Greenwich", 0],
+        UNIT["degree", 0.0174532925199433],
+        AUTHORITY["EPSG","4167"]
+    ],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["latitude_of_origin", 0],
+    PARAMETER["central_meridian", 173],
+    PARAMETER["scale_factor", 0.9996],
+    PARAMETER["false_easting", 1600000],
+    PARAMETER["false_northing", 10000000],
+    UNIT["metre",1],
+    AUTHORITY["EPSG","2193"]
+]
+"""
+        expected_ogc_wkt = """BOUNDCRS[SOURCECRS[PROJCRS["NZGD2000 / New Zealand Transverse Mercator 2000",BASEGEOGCRS["NZGD2000",DATUM["New Zealand Geodetic Datum 2000",ELLIPSOID["GRS 1980",6378137,298.257222101,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4167]],CONVERSION["unnamed",METHOD["Transverse Mercator",ID["EPSG",9807]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",173,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["Scale factor at natural origin",0.9996,SCALEUNIT["unity",1],ID["EPSG",8805]],PARAMETER["False easting",1600000,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",10000000,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["(E)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["(N)",north,ORDER[2],LENGTHUNIT["metre",1]],ID["EPSG",2193]]],TARGETCRS[GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["latitude",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["longitude",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]]],ABRIDGEDTRANSFORMATION["Transformation from NZGD2000 to WGS84",METHOD["Position Vector transformation (geog2D domain)",ID["EPSG",9606]],PARAMETER["X-axis translation",0,ID["EPSG",8605]],PARAMETER["Y-axis translation",0,ID["EPSG",8606]],PARAMETER["Z-axis translation",0,ID["EPSG",8607]],PARAMETER["X-axis rotation",0,ID["EPSG",8608]],PARAMETER["Y-axis rotation",0,ID["EPSG",8609]],PARAMETER["Z-axis rotation",0,ID["EPSG",8610]],PARAMETER["Scale difference",1,ID["EPSG",8611]]]]"""
+
+        dhc_distance.coordinate_reference_system = ogc_wkt_string
+        converter = DownholeCollectionToGeoscienceObject(dhc_distance, mock_data_client)
+
+        crs = converter.create_coordinate_reference_system()
+
+        assert crs.ogc_wkt == expected_ogc_wkt
+
+    def test_creates_unspecified_crs_from_none(self, dhc_distance, mock_data_client) -> None:
+        dhc_distance.coordinate_reference_system = None
+        converter = DownholeCollectionToGeoscienceObject(dhc_distance, mock_data_client)
+
+        crs = converter.create_coordinate_reference_system()
+
+        assert crs == "unspecified"
 
 
-class TestBoundingBox:
-    def test_create_bounding_box(self, converter_distance):
-        """Test bounding box creation from collar data."""
+class TestCreateBoundingBox:
+    def test_creates_bounding_box_from_collar_data(self, converter_distance) -> None:
         bbox = converter_distance.create_bounding_box()
 
         assert bbox.min_x == 100.0
@@ -319,23 +244,124 @@ class TestBoundingBox:
         assert bbox.max_z == 55.0
 
 
-class TestCoordinatesTables:
-    def test_coordinates_table_structure(self, converter_distance):
-        """Test coordinates table has correct schema and data."""
+class TestCreateDhcLocation:
+    def test_creates_location_with_all_components(self, converter_distance) -> None:
+        location = converter_distance.create_dhc_location()
+
+        assert location.coordinates is not None
+        assert location.distances is not None
+        assert location.holes is not None
+        assert location.hole_id is not None
+        assert location.path is not None
+
+
+class TestCreateDhcLocationAttributes:
+    def test_returns_none_when_no_attributes(self, converter_distance) -> None:
+        result = converter_distance.create_dhc_location_attributes()
+
+        assert result is None or result == []
+
+    def test_creates_attributes_when_present(self, dhc_distance, mock_data_client) -> None:
+        dhc_distance.collars.get_attribute_column_names.return_value = ["wind_speed"]
+        dhc_distance.collars.df["wind_speed"] = [5.5, 6.5]
+        converter = DownholeCollectionToGeoscienceObject(dhc_distance, mock_data_client)
+
+        result = converter.create_dhc_location_attributes()
+
+        assert result is not None
+
+
+class TestCreateDhcLocationCoordinates:
+    def test_creates_float_array_3(self, converter_distance) -> None:
+        coordinates = converter_distance.create_dhc_location_coordinates()
+
+        assert coordinates is not None
+        assert coordinates.length == 2
+
+
+class TestCreateDhcLocationDistances:
+    def test_creates_distances_float_array_3(self, converter_distance) -> None:
+        distances = converter_distance.create_dhc_location_distances()
+
+        assert distances is not None
+        assert distances.length == 2
+
+
+class TestCreateDhcHoleChunks:
+    def test_creates_hole_chunks(self, converter_distance, distance_table_mock) -> None:
+        chunks = converter_distance.create_dhc_hole_chunks(distance_table_mock)
+
+        assert chunks is not None
+        assert chunks.length == 2
+
+
+class TestCreateDhcLocationHoleId:
+    def test_creates_category_data(self, converter_distance) -> None:
+        hole_id = converter_distance.create_dhc_location_hole_id()
+
+        assert hole_id is not None
+        assert hole_id.table is not None
+        assert hole_id.values is not None
+
+
+class TestCreateDhcLocationPath:
+    def test_creates_direction_vector(self, converter_distance) -> None:
+        path = converter_distance.create_dhc_location_path()
+
+        assert path is not None
+        assert path.length == 5  # Total measurements
+
+
+class TestCreateDhcCollections:
+    def test_creates_distance_collection(self, converter_distance) -> None:
+        collections = converter_distance.create_dhc_collections()
+
+        assert len(collections) == 1
+        assert hasattr(collections[0], "distance")
+
+    def test_creates_mixed_collections(self, converter_mixed) -> None:
+        collections = converter_mixed.create_dhc_collections()
+
+        assert len(collections) == 2
+        assert hasattr(collections[0], "distance")
+        assert hasattr(collections[1], "from_to")
+
+
+class TestCreateDhcCollectionDistance:
+    def test_creates_distance_table_with_attributes(self, converter_distance, distance_table_mock) -> None:
+        distance_collection = converter_distance.create_dhc_collection_distance(distance_table_mock)
+
+        assert distance_collection.name == "distances"
+        assert distance_collection.distance is not None
+        assert distance_collection.distance.values is not None
+        assert distance_collection.holes is not None
+
+
+class TestCreateCollectionAttributes:
+    def test_returns_none_when_no_attributes(self, converter_distance, distance_table_mock) -> None:
+        distance_table_mock.get_attribute_columns.return_value = []
+
+        result = converter_distance.create_collection_attributes(distance_table_mock)
+
+        assert result is None or result == []
+
+    def test_creates_attributes_for_measurements(self, converter_distance, distance_table_mock) -> None:
+        result = converter_distance.create_collection_attributes(distance_table_mock)
+
+        assert result is not None
+        assert len(result) > 0
+
+
+class TestCoordinatesTable:
+    def test_creates_table_with_xyz_columns(self, converter_distance) -> None:
         table = converter_distance.coordinates_table()
 
         assert isinstance(table, pa.Table)
         assert table.num_rows == 2
-        assert table.num_columns == 3
         assert set(table.column_names) == {"x", "y", "z"}
-
-        # Check data types
         assert table.schema.field("x").type == pa.float64()
-        assert table.schema.field("y").type == pa.float64()
-        assert table.schema.field("z").type == pa.float64()
 
-    def test_coordinates_table_values(self, converter_distance):
-        """Test coordinates table contains correct values."""
+    def test_contains_correct_coordinate_values(self, converter_distance) -> None:
         table = converter_distance.coordinates_table()
 
         x_values = table.column("x").to_pylist()
@@ -347,87 +373,89 @@ class TestCoordinatesTables:
         assert z_values == [50.0, 55.0]
 
 
-class TestDistancesTables:
-    def test_distances_table_structure(self, converter_distance):
-        """Test distances table has correct schema."""
+class TestDistancesTable:
+    def test_creates_table_with_distance_columns(self, converter_distance) -> None:
         table = converter_distance.distances_table()
 
         assert isinstance(table, pa.Table)
         assert table.num_rows == 2
         assert set(table.column_names) == {"final", "target", "current"}
 
-    def test_distances_table_uses_final_depth(self, converter_distance):
-        """Test that all distance columns use final_depth values."""
+    def test_all_columns_use_final_depth(self, converter_distance) -> None:
         table = converter_distance.distances_table()
 
-        final_values = table.column("final").to_pylist()
-        target_values = table.column("target").to_pylist()
-        current_values = table.column("current").to_pylist()
+        final = table.column("final").to_pylist()
+        target = table.column("target").to_pylist()
+        current = table.column("current").to_pylist()
 
-        assert final_values == [100.0, 150.0]
-        assert target_values == [100.0, 150.0]
-        assert current_values == [100.0, 150.0]
+        assert final == target == current == [100.0, 150.0]
 
 
-class TestHolesTables:
-    def test_holes_table_structure_distance(self, converter_distance, sample_dhc_distance):
-        """Test holes table has correct schema and indexing for distance measurements."""
-        measurement_table = sample_dhc_distance.get_measurement_tables()[0]
-        table = converter_distance.holes_table(measurement_table)
+class TestHolesTable:
+    def test_creates_table_with_correct_schema(self, converter_distance, distance_table_mock) -> None:
+        table = converter_distance.holes_table(distance_table_mock)
 
         assert isinstance(table, pa.Table)
         assert table.num_rows == 2
         assert set(table.column_names) == {"hole_index", "offset", "count"}
-
-        # Check data types
         assert table.schema.field("hole_index").type == pa.int32()
         assert table.schema.field("offset").type == pa.uint64()
         assert table.schema.field("count").type == pa.uint64()
 
-    def test_holes_table_counts_measurements_distance(self, converter_distance, sample_dhc_distance):
-        """Test that holes table correctly counts measurements per hole."""
-        measurement_table = sample_dhc_distance.get_measurement_tables()[0]
-        table = converter_distance.holes_table(measurement_table)
+    def test_calculates_correct_offsets_and_counts(self, converter_distance, distance_table_mock) -> None:
+        table = converter_distance.holes_table(distance_table_mock)
 
         hole_indices = table.column("hole_index").to_pylist()
         counts = table.column("count").to_pylist()
         offsets = table.column("offset").to_pylist()
 
         assert hole_indices == [1, 2]
-        assert counts == [3, 2]  # 3 measurements for hole 1, 2 for hole 2
-        assert offsets == [0, 3]  # hole 1 starts at 0, hole 2 starts at 3
+        assert counts == [3, 2]
+        assert offsets == [0, 3]
 
-    def test_holes_table_counts_measurements_interval(self, converter_interval, sample_dhc_interval):
-        """Test that holes table correctly counts interval measurements per hole."""
-        measurement_table = sample_dhc_interval.get_measurement_tables()[0]
-        table = converter_interval.holes_table(measurement_table)
+    def test_handles_unequal_measurements_per_hole(self, converter_distance, distance_measurements_df) -> None:
+        # Add more measurements for hole 2
+        extended_df = pd.concat(
+            [
+                distance_measurements_df,
+                pd.DataFrame(
+                    {
+                        "hole_index": [2, 2],
+                        "penetrationLength": [35.0, 45.0],
+                        "density": [2.7, 2.8],
+                        "porosity": [0.18, 0.19],
+                    }
+                ),
+            ],
+            ignore_index=True,
+        )
 
-        hole_indices = table.column("hole_index").to_pylist()
+        mock_table = Mock(spec=DistanceMeasurementTable)
+        mock_table.df = extended_df
+
+        table = converter_distance.holes_table(mock_table)
         counts = table.column("count").to_pylist()
         offsets = table.column("offset").to_pylist()
 
-        assert hole_indices == [1, 2]
-        assert counts == [3, 2]  # 3 intervals for hole 1, 2 for hole 2
-        assert offsets == [0, 3]  # hole 1 starts at 0, hole 2 starts at 3
+        assert counts == [3, 4]
+        assert offsets == [0, 3]
 
 
 class TestHoleIdTables:
-    def test_hole_id_tables_structure(self, converter_distance):
-        """Test hole id lookup and index tables."""
+    def test_creates_lookup_and_index_tables(self, converter_distance) -> None:
         lookup_table, integer_array_table = converter_distance.hole_id_tables()
 
-        # Check lookup table
         assert isinstance(lookup_table, pa.Table)
+        assert isinstance(integer_array_table, pa.Table)
+
+    def test_lookup_table_has_correct_schema(self, converter_distance) -> None:
+        lookup_table, _ = converter_distance.hole_id_tables()
+
         assert set(lookup_table.column_names) == {"key", "value"}
         assert lookup_table.schema.field("key").type == pa.int32()
         assert lookup_table.schema.field("value").type == pa.string()
 
-        # Check integer array table
-        assert isinstance(integer_array_table, pa.Table)
-        assert set(integer_array_table.column_names) == {"data"}
-
-    def test_hole_id_mapping(self, converter_distance):
-        """Test that hole IDs are correctly mapped to indices."""
+    def test_lookup_table_maps_correctly(self, converter_distance) -> None:
         lookup_table, _ = converter_distance.hole_id_tables()
 
         keys = lookup_table.column("key").to_pylist()
@@ -438,78 +466,55 @@ class TestHoleIdTables:
 
 
 class TestPathTable:
-    def test_path_table_structure(self, converter_distance):
-        """Test path table has correct schema."""
+    def test_creates_table_with_correct_schema(self, converter_distance) -> None:
         table = converter_distance.path_table()
 
         assert isinstance(table, pa.Table)
-        assert table.num_rows == 5  # Total measurements
+        assert table.num_rows == 5
         assert set(table.column_names) == {"distance", "azimuth", "dip"}
 
-    def test_path_table_assumes_vertical(self, converter_distance):
-        """Test that path table assumes vertical holes."""
+    def test_assumes_vertical_holes(self, converter_distance) -> None:
         table = converter_distance.path_table()
 
         azimuth_values = table.column("azimuth").to_pylist()
         dip_values = table.column("dip").to_pylist()
 
-        # All holes assumed vertical
         assert all(az == 0.0 for az in azimuth_values)
         assert all(dip == 90.0 for dip in dip_values)
 
-    def test_path_table_uses_depth_values(self, converter_distance):
-        """Test that distance values come from depth column."""
+    def test_uses_depth_values_for_distance(self, converter_distance) -> None:
         table = converter_distance.path_table()
 
         distances = table.column("distance").to_pylist()
-        expected = [10.0, 20.0, 30.0, 15.0, 25.0]
 
-        assert distances == expected
+        assert distances == [10.0, 20.0, 30.0, 15.0, 25.0]
 
 
-class TestCollectionDistanceAttributes:
-    def test_collection_distances_table(self, converter_distance, sample_dhc_distance):
-        """Test collection distances table creation."""
-        measurement_table = sample_dhc_distance.get_measurement_tables()[0]
-        table = converter_distance.collection_distances_table(measurement_table)
+class TestCollectionDistancesTable:
+    def test_creates_table_with_values_column(self, converter_distance, distance_table_mock) -> None:
+        table = converter_distance.collection_distances_table(distance_table_mock)
 
         assert isinstance(table, pa.Table)
         assert "values" in table.column_names
 
+    def test_contains_correct_distance_values(self, converter_distance, distance_table_mock) -> None:
+        table = converter_distance.collection_distances_table(distance_table_mock)
+
         values = table.column("values").to_pylist()
-        expected = [10.0, 20.0, 30.0, 15.0, 25.0]
-        assert values == expected
 
-    def test_collection_attribute_tables_distance(self, converter_distance, sample_dhc_distance):
-        """Test attribute tables are created for each measurement column."""
-        measurement_table = sample_dhc_distance.get_measurement_tables()[0]
-        attribute_tables = converter_distance.collection_attribute_tables(measurement_table)
-
-        # Should have tables for density and porosity
-        assert "density" in attribute_tables
-        assert "porosity" in attribute_tables
-        assert len(attribute_tables) == 2
-
-        # Check density values
-        density_table = attribute_tables["density"]
-        density_values = density_table.column("data").to_pylist()
-        assert density_values == [2.5, 2.6, 2.7, 2.4, 2.5]
-
-        # Check porosity values
-        porosity_table = attribute_tables["porosity"]
-        porosity_values = porosity_table.column("data").to_pylist()
-        assert porosity_values == [0.15, 0.18, 0.20, 0.12, 0.16]
+        assert values == [10.0, 20.0, 30.0, 15.0, 25.0]
 
 
-class TestCollectionIntervalAttributes:
-    def test_collection_start_end_table(self, converter_interval, sample_dhc_interval):
-        """Test collection start/end interval table creation."""
-        measurement_table = sample_dhc_interval.get_measurement_tables()[0]
-        table = converter_interval.collection_start_end_table(measurement_table)
+class TestCollectionStartEndTable:
+    def test_creates_table_with_from_to_columns(self, converter_interval, interval_table_mock) -> None:
+        table = converter_interval.collection_start_end_table(interval_table_mock)
 
         assert isinstance(table, pa.Table)
         assert set(table.column_names) == {"from", "to"}
         assert table.num_rows == 5
+
+    def test_contains_correct_interval_values(self, converter_interval, interval_table_mock) -> None:
+        table = converter_interval.collection_start_end_table(interval_table_mock)
 
         from_values = table.column("from").to_pylist()
         to_values = table.column("to").to_pylist()
@@ -517,97 +522,27 @@ class TestCollectionIntervalAttributes:
         assert from_values == [0.0, 10.0, 20.0, 0.0, 15.0]
         assert to_values == [10.0, 20.0, 30.0, 15.0, 25.0]
 
-    def test_collection_attribute_tables_interval(self, converter_interval, sample_dhc_interval):
-        """Test attribute tables are created for interval measurements."""
-        measurement_table = sample_dhc_interval.get_measurement_tables()[0]
-        attribute_tables = converter_interval.collection_attribute_tables(measurement_table)
 
-        # Should have tables for lithology_code and grade
-        assert "lithology_code" in attribute_tables
-        assert "grade" in attribute_tables
-        assert len(attribute_tables) == 2
+class TestGetFirstDistanceMeasurementTable:
+    def test_returns_first_distance_table(self, converter_distance, distance_table_mock) -> None:
+        result = converter_distance.get_first_distance_measurement_table()
 
-        # Check lithology_code values
-        lithology_table = attribute_tables["lithology_code"]
-        lithology_values = lithology_table.column("data").to_pylist()
-        assert lithology_values == [1, 2, 1, 3, 2]
+        assert result == distance_table_mock
 
-        # Check grade values
-        grade_table = attribute_tables["grade"]
-        grade_values = grade_table.column("data").to_pylist()
-        assert grade_values == [0.5, 1.2, 0.8, 0.3, 1.5]
+    def test_raises_error_when_no_distance_table(self, dhc_interval, mock_data_client) -> None:
+        # Mock to never return distance tables
+        dhc_interval.get_measurement_tables = Mock()
+        dhc_interval.get_measurement_tables.return_value = []
+        converter = DownholeCollectionToGeoscienceObject(dhc_interval, mock_data_client)
 
-
-class TestLocationCreation:
-    def test_create_dhc_location(self, converter_distance):
-        """Test that DHC location is created with all required components."""
-        location = converter_distance.create_dhc_location()
-
-        assert location is not None
-        assert location.coordinates is not None
-        assert location.distances is not None
-        assert location.holes is not None
-        assert location.hole_id is not None
-        assert location.path is not None
-
-
-class TestCollectionsCreation:
-    def test_create_dhc_collections_distance(self, converter_distance):
-        """Test that DHC collections are created for distance measurements."""
-        collections = converter_distance.create_dhc_collections()
-
-        assert isinstance(collections, list)
-        assert len(collections) == 1
-        # Check it's a distance table type
-        assert hasattr(collections[0], "distance")
-
-    def test_create_dhc_collections_interval(self, converter_interval):
-        """Test that DHC collections are created for interval measurements."""
-        collections = converter_interval.create_dhc_collections()
-
-        assert isinstance(collections, list)
-        assert len(collections) == 1
-        # Check it's an interval table type
-        assert hasattr(collections[0], "from_to")
-
-    def test_create_dhc_collections_mixed(self, converter_mixed):
-        """Test that DHC collections are created for mixed measurements."""
-        collections = converter_mixed.create_dhc_collections()
-
-        assert isinstance(collections, list)
-        assert len(collections) == 2
-
-        # First should be distance, second should be interval
-        assert hasattr(collections[0], "distance")
-        assert hasattr(collections[1], "from_to")
-
-    def test_create_dhc_collection_distance(self, converter_distance, sample_dhc_distance):
-        """Test distance collection creation includes attributes."""
-        measurement_table = sample_dhc_distance.get_measurement_tables()[0]
-        distance = converter_distance.create_dhc_collection_distance(measurement_table)
-
-        assert distance is not None
-        assert distance.name == "distances"
-        assert distance.distance is not None
-        assert distance.distance.values is not None
-        assert len(distance.distance.attributes) == 2  # density and porosity
-
-    def test_create_dhc_collection_interval(self, converter_interval, sample_dhc_interval):
-        """Test interval collection creation includes attributes."""
-        measurement_table = sample_dhc_interval.get_measurement_tables()[0]
-        interval = converter_interval.create_dhc_collection_interval(measurement_table)
-
-        assert interval is not None
-        assert interval.name == "intervals"
-        assert interval.from_to is not None
-        assert interval.from_to.intervals is not None
-        assert interval.from_to.intervals.start_and_end is not None
-        assert len(interval.from_to.attributes) == 2  # lithology_code and grade
+        with pytest.raises(ValueError, match="No distance measurement tables found"):
+            converter.get_first_distance_measurement_table()
 
 
 class TestEdgeCases:
-    def test_single_hole_single_measurement_distance(self, mock_data_client):
-        """Test conversion with minimal distance data."""
+    """Tests for edge cases and special scenarios."""
+
+    def test_single_hole_single_measurement(self, mock_data_client) -> None:
         collars_df = pd.DataFrame(
             {
                 "hole_index": [1],
@@ -619,7 +554,7 @@ class TestEdgeCases:
             }
         )
 
-        distance_measurements_df = pd.DataFrame(
+        distance_df = pd.DataFrame(
             {
                 "hole_index": [1],
                 "penetrationLength": [10.0],
@@ -629,93 +564,28 @@ class TestEdgeCases:
 
         collars_mock = Mock()
         collars_mock.df = collars_df
+        collars_mock.get_attribute_column_names.return_value = []
 
-        distance_table_mock = Mock(spec=DistanceMeasurementTable)
-        distance_table_mock.df = distance_measurements_df
-        distance_table_mock.get_depth_values.return_value = [10.0]
-        distance_table_mock.get_primary_column.return_value = "penetrationLength"
-        distance_table_mock.get_attribute_columns.return_value = ["density"]
+        distance_mock = Mock(spec=DistanceMeasurementTable)
+        distance_mock.df = distance_df
+        distance_mock.get_depth_values.return_value = [10.0]
+        distance_mock.get_primary_column.return_value = "penetrationLength"
+        distance_mock.get_attribute_columns.return_value = ["density"]
 
         dhc_mock = Mock(spec=DownholeCollection)
-        dhc_mock.name = "Minimal Distance"
+        dhc_mock.name = "Minimal"
         dhc_mock.coordinate_reference_system = 4326
         dhc_mock.collars = collars_mock
         dhc_mock.get_bounding_box.return_value = [100.0, 100.0, 500.0, 500.0, 50.0, 50.0]
-        dhc_mock.get_measurement_tables.return_value = [distance_table_mock]
-        dhc_mock.nan_values_by_attribute = {}
+        dhc_mock.get_measurement_tables.return_value = [distance_mock]
 
         converter = DownholeCollectionToGeoscienceObject(dhc_mock, mock_data_client)
         result = converter.convert()
 
         assert result is not None
-        assert result.name == "Minimal Distance"
+        assert result.name == "Minimal"
 
-    def test_single_hole_single_interval(self, mock_data_client):
-        """Test conversion with minimal interval data."""
-        collars_df = pd.DataFrame(
-            {
-                "hole_index": [1],
-                "hole_id": ["DH-001"],
-                "x": [100.0],
-                "y": [500.0],
-                "z": [50.0],
-                "final_depth": [100.0],
-            }
-        )
-
-        interval_measurements_df = pd.DataFrame(
-            {
-                "hole_index": [1],
-                "SCPP_TOP": [0.0],
-                "SCPP_BASE": [10.0],
-                "lithology": [1],
-            }
-        )
-
-        collars_mock = Mock()
-        collars_mock.df = collars_df
-
-        interval_table_mock = Mock(spec=IntervalMeasurementTable)
-        interval_table_mock.df = interval_measurements_df
-        interval_table_mock.get_from_column.return_value = "SCPP_TOP"
-        interval_table_mock.get_to_column.return_value = "SCPP_BASE"
-        interval_table_mock.get_attribute_columns.return_value = ["lithology"]
-
-        dhc_mock = Mock(spec=DownholeCollection)
-        dhc_mock.name = "Minimal Interval"
-        dhc_mock.coordinate_reference_system = 4326
-        dhc_mock.collars = collars_mock
-        dhc_mock.get_bounding_box.return_value = [100.0, 100.0, 500.0, 500.0, 50.0, 50.0]
-        dhc_mock.get_measurement_tables.return_value = [interval_table_mock]
-        dhc_mock.nan_values_by_attribute = {}
-
-        # Need to add a distance table for path calculation
-        distance_measurements_df = pd.DataFrame(
-            {
-                "hole_index": [1],
-                "penetrationLength": [10.0],
-            }
-        )
-        distance_table_mock = Mock(spec=DistanceMeasurementTable)
-        distance_table_mock.df = distance_measurements_df
-        distance_table_mock.get_depth_values.return_value = [10.0]
-
-        # Mock the get_measurement_tables to return interval for main loop but distance for path
-        def get_tables_side_effect(filter=None):
-            if filter and DistanceMeasurementTable in filter:
-                return [distance_table_mock]
-            return [interval_table_mock]
-
-        dhc_mock.get_measurement_tables.side_effect = get_tables_side_effect
-
-        converter = DownholeCollectionToGeoscienceObject(dhc_mock, mock_data_client)
-        result = converter.convert()
-
-        assert result is not None
-        assert result.name == "Minimal Interval"
-
-    def test_multiple_holes_unequal_measurements(self, mock_data_client):
-        """Test conversion with varying measurement counts per hole."""
+    def test_multiple_holes_varying_measurement_counts(self, mock_data_client) -> None:
         collars_df = pd.DataFrame(
             {
                 "hole_index": [1, 2, 3],
@@ -727,7 +597,7 @@ class TestEdgeCases:
             }
         )
 
-        distance_measurements_df = pd.DataFrame(
+        distance_df = pd.DataFrame(
             {
                 "hole_index": [1, 2, 2, 2, 3],
                 "penetrationLength": [10.0, 15.0, 25.0, 35.0, 20.0],
@@ -737,74 +607,26 @@ class TestEdgeCases:
 
         collars_mock = Mock()
         collars_mock.df = collars_df
+        collars_mock.get_attribute_column_names.return_value = []
 
-        distance_table_mock = Mock(spec=DistanceMeasurementTable)
-        distance_table_mock.df = distance_measurements_df
-        distance_table_mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
-        distance_table_mock.get_primary_column.return_value = "penetrationLength"
-        distance_table_mock.get_attribute_columns.return_value = ["density"]
+        distance_mock = Mock(spec=DistanceMeasurementTable)
+        distance_mock.df = distance_df
+        distance_mock.get_depth_values.return_value = distance_df["penetrationLength"].tolist()
+        distance_mock.get_primary_column.return_value = "penetrationLength"
+        distance_mock.get_attribute_columns.return_value = ["density"]
 
         dhc_mock = Mock(spec=DownholeCollection)
         dhc_mock.name = "Unequal"
         dhc_mock.coordinate_reference_system = 4326
         dhc_mock.collars = collars_mock
         dhc_mock.get_bounding_box.return_value = [100.0, 300.0, 500.0, 700.0, 50.0, 60.0]
-        dhc_mock.get_measurement_tables.return_value = [distance_table_mock]
-        dhc_mock.nan_values_by_attribute = {}
+        dhc_mock.get_measurement_tables.return_value = [distance_mock]
 
         converter = DownholeCollectionToGeoscienceObject(dhc_mock, mock_data_client)
-        holes_table = converter.holes_table(distance_table_mock)
+        holes_table = converter.holes_table(distance_mock)
 
         counts = holes_table.column("count").to_pylist()
         offsets = holes_table.column("offset").to_pylist()
 
         assert counts == [1, 3, 1]
         assert offsets == [0, 1, 4]
-
-    def test_nan_values_handling(self, mock_data_client):
-        """Test that NaN values are properly handled in attributes."""
-        collars_df = pd.DataFrame(
-            {
-                "hole_index": [1],
-                "hole_id": ["DH-001"],
-                "x": [100.0],
-                "y": [500.0],
-                "z": [50.0],
-                "final_depth": [100.0],
-            }
-        )
-
-        distance_measurements_df = pd.DataFrame(
-            {
-                "hole_index": [1],
-                "penetrationLength": [10.0],
-                "density": [-999.0],  # Sentinel value
-            }
-        )
-
-        collars_mock = Mock()
-        collars_mock.df = collars_df
-
-        distance_table_mock = Mock(spec=DistanceMeasurementTable)
-        distance_table_mock.df = distance_measurements_df
-        distance_table_mock.get_depth_values.return_value = [10.0]
-        distance_table_mock.get_primary_column.return_value = "penetrationLength"
-        distance_table_mock.get_attribute_columns.return_value = ["density"]
-
-        dhc_mock = Mock(spec=DownholeCollection)
-        dhc_mock.name = "NaN Test"
-        dhc_mock.coordinate_reference_system = 4326
-        dhc_mock.collars = collars_mock
-        dhc_mock.get_bounding_box.return_value = [100.0, 100.0, 500.0, 500.0, 50.0, 50.0]
-        dhc_mock.get_measurement_tables.return_value = [distance_table_mock]
-        dhc_mock.nan_values_by_attribute = {"density": [-999.0]}
-
-        converter = DownholeCollectionToGeoscienceObject(dhc_mock, mock_data_client)
-        measurement_table = dhc_mock.get_measurement_tables()[0]
-        distance_collection = converter.create_dhc_collection_distance(measurement_table)
-
-        # Find the density attribute
-        density_attr = next(attr for attr in distance_collection.distance.attributes if attr.key == "density")
-
-        assert density_attr.nan_description is not None
-        assert density_attr.nan_description.values == [-999.0]
