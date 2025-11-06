@@ -12,6 +12,7 @@
 from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
     BoolAttribute_V1_1_0 as BoolAttribute,
+    CategoryAttribute_V1_1_0 as CategoryAttribute,
     ContinuousAttribute_V1_1_0 as ContinuousAttribute,
     DateTimeAttribute_V1_1_0 as DateTimeAttribute,
     IntegerAttribute_V1_1_0 as IntegerAttribute,
@@ -25,6 +26,7 @@ from evo_schemas.elements import (
     DateTimeArray_V1_0_1 as DateTimeArray,
     FloatArray1_V1_0_1 as FloatArray1,
     IntegerArray1_V1_0_1 as IntegerArray1,
+    LookupTable_V1_0_1 as LookupTable,
     StringArray_V1_0_1 as StringArray,
 )
 
@@ -122,8 +124,6 @@ class AttributeFactory:
         "date": DATETIME_CONFIG,
         # Boolean types
         "boolean": BOOL_CONFIG,
-        # Categorical types
-        # "categorical" - CategoryAttribute (TODO)
     }
 
     @staticmethod
@@ -134,6 +134,9 @@ class AttributeFactory:
             return None
 
         inferred_type: str = pd.api.types.infer_dtype(series, skipna=True)
+
+        if inferred_type == "categorical":
+            return AttributeFactory.create_categorical_attribute(name, series, client)
 
         # Get attribute configuration for inferred type
         config: AttributeConfig | None = AttributeFactory.INFERRED_TYPE_MAP.get(inferred_type)
@@ -168,3 +171,40 @@ class AttributeFactory:
 
         # Create and return the evo attribute
         return config.attribute_class(**attribute_kwargs)
+
+    @staticmethod
+    def create_categorical_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> CategoryAttribute:
+        """Create a CategoryAttribute from a categorical pandas Series."""
+        categories = series.cat.categories.astype(str)
+        keys = list(range(len(categories)))
+
+        lookup_table = pa.Table.from_arrays(
+            arrays=[pa.array(keys, type=pa.int32()), pa.array(categories, type=pa.string())],
+            schema=pa.schema(
+                [
+                    pa.field("key", pa.int32()),
+                    pa.field("value", pa.string()),
+                ]
+            ),
+        )
+
+        lookup_table_args = client.save_table(lookup_table)
+        lookup_table_go = LookupTable.from_dict(lookup_table_args)
+
+        integer_array_table = pa.Table.from_arrays(
+            arrays=[pa.array(series.cat.codes, type=pa.int32())], schema=pa.schema([pa.field("data", pa.int32())])
+        )
+
+        integer_array_args = client.save_table(integer_array_table)
+        integer_array_go = IntegerArray1.from_dict(integer_array_args)
+
+        # Pandas uses -1 for NaN in categorical codes
+        nan_codes = [-1]
+
+        return CategoryAttribute(
+            name=name,
+            key=name,
+            table=lookup_table_go,
+            values=integer_array_go,
+            nan_description=NanCategorical(values=nan_codes),
+        )
