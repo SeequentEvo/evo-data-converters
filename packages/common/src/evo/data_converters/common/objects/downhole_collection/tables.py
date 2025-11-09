@@ -11,6 +11,7 @@
 
 import pandas as pd
 import sys
+import typing
 from abc import ABC, abstractmethod
 
 from .column_mapping import ColumnMapping
@@ -24,9 +25,15 @@ else:
 class MeasurementTableAdapter(ABC):
     """Base class for different measurement table types"""
 
-    def __init__(self, df: pd.DataFrame, column_mapping: ColumnMapping) -> None:
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        column_mapping: ColumnMapping,
+        nan_values_by_column: dict[str, list[typing.Any]] | None = None,
+    ) -> None:
         self.df: pd.DataFrame = df
         self.mapping: ColumnMapping = column_mapping
+        self.nan_values_by_column: dict[str, list[typing.Any]] = nan_values_by_column or {}
         self._validate()
         self._prepare_dataframe()
 
@@ -45,6 +52,28 @@ class MeasurementTableAdapter(ABC):
         if not col:
             raise ValueError("No hole index column found")
         return col
+
+    @typing.overload
+    def get_nan_values(self, column: None = None) -> dict[str, list[typing.Any]]: ...
+
+    @typing.overload
+    def get_nan_values(self, column: str) -> list[typing.Any]: ...
+
+    def get_nan_values(self, column: str | None = None) -> dict[str, list[typing.Any]] | list[typing.Any]:
+        """
+        Get NaN sentinel values for columns.
+
+        Args:
+            column: Specific column name, or omit to get all columns
+
+        Returns:
+            If column is None: dict mapping column names to lists of sentinel values
+            If column is specified: list of sentinel values for that column (empty if none)
+        """
+        if column is None:
+            return self.nan_values_by_column
+
+        return self.nan_values_by_column.get(column, [])
 
     @abstractmethod
     def get_primary_column(self) -> str:
@@ -158,7 +187,9 @@ class MeasurementTableFactory:
     """Factory to detect and create appropriate measurement table adapter"""
 
     @staticmethod
-    def create(df: pd.DataFrame, column_mapping: ColumnMapping) -> MeasurementTableAdapter:
+    def create(
+        df: pd.DataFrame, column_mapping: ColumnMapping, nan_values_by_column: dict[str, typing.Any] | None = None
+    ) -> MeasurementTableAdapter:
         df_columns_lower: set[str] = set(col.lower() for col in df.columns)
 
         # Check for interval measurement
@@ -166,13 +197,13 @@ class MeasurementTableFactory:
         has_to: bool = any(col.lower() in df_columns_lower for col in column_mapping.TO_COLUMNS)
 
         if has_from and has_to:
-            return IntervalTable(df, column_mapping)
+            return IntervalTable(df, column_mapping, nan_values_by_column)
 
         # Check for distance measurement
         has_depth = any(col.lower() in df_columns_lower for col in column_mapping.DEPTH_COLUMNS)
 
         if has_depth:
-            return DistanceTable(df, column_mapping)
+            return DistanceTable(df, column_mapping, nan_values_by_column)
 
         raise ValueError(
             f"Cannot determine measurement type. Expected either depth column {column_mapping.DEPTH_COLUMNS} or interval columns {column_mapping.FROM_COLUMNS}/{column_mapping.TO_COLUMNS}"

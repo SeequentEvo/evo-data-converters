@@ -223,9 +223,12 @@ class DownholeCollectionToGeoscienceObject:
     def create_collection_attributes(self, mt: MeasurementTableAdapter) -> OneOfAttribute | None:
         attributes: OneOfAttribute = []
         for attribute_name in mt.get_attribute_columns():
+            series = mt.df[attribute_name]
+            if mt.get_nan_values(attribute_name):
+                series.attrs["nan_values"] = mt.get_nan_values(attribute_name)
             attribute = AttributeFactory.create(
                 name=attribute_name,
-                series=mt.df[attribute_name],
+                series=series,
                 client=self.data_client,
             )
             if attribute:
