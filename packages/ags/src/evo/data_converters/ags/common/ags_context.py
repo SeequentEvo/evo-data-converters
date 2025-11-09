@@ -51,6 +51,13 @@ class AgsContext:
         "AGS Format Rule 16",
     ]
 
+    # "TYPE" column names, which should be parsed to their appropriate type. All others assumed string.
+    # TODO: SCI, SF, DMS
+    INT_TYPES: list[str] = ["0DP"]
+    FLOAT_TYPES: list[str] = ["1DP", "2DP", "3DP", "4DP", "5DP"]
+    DATETIME_TYPES: list[str] = ["DT"]
+    BOOL_TYPES: list[str] = ["YN"]
+
     def __init__(self) -> None:
         self._tables = dict()
         self._headings = dict()
@@ -61,6 +68,12 @@ class AgsContext:
         Table and Headings are available through the `tables` and `headings` properties,
         or getters for specific groups.
 
+        TODO:
+        - build indexes on LOCA_ID for tables that use it
+        - include/retain units (currently discarded)
+        - use formats specified by units to parse datetime with correct format
+        - discard tables we don't need early so we're not parsing them
+
         :param filepath: path or buffer to the AGS file
         :raises FileNotFoundError: file not found at path
         :raises AgsFileInvalidException: in-memory AGS file is invalid, error while parsing, or missing required groups
@@ -68,7 +81,8 @@ class AgsContext:
         self.check_ags_file(filepath)
 
         try:
-            self._tables, self._headings = AGS4.AGS4_to_dataframe(filepath, get_line_numbers=False)
+            tables, headings = AGS4.AGS4_to_dataframe(filepath, get_line_numbers=False)
+            self.set_tables_and_headings(tables, headings)
         except AGS4.AGS4Error as e:
             raise AgsFileInvalidException("Failed to parse AGS file") from e
 
@@ -104,6 +118,58 @@ class AgsContext:
         if ags_parse_errors:
             raise AgsFileInvalidException("AGS file is invalid: %s", ags4_errors_to_str(ags_parse_errors))
 
+    def set_tables_and_headings(self, tables: dict[str, pd.DataFrame], headings: dict[str, list[str]]) -> None:
+        """
+        Sets the private `_tables` and `_headings` attributes.
+        The dataframe already contains the first three rows:
+        * row 0 - column names (HEADING)
+        * row 1 - units (UNIT)
+        * row 2 - type codes (TYPE)
+
+        For each table we:
+
+        1. Read the type codes from row 2.
+        2. Convert the remaining rows (row 3+) to the appropriate dtype.
+        3. Drop the first two metadata rows.
+        4. Store the cleaned dataframe and the original headings list.
+        """
+        processed_tables: dict[str, pd.DataFrame] = {}
+
+        for group, df in tables.items():
+            # Ensure the dataframe has at least two rows for meta information and one data row
+            if len(df) < 3:
+                logger.warning(f"Table {group!r} has fewer than 3 rows; skipping type conversion.")
+                processed_tables[group] = df
+                continue
+
+            # Row 2 (index 2) holds the type codes for each column
+            type_codes: list[str] = df.iloc[1].astype(str).tolist()
+
+            # Map each type code to the actual dtype
+            for col, typ in zip(df.columns, type_codes):
+                print(f"col: {col}, typ: {typ}")
+                if typ in self.INT_TYPES:
+                    # Use pandas nullable Int64 to preserve NaNs
+                    df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+                elif typ in self.FLOAT_TYPES:
+                    df[col] = pd.to_numeric(df[col], errors="coerce")
+                elif typ in self.DATETIME_TYPES:
+                    df[col] = pd.to_datetime(df[col], errors="coerce", format="%Y-%m-%d")
+                elif typ in self.BOOL_TYPES:
+                    # Convert Y/N to boolean (nullable)
+                    df[col] = df[col].map({"Y": True, "N": False}).astype("boolean")
+                else:
+                    # Default: keep as string, preserve missing values
+                    df[col] = df[col].astype(str)
+
+            # Drop the first two rows (UNIT/TYPE) after conversion
+            df: pd.DataFrame = df.iloc[2:].reset_index(drop=True)
+            processed_tables[group] = df
+
+        # Store the processed tables and keep the original headings dict
+        self._tables = processed_tables
+        self._headings = headings
+
     def validate_ags(self) -> list[str]:
         """
         Validate the in-memory AGS dataframes, returning a list of error messages.
@@ -138,13 +204,38 @@ class AgsContext:
         """
         return self._headings
 
+    @property
+    def coordinate_reference_system(self) -> int | str:
+        """
+        Gets the coordinate reference system used by the in-memory AGS file.
+
+        TODO: CRS can be provided by LOCA_LLZ, or for national grids, LOCA_GREF.
+        We may need to ask for this from the user, and make sure those columns
+        exist/non-null. Some files only provide national grid coordinates.
+        """
+        try:
+            return self.get_table("LOCA").at[0, "LOCA_GREF"]
+        except (KeyError, ValueError):
+            return "unspecified"
+
     def get_table(self, group: str) -> pd.DataFrame:
         """Gets a table by group name.
+
+        TODO: Add documentation for filtering by LOCA_ID
 
         :param group: Group name to retrieve the DataFrame for
         :return: DataFrame containing the table data, or an empty DataFrame if not present
         """
         return self.tables.get(group, pd.DataFrame())
+
+    def get_tables(self, groups: list[str]) -> list[pd.DataFrame]:
+        """
+        Get all tables whose name is in `groups`. No error is raised for missing groups.
+
+        :param groups: List of group names to retrieve DataFrames for
+        :return: List of DataFrames, one for each matching group
+        """
+        return [self.get_table(group) for group in groups if group in self.tables.keys()]
 
     def get_headings(self, group: str) -> list[str]:
         """

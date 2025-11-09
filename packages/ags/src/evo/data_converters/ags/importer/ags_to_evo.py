@@ -9,18 +9,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 from typing import TYPE_CHECKING
 
 from evo.data_converters.ags.common import AgsContext
-from evo.data_converters.ags.importer import create_downhole_collection
+from .ags_to_downhole_collection import create_from_parsed_ags
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
 )
+from evo.data_converters.common.objects import DownholeCollection, DownholeCollectionToGeoscienceObject
 import evo.logging
 from evo.objects.data import ObjectMetadata
-from evo_schemas.objects import DownholeCollection_V1_3_0 as DownholeCollection
+from evo_schemas.objects import DownholeCollection_V1_3_1
 from python_ags4.AGS4 import AGS4Error
 
 logger = evo.logging.getLogger("data_converters")
@@ -36,7 +38,7 @@ def convert_ags(
     tags: dict[str, str] | None = None,
     upload_path: str = "",
     overwrite_existing_objects: bool = False,
-) -> DownholeCollection | ObjectMetadata | None:
+) -> DownholeCollection_V1_3_1 | ObjectMetadata | None:
     """
     Converts an AGS file into a Downhole Collection Geoscience Object.
 
@@ -59,7 +61,7 @@ def convert_ags(
     :raises MissingConnectionDetailsError: If no connection details could be derived.
     :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget were provided.
     """
-    publish_object = True
+    publish_object = False
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
@@ -76,7 +78,7 @@ def convert_ags(
         logger.error("Failed to parse AGS file: %s", e)
         return
 
-    downhole_collection = create_downhole_collection(ags_context, data_client, tags)
+    downhole_collection: DownholeCollection | None = create_from_parsed_ags(ags_context, data_client, tags)
     if downhole_collection:
         if downhole_collection.tags is None:
             downhole_collection.tags = {}
@@ -84,19 +86,19 @@ def convert_ags(
         downhole_collection.tags["Stage"] = "Experimental"
         downhole_collection.tags["InputType"] = "AGS"
 
-        # Add custom tags
         if tags:
             downhole_collection.tags.update(tags)
 
-    object_metadata = None
+    object_metadata: None | list[ObjectMetadata] = None
+    downhole_collection_gs = DownholeCollectionToGeoscienceObject(downhole_collection, data_client).convert()
     if publish_object:
         logger.debug("Publishing Geoscience Object")
         object_metadata = publish_geoscience_objects(
-            [downhole_collection],
-            object_service_client,
-            data_client,
-            upload_path,
-            overwrite_existing_objects,
+            object_models=[downhole_collection_gs],
+            object_service_client=object_service_client,
+            data_client=data_client,
+            path_prefix=upload_path,
+            overwrite_existing_objects=overwrite_existing_objects,
         )
 
-    return object_metadata[0] if object_metadata else downhole_collection
+    return object_metadata[0] if object_metadata else downhole_collection_gs
