@@ -357,3 +357,86 @@ class TestMeasurementTableAdapter:
         # Should not raise an error
         table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
         assert len(table.df) == 0
+
+
+class TestNanValuesHandling:
+    def test_distance_table_with_nan_values(self) -> None:
+        df = pd.DataFrame({"hole_index": [1, 1, 2], "depth": [0.5, 1.0, 1.5], "value": [10, 9999.0, 30]})
+        nan_values = {"value": [9999.0, -999.0]}
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values)
+
+        assert table.nan_values_by_column == nan_values
+
+    def test_get_nan_values_returns_all_when_no_column_specified(self) -> None:
+        df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10], "fs": [20]})
+        nan_values = {"qc": [9999.0, -999.0], "fs": [-999.0]}
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values)
+
+        result = table.get_nan_values()
+
+        assert isinstance(result, dict)
+        assert result == nan_values
+        assert result["qc"] == [9999.0, -999.0]
+        assert result["fs"] == [-999.0]
+
+    def test_get_nan_values_returns_list_for_specific_column(self) -> None:
+        df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10], "fs": [20]})
+        nan_values = {"qc": [9999.0, -999.0], "fs": [-999.0]}
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values)
+
+        qc_nans = table.get_nan_values("qc")
+        fs_nans = table.get_nan_values("fs")
+
+        assert isinstance(qc_nans, list)
+        assert qc_nans == [9999.0, -999.0]
+        assert isinstance(fs_nans, list)
+        assert fs_nans == [-999.0]
+
+    def test_get_nan_values_returns_empty_list_for_missing_column(self) -> None:
+        df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10]})
+        nan_values = {"qc": [9999.0]}
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values)
+
+        result = table.get_nan_values("nonexistent_column")
+
+        assert isinstance(result, list)
+        assert result == []
+
+    def test_get_nan_values_with_no_nan_values_initialized(self) -> None:
+        df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10]})
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]))
+
+        result_all = table.get_nan_values()
+        assert result_all == {}
+
+        result_column = table.get_nan_values("qc")
+        assert result_column == []
+
+    def test_factory_creates_table_with_nan_values(self) -> None:
+        df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10]})
+        nan_values = {"qc": [9999.0, -999.0]}
+
+        table = MeasurementTableFactory.create(
+            df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values
+        )
+
+        assert isinstance(table, DistanceTable)
+        assert table.get_nan_values() == nan_values
+        assert table.get_nan_values("qc") == [9999.0, -999.0]
+
+    def test_nan_values_with_multiple_types(self) -> None:
+        df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10], "code": ["A"]})
+        nan_values = {
+            "qc": [9999.0, -999, 0],  # float, int, int
+            "code": ["UNKNOWN", "N/A", ""],  # strings
+        }
+
+        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values)
+
+        assert table.get_nan_values("qc") == [9999.0, -999, 0]
+        assert table.get_nan_values("code") == ["UNKNOWN", "N/A", ""]

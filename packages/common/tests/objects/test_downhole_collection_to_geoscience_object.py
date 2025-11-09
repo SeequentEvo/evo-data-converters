@@ -73,6 +73,7 @@ def distance_table_mock(distance_measurements_df):
     mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
     mock.get_primary_column.return_value = "penetrationLength"
     mock.get_attribute_columns.return_value = ["density", "porosity"]
+    mock.get_nan_values.return_value = []
     return mock
 
 
@@ -84,6 +85,7 @@ def interval_table_mock(interval_measurements_df):
     mock.get_from_column.return_value = "SCPP_TOP"
     mock.get_to_column.return_value = "SCPP_BASE"
     mock.get_attribute_columns.return_value = ["lithology_code", "grade"]
+    mock.get_nan_values.return_value = []
     return mock
 
 
@@ -571,6 +573,7 @@ class TestEdgeCases:
         distance_mock.get_depth_values.return_value = [10.0]
         distance_mock.get_primary_column.return_value = "penetrationLength"
         distance_mock.get_attribute_columns.return_value = ["density"]
+        distance_mock.get_nan_values.return_value = []
 
         dhc_mock = Mock(spec=DownholeCollection)
         dhc_mock.name = "Minimal"
