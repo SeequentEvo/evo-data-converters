@@ -12,6 +12,7 @@
 
 from evo.data_converters.ags.common import AgsContext
 from evo.data_converters.common.objects.downhole_collection import (
+    ColumnMapping,
     DownholeCollection,
     HoleCollars,
 )
@@ -28,42 +29,52 @@ def create_from_parsed_ags(
     For hole collars, we need information from the SCPG table as well as the LOCA details of the SCPG row.
 
     TODO:
-    - All are assumed vertical at this stage, which will be the case with some AGS files
     - Use Z when CRS provided gives us it
-    - Include GEOL table, append SCPG to collars
-    - Avoid iterating over dataframes, computationally expensive
-    - Avoid appending to dataframes, build dict and pass into df
 
     :param ags_context: The context containing the AGS file as dataframes.
     :return: A DownholeCollection object
     """
 
-    loca_id_to_hole_index: dict[str, int] = {}
-    collars_df: pd.DataFrame = pd.DataFrame()
+    loca_df: pd.DataFrame = ags_context.get_table("LOCA").copy()
     scpt_df: pd.DataFrame = ags_context.get_table("SCPT")
 
-    for hole_index, loca_row in enumerate(ags_context.get_table("LOCA").itertuples(index=False), start=1):
-        loca_id_to_hole_index[loca_row.LOCA_ID] = hole_index
-        # Assemble one row for the collars table
-        collar_row = {
-            # 1‑based index for each hole
-            "hole_index": hole_index,
-            # Unique survey identifier from the LOCA table
-            "hole_id": loca_row.LOCA_ID,
-            # Easting (x) and Northing (y) coordinates – cast to float
-            "x": float(loca_row.LOCA_NATE),
-            "y": float(loca_row.LOCA_NATN),
-            "z": 0.0,
-            "final_depth": _calculate_final_depth(
-                scpt_df,
-                loca_id=loca_row.LOCA_ID,
-            ),
-        }
-        # Append the new row to the DataFrame
-        collars_df = pd.concat([collars_df, pd.DataFrame([collar_row])], ignore_index=True)
+    # Calculate final depths for all LOCA_IDs at once
+    final_depths = scpt_df.groupby("LOCA_ID")["SCPT_DPTH"].max().reset_index()
+    final_depths.columns = ["LOCA_ID", "final_depth"]
 
+    # Create collars dataframe using vectorised operations
+    collars_df: pd.DataFrame = loca_df.merge(final_depths, on="LOCA_ID", how="left")
+    collars_df["hole_index"] = range(1, len(collars_df) + 1)
+    collars_df = collars_df.rename(
+        columns={
+            "LOCA_ID": "hole_id",
+            "LOCA_NATE": "x",
+            "LOCA_NATN": "y",
+        }
+    )
+    collars_df["z"] = 0.0
+    collars_df["hole_id"] = collars_df["hole_id"].astype(str)
+    collars_df["x"] = collars_df["x"].astype(float)
+    collars_df["y"] = collars_df["y"].astype(float)
+
+    # Get SCPG table and merge with collars
+    scpg_df: pd.DataFrame = ags_context.get_table("SCPG")
+    collars_df = collars_df.merge(scpg_df, left_on="hole_id", right_on="LOCA_ID", how="left")
+
+    # Drop duplicate LOCA_ID column from SCPG merge
+    if "LOCA_ID" in collars_df.columns:
+        collars_df = collars_df.drop(columns=["LOCA_ID"])
+
+    # Reorder columns to keep standard columns first
+    standard_cols = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
+    other_cols = [col for col in collars_df.columns if col not in standard_cols]
+    collars_df = collars_df[standard_cols + other_cols]
+
+    # Create LOCA_ID to hole_index mapping
+    loca_id_to_hole_index: dict[str, int] = collars_df.set_index("hole_id")["hole_index"].to_dict()
     hole_collars: HoleCollars = HoleCollars(df=collars_df)
-    measurements: list[pd.DataFrame] = ags_context.get_tables(groups=["SCPT"])
+
+    measurements: list[pd.DataFrame] = ags_context.get_tables(groups=["SCPT", "GEOL"])
     for table in measurements:
         table["hole_index"] = table["LOCA_ID"].map(loca_id_to_hole_index)
 
@@ -73,12 +84,7 @@ def create_from_parsed_ags(
         measurements=measurements,
         coordinate_reference_system=ags_context.coordinate_reference_system,
         tags=tags,
+        column_mapping=ColumnMapping(DEPTH_COLUMNS=["SCPT_DPTH"]),
     )
 
     return downhole_collection
-
-
-def _calculate_final_depth(scpt_df: pd.DataFrame, loca_id: str) -> float:
-    """Calculate the final depth of a borehole, specified by loca_id, from an SCPT table"""
-    scpt_df_for_loca = scpt_df[scpt_df["LOCA_ID"] == loca_id]
-    return float(scpt_df_for_loca["SCPT_DPTH"].max())
