@@ -30,7 +30,6 @@ from evo.data_converters.common import (
 )
 from evo.data_converters.resqml import convert_size
 from evo.data_converters.resqml.utils import estimate_corner_points_size
-from evo.data_converters.common.utils import converter_should_publish
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
 
@@ -53,6 +52,7 @@ def convert_resqml(
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
     options: RESQMLConversionOptions = RESQMLConversionOptions(),
+    publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts a RESQML file into Evo Geoscience Objects.
@@ -65,8 +65,10 @@ def convert_resqml(
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
-    :param upload_path: (Optional) Path objects will be published under.
     :param options: (Optional) Import and conversion options for the RESQML file, if not supplied the default options are used.
+    :param upload_path: (Optional) Path objects will be published under.
+    :publish_objects: (Optional) Set False to return rather than publish objects.
+    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -82,7 +84,6 @@ def convert_resqml(
     :raise FileNotFoundError: If the input file can not be opened.
     """
 
-    publish_objects = converter_should_publish(evo_workspace_metadata, upload_path)
     geoscience_objects = []
     go_objects = []
 

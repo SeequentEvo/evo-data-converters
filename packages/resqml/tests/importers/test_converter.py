@@ -35,7 +35,9 @@ class TestConverter(TestCase):
         # Then when convert_resqml is called
         # It should raise a FileNotFound exception
         with self.assertRaises(FileNotFoundError):
-            convert_resqml(filepath=file_name, epsg_code=0, evo_workspace_metadata=self.workspace_metadata)
+            convert_resqml(
+                filepath=file_name, epsg_code=0, evo_workspace_metadata=self.workspace_metadata, publish_objects=False
+            )
 
     def test_non_epc_file_thats_not_zipped(self) -> None:
         # Given a file that is not in epc format
@@ -45,7 +47,9 @@ class TestConverter(TestCase):
         # It should raise a BadZipFile exception
         # TODO this should eventually be wrapped in what ever exception we're going to throw
         with self.assertRaises(BadZipFile):
-            convert_resqml(filepath=file_name, epsg_code=0, evo_workspace_metadata=self.workspace_metadata)
+            convert_resqml(
+                filepath=file_name, epsg_code=0, evo_workspace_metadata=self.workspace_metadata, publish_objects=False
+            )
 
     def test_non_epc_file_thats_zipped(self) -> None:
         # Given a file that is not in epc format
@@ -55,14 +59,19 @@ class TestConverter(TestCase):
         # It should raise a KeyError exception
         # TODO this should eventually be wrapped in what ever exception we're going to throw
         with self.assertRaises(KeyError):
-            convert_resqml(filepath=file_name, epsg_code=0, evo_workspace_metadata=self.workspace_metadata)
+            convert_resqml(
+                filepath=file_name, epsg_code=0, evo_workspace_metadata=self.workspace_metadata, publish_objects=False
+            )
 
     def test_should_create_expected_objects(self) -> None:
         file_name = path.join(path.dirname(__file__), "data/surface.epc")
 
         epsg_code = 32650
         go_objects = convert_resqml(
-            filepath=file_name, evo_workspace_metadata=self.workspace_metadata, epsg_code=epsg_code
+            filepath=file_name,
+            evo_workspace_metadata=self.workspace_metadata,
+            epsg_code=epsg_code,
+            publish_objects=False,
         )
         self.assertEqual(len(go_objects), 1)
 
@@ -100,7 +109,11 @@ class TestConverter(TestCase):
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
         go_objects = convert_resqml(
-            filepath=file_name, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, tags=tags
+            filepath=file_name,
+            evo_workspace_metadata=self.workspace_metadata,
+            epsg_code=32650,
+            tags=tags,
+            publish_objects=False,
         )
 
         expected_tags = {

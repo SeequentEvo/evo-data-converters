@@ -24,25 +24,22 @@ from evo.data_converters.common import (
 from evo.data_converters.omf import OMFMetadata
 from evo.data_converters.omf.exporter import UnsupportedObjectError, export_omf
 from evo.data_converters.omf.importer import convert_omf
-from evo.data_converters.common.test_support import EvoStubMixin
+from evo.data_converters.common.test_support import EvoDataConvertersTestCase
 
 
-class TestEvoToOMFExporter(EvoStubMixin, TestCase):
+class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
     def setUp(self) -> None:
-        EvoStubMixin.setUp(self)
+        EvoDataConvertersTestCase.setUp(self)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
         self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650
+            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )[1:]
         self.evo_object = self.evo_objects[0]
         self.assertIsInstance(self.evo_objects[0], Pointset_V1_2_0)
         self.assertIsInstance(self.evo_objects[1], LineSegments_V2_1_0)
         self.assertIsInstance(self.evo_objects[2], TriangleMesh_V2_1_0)
-
-    def tearDown(self) -> None:
-        EvoStubMixin.tearDown(self)
 
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
     def test_should_create_expected_omf_file(self, mock_download_evo_object_by_id: MagicMock) -> None:
