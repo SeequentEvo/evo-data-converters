@@ -791,7 +791,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp" },
-    { name = "evo-objects", specifier = ">=0.1.0" },
+    { name = "evo-objects", specifier = ">=0.3.0" },
     { name = "evo-schemas", specifier = ">=2025.9.12" },
     { name = "evo-sdk-common", specifier = ">=0.4.2" },
     { name = "nest-asyncio" },
@@ -811,7 +811,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-duf"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "packages/duf" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -957,15 +957,15 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-objects"
-version = "0.2.1"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "evo-sdk-common" },
+    { name = "evo-sdk-common", extra = ["jmespath"] },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/53/2bf3991c1460a7b1e801cb9b705aef604144b1f2faa7a5df6ddabde7ec63/evo_objects-0.2.1.tar.gz", hash = "sha256:aa601f96bf3618a875310877eba624e8688b2788380587e0aa98669fe9f887b2", size = 29377, upload-time = "2025-08-03T23:15:42.813Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/fd/9413cece658f074c95f0607a4d5630095965c738d1b86a2d255f790daeaa/evo_objects-0.3.1.tar.gz", hash = "sha256:7e6c45de9f42b932deef207194f9f4df3654fd03cf58ebde0a32c5f60b5716d6", size = 36174, upload-time = "2025-10-13T19:43:20.6Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/31/98440309688c76faba557cbdda76de71ac657f82ccff7dbfdb96b1b8b660/evo_objects-0.2.1-py3-none-any.whl", hash = "sha256:faf0d12d3a565fad830dff76ab9ab919c9d8c4e828e216a1608deb2e7fdd3d3d", size = 45848, upload-time = "2025-08-03T23:15:41.379Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/76/c9b02518f79587094d565d85c9385fa9d1e9e1ed607dad4a5fff6b040368/evo_objects-0.3.1-py3-none-any.whl", hash = "sha256:a33647b8fd183c67118787139a39116ce7e9317200a0bc18c1c893f98fea3d2f", size = 56899, upload-time = "2025-10-13T19:43:19.503Z" },
 ]
 
 [[package]]
@@ -982,19 +982,22 @@ wheels = [
 
 [[package]]
 name = "evo-sdk-common"
-version = "0.4.2"
+version = "0.5.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pure-interface" },
     { name = "pydantic" },
     { name = "python-dateutil" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/0b/f235158405cd6289df5227463a751128137399f099568b8963a04523a9c5/evo_sdk_common-0.4.2.tar.gz", hash = "sha256:b889082cc06c6da9a583a516124799eb134f2a162ebe5f1fc2331ceb59bfeae1", size = 102372, upload-time = "2025-08-03T23:16:41.728Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/cb/021939870e639c23e82a9d16885720fb2d8e44d22716a22a7160615d4177/evo_sdk_common-0.5.7.tar.gz", hash = "sha256:25e48c2cd1434e93d97c56adb5bd76ea4bcbf558d66264cc273a7e5445acd9b3", size = 111675, upload-time = "2025-10-13T01:50:21.505Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/cc/cd8ae58c85a614f04ffc6a8a2d8810f7077213c1f74ee08950a68ebeb80d/evo_sdk_common-0.4.2-py3-none-any.whl", hash = "sha256:3af5c0b11b5cf3c4def2f417b6c8d6f145e0912a802db2765b4a181bdd3571c7", size = 158072, upload-time = "2025-08-03T23:16:40.475Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/0b/d91a0c0ae6dce2198ad91cba7a71f634d0d5bf7ab68a39c723e105fb99dc/evo_sdk_common-0.5.7-py3-none-any.whl", hash = "sha256:81ef159e38c62462e2177e0c5d55e32fad2d984f33d4954b1e3a45d6b222cbe8", size = 175598, upload-time = "2025-10-13T01:50:20.102Z" },
 ]
 
 [package.optional-dependencies]
+jmespath = [
+    { name = "jmespath" },
+]
 notebooks = [
     { name = "aiohttp" },
     { name = "ipykernel" },
@@ -1422,6 +1425,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
+]
+
+[[package]]
+name = "jmespath"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/2a/e867e8531cf3e36b41201936b7fa7ba7b5702dbef42922193f05c8976cd6/jmespath-1.0.1.tar.gz", hash = "sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe", size = 25843, upload-time = "2022-06-17T18:00:12.224Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/b4/b9b800c45527aadd64d5b442f9b932b00648617eb5d63d2c7a6587b7cafc/jmespath-1.0.1-py3-none-any.whl", hash = "sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980", size = 20256, upload-time = "2022-06-17T18:00:10.251Z" },
 ]
 
 [[package]]
