@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import tempfile
 from os import path
 from unittest import TestCase
 from uuid import uuid4
@@ -30,15 +29,15 @@ from evo_schemas.objects import (
     TriangleMesh_V2_1_0,
 )
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_omf_surface
 from evo.data_converters.omf.importer import convert_omf
+from evo.data_converters.common.test_support import EvoStubMixin
 
 
-class TestExportOMFSurface(TestCase):
+class TestExportOMFSurface(EvoStubMixin, TestCase):
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
+        EvoStubMixin.setUp(self)
 
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
@@ -47,6 +46,9 @@ class TestExportOMFSurface(TestCase):
         self.evo_objects = convert_omf(
             filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650
         )
+
+    def tearDown(self) -> None:
+        EvoStubMixin.tearDown(self)
 
     def test_should_create_expected_omf_surface_element(self) -> None:
         evo_object = self.evo_objects[5]
