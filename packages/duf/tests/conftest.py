@@ -10,13 +10,21 @@
 #  limitations under the License.
 
 import os
+import sys
 
 import pytest
+
+from pathlib import Path
 
 from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     EvoWorkspaceMetadata,
 )
+
+
+def pytest_ignore_collect(collection_path: Path, config) -> bool:
+    # All the tests in this package require Windows to work, so skip collection otherwise
+    return not sys.platform.startswith("win")
 
 
 @pytest.fixture(scope="session")
