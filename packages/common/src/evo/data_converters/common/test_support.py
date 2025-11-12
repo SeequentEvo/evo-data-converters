@@ -15,7 +15,7 @@ from evo.data_converters.common import (
 )
 
 
-class EvoStubMixin(TestWithConnector, TestWithStorage):
+class EvoDataConvertersTestCase(TestWithConnector, TestWithStorage):
     def setUp(self) -> None:
         TestWithConnector.setUp(self)
         TestWithStorage.setUp(self)
