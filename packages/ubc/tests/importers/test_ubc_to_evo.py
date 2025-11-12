@@ -42,7 +42,9 @@ def test_convert_ubc_success() -> None:
         mock_create_client.return_value = (MagicMock(), MagicMock())
         mock_publish.return_value = [mock_metadata]
 
-        result = convert_ubc(files_path, epsg_code, evo_workspace_metadata, tags=tags, upload_path=upload_path)
+        result = convert_ubc(
+            files_path, epsg_code, evo_workspace_metadata, tags=tags, upload_path=upload_path, publish_objects=True
+        )
 
         assert result == [mock_metadata]
         mock_publish.assert_called_once_with(
@@ -73,7 +75,9 @@ def test_convert_ubc_no_publish() -> None:
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
 
-        result = convert_ubc(files_path, epsg_code, evo_workspace_metadata, tags=tags, upload_path=upload_path)
+        result = convert_ubc(
+            files_path, epsg_code, evo_workspace_metadata, tags=tags, upload_path=upload_path, publish_objects=False
+        )
 
         assert result == [mock_geoscience_object]
 
@@ -83,7 +87,7 @@ def test_convert_ubc_missing_connection_details_error() -> None:
     epsg_code = 4326
 
     with pytest.raises(MissingConnectionDetailsError):
-        convert_ubc(files_path, epsg_code)
+        convert_ubc(files_path, epsg_code, publish_objects=False)
 
 
 def test_convert_ubc_conflicting_connection_details_error() -> None:
@@ -93,4 +97,4 @@ def test_convert_ubc_conflicting_connection_details_error() -> None:
     service_manager_widget = MagicMock()
 
     with pytest.raises(ConflictingConnectionDetailsError):
-        convert_ubc(files_path, epsg_code, evo_workspace_metadata, service_manager_widget)
+        convert_ubc(files_path, epsg_code, evo_workspace_metadata, service_manager_widget, publish_objects=False)

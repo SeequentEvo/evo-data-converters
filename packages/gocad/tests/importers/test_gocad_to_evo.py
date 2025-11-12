@@ -27,7 +27,7 @@ def test_failed_to_read_file() -> None:
 
     file_name = this_dir / "data" / "fake_file.go"
     with pytest.raises(GocadInvalidDataError):
-        convert_gocad(str(file_name), 0, evo_workspace_metadata=workspace_metadata)
+        convert_gocad(str(file_name), 0, evo_workspace_metadata=workspace_metadata, publish_objects=False)
 
 
 @pytest.mark.parametrize("test_file, exc_message", [("non_orthogonal.vo", "skew"), ("inverted.vo", "invert")])
@@ -36,7 +36,7 @@ def test_unsupported_rotation(caplog: pytest.LogCaptureFixture, test_file: str, 
 
     file_name = this_dir / "data" / test_file
     with pytest.raises(UnsupportedRotation) as excinfo:
-        convert_gocad(str(file_name), 0, evo_workspace_metadata=workspace_metadata)
+        convert_gocad(str(file_name), 0, evo_workspace_metadata=workspace_metadata, publish_objects=False)
 
     assert str(excinfo.value) == exc_message
 
@@ -46,7 +46,9 @@ def test_gocad_grid_converted() -> None:
     tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
     file_name = this_dir / "data" / "3D_grid_GOCAD.vo"
-    result = convert_gocad(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags)
+    result = convert_gocad(
+        str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags, publish_objects=False
+    )
     assert len(result) == 1
     assert isinstance(result[0], Regular3DGrid_V1_2_0)
 

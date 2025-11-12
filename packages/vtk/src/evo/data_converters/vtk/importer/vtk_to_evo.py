@@ -24,7 +24,6 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
 )
-from evo.data_converters.common.utils import converter_should_publish
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
 
@@ -116,6 +115,7 @@ def convert_vtk(
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
+    publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts an VTK file into Geoscience Objects.
@@ -126,6 +126,8 @@ def convert_vtk(
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
+    :publish_objects: (Optional) Set False to return rather than publish objects.
+    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -143,7 +145,6 @@ def convert_vtk(
     :raise VTKImportError: If the VTK file could not be read.
     """
 
-    publish_objects = converter_should_publish(evo_workspace_metadata, upload_path)
     geoscience_objects = []
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
