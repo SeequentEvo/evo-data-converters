@@ -30,6 +30,7 @@ from evo.data_converters.common import (
 )
 from evo.data_converters.resqml import convert_size
 from evo.data_converters.resqml.utils import estimate_corner_points_size
+from evo.data_converters.common.utils import converter_should_publish
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
 
@@ -81,7 +82,7 @@ def convert_resqml(
     :raise FileNotFoundError: If the input file can not be opened.
     """
 
-    publish_objects = True
+    publish_objects = converter_should_publish(evo_workspace_metadata, upload_path)
     geoscience_objects = []
     go_objects = []
 

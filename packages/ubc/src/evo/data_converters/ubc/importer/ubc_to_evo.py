@@ -20,6 +20,7 @@ from evo.data_converters.common import (
     publish_geoscience_objects_sync,
 )
 from evo.data_converters.ubc.importer import utils
+from evo.data_converters.common.utils import converter_should_publish
 from evo.objects.data import ObjectMetadata
 
 logger = evo.logging.getLogger("data_converters")
@@ -61,14 +62,11 @@ def convert_ubc(
     :raise UBCOOMError: If out of memory error occurred while handling the UBC file.
     """
 
-    publish_objects = True
+    publish_objects = converter_should_publish(evo_workspace_metadata, upload_path)
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
-    if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
-        logger.debug("Publishing objects will be skipped due to missing hub_url.")
-        publish_objects = False
 
     geoscience_objects = [utils.get_geoscience_object_from_ubc(data_client, files_path, epsg_code, tags)]
     objects_metadata = None

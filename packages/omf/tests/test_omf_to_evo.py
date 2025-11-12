@@ -65,7 +65,9 @@ class TestOMFToEvoConverter(TestCase):
 
     def test_should_convert_expected_geometry_types(self) -> None:
         omf_file = path.join(path.dirname(__file__), "data/one_of_everything.omf")
-        go_objects = convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650)
+        go_objects = convert_omf(
+            filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=False
+        )
 
         expected_go_object_types = [TriangleMesh_V2_1_0, Pointset_V1_2_0, LineSegments_V2_1_0, TriangleMesh_V2_1_0]
         self.assertListEqual(expected_go_object_types, [type(obj) for obj in go_objects])

@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import tempfile
 from datetime import datetime, timezone
 from os import path
 from typing import Any
@@ -45,16 +44,16 @@ from omf.data import (
     Vector3Data,
 )
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_attribute_to_omf
 from evo.data_converters.omf.importer import convert_omf
 from evo.data_converters.omf.importer.omf_attributes_to_evo import int_to_rgba
+from evo.data_converters.common.test_support import EvoStubMixin
 
 
-class TestOMFAttributeExporter(TestCase):
+class TestOMFAttributeExporter(EvoStubMixin, TestCase):
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
+        EvoStubMixin.setUp(self)
 
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
@@ -63,6 +62,9 @@ class TestOMFAttributeExporter(TestCase):
         self.evo_objects = convert_omf(
             filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650
         )
+
+    def tearDown(self) -> None:
+        EvoStubMixin.tearDown(self)
 
     def _set_parquet_file_value(self, data: str, row_index: int, value: Any) -> None:
         parquet_file = path.join(str(self.data_client.cache_location), data)

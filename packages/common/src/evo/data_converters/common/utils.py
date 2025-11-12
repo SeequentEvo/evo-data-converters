@@ -13,6 +13,12 @@ from typing import Any
 
 import numpy as np
 from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
+from evo.common.test_tools import (
+    BASE_URL as TEST_BASE_URL,
+)
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+)
 from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation
 
@@ -118,3 +124,19 @@ def get_object_tags(path: str, input_type: str, extra_tags: dict = None) -> dict
         "InputType": input_type,
         **(extra_tags if extra_tags else {}),
     }
+
+
+def converter_should_publish(evo_workspace_metadata: EvoWorkspaceMetadata | None, upload_path: str) -> bool:
+    """
+    A consistent point converters use to determine whether to proceed to publishing objects to Evo
+    rather than just returning them. Takes account of tests that need to block publishing.
+    """
+    if evo_workspace_metadata and (
+        not evo_workspace_metadata.hub_url or evo_workspace_metadata.hub_url == TEST_BASE_URL
+    ):
+        return False
+
+    if upload_path == "":
+        return False
+
+    return True

@@ -16,6 +16,7 @@ import pyarrow as pa
 
 import evo.logging
 from evo.common import APIConnector, Environment
+from evo.common.test_tools import BASE_URL as TEST_BASE_URL
 from evo.data_converters.common import BlockSyncClient
 from evo.objects import ObjectAPIClient
 
@@ -50,7 +51,7 @@ def convert_omf_blockmodel(
     nest_asyncio.apply()
     block_model_metadata = []
 
-    if environment.hub_url == "":
+    if environment.hub_url in ("", TEST_BASE_URL):
         # This should only apply when running the convert-omf notebook
         logger.warning("Skipping block models")
     else:

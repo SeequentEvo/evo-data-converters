@@ -24,6 +24,7 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
 )
+from evo.data_converters.common.utils import converter_should_publish
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
 
@@ -142,15 +143,12 @@ def convert_vtk(
     :raise VTKImportError: If the VTK file could not be read.
     """
 
-    publish_objects = True
+    publish_objects = converter_should_publish(evo_workspace_metadata, upload_path)
     geoscience_objects = []
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
-    if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
-        logger.debug("Publishing objects will be skipped due to missing hub_url.")
-        publish_objects = False
 
     data_objects = _get_data_objects(filepath)
     for name, data_object in data_objects:

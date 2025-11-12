@@ -29,7 +29,7 @@ from ..common import ObjectCollector
 from ..duf_reader_context import DUFCollectorContext
 from .duf_polyface_to_evo import convert_duf_polyface, combine_duf_polyfaces
 from .duf_polyline_to_evo import convert_duf_polyline, combine_duf_polylines
-from evo.data_converters.common.utils import get_object_tags
+from evo.data_converters.common.utils import get_object_tags, converter_should_publish
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -152,15 +152,12 @@ async def convert_duf(
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
-    publish_objects = True
+    publish_objects = converter_should_publish(evo_workspace_metadata, upload_path)
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
         service_manager_widget=service_manager_widget,
     )
-    if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
-        logger.debug("Publishing objects will be skipped due to missing hub_url.")
-        publish_objects = False
 
     had_stage = ("Stage" in tags) if tags is not None else False
     tags = get_object_tags(os.path.basename(filepath), "DUF", tags)
