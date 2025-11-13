@@ -1,0 +1,27 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+import os
+
+DEFAULT_WINDOWS_INSTALL_ROOT = r"C:\Program Files\Deswik"
+DESWIK_INSTALL_PATH_ENV = "DESWIK_PATH"
+_THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+DUF_FILES_DIRECTORY = os.path.join(_THIS_DIR, "..", "exporter", "duf_files")
+EMPTY_DUF = os.path.join(DUF_FILES_DIRECTORY, "empty.duf")
+DUF_ROOT = os.path.join(_THIS_DIR, "../../../../..")
+PACKAGE_ROOT = os.path.join(DUF_ROOT, "src", "evo")
+BIN_PATH = os.path.join(PACKAGE_ROOT, "bin")
+
+DOTNET_PATH = os.path.join(DUF_ROOT, ".dotnet")
+DOTNET_INSTALL_SCRIPT = os.path.join(DOTNET_PATH, "dotnet-install.ps1")
+DOTNET_EXE = os.path.join(DOTNET_PATH, "dotnet.exe")
+SIMPLE_DUF_CSHARP_PROJECT_DIR = os.path.join(DUF_ROOT, "csharp", "SimpleDuf")
+SIMPLE_DUF_CSHARP_PROJECT_FILE = os.path.join(SIMPLE_DUF_CSHARP_PROJECT_DIR, "duf.csproj")
+SIMPLE_DUF_OUTPUT_BIN = os.path.join(SIMPLE_DUF_CSHARP_PROJECT_DIR, "bin")

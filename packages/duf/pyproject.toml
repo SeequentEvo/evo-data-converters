@@ -46,3 +46,5 @@ path = "README.md"
 # Converts relative links to absolute links in PyPI
 pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
 replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/duf/\g<2>)'
+
+[tool.hatch.build.hooks.custom]
