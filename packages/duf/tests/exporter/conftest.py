@@ -9,13 +9,21 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from evo.data_converters.duf.common import deswik_types as dw
+from pathlib import Path
+
+import pytest
 
 
-def get_xprops_value(xproperties: dw.XProperties, key: str):
-    found, value = xproperties.TryGetValue(key)
-    if not found:
-        return None
+@pytest.fixture(scope="session")
+def polyline_attrs_boat_path():
+    return str((Path(__file__).parent.parent / "data" / "polyline_attrs_boat.duf").resolve())
 
-    value = value.Value[0].Value
-    return value
+
+@pytest.fixture(scope="session")
+def pit_mesh_attrs_path():
+    return str((Path(__file__).parent.parent / "data" / "pit_mesh_attrs.duf").resolve())
+
+
+@pytest.fixture(scope="function")
+def test_out_path(tmp_path):
+    return str(tmp_path / "test_out.duf")

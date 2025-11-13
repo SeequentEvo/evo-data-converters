@@ -9,13 +9,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from evo.data_converters.duf.common import deswik_types as dw
+from .evo_to_duf import export_duf
 
-
-def get_xprops_value(xproperties: dw.XProperties, key: str):
-    found, value = xproperties.TryGetValue(key)
-    if not found:
-        return None
-
-    value = value.Value[0].Value
-    return value
+__all__ = [
+    "export_duf",
+]
