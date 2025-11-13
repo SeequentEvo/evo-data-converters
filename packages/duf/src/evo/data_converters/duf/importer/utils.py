@@ -400,7 +400,6 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
         unique_vertices_array = vertices_array  # np.unique sorts the returned array, we need to use the original here
 
     attribute_specs = AttributeSpec.layer_attributes(layer)
-    attribute_names = {spec.name for spec in attribute_specs}
     if num_parts > 1 or attribute_specs:
         # We use parts to store object-level attributes, so we need at least a single part if we have any
         parts = {"offset": [], "count": [], "attributes": defaultdict(list)}
@@ -421,7 +420,6 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
             vertex_offset += obj_num_vertices
 
             # Convert XProperties to attributes
-            assert not attribute_names or attribute_names.issubset(obj.XProperties.Keys), "Missing attributes in object"
             for spec in attribute_specs:
                 attr = value_from_xproperties(obj, spec.name, spec.attr_type)
                 if spec.required and attr is None:
