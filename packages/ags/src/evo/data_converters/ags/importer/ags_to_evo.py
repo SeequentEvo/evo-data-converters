@@ -12,7 +12,7 @@
 
 from typing import TYPE_CHECKING
 
-from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from .ags_to_downhole_collection import create_from_parsed_ags
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
@@ -39,29 +39,29 @@ def convert_ags(
     upload_path: str = "",
     overwrite_existing_objects: bool = False,
 ) -> DownholeCollection_V1_3_1 | ObjectMetadata | None:
-    """
-    Converts an AGS file into a Downhole Collection Geoscience Object.
-
-    :param filepath: Path to the AGS file.
-    :param evo_workspace_metadata: (Optional) Evo workspace metadata.
-    :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
-    :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
-    :param upload_path: (Optional) Path objects will be published under.
-    :param overwrite_existing_objects: (Optional) Whether existing objects will be overwritten with a new version.
+    """Converts an AGS file into a Downhole Collection Geoscience Object.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
     Converted objects will be published if either of the following is true:
+
     - evo_workspace_metadata.hub_url is present, or
     - service_manager_widget was passed to this function.
 
+    :param filepath: Path to the AGS file.
+    :param evo_workspace_metadata: Evo workspace metadata (optional).
+    :param service_manager_widget: Service Manager Widget for use in jupyter notebooks (optional).
+    :param tags: Dict of tags to add to the Geoscience Object(s) (optional).
+    :param upload_path: Path objects will be published under (optional).
+    :param overwrite_existing_objects: Whether existing objects will be overwritten with a new version
+        (optional, default False).
     :return: The converted Downhole Collection object, or metadata of the published object if published.
-    :rtype: DownholeCollection | ObjectMetadata | None
-
+    :rtype: DownholeCollection_V1_3_1 | ObjectMetadata | None
     :raises MissingConnectionDetailsError: If no connection details could be derived.
-    :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget were provided.
+    :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget
+        were provided.
     """
-    publish_object = False
+    publish_object = True
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
@@ -74,11 +74,11 @@ def convert_ags(
     ags_context = AgsContext()
     try:
         ags_context.parse_ags(filepath)
-    except AGS4Error as e:
+    except (AGS4Error, AgsFileInvalidException) as e:
         logger.error("Failed to parse AGS file: %s", e)
         return
 
-    downhole_collection: DownholeCollection | None = create_from_parsed_ags(ags_context, data_client, tags)
+    downhole_collection: DownholeCollection | None = create_from_parsed_ags(ags_context, tags)
     if downhole_collection:
         if downhole_collection.tags is None:
             downhole_collection.tags = {}
@@ -86,11 +86,14 @@ def convert_ags(
         downhole_collection.tags["Stage"] = "Experimental"
         downhole_collection.tags["InputType"] = "AGS"
 
-        if tags:
-            downhole_collection.tags.update(tags)
-
     object_metadata: None | list[ObjectMetadata] = None
     downhole_collection_gs = DownholeCollectionToGeoscienceObject(downhole_collection, data_client).convert()
+
+    # TODO: Remove this once DownholeCollectionToGeoscienceObject handles tags properly
+    if downhole_collection and downhole_collection.tags:
+        existing = getattr(downhole_collection_gs, "tags", {}) or {}
+        downhole_collection_gs.tags = {**downhole_collection.tags, **existing}
+
     if publish_object:
         logger.debug("Publishing Geoscience Object")
         object_metadata = publish_geoscience_objects(

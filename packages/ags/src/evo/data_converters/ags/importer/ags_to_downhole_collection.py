@@ -23,68 +23,98 @@ def create_from_parsed_ags(
     ags_context: AgsContext,
     tags: dict[str, str] | None = None,
 ) -> DownholeCollection:
-    """
-    Converts the in-memory dataframes of AgsContext to an Evo Downhole Collection.
+    """Converts the in-memory dataframes of AgsContext to an Evo Downhole Collection.
 
     For hole collars, we need information from the SCPG table as well as the LOCA details of the SCPG row.
+    Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
 
-    TODO:
-    - Use Z when CRS provided gives us it
+    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL, SCDG) and assigns hole_index.
 
     :param ags_context: The context containing the AGS file as dataframes.
+    :param tags: Optional dict of tags to add to the DownholeCollection.
     :return: A DownholeCollection object
     """
 
-    loca_df: pd.DataFrame = ags_context.get_table("LOCA").copy()
-    scpt_df: pd.DataFrame = ags_context.get_table("SCPT")
+    # Build collars from LOCA and SCPG, and SCPT for final depth
+    hole_collars: HoleCollars = build_collars(ags_context)
+    collars_df = hole_collars.df
 
-    # Calculate final depths for all LOCA_IDs at once
-    final_depths = scpt_df.groupby("LOCA_ID")["SCPT_DPTH"].max().reset_index()
-    final_depths.columns = ["LOCA_ID", "final_depth"]
+    # Prepare lookup tables for merging hole_index into measurements
+    # GEOL only has LOCA_ID, all others have both LOCA_ID and SCPG_TESN
+    lookup_with_tesn = collars_df[["LOCA_ID", "SCPG_TESN", "hole_index"]]
+    lookup_without_tesn = collars_df[["LOCA_ID", "hole_index"]]
 
-    # Create collars dataframe using vectorised operations
-    collars_df: pd.DataFrame = loca_df.merge(final_depths, on="LOCA_ID", how="left")
-    collars_df["hole_index"] = range(1, len(collars_df) + 1)
-    collars_df = collars_df.rename(
-        columns={
-            "LOCA_ID": "hole_id",
-            "LOCA_NATE": "x",
-            "LOCA_NATN": "y",
-        }
-    )
-    collars_df["z"] = 0.0
-    collars_df["hole_id"] = collars_df["hole_id"].astype(str)
-    collars_df["x"] = collars_df["x"].astype(float)
-    collars_df["y"] = collars_df["y"].astype(float)
-
-    # Get SCPG table and merge with collars
-    scpg_df: pd.DataFrame = ags_context.get_table("SCPG")
-    collars_df = collars_df.merge(scpg_df, left_on="hole_id", right_on="LOCA_ID", how="left")
-
-    # Drop duplicate LOCA_ID column from SCPG merge
-    if "LOCA_ID" in collars_df.columns:
-        collars_df = collars_df.drop(columns=["LOCA_ID"])
-
-    # Reorder columns to keep standard columns first
-    standard_cols = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
-    other_cols = [col for col in collars_df.columns if col not in standard_cols]
-    collars_df = collars_df[standard_cols + other_cols]
-
-    # Create LOCA_ID to hole_index mapping
-    loca_id_to_hole_index: dict[str, int] = collars_df.set_index("hole_id")["hole_index"].to_dict()
-    hole_collars: HoleCollars = HoleCollars(df=collars_df)
-
-    measurements: list[pd.DataFrame] = ags_context.get_tables(groups=["SCPT", "GEOL"])
+    measurements: list[pd.DataFrame] = ags_context.get_tables(groups=AgsContext.MEASUREMENT_GROUPS)
     for table in measurements:
-        table["hole_index"] = table["LOCA_ID"].map(loca_id_to_hole_index)
+        if "SCPG_TESN" in table.columns:
+            # CPT-specific data: merge on both LOCA_ID and SCPG_TESN
+            table_with_index = table.merge(lookup_with_tesn, on=["LOCA_ID", "SCPG_TESN"], how="left")
+        else:
+            # Location-level data (e.g., GEOL): merge on LOCA_ID only
+            # This will duplicate rows if multiple collars exist at the same location
+            table_with_index = table.merge(lookup_without_tesn, on=["LOCA_ID"], how="left")
+
+        table["hole_index"] = table_with_index["hole_index"]
 
     downhole_collection: DownholeCollection = DownholeCollection(
         collars=hole_collars,
-        name="TODO",
+        name=ags_context.filename,
         measurements=measurements,
         coordinate_reference_system=ags_context.coordinate_reference_system,
         tags=tags,
-        column_mapping=ColumnMapping(DEPTH_COLUMNS=["SCPT_DPTH"]),
+        column_mapping=ColumnMapping(
+            DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
+            FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
+            TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
+        ),
     )
 
     return downhole_collection
+
+
+def build_collars(ags_context: AgsContext) -> HoleCollars:
+    """Builds the HoleCollars object from the AGS context.
+
+    Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
+
+    .. todo::
+       Use Z when possible (from CRS?)
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :return: A HoleCollars object
+    """
+    loca_df: pd.DataFrame = ags_context.get_table("LOCA").copy()
+    scpg_df: pd.DataFrame = ags_context.get_table("SCPG").copy()
+    scpt_df: pd.DataFrame = ags_context.get_table("SCPT").copy()
+
+    # One row per (LOCA_ID, SCPG_TESN): take SCPG (which carries both keys) and add entire LOCA
+    collars_df: pd.DataFrame = scpg_df.merge(loca_df, on="LOCA_ID", how="left")
+
+    # Compute final depth per (LOCA_ID, SCPG_TESN)
+    final_depths = scpt_df.groupby(["LOCA_ID", "SCPG_TESN"], dropna=False)["SCPT_DPTH"].max().reset_index()
+    final_depths = final_depths.rename(columns={"SCPT_DPTH": "final_depth"})
+
+    # Merge final depths into collars
+    collars_df = collars_df.merge(final_depths, on=["LOCA_ID", "SCPG_TESN"], how="left")
+
+    # Create hole_id as composite of LOCA_ID and SCPG_TESN and assign hole_index
+    collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str) + ":" + collars_df["SCPG_TESN"].astype(str)
+    collars_df["hole_index"] = range(1, len(collars_df) + 1)
+
+    # Rename coordinates and set z
+    collars_df = collars_df.rename(columns={"LOCA_NATE": "x", "LOCA_NATN": "y"})
+    collars_df["z"] = 0.0
+
+    # Ensure final_depth is float dtype even if NaN
+    collars_df["final_depth"] = pd.to_numeric(collars_df["final_depth"], errors="coerce").astype(float)
+
+    # Reorder columns to standard first but retain useful keys
+    standard_cols = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
+    key_cols = ["LOCA_ID", "SCPG_TESN"]
+    other_cols = [c for c in collars_df.columns if c not in standard_cols + key_cols]
+    collars_df = collars_df[standard_cols + key_cols + other_cols]
+
+    # Drop duplicate collars if present (defensive)
+    collars_df = collars_df.drop_duplicates(subset=["LOCA_ID", "SCPG_TESN"], keep="first").reset_index(drop=True)
+
+    return HoleCollars(df=collars_df)
