@@ -45,17 +45,51 @@ pip install evo-data-converters-ags
 
 ## AGS
 
-To do.
+AGS (Association of Geotechnical and Geoenvironmental Specialists) is a standard data format widely used in the geotechnical and geoenvironmental industry for exchanging data. AGS files contain structured data in a tabular format, typically including borehole information, laboratory test results, and field observations.
+
+This converter currently supports **Cone Penetration Test (CPT) data** and converts AGS files into Evo Downhole Collection objects.
+
+### Supported AGS Groups
+
+**Required Groups:**
+- `LOCA` - Location Details (downhole/test locations)
+- `SCPG` - Static Cone Penetration Tests - General
+- `SCPT` - Seismic Cone Penetration Test results
+
+**Optional Groups (imported if present):**
+- `SCPP` - Static Cone Penetration Tests - Derived Parameters
+- `GEOL` - Field Geological Descriptions
+- `SCDG` - Static Cone Dissipation Tests - General
+  - NOTE: SCDT (Static Cone Dissipation Tests - Data) is not imported, as this is time-series data. General dissipation information is present in SCDG.
 
 ## Usage
 
-### Publish geoscience objects from an AGS/XLSX file
+### Publish geoscience objects from an AGS file
 
-To do.
+The `convert_ags` function reads an AGS file and converts it into a Downhole Collection Geoscience Object that can be published to Evo.
+
+```python
+from evo.data_converters.ags.importer import convert_ags
+from evo.notebooks import ServiceManagerWidget
+
+# Login to Evo
+manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
+
+# Convert and publish AGS file
+objects_metadata = convert_ags(
+    filepath="path/to/your/file.ags",
+    service_manager_widget=manager,
+    tags={"source": "field_survey"},
+    upload_path="cpt_data",
+    overwrite_existing_objects=False,
+)
+```
+
+For a complete working example, see the [import-ags notebook](./samples/import_ags/import-ags.ipynb).
 
 ### Export objects to AGS
 
-To do.
+Export functionality is not yet implemented.
 
 ## Code of conduct
 
