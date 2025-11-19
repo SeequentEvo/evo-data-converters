@@ -27,11 +27,14 @@ else:
 
 class DownholeCollection(BaseSpatialDataProperties):
     """
-    Intermediary data structure for a Downhole Collection.
+    Intermediary data structure for a downhole collection.
 
-    Acts as the go-between for source files (AGS, GEF) and a target Evo Geoscience Object.
+    Acts as the bridge between source file formats (AGS, GEF, etc.) and the target
+    Evo Geoscience Object representation.
 
-    Separates collar information (stored once per hole) from measurement data (stored once per measurement). Supports multiple measurement tables via the MeasurementTableAdapter.
+    The collection separates collar information (stored once per hole) from measurement
+    data (stored once per measurement). Supports multiple measurement tables of different
+    types (distance-based or interval-based) via the MeasurementTableAdapter interface.
     """
 
     def __init__(
@@ -47,6 +50,24 @@ class DownholeCollection(BaseSpatialDataProperties):
         extensions: dict[str, typing.Any] | None = None,
         tags: dict[str, str] | None = None,
     ) -> None:
+        """
+        Create a downhole collection intermediary object.
+
+        Initialises the collection with collar information and optional measurement data.
+        Measurement data can be provided as either pre-constructed MeasurementTableAdapter
+        objects or as pandas DataFrames (which will be automatically converted to the
+        appropriate adapter type using the provided column mapping).
+
+        :param collars: HoleCollars object containing spatial and metadata for each hole
+        :param name: Name identifier for this downhole collection
+        :param measurements: Optional list of measurement tables (as adapters or DataFrames)
+        :param column_mapping: Column mapping configuration for converting DataFrames to adapters
+        :param uuid: Optional unique identifier for the collection
+        :param coordinate_reference_system: Optional CRS identifier (EPSG code or WKT string)
+        :param description: Optional textual description of the collection
+        :param extensions: Optional dictionary of custom extension data
+        :param tags: Optional key-value pairs for tagging/categorizing the collection
+        """
         super().__init__(
             name=name,
             uuid=uuid,
@@ -55,12 +76,6 @@ class DownholeCollection(BaseSpatialDataProperties):
             tags=tags,
             coordinate_reference_system=coordinate_reference_system,
         )
-        """
-        Create a Downhole Collection intermediary object from a name and Hole Collars.
-
-        Optionally pass a list of dataframes to construct measurement table adapters from, or
-        pass the adapters as a list.
-        """
         self.collars: HoleCollars = collars
         self.measurements: list[MeasurementTableAdapter] = []
         if measurements:
@@ -70,7 +85,17 @@ class DownholeCollection(BaseSpatialDataProperties):
     def add_measurement_table(
         self, input: pd.DataFrame | MeasurementTableAdapter, column_mapping: ColumnMapping | None = None
     ) -> None:
-        """Add a measurement table adapter"""
+        """
+        Add a measurement table to the collection.
+
+        Accepts either a pre-constructed MeasurementTableAdapter or a pandas DataFrame.
+        If a DataFrame is provided, it will be automatically converted to the appropriate
+        adapter type (DistanceTable or IntervalTable) based on the column mapping and
+        available columns.
+
+        :param input: Either a MeasurementTableAdapter or DataFrame to add
+        :param column_mapping: Column mapping configuration (required if input is a DataFrame)
+        """
         if isinstance(input, pd.DataFrame):
             adapter: MeasurementTableAdapter = MeasurementTableFactory.create(input, column_mapping or ColumnMapping())
         else:
@@ -81,7 +106,15 @@ class DownholeCollection(BaseSpatialDataProperties):
         self, filter: list[type[MeasurementTableAdapter]] | None = None
     ) -> list[MeasurementTableAdapter]:
         """
-        Get all or a subset of measurement table adapters
+        Get all or a filtered subset of measurement table adapters.
+
+        Returns measurement tables from the collection. Optionally filters to return
+        only tables of specific types (e.g., only DistanceTable or only IntervalTable).
+
+        :param filter: Optional list of MeasurementTableAdapter subclass types to filter by.
+                        If None, returns all measurement tables.
+
+        :return: List of measurement table adapters matching the filter (or all if no filter)
         """
         if filter is None:
             return self.measurements.copy()
@@ -94,6 +127,14 @@ class DownholeCollection(BaseSpatialDataProperties):
 
     @override
     def get_bounding_box(self) -> list[float]:
+        """
+        Calculate the 3D bounding box from collar coordinates.
+
+        Computes the minimum and maximum X, Y, and Z coordinates from all collar
+        positions to define the spatial extent of the downhole collection.
+
+        :return: List of 6 floats [min_x, max_x, min_y, max_y, min_z, max_z]
+        """
         return [
             self.collars.df["x"].min(),
             self.collars.df["x"].max(),

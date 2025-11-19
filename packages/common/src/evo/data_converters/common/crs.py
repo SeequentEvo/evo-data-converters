@@ -84,9 +84,10 @@ def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_O
         crs = crs_from_any(2193)
         crs = crs_from_any("2193")
         crs = crs_from_any("EPSG:2193")
+        crs = crs_from_any("unspecified")
         crs = crs_from_any("<valid OGC WKT string>")
     """
-    if crs_def is None:
+    if crs_def is None or (isinstance(crs_def, str) and crs_def.lower() == "unspecified"):
         return crs_unspecified()
     elif _is_epsg_code(crs_def):
         return crs_from_epsg_code(crs_def)

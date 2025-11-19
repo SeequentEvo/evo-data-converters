@@ -15,13 +15,29 @@ from dataclasses import dataclass, field
 @dataclass
 class ColumnMapping:
     """
-    Provide a way to map dataframe configurations to a set of collection types
+    Configuration for mapping DataFrame columns to downhole collection data structures.
+
+    Provides lists of possible column names for each type of column, allowing matching
+    against various input formats. Column matching is case-insensitive.
+
+    **Attributes:**
+
+    - HOLE_INDEX_COLUMNS: Column names for the hole index (1-based integer relating to collar table)
+    - DEPTH_COLUMNS: Column names for point measurement depths (used by DistanceTable)
+    - FROM_COLUMNS: Column names for interval start depths (used by IntervalTable)
+    - TO_COLUMNS: Column names for interval end depths (used by IntervalTable)
+
+    Each attribute contains a list of possible column names to search for.
     """
 
-    # The hole index should relate to the index of the hole_id in the collars table (1-based)
     HOLE_INDEX_COLUMNS: list[str] = field(default_factory=lambda: ["hole_index"])
+    """Column names that identify which hole each measurement belongs to (1-based index)."""
 
     DEPTH_COLUMNS: list[str] = field(default_factory=list)
+    """Column names for point measurement depths/distances along the hole."""
 
     FROM_COLUMNS: list[str] = field(default_factory=list)
+    """Column names for interval start depths."""
+
     TO_COLUMNS: list[str] = field(default_factory=list)
+    """Column names for interval end depths."""
