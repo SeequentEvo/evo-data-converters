@@ -14,6 +14,8 @@ from abc import ABC
 
 
 class BaseObjectProperties(ABC):
+    """Abstract base class for common object properties"""
+
     def __init__(
         self,
         *,
@@ -23,6 +25,15 @@ class BaseObjectProperties(ABC):
         extensions: dict[str, typing.Any] | None = None,
         tags: dict[str, str] | None = None,
     ) -> None:
+        """
+        Initialise base object properties.
+
+        :param name: The name of the object
+        :param uuid: Optional unique identifier for the object
+        :param description: Optional textual description of the object
+        :param extensions: Optional dictionary of custom extension data
+        :param tags: Optional key-value pairs for tagging/categorizing the object
+        """
         self.name: str = name
         self.uuid: str | None = uuid
         self.description: str | None = description
@@ -31,6 +42,13 @@ class BaseObjectProperties(ABC):
 
 
 class BaseSpatialDataProperties(BaseObjectProperties):
+    """
+    Abstract base class for spatial data properties.
+
+    Extends BaseObjectProperties with spatial data capabilities, including
+    coordinate reference system support and bounding box functionality.
+    """
+
     def __init__(
         self,
         *,
@@ -41,8 +59,26 @@ class BaseSpatialDataProperties(BaseObjectProperties):
         extensions: dict[str, typing.Any] | None = None,
         tags: dict[str, str] | None = None,
     ) -> None:
+        """
+        Initialise base spatial data properties.
+
+        :param name: The name of the spatial object
+        :param uuid: Optional unique identifier for the object
+        :param coordinate_reference_system: Optional CRS identifier (EPSG code or WKT string)
+        :param description: Optional textual description of the object
+        :param extensions: Optional dictionary of custom extension data
+        :param tags: Optional key-value pairs for tagging/categorizing the object
+        """
         super().__init__(name=name, uuid=uuid, description=description, extensions=extensions, tags=tags)
         self.coordinate_reference_system: int | str | None = coordinate_reference_system
 
     def get_bounding_box(self) -> list[float]:
+        """
+        Get the bounding box for the spatial data.
+
+        Default implementation returns a zero-initialised bounding box.
+        Subclasses should override this method to provide actual spatial extent.
+
+        :return: List of 6 floats [min_x, max_x, min_y, max_y, min_z, max_z]
+        """
         return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

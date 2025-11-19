@@ -41,7 +41,12 @@ logger = evo.logging.getLogger("data_converters")
 
 
 class DataType(Enum):
-    """This provides a way to map the inferred attribute type to the pyarrow data type to be stored."""
+    """
+    Enumeration mapping inferred attribute types to PyArrow data types.
+
+    This provides a standardised way to map between pandas dtype inference
+    and the corresponding PyArrow data types used for storage.
+    """
 
     CONTINUOUS = pa.float64()
     STRING = pa.string()
@@ -51,16 +56,32 @@ class DataType(Enum):
 
 
 class PyArrowTableFactory:
+    """Factory for creating PyArrow tables from pandas Series with specified data types."""
+
     @staticmethod
     def create_table(series: pd.Series, data_type: DataType) -> pa.Table:
-        """Create a PyArrow table with the specified data type."""
+        """
+        Create a PyArrow table from a pandas Series with the specified data type.
+
+        :param series: Pandas Series containing the data to convert
+        :param data_type: DataType enum specifying the PyArrow type to use
+
+        :return: PyArrow table with a single 'data' column of the specified type
+        """
         schema = pa.schema([("data", data_type.value)])
         return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
 
 
 @dataclass
 class AttributeConfig:
-    """Values required to construct an attribute."""
+    """
+    Configuration for constructing an attribute from a pandas Series.
+
+    :param data_type: The PyArrow data type to use for storage
+    :param array_class: The Evo array class for wrapping the stored data
+    :param attribute_class: The Evo attribute class to instantiate
+    :param nan_class: Optional class for describing NaN values (None if not supported)
+    """
 
     data_type: DataType
     array_class: type
@@ -69,7 +90,13 @@ class AttributeConfig:
 
 
 class AttributeFactory:
-    """Provide mapping from pandas Series -> Evo Attribute."""
+    """
+    Factory for creating Evo attributes from pandas Series.
+
+    This class provides automatic type inference and conversion from pandas Series
+    to the appropriate Evo attribute types (continuous, string, integer, datetime,
+    boolean, or categorical).
+    """
 
     CONTINUOUS_CONFIG: AttributeConfig = AttributeConfig(
         data_type=DataType.CONTINUOUS,
@@ -128,7 +155,19 @@ class AttributeFactory:
 
     @staticmethod
     def create(name: str, series: pd.Series, client: ObjectDataClient) -> OneOfAttribute_Item | None:
-        """Create an attribute from a pandas Series based on inferred type."""
+        """
+        Create an Evo attribute from a pandas Series based on inferred type.
+
+        Automatically infers the data type from the Series and creates the appropriate
+        Evo attribute object. Handles categorical types specially, and supports NaN
+        value descriptions where applicable.
+
+        :param name: The name/key for the attribute
+        :param series: Pandas Series containing the attribute data
+        :param client: Object data client for saving PyArrow tables
+
+        :return: The created attribute object, or None if the series is empty or type is unsupported
+        """
         if series.empty:
             logger.debug(f"Got passed an empty series for attribute {name}, skipping Attribute creation.")
             return None
@@ -167,14 +206,31 @@ class AttributeFactory:
         # Add nan_description if the attribute supports it
         if config.nan_class is not None:
             nan_values_list = list(series.attrs.get("nan_values", []))
-            attribute_kwargs["nan_description"] = config.nan_class(values=nan_values_list)
+            nan_values = (
+                [int(v) for v in nan_values_list]
+                if config.data_type in {DataType.INTEGER, DataType.DATETIME}
+                else nan_values_list
+            )
+            attribute_kwargs["nan_description"] = config.nan_class(values=nan_values)
 
         # Create and return the evo attribute
         return config.attribute_class(**attribute_kwargs)
 
     @staticmethod
     def create_categorical_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> CategoryAttribute:
-        """Create a CategoryAttribute from a categorical pandas Series."""
+        """
+        Create a CategoryAttribute from a categorical pandas Series.
+
+        Converts pandas categorical data into an Evo CategoryAttribute with a lookup
+        table mapping integer codes to string category values. Handles NaN values
+        using pandas' -1 code convention.
+
+        :param name: The name/key for the attribute
+        :param series: Pandas Series with categorical dtype
+        :param client: Object data client for saving PyArrow tables
+
+        :return: The created CategoryAttribute object
+        """
         categories = series.cat.categories.astype(str)
         keys = list(range(len(categories)))
 
