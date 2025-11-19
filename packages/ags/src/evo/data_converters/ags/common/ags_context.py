@@ -250,7 +250,7 @@ class AgsContext:
                         df[col] = pd.to_datetime(df[col], format=fmt, errors="coerce")
                     else:
                         # Fallback: let pandas infer the format
-                        df[col] = pd.to_datetime(df[col], infer_datetime_format=True, errors="coerce")
+                        df[col] = pd.to_datetime(df[col], errors="coerce")
                 elif category == "timedelta":
                     # Check if a time unit is specified in the UNIT row (index 0)
                     unit = str(df.iloc[0, df.columns.get_loc(col)]).lower().strip()
