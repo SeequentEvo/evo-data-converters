@@ -85,7 +85,7 @@ objects_metadata = convert_ags(
 )
 ```
 
-For a complete working example, see the [import-ags notebook](./samples/import_ags/import-ags.ipynb).
+For a complete working example, see the [import-ags notebook](./samples/import-ags/import-ags.ipynb).
 
 ### Export objects to AGS
 
