@@ -141,8 +141,13 @@ class AttributeSpec:
             case AttributeType.String | AttributeType.Category:
                 options = category_set if self.options is None else self.options
 
+                # Leapfrog does not handle cases where "" is a category if there are also NaN values in
+                # the column. Work around by dropping "" as a category. The result is that "" values will be published
+                # as NaN.
+                options = [opt for opt in options if opt != ""]
                 reverse_lookup = defaultdict(int)  # Default to zero
                 reverse_lookup.update({value: idx for idx, value in enumerate(options, start=1)})
+
                 lookup_keys_type = pa.int32() if numpy.can_cast(len(options), "int32", "safe") else pa.int64()
                 lookup_table = pa.table(
                     [list(reverse_lookup.values()), list(reverse_lookup.keys())],

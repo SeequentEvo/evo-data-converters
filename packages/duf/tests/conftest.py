@@ -10,7 +10,10 @@
 #  limitations under the License.
 
 import os
+from os import path
 
+
+import pyarrow.parquet as pq
 import pytest
 
 from evo.data_converters.common import (
@@ -28,10 +31,22 @@ def evo_metadata(tmp_path_factory):
     )
 
 
+class TestDataClient:
+    def __init__(self, data_client):
+        self.data_client = data_client
+
+    def __getattr__(self, name):
+        return getattr(self.data_client, name)
+
+    def load_table(self, table):
+        chunks_parquet_file = path.join(str(self.data_client.cache_location), table.data)
+        return pq.read_table(chunks_parquet_file)
+
+
 @pytest.fixture(scope="session")
-def data_client(evo_metadata):
+def data_client(evo_metadata) -> TestDataClient:
     _, data_client = create_evo_object_service_and_data_client(evo_metadata)
-    return data_client
+    return TestDataClient(data_client)
 
 
 @pytest.fixture(autouse=True, scope="function")

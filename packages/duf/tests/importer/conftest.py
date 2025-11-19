@@ -69,3 +69,14 @@ def pit_mesh_attrs_path():
 def pit_mesh_attrs(pit_mesh_attrs_path):
     with DUFCollectorContext(pit_mesh_attrs_path) as context:
         yield context.collector
+
+
+@pytest.fixture(scope="session")
+def polyline_empty_category_and_nan_attrs_path():
+    return str((Path(__file__).parent.parent / "data" / "polyline_empty_category_and_nan_attr.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def polyline_empty_category_and_nan_attrs(polyline_empty_category_and_nan_attrs_path):
+    with DUFCollectorContext(polyline_empty_category_and_nan_attrs_path) as context:
+        yield context.collector
