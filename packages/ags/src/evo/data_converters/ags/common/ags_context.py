@@ -13,6 +13,7 @@ from io import StringIO
 from pathlib import Path
 import evo.logging
 import pandas as pd
+from .pandas_utils import coerce_to_object_int
 from python_ags4 import AGS4
 
 logger = evo.logging.getLogger("data_converters")
@@ -66,6 +67,10 @@ class AgsContext:
     MEASUREMENT_GROUPS: list[str] = ["SCPT", "SCPP", "GEOL", "SCDG"]
 
     IGNORED_RULES: list[str] = [
+        # 2a: Each line should be terminated by CR and LF characters
+        # Files from various sources use Unix line endings (LF only)
+        # This is a formatting issue that doesn't affect data integrity
+        "AGS Format Rule 2a",
         # 8: Data values shall match their specified data types
         # We handle type conversions ourselves and allow lenient parsing
         "AGS Format Rule 8",
@@ -214,26 +219,31 @@ class AgsContext:
                 # discard non-relevant groups
                 continue
 
-            # Ensure the dataframe has at least two rows for meta information and one data row
-            if len(df) < 3:
-                logger.warning(f"Table {group!r} has fewer than 3 rows; skipping type conversion.")
-                processed_tables[group] = df
-                continue
-
+            # Row 1 (index 0) holds the units each column is in
+            unit_row: pd.Series = df.iloc[0]
             # Row 2 (index 1) holds the type codes for each column
             type_codes: list[str] = df.iloc[1].astype(str).tolist()
+
+            # Drop the first two rows (UNIT/TYPE) before conversion
+            df: pd.DataFrame = df.iloc[2:].reset_index(drop=True)
+
+            # Ensure the dataframe has at least one data row
+            if len(df) < 1:
+                logger.warning(f"Table {group!r} has no data rows; skipping type conversion.")
+                processed_tables[group] = df
+                continue
 
             # Map each type code to the actual dtype using TYPE_CATEGORY
             for col, typ in zip(df.columns, type_codes):
                 category = self.TYPE_CATEGORY.get(typ)
                 if category == "int":
-                    # Use pandas nullable Int64 to preserve NaNs
-                    df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+                    # Convert to an object dtype with integers and pd.NA's, can be inferred as integer type.
+                    df[col] = coerce_to_object_int(df[col])
                 elif category == "float":
                     df[col] = pd.to_numeric(df[col], errors="coerce")
                 elif category == "datetime":
                     # Check if a datetime format is specified in the UNIT row (index 0)
-                    unit_format = str(df.iloc[0, df.columns.get_loc(col)])
+                    unit_format = str(unit_row[col])
                     # Map common AGS datetime formats to pandas-compatible formats
                     format_map = {
                         "yyyy-mm-ddThh:mm": "%Y-%m-%dT%H:%M",
@@ -253,21 +263,18 @@ class AgsContext:
                         df[col] = pd.to_datetime(df[col], errors="coerce")
                 elif category == "timedelta":
                     # Check if a time unit is specified in the UNIT row (index 0)
-                    unit = str(df.iloc[0, df.columns.get_loc(col)]).lower().strip()
+                    unit = str(unit_row[col]).lower().strip()
                     # Map AGS time units to pandas timedelta units
                     unit_map = {"s": "s", "min": "min", "hr": "h"}
                     pd_unit = unit_map.get(unit, "s")  # default to seconds
                     # Convert numeric values to timedelta
                     df[col] = pd.to_timedelta(pd.to_numeric(df[col], errors="coerce"), unit=pd_unit)
                 elif category == "bool":
-                    # Convert Y/N to boolean (nullable)
-                    df[col] = df[col].map({"Y": True, "N": False}).astype("boolean")
+                    # Convert Y/N to boolean
+                    df[col] = df[col].map({"Y": True, "N": False})
                 else:
                     # Default: keep as string, preserve missing values
                     df[col] = df[col].astype(str)
-
-            # Drop the first two rows (UNIT/TYPE) after conversion
-            df: pd.DataFrame = df.iloc[2:].reset_index(drop=True)
 
             # Convert all NaN-like values (NaT, None, NaN) to pd.NA
             df = df.mask(df.isna(), pd.NA)

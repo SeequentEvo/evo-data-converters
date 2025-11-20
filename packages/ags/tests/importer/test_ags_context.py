@@ -18,7 +18,7 @@ from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 def test_not_ags_file(not_ags_path):
     """An AGS file not conforming to spec cannot be imported"""
     context = AgsContext()
-    with pytest.raises(AgsFileInvalidException, match="AGS Format Rule 2a"):
+    with pytest.raises(AgsFileInvalidException, match="AGS Format Rule 3"):
         context.parse_ags(not_ags_path)
 
 
