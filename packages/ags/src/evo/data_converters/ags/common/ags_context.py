@@ -274,7 +274,7 @@ class AgsContext:
                     df[col] = df[col].map({"Y": True, "N": False})
                 else:
                     # Default: keep as string, preserve missing values
-                    df[col] = df[col].astype(str)
+                    df[col] = df[col].astype("string")
 
             # Convert all NaN-like values (NaT, None, NaN) to pd.NA
             df = df.mask(df.isna(), pd.NA)
