@@ -75,6 +75,7 @@ class DownholeCollectionToGeoscienceObject:
             # Base Object
             name=self.dhc.name,
             uuid=None,
+            tags=self.dhc.tags,
             # Base Spatial Data
             bounding_box=bounding_box,
             coordinate_reference_system=coordinate_reference_system,
