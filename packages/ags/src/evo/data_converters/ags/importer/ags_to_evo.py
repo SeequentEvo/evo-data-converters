@@ -78,21 +78,17 @@ def convert_ags(
         logger.error("Failed to parse AGS file: %s", e)
         return
 
-    downhole_collection: DownholeCollection | None = create_from_parsed_ags(ags_context, tags)
-    if downhole_collection:
-        if downhole_collection.tags is None:
-            downhole_collection.tags = {}
-        downhole_collection.tags["Source"] = "AGS files (via Evo Data Converters)"
-        downhole_collection.tags["Stage"] = "Experimental"
-        downhole_collection.tags["InputType"] = "AGS"
+    default_tags: dict[str, str] = {
+        "Source": "AGS files (via Evo Data Converters)",
+        "Stage": "Experimental",
+        "InputType": "AGS",
+    }
+    merged_tags: dict[str, str] = {**default_tags, **(tags or {})}
+
+    downhole_collection: DownholeCollection | None = create_from_parsed_ags(ags_context, merged_tags)
 
     object_metadata: None | list[ObjectMetadata] = None
     downhole_collection_gs = DownholeCollectionToGeoscienceObject(downhole_collection, data_client).convert()
-
-    # TODO: Remove this once DownholeCollectionToGeoscienceObject handles tags properly
-    if downhole_collection and downhole_collection.tags:
-        existing = getattr(downhole_collection_gs, "tags", {}) or {}
-        downhole_collection_gs.tags = {**downhole_collection.tags, **existing}
 
     if publish_object:
         logger.debug("Publishing Geoscience Object")
