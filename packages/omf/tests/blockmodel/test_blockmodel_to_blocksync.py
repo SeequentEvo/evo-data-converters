@@ -307,7 +307,9 @@ class TestOMFToBlockSyncConverter(TestCase):
                 },
             )
 
-            objects = convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650)
+            objects = convert_omf(
+                filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=True
+            )
             self.assertListEqual(
                 [
                     {
