@@ -138,3 +138,10 @@ data/cache
 
 # Development tools
 .vscode/
+
+# C-Sharp
+.dotnet/
+
+# Build artifacts
+bin/
+obj/

@@ -57,7 +57,6 @@ class AttributeType(Enum):
     Integer = auto()
     Double = auto()
     DateTime = auto()
-    # Color = auto()  # TODO: unsure of the format DUF uses for these
     Boolean = auto()
 
 
@@ -300,8 +299,6 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
             return float(value) if value not in {None, ""} else None
         case AttributeType.DateTime | AttributeType.Boolean:
             return value if value not in {None, ""} else None
-        # case AttributeType.Color:
-        #     return value.ValueColor
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None
