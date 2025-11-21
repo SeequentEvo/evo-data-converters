@@ -80,3 +80,14 @@ def polyline_empty_category_and_nan_attrs_path():
 def polyline_empty_category_and_nan_attrs(polyline_empty_category_and_nan_attrs_path):
     with DUFCollectorContext(polyline_empty_category_and_nan_attrs_path) as context:
         yield context.collector
+
+
+@pytest.fixture(scope="session")
+def missing_attr_and_missing_xprops_path():
+    return str((Path(__file__).parent.parent / "data" / "missing_attr_and_missing_xprops.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def missing_attr_and_missing_xprops(missing_attr_and_missing_xprops_path):
+    with DUFCollectorContext(missing_attr_and_missing_xprops_path) as context:
+        yield context.collector
