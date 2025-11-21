@@ -46,3 +46,23 @@ def test_should_convert_expected_geometry_types(evo_metadata, simple_objects_pat
 
     expected_go_object_types = [LineSegments_V2_1_0, TriangleMesh_V2_1_0]
     assert [type(obj) for obj in go_objects] == expected_go_object_types
+
+
+def test_import_category_with_missing_attrs(
+    evo_metadata, data_client, polyline_empty_category_and_nan_attrs_path
+) -> None:
+    go_objects = convert_duf(
+        filepath=polyline_empty_category_and_nan_attrs_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+    )
+    imported_line_segments = go_objects[0]
+    category_go = next(attr for attr in imported_line_segments.parts.attributes if attr.attribute_type == "category")
+    table = data_client.load_table(category_go.table)
+    categories = table["value"].to_numpy()
+
+    # The test DUF file has a category attribute with an empty string as a category. All we really care about is testing
+    # that the empty string has been removed from categories on import.
+    assert "" not in categories
+    assert len(categories) > 0
