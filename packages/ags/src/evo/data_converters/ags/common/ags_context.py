@@ -394,7 +394,7 @@ class AgsContext:
         """
         Try to determine CRS from LOCA_GREF, if it exists.
 
-        Returns None if we can't determine a CRS, "unspecified" if the CRS is locally defined, an integer if we found the projected CRS.
+        :returns: None if we can't determine a CRS, "unspecified" if the CRS is locally defined, an integer if we found the projected CRS.
         """
         try:
             gref = self.get_table("LOCA").at[0, "LOCA_GREF"]
@@ -421,7 +421,7 @@ class AgsContext:
         """
         Try to determine CRS from LOCA_LLZ, if it exists.
 
-        Returns None if we can't determine a CRS, or the epsg code if we found the geodetic CRS.
+        :returns: None if we can't determine a CRS, or the epsg code if we found the geographic CRS.
         """
         try:
             llz = self.get_table("LOCA").at[0, "LOCA_LLZ"]
