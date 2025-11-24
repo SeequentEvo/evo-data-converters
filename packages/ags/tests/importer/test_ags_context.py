@@ -98,3 +98,127 @@ def test_datetime_formats(test_datetime_formats_ags_path):
     assert row["SCPG_DATE"] == pd.Timestamp("2023-11-15")
     assert row["SCPG_TIME"].hour == 14
     assert row["SCPG_TIME"].minute == 30
+
+
+def test_crs_from_loca_gref_osgb(valid_ags_path):
+    """Test LOCA_GREF returns correct EPSG code for OSGB"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    # Modify LOCA table to add LOCA_GREF column with OSGB value
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_GREF"] = "OSGB"
+
+    assert context.crs_from_loca_gref() == 27700
+
+
+def test_crs_from_loca_gref_local(valid_ags_path):
+    """Test LOCA_GREF returns 'unspecified' for LOCAL"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_GREF"] = "LOCAL"
+
+    assert context.crs_from_loca_gref() == "unspecified"
+
+
+def test_crs_from_loca_gref_unknown(valid_ags_path, caplog):
+    """Test LOCA_GREF returns None and logs warning for unknown value"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_GREF"] = "UNKNOWN_CRS"
+
+    assert context.crs_from_loca_gref() is None
+    assert "Could not determine CRS from LOCA_GREF: UNKNOWN_CRS" in caplog.text
+
+
+def test_crs_from_loca_llz_epsg_code(valid_ags_path):
+    """Test LOCA_LLZ returns correct EPSG code for EPSG:4326"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_LLZ"] = "EPSG:4326"
+
+    assert context.crs_from_loca_llz() == 4326
+
+
+def test_crs_from_loca_llz_wgs84(valid_ags_path):
+    """Test LOCA_LLZ returns correct EPSG code for WGS84"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_LLZ"] = "WGS84"
+
+    assert context.crs_from_loca_llz() == 4326
+
+
+def test_crs_from_loca_llz_invalid(valid_ags_path, caplog):
+    """Test LOCA_LLZ returns None and logs warning for invalid CRS"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_LLZ"] = "INVALID_CRS"
+
+    assert context.crs_from_loca_llz() is None
+    assert "Could not determine CRS from LOCA_LLZ: INVALID_CRS" in caplog.text
+
+
+def test_coordinate_reference_system_gref_only(valid_ags_path):
+    """Test coordinate_reference_system returns GREF value when only GREF is available"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_GREF"] = "OSGB"
+
+    assert context.coordinate_reference_system == 27700
+
+
+def test_coordinate_reference_system_llz_only(valid_ags_path):
+    """Test coordinate_reference_system returns LLZ value when only LLZ is available"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_LLZ"] = "EPSG:4326"
+
+    assert context.coordinate_reference_system == 4326
+
+
+def test_coordinate_reference_system_both_prefers_gref(valid_ags_path, caplog):
+    """Test coordinate_reference_system prefers GREF when both are available"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_GREF"] = "OSGB"
+    loca_table["LOCA_LLZ"] = "EPSG:4326"
+
+    assert context.coordinate_reference_system == 27700
+    assert "Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF: 27700" in caplog.text
+
+
+def test_coordinate_reference_system_neither_available(valid_ags_path):
+    """Test coordinate_reference_system returns None when neither GREF nor LLZ are available"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    # Neither column exists by default
+    assert context.coordinate_reference_system is None
+
+
+def test_coordinate_reference_system_local_gref(valid_ags_path):
+    """Test coordinate_reference_system returns 'unspecified' for LOCAL GREF"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table("LOCA")
+    loca_table["LOCA_GREF"] = "LOCAL"
+
+    assert context.coordinate_reference_system == "unspecified"

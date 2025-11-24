@@ -60,7 +60,7 @@ def create_from_parsed_ags(
         collars=hole_collars,
         name=ags_context.filename,
         measurements=measurements,
-        coordinate_reference_system=ags_context.coordinate_reference_system,
+        coordinate_reference_system=ags_context.coordinate_reference_system or "unspecified",
         tags=tags,
         column_mapping=ColumnMapping(
             DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],

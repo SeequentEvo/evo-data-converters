@@ -14,6 +14,8 @@ from pathlib import Path
 import evo.logging
 import pandas as pd
 from .pandas_utils import coerce_to_object_int
+from pyproj import CRS
+from pyproj.exceptions import CRSError
 from python_ags4 import AGS4
 
 logger = evo.logging.getLogger("data_converters")
@@ -325,18 +327,25 @@ class AgsContext:
         return self._headings
 
     @property
-    def coordinate_reference_system(self) -> int | None:
+    def coordinate_reference_system(self) -> int | str | None:
         """Gets the coordinate reference system used by the in-memory AGS file.
 
-        .. todo::
-           CRS can be provided by LOCA_LLZ, or for national grids, LOCA_GREF.
-           We may need to ask for this from the user, and make sure those columns
-           exist/non-null. Some files only provide national grid coordinates.
+        :returns: epsg code as integer or "unspecified" if a CRS can be determined, None otherwise.
         """
-        try:
-            return self.get_table("LOCA").at[0, "LOCA_GREF"]
-        except (KeyError, ValueError):
-            return None
+        crs_gref: int | str | None = self.crs_from_loca_gref()
+        crs_llz: int | None = self.crs_from_loca_llz()
+
+        if all([crs_gref, crs_llz]):
+            logger.warning(f"Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF: {crs_gref}")
+            return crs_gref
+
+        if crs_gref is not None:
+            return crs_gref
+
+        if crs_llz is not None:
+            return crs_llz
+
+        return None
 
     def get_table(self, group: str) -> pd.DataFrame:
         """Gets a table by group name.
@@ -380,6 +389,53 @@ class AgsContext:
         :param headings: List of heading strings
         """
         self._headings[group] = headings
+
+    def crs_from_loca_gref(self) -> int | str | None:
+        """
+        Try to determine CRS from LOCA_GREF, if it exists.
+
+        Returns None if we can't determine a CRS, "unspecified" if the CRS is locally defined, an integer if we found the projected CRS.
+        """
+        try:
+            gref = self.get_table("LOCA").at[0, "LOCA_GREF"]
+            gref = str(gref).upper().strip()
+        except (KeyError, ValueError):
+            return None
+
+        # Mapping of AGS standard abbreviations to projected CRS
+        ags_standard_map: dict[str, int | str] = {
+            "OSGB": 27700,
+            "OSI": 29902,
+            "ITM": 2157,
+            "LOCAL": "unspecified",
+        }
+
+        if gref in ags_standard_map:
+            return ags_standard_map[gref]
+
+        logger.warning(f"Could not determine CRS from LOCA_GREF: {gref}")
+
+        return None
+
+    def crs_from_loca_llz(self) -> int | None:
+        """
+        Try to determine CRS from LOCA_LLZ, if it exists.
+
+        Returns None if we can't determine a CRS, or the epsg code if we found the geodetic CRS.
+        """
+        try:
+            llz = self.get_table("LOCA").at[0, "LOCA_LLZ"]
+            llz = str(llz).upper().strip()
+        except (KeyError, ValueError):
+            return None
+
+        try:
+            crs = CRS.from_user_input(llz)
+        except CRSError:
+            logger.warning(f"Could not determine CRS from LOCA_LLZ: {llz}")
+            return None
+
+        return crs.to_epsg()
 
 
 def ags4_errors_to_str(errors: dict[str, dict[str, str | int]]) -> str:
