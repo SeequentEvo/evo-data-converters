@@ -8,3 +8,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+from .obj_to_evo import convert_obj
+
+__all__ = [
+    "convert_obj",
+]
