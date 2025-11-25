@@ -10,8 +10,17 @@
 #  limitations under the License.
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
 
+import asyncio
+from typing import TYPE_CHECKING, Any, Optional
+from uuid import UUID
+
+import nest_asyncio
+import numpy as np
+import trimesh
+from evo_schemas import schema_lookup
+from evo_schemas.objects import TriangleMesh_V2_0_0, TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
+from trimesh.exchange.export import export_scene
 
 import evo.logging
 from evo.data_converters.common import (
@@ -19,29 +28,32 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
-
-from ..omf_metadata import OMFMetadata
+from evo.data_converters.common.part_utils import ChunkedData, IndexedData
+from evo.objects.client import ObjectAPIClient
+from evo.objects.data import ObjectSchema
+from evo.objects.utils.data import ObjectDataClient
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
+class UnsupportedObjectError(Exception):
+    pass
+
+
 logger = evo.logging.getLogger("data_converters")
 
 
-async def export_obj(
+def export_obj(
     filepath: str,
     objects: list[EvoObjectMetadata],
-    omf_metadata: Optional[OMFMetadata] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional[ServiceManagerWidget] = None,
 ) -> None:
-    """Export an Evo Geoscience Object to an OBJ file.
-    FIXME: multiple files?
+    """Export Evo Geoscience Objects to an OBJ file.
 
-    :param filepath: Path of the OBJ file to create. *Other files may be created next to it.*
+    :param filepath: Path of the OBJ file to create.
     :param objects: List of EvoObjectMetadata objects containing the UUID and version of the Evo objects to export.
-    :param omf_metadata: Optional project metadata to embed in the OMF file.
     :param evo_workspace_metadata: Optional Evo Workspace metadata.
     :param service_manager_widget: Optional ServiceManagerWidget for use in notebooks.
 
@@ -56,4 +68,90 @@ async def export_obj(
         evo_workspace_metadata, service_manager_widget
     )
 
-    # TODO: implementation
+    nest_asyncio.apply()
+
+    scene = trimesh.Scene()
+    for object_metadata in objects:
+        mesh, _ = asyncio.run(_evo_object_to_trimesh(object_metadata, service_client, data_client))
+        scene.add_geometry(mesh)
+
+    export_scene(scene, filepath, file_type="obj")
+
+
+async def _download_evo_object_by_id(
+    service_client: ObjectAPIClient,
+    object_id: UUID,
+    version_id: Optional[str] = None,
+) -> dict[str, Any]:
+    downloaded_object = await service_client.download_object_by_id(object_id, version_id)
+    result: dict[str, Any] = downloaded_object.as_dict()
+    return result
+
+
+async def _evo_object_to_trimesh(
+    object_metadata: EvoObjectMetadata,
+    service_client: ObjectAPIClient,
+    data_client: ObjectDataClient,
+) -> tuple[trimesh.Trimesh, ObjectSchema]:
+    object_id = object_metadata.object_id
+    version_id = object_metadata.version_id
+
+    # Download object
+    geoscience_object_dict = await _download_evo_object_by_id(service_client, object_id, version_id)
+
+    # Check if this is a known geoscience object schema type
+    schema = ObjectSchema.from_id(geoscience_object_dict["schema"])
+    object_class = schema_lookup.get(str(schema))
+
+    if not object_class:
+        raise UnsupportedObjectError(f"Unknown Geoscience Object schema '{schema}'")
+
+    geoscience_object = object_class.from_dict(geoscience_object_dict)
+
+    # Convert to Trimesh
+    match geoscience_object:
+        case TriangleMesh_V2_0_0() | TriangleMesh_V2_1_0() | TriangleMesh_V2_2_0():
+            mesh = await _triangle_mesh_to_trimesh(object_id, version_id, geoscience_object, data_client)
+        case _:
+            raise UnsupportedObjectError(
+                f"Exporting {geoscience_object.__class__.__name__} Geoscience Objects to OBJ is not supported"
+            )
+
+    return mesh, schema
+
+
+async def _triangle_mesh_to_trimesh(
+    object_id: UUID,
+    version_id: Optional[str],
+    triangle_mesh_go: TriangleMesh_V2_0_0 | TriangleMesh_V2_1_0 | TriangleMesh_V2_2_0,
+    data_client: ObjectDataClient,
+) -> trimesh.Trimesh:
+    vertices_table = await data_client.download_table(
+        object_id, version_id, triangle_mesh_go.triangles.vertices.as_dict()
+    )
+    vertices = np.asarray(vertices_table)
+
+    triangles_table = await data_client.download_table(
+        object_id, version_id, triangle_mesh_go.triangles.indices.as_dict()
+    )
+    triangles = np.asarray(triangles_table)
+
+    if parts := triangle_mesh_go.parts:
+        if parts.triangle_indices:
+            # get triangle indices and convert into triangles before chunking
+            triangle_indices_table = await data_client.download_table(
+                object_id, version_id, parts.triangle_indices.as_dict()
+            )
+            triangle_indices = np.asarray(triangle_indices_table)
+
+            indexed_data = IndexedData(data=triangles, indices=triangle_indices)
+            triangles = indexed_data.unpack()
+
+        chunks_table = await data_client.download_table(object_id, version_id, parts.chunks.as_dict())
+        chunks = np.asarray(chunks_table)
+
+        # expand chunks into one list of triangles
+        chunked_data = ChunkedData(data=triangles, chunks=chunks)
+        triangles = chunked_data.unpack()
+
+    return trimesh.Trimesh(vertices=vertices, faces=triangles, process=False, validate=False)
