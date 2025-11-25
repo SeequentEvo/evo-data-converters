@@ -23,6 +23,8 @@ class TestColumnMapping:
         assert mapping.DEPTH_COLUMNS == []
         assert mapping.FROM_COLUMNS == []
         assert mapping.TO_COLUMNS == []
+        assert mapping.DIP_COLUMNS == []
+        assert mapping.AZIMUTH_COLUMNS == []
 
     def test_custom_initialization(self):
         """Test that custom column mappings can be provided"""
@@ -31,12 +33,16 @@ class TestColumnMapping:
             DEPTH_COLUMNS=["custom_depth"],
             FROM_COLUMNS=["custom_from"],
             TO_COLUMNS=["custom_to"],
+            DIP_COLUMNS=["custom_dip"],
+            AZIMUTH_COLUMNS=["custom_azimuth"],
         )
 
         assert custom_mapping.HOLE_INDEX_COLUMNS == ["custom_hole_id"]
         assert custom_mapping.DEPTH_COLUMNS == ["custom_depth"]
         assert custom_mapping.FROM_COLUMNS == ["custom_from"]
         assert custom_mapping.TO_COLUMNS == ["custom_to"]
+        assert custom_mapping.DIP_COLUMNS == ["custom_dip"]
+        assert custom_mapping.AZIMUTH_COLUMNS == ["custom_azimuth"]
 
     def test_partial_custom_initialization(self):
         """Test that only some fields can be customized while others use defaults"""
@@ -46,6 +52,8 @@ class TestColumnMapping:
         assert mapping.DEPTH_COLUMNS == ["my_depth"]
         assert mapping.FROM_COLUMNS == []
         assert mapping.TO_COLUMNS == []
+        assert mapping.DIP_COLUMNS == []
+        assert mapping.AZIMUTH_COLUMNS == []
 
     def test_multiple_instances_independent(self):
         """Test that multiple instances don't share list references"""

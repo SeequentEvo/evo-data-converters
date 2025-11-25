@@ -235,11 +235,55 @@ class DownholeCollectionBuilder:
 
         :return: Polars DataFrame with measurements
         """
-        measurements = cpt_data.data.with_columns(pl.lit(hole_index).cast(pl.Int32).alias("hole_index"))
+        df = cpt_data.data.with_columns(pl.lit(hole_index).cast(pl.Int32).alias("hole_index"))
+
+        df = self.calculate_dip(df)
+        df = self.calculate_azimuth(df)
 
         # Reorder columns to put hole_index first
-        other_cols = [col for col in cpt_data.data.columns if col != "hole_index"]
-        return measurements.select(["hole_index"] + other_cols)
+        other_cols = [col for col in df.columns if col != "hole_index"]
+        return df.select(["hole_index"] + other_cols)
+
+    def calculate_dip(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Create dip column from inclinationResultant.
+
+        Inclination resultant is degrees of deviation from vertical, dip requires degrees from horizontal.
+
+        :param df: Polars dataframe with possible inclination column.
+
+        :return: Polars dataframe with new "dip" column, or the original.
+        """
+        if "inclinationResultant" not in df.columns:
+            return df
+
+        return df.with_columns((90 - pl.col("inclinationResultant")).alias("dip"))
+
+    def calculate_azimuth(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Calculate azimuth from N-S/E-W inclination components.
+
+        Adds an 'azimuth' column if inclinationNS and inclinationEW exist.
+
+        :param df: Polars dataframe with possible directional data.
+
+        :return: Polars dataframe with new "azimuth" column, or the original.
+        """
+        has_ns = "inclinationNS" in df.columns
+        has_ew = "inclinationEW" in df.columns
+
+        if not (has_ns and has_ew):
+            return df
+
+        ns = pl.col("inclinationNS")
+        ew = pl.col("inclinationEW")
+
+        # Calculate azimuth and normalise to 0-360°
+        # Note: atan2(ew, ns) gives angle clockwise from north
+        azimuth = (pl.arctan2(ew, ns).degrees() + 360) % 360
+
+        # Set to null if either input is null
+        azimuth = pl.when(ns.is_null() | ew.is_null()).then(None).otherwise(azimuth)
+
+        return df.with_columns(azimuth.alias("azimuth"))
 
     def _track_nan_values(self, cpt_data: CPTData) -> None:
         """Track NaN values by attribute name.
@@ -308,7 +352,9 @@ class DownholeCollectionBuilder:
 
         :return: Intermediary DownholeCollection object
         """
-        column_mapping = ColumnMapping(DEPTH_COLUMNS=["penetrationLength"])
+        column_mapping = ColumnMapping(
+            DEPTH_COLUMNS=["penetrationLength"], DIP_COLUMNS=["dip"], AZIMUTH_COLUMNS=["azimuth"]
+        )
         distance_measurements = MeasurementTableFactory.create(
             df=measurements_df, column_mapping=column_mapping, nan_values_by_column=self.nan_values_by_attribute
         )
