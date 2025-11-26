@@ -104,3 +104,14 @@ def layer_with_2polylines_2meshes_2points_2texts_1face_path():
 def layer_with_2polylines_2meshes_2points_2texts_1face(layer_with_2polylines_2meshes_2points_2texts_1face_path):
     with DUFCollectorContext(layer_with_2polylines_2meshes_2points_2texts_1face_path) as context:
         yield context.collector
+
+
+@pytest.fixture(scope="session")
+def id_attribute_path():
+    return str((Path(__file__).parent.parent / "data" / "id_attribute.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def id_attribute(id_attribute_path):
+    with DUFCollectorContext(id_attribute_path) as context:
+        yield context.collector

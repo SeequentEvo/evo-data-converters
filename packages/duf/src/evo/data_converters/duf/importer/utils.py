@@ -46,6 +46,7 @@ from evo_schemas.components import (
 
 from evo.data_converters.common.utils import vertices_bounding_box
 from evo.data_converters.duf.common import deswik_types as dw
+from evo.data_converters.duf.common.consts import EvoSchema
 from evo.data_converters.duf.xprops import get_xprops_value
 
 logger = evo.logging.getLogger("data_converters")
@@ -64,6 +65,7 @@ class AttributeType(Enum):
 @dataclass(frozen=True)
 class AttributeSpec:
     name: str
+    evo_name: str
     attr_type: AttributeType
     options: tuple[str] | None = None
     required: bool = False
@@ -74,7 +76,9 @@ class AttributeSpec:
         return f"_dw_Attribute[{attr_index}].{name}"
 
     @classmethod
-    def layer_attribute_by_index(cls, layer: dw.Layer, attr_index: int) -> "AttributeSpec | None":
+    def layer_attribute_by_index(
+        cls, layer: dw.Layer, attr_index: int, evo_schema: EvoSchema
+    ) -> "AttributeSpec | None":
         assert 0 < attr_index + 1 <= value_from_xproperties(layer, "_dw_AttributeCount", AttributeType.Integer), (
             f"Attribute index {attr_index} exceeds the number of attributes in layer {layer.Name}."
         )
@@ -99,8 +103,20 @@ class AttributeSpec:
             logger.warning(f"Unsupported attribute type {attr_type} for layer {layer.Name}, returning None.")
             return None
 
+        name = value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String)
+        if evo_schema in (EvoSchema.triangle_mesh, EvoSchema.line_segments):
+            if name.lower() == "id":
+                # Leapfrog does not handle columns named "ID", so rename them on the fly. We'll just hope
+                # that there isn't another column named "external_id".
+                evo_name = "external_id"
+                logger.warning(f"Column {name} is being converted to {evo_name}")
+            else:
+                evo_name = name
+        else:
+            raise NotImplementedError()
         return cls(
-            name=value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String),
+            name=name,
+            evo_name=evo_name,
             attr_type=attr_type,
             options=options,
             required=value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Required"), AttributeType.Boolean),
@@ -110,12 +126,14 @@ class AttributeSpec:
         )
 
     @classmethod
-    def layer_attributes(cls, layer: dw.Layer) -> list["AttributeSpec"]:
+    def layer_attributes(cls, layer: dw.Layer, evo_schema: EvoSchema) -> list["AttributeSpec"]:
         attr_count = value_from_xproperties(layer, "_dw_AttributeCount", AttributeType.Integer)
         if not attr_count:
             return []
 
-        return [attr for i in range(attr_count) if (attr := cls.layer_attribute_by_index(layer, i)) is not None]
+        return [
+            attr for i in range(attr_count) if (attr := cls.layer_attribute_by_index(layer, i, evo_schema)) is not None
+        ]
 
     def to_go(self, data_client: ObjectDataClient, values: list[Any]) -> OneOfAttribute_V1_2_0_Item:
         category_set = None
@@ -134,7 +152,7 @@ class AttributeSpec:
                 )
                 table = data_client.save_table(table)
                 return StringAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=StringArray_V1_0_1(**table),
                 )
@@ -171,7 +189,7 @@ class AttributeSpec:
                 values_table = data_client.save_table(values_table)
 
                 return CategoryAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     table=LookupTable_V1_0_1(**lookup_table),
                     nan_description=NanCategorical_V1_0_1(values=[0]),
@@ -195,7 +213,7 @@ class AttributeSpec:
                     nan_values = []
                 table = data_client.save_table(table)
                 return IntegerAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=IntegerArray1_V1_0_1(**table),
                     nan_description=NanCategorical_V1_0_1(values=nan_values),
@@ -211,7 +229,7 @@ class AttributeSpec:
                 )
                 table = data_client.save_table(table)
                 return ContinuousAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=FloatArray1_V1_0_1(**table),
                     nan_description=NanContinuous_V1_0_1(values=[]),
@@ -265,7 +283,7 @@ class AttributeSpec:
 
                 table = data_client.save_table(table)
                 return DateTimeAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=DateTimeArray_V1_0_1(**table),
                     nan_description=NanCategorical_V1_0_1(values=nan_values),
@@ -281,7 +299,7 @@ class AttributeSpec:
                 )
                 table = data_client.save_table(table)
                 return BoolAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=BoolArray1_V1_0_1(**table),
                 )
@@ -382,7 +400,7 @@ def parts_to_go(
     return None
 
 
-def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays: list[NDArray]):
+def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays: list[NDArray], evo_schema: EvoSchema):
     # Avoid mutating the input later on in the function
     indices_arrays = [arr.copy() for arr in indices_arrays]
 
@@ -406,7 +424,7 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
         orig_to_unique = None
         unique_vertices_array = vertices_array  # np.unique sorts the returned array, we need to use the original here
 
-    attribute_specs = AttributeSpec.layer_attributes(layer)
+    attribute_specs = AttributeSpec.layer_attributes(layer, evo_schema)
     if num_parts > 1 or attribute_specs:
         logger.info(f"Processing {num_parts} attributes for {len(obj_list)} entities")
 
