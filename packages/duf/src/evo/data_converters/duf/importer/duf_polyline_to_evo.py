@@ -70,11 +70,14 @@ def combine_duf_polylines(
         logger.warning("No polylines to combine.")
         return None
 
-    name = get_name(polylines[0].Layer)
-    logger.debug(f'Combining polylines from layer: "{name}" to LineSegments_V2_1_0.')
+    layer = get_name(polylines[0].Layer)
+    name = f"{layer} - polylines"
+    logger.debug(f'Combining polylines from layer: "{layer}" to LineSegments_V2_1_0.')
 
     indices_arrays = []
-    for polyline in polylines:
+    for i, polyline in enumerate(polylines):
+        if i % 1000 == 0:
+            logger.info(f"Processed {i} polylines")
         pl_num_vertices = polyline.VertexList.Count
         pl_indices_array = _polyline_indices_array(pl_num_vertices)
         indices_arrays.append(pl_indices_array)

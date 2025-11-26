@@ -91,3 +91,16 @@ def missing_attr_and_missing_xprops_path():
 def missing_attr_and_missing_xprops(missing_attr_and_missing_xprops_path):
     with DUFCollectorContext(missing_attr_and_missing_xprops_path) as context:
         yield context.collector
+
+
+@pytest.fixture(scope="session")
+def layer_with_2polylines_2meshes_2points_2texts_1face_path():
+    return str(
+        (Path(__file__).parent.parent / "data" / "layer_with_2polylines_2meshes_2points_2texts_1face.duf").resolve()
+    )
+
+
+@pytest.fixture(scope="session")
+def layer_with_2polylines_2meshes_2points_2texts_1face(layer_with_2polylines_2meshes_2points_2texts_1face_path):
+    with DUFCollectorContext(layer_with_2polylines_2meshes_2points_2texts_1face_path) as context:
+        yield context.collector
