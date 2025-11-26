@@ -12,7 +12,7 @@
 import os
 from os import path
 
-
+import numpy
 import pyarrow.parquet as pq
 import pytest
 
@@ -41,6 +41,18 @@ class TestDataClient:
     def load_table(self, table):
         chunks_parquet_file = path.join(str(self.data_client.cache_location), table.data)
         return pq.read_table(chunks_parquet_file)
+
+    def load_category(self, attr_go):
+        lookup_df = self.load_table(attr_go.table).to_pandas().set_index("key")
+        values_df = self.load_table(attr_go.values).to_pandas()
+
+        lookup_values_col_name = lookup_df.columns[0]
+        value_keys = values_df[values_df.columns[0]]
+
+        def do_lookup(k):
+            return lookup_df.loc[k, lookup_values_col_name]
+
+        return numpy.vectorize(do_lookup)(value_keys)
 
 
 @pytest.fixture(scope="session")

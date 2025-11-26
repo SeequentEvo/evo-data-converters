@@ -114,3 +114,20 @@ def test_combined_import_with_different_entity_types_in_layer(
     assert line_segments.parts.attributes[0].values.length == 4  # polylines + points
     assert "triangle-mesh" in mesh_triangles.schema
     assert mesh_triangles.parts.attributes[0].values.length == 2
+
+
+def test_import_attribute_named_id(evo_metadata, data_client, id_attribute_path) -> None:
+    go_objects = convert_duf(
+        filepath=id_attribute_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+    )
+
+    assert len(go_objects) == 2
+    line_segments, mesh_triangles = sorted(go_objects, key=str)
+
+    assert (line_segments_attr := line_segments.parts.attributes[0]).name == "external_id"
+    assert numpy.array_equal(["id polyline 1"], data_client.load_category(line_segments_attr))
+
+    assert (mesh_tri_attr := mesh_triangles.parts.attributes[0]).name == "external_id"
+    assert numpy.array_equal(["id polyface 1"], data_client.load_category(mesh_tri_attr))

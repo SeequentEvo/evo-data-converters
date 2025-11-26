@@ -23,6 +23,7 @@ from evo.objects.utils.data import ObjectDataClient
 from numpy._typing import NDArray
 
 from evo.data_converters.common import crs_from_epsg_code
+from evo.data_converters.duf.common.consts import EvoSchema
 import evo.data_converters.duf.common.deswik_types as dw
 from .utils import (
     get_name,
@@ -117,7 +118,9 @@ def combine_duf_polyfaces(
             logger.info(f"Processed {i} polyfaces")
         indices_arrays.append(indices_from_polyface(polyface.FaceList))
 
-    vertices_array, indices_array, parts = obj_list_and_indices_to_arrays(polyfaces, indices_arrays)
+    vertices_array, indices_array, parts = obj_list_and_indices_to_arrays(
+        polyfaces, indices_arrays, EvoSchema.triangle_mesh
+    )
 
     return _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_code, data_client)
 
@@ -132,6 +135,8 @@ def convert_duf_polyface(
 
     indices_array = indices_from_polyface(polyface.FaceList)
 
-    vertices_array, indices_array, parts = obj_list_and_indices_to_arrays([polyface], [indices_array])
+    vertices_array, indices_array, parts = obj_list_and_indices_to_arrays(
+        [polyface], [indices_array], EvoSchema.triangle_mesh
+    )
 
     return _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_code, data_client)
