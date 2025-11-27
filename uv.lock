@@ -811,7 +811,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-duf"
-version = "0.1.7"
+version = "0.1.8"
 source = { editable = "packages/duf" }
 dependencies = [
     { name = "evo-data-converters-common" },
