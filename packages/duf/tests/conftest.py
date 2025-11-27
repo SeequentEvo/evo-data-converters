@@ -42,6 +42,10 @@ class TestDataClient:
         chunks_parquet_file = path.join(str(self.data_client.cache_location), table.data)
         return pq.read_table(chunks_parquet_file)
 
+    def load_columns(self, table) -> list:
+        table_pd = self.load_table(table).to_pandas()
+        return [table_pd[col].to_numpy() for col in table_pd.columns]
+
     def load_category(self, attr_go):
         lookup_df = self.load_table(attr_go.table).to_pandas().set_index("key")
         values_df = self.load_table(attr_go.values).to_pandas()
