@@ -14,7 +14,7 @@ This workflow can be performed with no (or minimal) user interaction. To fully a
 Open a command prompt and run this command:
 
    ```powershell
-   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
 ## Setup
