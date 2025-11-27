@@ -50,7 +50,7 @@ class RegularGridData(BaseGridData):
     origin: list[float] - The coordinates of the origin [x,y,z]
     size: list[int] - The size of the entire grid [grid_size_x, grid_size_y, grid_size_z]
     rotation: numpy NDArray[numpy float] - Orientation of the grid [dip_azimuth, dip, pitch]
-    bounding_box: list[float] | None - Bounding box of the spatial data
+    bounding_box: list[float] | None - Bounding box of the spatial data [min_x, max_x, min_y, max_y, min_z, max_z]
     mask: numpy NDArray[numpy bool] | None - Indicates which cells have values
     cell_attributes: dict[str, numpy NDArray] | None - Attributes associated with the cells
     vertex_attributes: dict[str, numpy NDArray] | None - Attributes associated with the vertices
