@@ -10,7 +10,7 @@
 #  limitations under the License.
 
 import os
-from typing import Optional
+from typing import Any, Optional
 
 import numpy
 import pyarrow as pa
@@ -24,6 +24,8 @@ from evo_schemas.objects import Tensor3DGrid_V1_2_0, Tensor3DGrid_V1_2_0_GridCel
 
 import evo.logging
 from evo.data_converters.common import crs_from_epsg_code
+from evo.data_converters.common import TensorGridData
+
 from evo.data_converters.common.utils import get_object_tags, grid_bounding_box
 
 from evo.data_converters.ubc.importer.ubc_reader import UBCMeshFileImporter, UBCPropertyFileImporter
@@ -49,6 +51,14 @@ def _create_continuous_attributes(
     return cell_attributes
 
 
+def _create_continuous_attributes_for_grid(label_to_values: dict) -> list[dict[str, Any]]:
+    cell_attributes = []
+    for name, values in label_to_values.items():
+        table = pa.table({"values": values})
+        cell_attributes.append(dict(name=name, values=table))
+    return cell_attributes
+
+
 def _handle_ubc_files_list(files_path: list[str]) -> tuple[str, list[str]]:
     ubc_mesh_file: str | None = None
     ubc_numeric_values_files: list[str] = []
@@ -66,11 +76,7 @@ def _handle_ubc_files_list(files_path: list[str]) -> tuple[str, list[str]]:
     return ubc_mesh_file, ubc_numeric_values_files
 
 
-def get_geoscience_object_from_ubc(
-    data_client: ObjectDataClient, files_path: list[str], epsg_code: int, tags: Optional[dict[str, str]] = None
-) -> Tensor3DGrid_V1_2_0:
-    ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
-    name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
+def _extract_ubc_data(ubc_mesh_file: str, ubc_numeric_values_files: list[str]):
     origin, spacings, size_of_dimensions = UBCMeshFileImporter(ubc_mesh_file).execute()
 
     n_blocks = size_of_dimensions[0] * size_of_dimensions[1] * size_of_dimensions[2]
@@ -80,6 +86,44 @@ def get_geoscience_object_from_ubc(
         numerical_values[os.path.splitext(os.path.basename(value_file))[0]] = values
 
     bbox = grid_bounding_box(origin, numpy.identity(3), numpy.array([numpy.sum(d) for d in spacings]))
+    return numerical_values, spacings, origin, size_of_dimensions, bbox
+
+
+def get_grid_data(files_path: list[str]) -> tuple[str, TensorGridData]:
+    ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
+    name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
+
+    numerical_values, spacings, origin, size_of_dimensions, bbox = _extract_ubc_data(
+        ubc_mesh_file, ubc_numeric_values_files
+    )
+    cell_attributes = _create_continuous_attributes_for_grid(numerical_values)
+
+    return (
+        name,
+        TensorGridData(
+            origin=origin.tolist(),
+            size=size_of_dimensions,
+            rotation=numpy.zeros(3),
+            bounding_box=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z],
+            mask=None,
+            cell_attributes=cell_attributes,
+            vertex_attributes=None,
+            cell_sizes_x=spacings[0].tolist(),
+            cell_sizes_y=spacings[1].tolist(),
+            cell_sizes_z=spacings[2].tolist(),
+        ),
+    )
+
+
+def get_geoscience_object_from_ubc(
+    data_client: ObjectDataClient, files_path: list[str], epsg_code: int, tags: Optional[dict[str, str]] = None
+) -> Tensor3DGrid_V1_2_0:
+    ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
+    name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
+
+    numerical_values, spacings, origin, size_of_dimensions, bbox = _extract_ubc_data(
+        ubc_mesh_file, ubc_numeric_values_files
+    )
     cell_attributes = _create_continuous_attributes(data_client, numerical_values)
 
     grid_cells_3d = Tensor3DGrid_V1_2_0_GridCells3D(
