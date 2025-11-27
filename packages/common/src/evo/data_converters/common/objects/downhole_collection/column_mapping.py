@@ -41,3 +41,9 @@ class ColumnMapping:
 
     TO_COLUMNS: list[str] = field(default_factory=list)
     """Column names for interval end depths."""
+
+    DIP_COLUMNS: list[str] = field(default_factory=list)
+    """Column names for downhole inclinations."""
+
+    AZIMUTH_COLUMNS: list[str] = field(default_factory=list)
+    """Column names for azimuth values."""

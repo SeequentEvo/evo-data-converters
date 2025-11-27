@@ -65,7 +65,7 @@ class AgsContext:
     _filename: str | None
 
     REQUIRED_GROUPS: list[str] = ["LOCA", "SCPG", "SCPT"]
-    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT", "ABBR", "DICT", "TRAN"]
+    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT", "ABBR", "DICT", "TRAN", "HORN"]
     MEASUREMENT_GROUPS: list[str] = ["SCPT", "SCPP", "GEOL", "SCDG"]
 
     IGNORED_RULES: list[str] = [

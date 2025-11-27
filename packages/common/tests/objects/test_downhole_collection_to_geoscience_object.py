@@ -47,6 +47,8 @@ def distance_measurements_df():
             "penetrationLength": [10.0, 20.0, 30.0, 15.0, 25.0],
             "density": [2.5, 2.6, 2.7, 2.4, 2.5],
             "porosity": [0.15, 0.18, 0.20, 0.12, 0.16],
+            "dip": [90.0, 90.0, 90.0, 90.0, 90.0],
+            "azimuth": [0.0, 0.0, 0.0, 0.0, 0.0],
         }
     )
 
@@ -71,6 +73,8 @@ def distance_table_mock(distance_measurements_df):
     mock = Mock(spec=DistanceMeasurementTable)
     mock.df = distance_measurements_df
     mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
+    mock.get_dip_values.return_value = distance_measurements_df["dip"].tolist()
+    mock.get_azimuth_values.return_value = distance_measurements_df["azimuth"].tolist()
     mock.get_primary_column.return_value = "penetrationLength"
     mock.get_attribute_columns.return_value = ["density", "porosity"]
     mock.get_nan_values.return_value = []
@@ -310,8 +314,8 @@ class TestCreateDhcLocationHoleId:
 
 
 class TestCreateDhcLocationPath:
-    def test_creates_direction_vector(self, converter_distance) -> None:
-        path = converter_distance.create_dhc_location_path()
+    def test_creates_direction_vector(self, converter_distance, distance_table_mock) -> None:
+        path = converter_distance.create_dhc_location_path(distance_table_mock)
 
         assert path is not None
         assert path.length == 5  # Total measurements
@@ -471,24 +475,15 @@ class TestHoleIdTables:
 
 
 class TestPathTable:
-    def test_creates_table_with_correct_schema(self, converter_distance) -> None:
-        table = converter_distance.path_table()
+    def test_creates_table_with_correct_schema(self, converter_distance, distance_table_mock) -> None:
+        table = converter_distance.path_table(distance_table_mock)
 
         assert isinstance(table, pa.Table)
         assert table.num_rows == 5
         assert set(table.column_names) == {"distance", "azimuth", "dip"}
 
-    def test_assumes_vertical_holes(self, converter_distance) -> None:
-        table = converter_distance.path_table()
-
-        azimuth_values = table.column("azimuth").to_pylist()
-        dip_values = table.column("dip").to_pylist()
-
-        assert all(az == 0.0 for az in azimuth_values)
-        assert all(dip == 90.0 for dip in dip_values)
-
-    def test_uses_depth_values_for_distance(self, converter_distance) -> None:
-        table = converter_distance.path_table()
+    def test_uses_depth_values_for_distance(self, converter_distance, distance_table_mock) -> None:
+        table = converter_distance.path_table(distance_table_mock)
 
         distances = table.column("distance").to_pylist()
 
@@ -573,7 +568,9 @@ class TestEdgeCases:
 
         distance_mock = Mock(spec=DistanceMeasurementTable)
         distance_mock.df = distance_df
+        distance_mock.get_azimuth_values.return_value = [0.0]
         distance_mock.get_depth_values.return_value = [10.0]
+        distance_mock.get_dip_values.return_value = [90.0]
         distance_mock.get_primary_column.return_value = "penetrationLength"
         distance_mock.get_attribute_columns.return_value = ["density"]
         distance_mock.get_nan_values.return_value = []

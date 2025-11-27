@@ -10,8 +10,12 @@
 #  limitations under the License.
 
 import pandas as pd
-from evo.data_converters.ags.importer.ags_to_downhole_collection import create_from_parsed_ags
+from evo.data_converters.ags.importer.ags_to_downhole_collection import (
+    calculate_dip_and_azimuth,
+    create_from_parsed_ags,
+)
 from evo.data_converters.common.objects.downhole_collection import DownholeCollection
+from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP
 
 
 def test_create_dc_basic_properties(mock_ags_context):
@@ -230,3 +234,112 @@ def test_create_dc_measurements_scpt_empty_table(mock_ags_context):
     # Should still create collars, but final_depth should be NaN
     assert len(result.collars.df) == 4
     assert result.collars.df["final_depth"].isna().all()
+
+
+class TestCalculateDipAndAzimuth:
+    def test_matches_measurement_to_horn_interval(self):
+        horn_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH01"],
+                "HORN_TOP": [0.0, 10.0],
+                "HORN_BASE": [10.0, 20.0],
+                "HORN_INCL": [85.0, 80.0],
+                "HORN_ORNT": [45.0, 90.0],
+            }
+        )
+        measurements_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH01", "BH01"],
+                "SCPT_DPTH": [5.0, 15.0, 18.0],
+            }
+        )
+
+        calculate_dip_and_azimuth(horn_df, measurements_df, "SCPT_DPTH")
+
+        assert measurements_df["dip"].tolist() == [85.0, 80.0, 80.0]
+        assert measurements_df["azimuth"].tolist() == [45.0, 90.0, 90.0]
+
+    def test_defaults_when_no_matching_interval(self):
+        horn_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01"],
+                "HORN_TOP": [5.0],
+                "HORN_BASE": [10.0],
+                "HORN_INCL": [85.0],
+                "HORN_ORNT": [45.0],
+            }
+        )
+        measurements_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH01"],
+                "SCPT_DPTH": [2.0, 15.0],
+            }
+        )
+
+        calculate_dip_and_azimuth(horn_df, measurements_df, "SCPT_DPTH")
+
+        assert measurements_df["dip"].tolist() == [DEFAULT_DIP, DEFAULT_DIP]
+        assert measurements_df["azimuth"].tolist() == [DEFAULT_AZIMUTH, DEFAULT_AZIMUTH]
+
+    def test_multiple_locas(self):
+        horn_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH02"],
+                "HORN_TOP": [0.0, 0.0],
+                "HORN_BASE": [20.0, 20.0],
+                "HORN_INCL": [85.0, 75.0],
+                "HORN_ORNT": [45.0, 180.0],
+            }
+        )
+        measurements_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH02", "BH01"],
+                "SCPT_DPTH": [5.0, 10.0, 15.0],
+            }
+        )
+
+        calculate_dip_and_azimuth(horn_df, measurements_df, "SCPT_DPTH")
+
+        assert measurements_df["dip"].tolist() == [85.0, 75.0, 85.0]
+        assert measurements_df["azimuth"].tolist() == [45.0, 180.0, 45.0]
+
+
+class TestCreateDownholeCollectionWithHornTable:
+    def test_no_horn_table_no_dip_azimuth_columns(self, mock_ags_context):
+        result = create_from_parsed_ags(mock_ags_context)
+
+        scpt_adapter = next((a for a in result.measurements if "SCPT_DPTH" in a.df.columns), None)
+        assert scpt_adapter is not None
+
+        assert "dip" not in scpt_adapter.df.columns
+        assert "azimuth" not in scpt_adapter.df.columns
+
+    def test_horn_table_adds_dip_azimuth_columns(self, mock_ags_context):
+        horn_df = pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH02", "BH03"],
+                "HORN_TOP": [0.0, 0.0, 0.0],
+                "HORN_BASE": [20.0, 20.0, 20.0],
+                "HORN_INCL": [85.0, 80.0, 75.0],
+                "HORN_ORNT": [45.0, 90.0, 135.0],
+            }
+        )
+
+        original_get_table = mock_ags_context.get_table.side_effect
+
+        def with_horn_get_table(table_name):
+            if table_name == "HORN":
+                return horn_df
+            return original_get_table(table_name)
+
+        mock_ags_context.get_table.side_effect = with_horn_get_table
+
+        result = create_from_parsed_ags(mock_ags_context)
+
+        scpt_adapter = next((a for a in result.measurements if "SCPT_DPTH" in a.df.columns), None)
+        assert scpt_adapter is not None
+
+        assert "dip" in scpt_adapter.df.columns
+        assert "dip" in scpt_adapter.mapping.DIP_COLUMNS
+        assert "azimuth" in scpt_adapter.df.columns
+        assert "azimuth" in scpt_adapter.mapping.AZIMUTH_COLUMNS

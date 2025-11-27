@@ -136,7 +136,7 @@ class DownholeCollectionToGeoscienceObject:
 
         :return: Complete location object with spatial and organisational data
         """
-        measurement_table = self.get_first_distance_measurement_table()
+        dt = self.get_first_distance_measurement_table()
 
         return DownholeCollection_Location(
             # Attributes
@@ -145,10 +145,10 @@ class DownholeCollectionToGeoscienceObject:
             coordinates=self.create_dhc_location_coordinates(),
             # Hole Collars
             distances=self.create_dhc_location_distances(),
-            holes=self.create_dhc_hole_chunks(measurement_table),
+            holes=self.create_dhc_hole_chunks(dt),
             # DC Location
             hole_id=self.create_dhc_location_hole_id(),
-            path=self.create_dhc_location_path(),
+            path=self.create_dhc_location_path(dt),
         )
 
     def create_dhc_location_attributes(self) -> OneOfAttribute | None:
@@ -218,7 +218,7 @@ class DownholeCollectionToGeoscienceObject:
 
         return CategoryData(table=lookup_table_go, values=integer_array_go)
 
-    def create_dhc_location_path(self) -> DownholeDirectionVector:
+    def create_dhc_location_path(self, dt: DistanceMeasurementTable) -> DownholeDirectionVector:
         """
         Create downhole direction vectors defining the trajectory of each hole.
 
@@ -226,7 +226,7 @@ class DownholeCollectionToGeoscienceObject:
 
         :return: DownholeDirectionVector object with distance, azimuth, and dip values
         """
-        path_table = self.path_table()
+        path_table = self.path_table(dt)
         path_args = self.data_client.save_table(path_table)
         return DownholeDirectionVector.from_dict(path_args)
 
@@ -410,7 +410,7 @@ class DownholeCollectionToGeoscienceObject:
         )
         return (lookup_table, integer_array_table)
 
-    def path_table(self) -> pa.Table:
+    def path_table(self, dt: DistanceMeasurementTable) -> pa.Table:
         """
         Create directional path table for downholes.
 
@@ -427,13 +427,11 @@ class DownholeCollectionToGeoscienceObject:
                 pa.field("dip", pa.float64()),
             ]
         )
-        measurements = self.get_first_distance_measurement_table()
-        num_measurements = len(measurements.df)
 
         arrays = [
-            pa.array(measurements.get_depth_values(), type=pa.float64()),
-            pa.array([AZIMUTH] * num_measurements, type=pa.float64()),
-            pa.array([DIP] * num_measurements, type=pa.float64()),
+            pa.array(dt.get_depth_values(), type=pa.float64()),
+            pa.array(dt.get_azimuth_values(), type=pa.float64()),
+            pa.array(dt.get_dip_values(), type=pa.float64()),
         ]
 
         return pa.Table.from_arrays(arrays, schema=path_schema)
