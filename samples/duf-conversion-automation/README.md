@@ -16,6 +16,7 @@ Open a command prompt and run this command:
    ```powershell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
+Changing the execution policy allows running a script from the internet.
 
 ## Setup
 
