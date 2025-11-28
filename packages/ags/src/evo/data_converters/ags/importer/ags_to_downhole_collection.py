@@ -9,6 +9,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import numpy as np
+import pandas as pd
+
 import evo.logging
 from evo.data_converters.ags.common import AgsContext
 from evo.data_converters.common.objects.downhole_collection import (
@@ -17,7 +20,6 @@ from evo.data_converters.common.objects.downhole_collection import (
     HoleCollars,
 )
 from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
-import pandas as pd
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -72,7 +74,8 @@ def create_from_parsed_ags(
         ),
     )
 
-    # Calculate dip and azimuth for the first distance table, which is used to build the Location->Path component.
+    # If HORN data present, calculate dip and azimuth for the first distance table.
+    # Only the first distance table is used when building the hole path geometry.
     horn_df = ags_context.get_table("HORN")
     if horn_df is not None and not horn_df.empty:
         for mt in downhole_collection.measurements:
@@ -139,47 +142,54 @@ def calculate_dip_and_azimuth(
     measurements_df: pd.DataFrame,
     depth_column: str,
 ) -> None:
-    """Add dip and azimuth columns from HORN table.
+    """Add dip and azimuth columns from HORN table (vectorized).
 
     Matches each measurement to a HORN interval where HORN_TOP <= depth < HORN_BASE.
     Measurements outside all intervals for their LOCA_ID get vertical defaults (90°/0°).
-
-    :param horn_df: The HORN table DataFrame.
-    :param measurements_df: The distance table DataFrame where dip/azimuth columns will be added.
-    :param depth_column: Name of the depth column in distance table.
     """
-    dip_values = []
-    azimuth_values = []
+    n_rows = len(measurements_df)
+
+    # Initialize results with defaults
+    dip_result = np.full(n_rows, DEFAULT_DIP, dtype="float64")
+    azimuth_result = np.full(n_rows, DEFAULT_AZIMUTH, dtype="float64")
+
+    # Create working copy with original index tracking
+    work_df = measurements_df[["LOCA_ID", depth_column]].copy()
+    work_df["_orig_idx"] = np.arange(n_rows)
+
+    # Pre-sort HORN intervals by LOCA_ID
+    horn_by_loca = {loca_id: group.sort_values("HORN_TOP") for loca_id, group in horn_df.groupby("LOCA_ID")}
+
     unmatched_count = 0
 
-    # Group HORN intervals by LOCA_ID for faster lookup
-    horn_by_loca = {loca_id: group for loca_id, group in horn_df.groupby("LOCA_ID")}
+    for loca_id, m_group in work_df.groupby("LOCA_ID"):
+        horn_group = horn_by_loca.get(loca_id)
 
-    for _, row in measurements_df.iterrows():
-        loca_id = row["LOCA_ID"]
-        depth = row[depth_column]
-
-        intervals = horn_by_loca.get(loca_id)
-
-        if intervals is None:
-            dip_values.append(DEFAULT_DIP)
-            azimuth_values.append(DEFAULT_AZIMUTH)
-            unmatched_count += 1
+        if horn_group is None:
+            unmatched_count += len(m_group)
             continue
 
-        # Find interval containing this depth
-        matching = intervals[(intervals["HORN_TOP"] <= depth) & (intervals["HORN_BASE"] > depth)]
+        m_sorted = m_group.sort_values(depth_column)
 
-        if len(matching) >= 1:
-            dip_values.append(matching.iloc[0]["HORN_INCL"])
-            azimuth_values.append(matching.iloc[0]["HORN_ORNT"])
-        else:
-            dip_values.append(DEFAULT_DIP)
-            azimuth_values.append(DEFAULT_AZIMUTH)
-            unmatched_count += 1
+        merged = pd.merge_asof(
+            m_sorted[[depth_column, "_orig_idx"]],
+            horn_group[["HORN_TOP", "HORN_BASE", "HORN_INCL", "HORN_ORNT"]],
+            left_on=depth_column,
+            right_on="HORN_TOP",
+            direction="backward",
+        )
+
+        # Match is valid only if depth falls within the interval
+        in_interval = (merged["HORN_BASE"].notna()) & (merged[depth_column] < merged["HORN_BASE"])
+
+        orig_idx = merged["_orig_idx"].values
+        dip_result[orig_idx] = np.where(in_interval, merged["HORN_INCL"], DEFAULT_DIP)
+        azimuth_result[orig_idx] = np.where(in_interval, merged["HORN_ORNT"], DEFAULT_AZIMUTH)
+
+        unmatched_count += (~in_interval).sum()
 
     if unmatched_count > 0:
         logger.info(f"{unmatched_count} depth measurements outside HORN intervals, assuming vertical")
 
-    measurements_df["dip"] = pd.Series(dip_values, dtype="float64")
-    measurements_df["azimuth"] = pd.Series(azimuth_values, dtype="float64")
+    measurements_df["dip"] = pd.Series(dip_result, dtype="float64")
+    measurements_df["azimuth"] = pd.Series(azimuth_result, dtype="float64")
