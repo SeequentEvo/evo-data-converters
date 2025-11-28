@@ -10,12 +10,19 @@ authors = [
 ]
 dependencies = [
     "evo-data-converters-common",
-    "open3d-cpu>=0.19.0",
     "trimesh>=4.9.0",
+]
+
+[project.optional-dependencies]
+optional_parsers = [
+    "open3d-cpu>=0.19.0",
+    "pyassimp>=5.2.5",
+    "tinyobjloader",
 ]
 
 [dependency-groups]
 dev = [
+    "memray>=1.19.1",
     "pytest",
 ]
 
@@ -43,3 +50,6 @@ path = "README.md"
 # Converts relative links to absolute links in PyPI
 pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
 replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/obj/\g<2>)'
+
+[tool.uv.sources]
+tinyobjloader = { git = "https://github.com/tinyobjloader/tinyobjloader.git" }

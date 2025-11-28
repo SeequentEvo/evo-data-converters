@@ -1,0 +1,251 @@
+import tempfile
+import math
+import numpy as np
+import pytest
+import pandas as pd
+from pathlib import Path
+from unittest import TestCase
+from importlib.util import find_spec
+
+from evo.objects.utils.tables import KnownTableFormat
+from evo_schemas.objects import TriangleMesh_V2_2_0
+from evo_schemas.components import (
+    Crs_V1_0_1_EpsgCode,
+)
+
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+)
+
+from evo.data_converters.obj.importer.obj_to_evo import convert_obj
+from evo.data_converters.obj.importer.implementation.base import UnsupportedOBJError
+
+
+# Specify the simple_shapes.obj in terms of its faces, as different parsers format the faces and vertices
+# in different orders, but the total set of vertices and faces should always be there.
+simple_shape_faces = pd.DataFrame(
+    columns=["object", "n0", "n1", "n2"],
+    data=[
+        # ---- Cube ----
+        ("Cube", (174.79, -41.29, -0.5), (175.29, -41.29, -0.5), (175.29, -40.79, -0.5)),
+        ("Cube", (174.79, -41.29, -0.5), (175.29, -40.79, -0.5), (174.79, -40.79, -0.5)),
+        ("Cube", (174.79, -41.29, 0.5), (174.79, -40.79, 0.5), (175.29, -40.79, 0.5)),
+        ("Cube", (174.79, -41.29, 0.5), (175.29, -40.79, 0.5), (175.29, -41.29, 0.5)),
+        ("Cube", (174.79, -41.29, -0.5), (174.79, -41.29, 0.5), (175.29, -41.29, 0.5)),
+        ("Cube", (174.79, -41.29, -0.5), (175.29, -41.29, 0.5), (175.29, -41.29, -0.5)),
+        ("Cube", (175.29, -41.29, -0.5), (175.29, -41.29, 0.5), (175.29, -40.79, 0.5)),
+        ("Cube", (175.29, -41.29, -0.5), (175.29, -40.79, 0.5), (175.29, -40.79, -0.5)),
+        ("Cube", (175.29, -40.79, -0.5), (175.29, -40.79, 0.5), (174.79, -40.79, 0.5)),
+        ("Cube", (175.29, -40.79, -0.5), (174.79, -40.79, 0.5), (174.79, -40.79, -0.5)),
+        ("Cube", (174.79, -40.79, -0.5), (174.79, -40.79, 0.5), (174.79, -41.29, 0.5)),
+        ("Cube", (174.79, -40.79, -0.5), (174.79, -41.29, 0.5), (174.79, -41.29, -0.5)),
+        # ---- Pyramid ----
+        ("Pyramid", (174.79, -41.29, 1.0), (175.29, -41.29, 1.0), (175.04, -40.79, 1.0)),
+        ("Pyramid", (174.79, -41.29, 1.0), (175.04, -40.79, 1.0), (174.54, -40.79, 1.0)),
+        ("Pyramid", (174.79, -41.29, 1.0), (175.29, -41.29, 1.0), (174.915, -41.045, 2.0)),
+        ("Pyramid", (175.29, -41.29, 1.0), (175.04, -40.79, 1.0), (174.915, -41.045, 2.0)),
+        ("Pyramid", (175.04, -40.79, 1.0), (174.54, -40.79, 1.0), (174.915, -41.045, 2.0)),
+        ("Pyramid", (174.54, -40.79, 1.0), (174.79, -41.29, 1.0), (174.915, -41.045, 2.0)),
+    ],
+)
+
+
+class TestObjGeometryParsing(TestCase):
+    implementation: str = "trimesh"
+
+    def setUp(self) -> None:
+        self.cache_root_dir = tempfile.TemporaryDirectory()
+        self.metadata = EvoWorkspaceMetadata(
+            workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
+        )
+        _, data_client = create_evo_object_service_and_data_client(self.metadata)
+        self.data_client = data_client
+
+    def _make_geoobject(self, filename="simple_shapes.obj") -> TriangleMesh_V2_2_0:
+        obj_file = Path(__file__).parent / "data" / "simple_shapes" / filename
+
+        (triangle_mesh,) = convert_obj(
+            filepath=obj_file,
+            evo_workspace_metadata=self.metadata,
+            epsg_code=4326,
+            publish_objects=False,
+            implementation=self.implementation,
+        )
+
+        return triangle_mesh
+
+    def _get_dataframe_for_table(self, table_info: dict) -> pd.DataFrame:
+        if not isinstance(table_info, dict):
+            table_info = table_info.as_dict()
+        return KnownTableFormat.load_table(table_info, self.data_client.cache_location).to_pandas()
+
+    def test_geoobject_complete(self) -> None:
+        triangle_mesh = self._make_geoobject()
+
+        assert isinstance(triangle_mesh, TriangleMesh_V2_2_0), "GeoObject is TriangleMesh_V2_2_0"
+
+        assert triangle_mesh.name == "simple_shapes.obj"
+        assert triangle_mesh.description is None
+        assert triangle_mesh.tags == {
+            "Source": "simple_shapes.obj (via Evo Data Converters)",
+            "Stage": "Experimental",
+            "InputType": "OBJ",
+        }
+        assert triangle_mesh.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
+
+        assert math.isclose(triangle_mesh.bounding_box.min_x, 174.54, rel_tol=0.01)
+        assert math.isclose(triangle_mesh.bounding_box.max_x, 175.29, rel_tol=0.01)
+        assert math.isclose(triangle_mesh.bounding_box.min_y, -41.29, rel_tol=0.01)
+        assert math.isclose(triangle_mesh.bounding_box.max_y, -40.79, rel_tol=0.01)
+        assert math.isclose(triangle_mesh.bounding_box.min_z, -0.5, rel_tol=0.01)
+        assert math.isclose(triangle_mesh.bounding_box.max_z, 2.0, rel_tol=0.01)
+
+        # We're not using edges
+        assert triangle_mesh.edges is None
+
+        assert triangle_mesh.triangles.indices is not None
+        assert triangle_mesh.triangles.vertices is not None
+        assert triangle_mesh.parts.chunks is not None
+
+        # We're not using triangle_indices
+        assert triangle_mesh.parts.triangle_indices is None
+
+    def test_correct_vertices(self) -> None:
+        triangle_mesh = self._make_geoobject()
+        vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices).drop_duplicates()
+
+        # Extract the unique set of vertices from the faces and make sure all those vertices exist in the table
+        correct_vertices = pd.Series(simple_shape_faces[["n0", "n1", "n2"]].values.ravel()).drop_duplicates()
+        matches: list[bool] = []
+        for vertex in correct_vertices:
+            found = False
+            for _, vertex2 in vertices.iterrows():
+                if np.allclose(vertex, vertex2):
+                    found = True
+                    break
+            matches.append(found)
+
+        intersection = correct_vertices[matches]
+        assert len(intersection) == len(vertices)
+        assert len(correct_vertices) == len(vertices)
+
+    def _make_face_vertices_sets(self, vertices: pd.DataFrame, faces: pd.DataFrame) -> pd.Series:
+        """
+        Zips a faces frame of n0/n1/n2 vertices references to a vertices frame by row reference,
+        making a new Series that contains all the triples of x/y/z coordinates.
+        """
+        face_rows = []
+        for _, face in faces.iterrows():
+            face_rows.append(
+                (
+                    tuple(vertices.iloc[face["n0"]][["x", "y", "z"]].values),
+                    tuple(vertices.iloc[face["n1"]][["x", "y", "z"]].values),
+                    tuple(vertices.iloc[face["n2"]][["x", "y", "z"]].values),
+                )
+            )
+        return pd.Series(face_rows)
+
+    def _compare_face_sets(self, faces1: pd.Series, faces2: pd.Series) -> bool:
+        """
+        Helper that takes two Series where each element is a face triple of x/y/z tuples
+        returning True if the two Series are equivalent (with fuzzy float comparison).
+        """
+        matches = []
+        for face1 in faces1:
+            found = False
+            for face2 in faces2:
+                if np.allclose(np.sort(face1, axis=0), np.sort(face2, axis=0), atol=1e-3):
+                    found = True
+                    break
+            matches.append(found)
+
+        intersection = faces1[matches]
+        return len(intersection) == len(faces2)
+
+    def test_correct_faces(self) -> None:
+        triangle_mesh = self._make_geoobject()
+        faces = self._get_dataframe_for_table(triangle_mesh.triangles.indices)
+        vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices)
+        assert len(faces) == len(simple_shape_faces), "Check number of faces is correct"
+
+        face_vertex_sets = self._make_face_vertices_sets(vertices, faces)
+
+        # Produce an equivalent set of the correct faces
+        correct_face_vertex_sets = simple_shape_faces[["n0", "n1", "n2"]].apply(lambda r: tuple(r), axis=1)
+
+        assert self._compare_face_sets(face_vertex_sets, correct_face_vertex_sets), (
+            "Check all faces have the right triple of vertices"
+        )
+
+    def test_correct_parts(self) -> None:
+        triangle_mesh = self._make_geoobject()
+        chunks = self._get_dataframe_for_table(triangle_mesh.parts.chunks)
+        vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices)
+
+        assert len(chunks) == 2, "Cube and Pyramid should form two chunks"
+
+        # We now need to slice up the triangles and vertices tables chunk by chunk to ensure they have the right vertices
+        for _, chunk in chunks.iterrows():
+            chunk_vertices = vertices.iloc[chunk["offset"] : chunk["offset"] + chunk["count"]]
+            assert len(chunk_vertices) == chunk["count"]
+
+            # Not yet asserting that these vertices make up a part, as we don't know which one yet.
+
+    def test_quad_triangulation(self) -> None:
+        """
+        It's difficult to correctly assert the conversion to triangles from quads, but we'll do some rudimentary tests.
+        """
+        try:
+            triangle_mesh = self._make_geoobject(filename="simple_shapes_quad.obj")
+        except UnsupportedOBJError:
+            pytest.skip(f"{self.implementation} doesn't support triangulation")
+
+        # Perform the same vertices check as test_correct_vertices() as at least the vertices shouldn't have moved
+        vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices).drop_duplicates()
+
+        correct_vertices = pd.Series(simple_shape_faces[["n0", "n1", "n2"]].values.ravel()).drop_duplicates()
+        matches: list[bool] = []
+        for vertex in correct_vertices:
+            found = False
+            for _, vertex2 in vertices.iterrows():
+                if np.allclose(vertex, vertex2):
+                    found = True
+                    break
+            matches.append(found)
+
+        intersection = correct_vertices[matches]
+        assert len(intersection) == len(vertices)
+        assert len(correct_vertices) == len(vertices)
+
+
+@pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
+class TestObjGeometryParsingTinyObj(TestObjGeometryParsing):
+    implementation = "tinyobj"
+
+    # tinyobj not currently handling parts
+    def test_correct_parts(self) -> None:
+        pytest.skip("Part splitting unsupported")
+
+
+@pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
+class TestObjGeometryParsingOpen3D(TestObjGeometryParsing):
+    implementation = "open3d"
+
+    # open3d doesn't support part splitting
+    def test_correct_parts(self) -> None:
+        pytest.skip("Part splitting unsupported")
+
+
+@pytest.mark.skipif(find_spec("vtk") is None, reason="vtk not installed")
+class TestObjGeometryParsingVTK(TestObjGeometryParsing):
+    implementation = "vtk"
+
+    # vtk doesn't support part splitting
+    def test_correct_parts(self) -> None:
+        pytest.skip("Part splitting unsupported")
+
+
+@pytest.mark.skipif(find_spec("pyassimp") is None, reason="pyassimp not installed")
+class TestObjGeometryParsingAssimp(TestObjGeometryParsing):
+    implementation = "assimp"

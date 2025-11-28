@@ -1,0 +1,135 @@
+import asyncio
+import gc
+
+from typing import Tuple
+from typing_extensions import override
+
+import trimesh
+
+import pyarrow as pa
+import numpy as np
+
+from evo_schemas.components import (
+    BoundingBox_V1_0_1,
+    Triangles_V1_2_0_Indices,
+    Triangles_V1_2_0_Vertices,
+    EmbeddedTriangulatedMesh_V2_1_0_Parts,
+)
+from evo_schemas.elements import IndexArray2_V1_0_1
+
+from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
+
+
+class TrimeshObjImporter(ObjImporterBase):
+    scene: trimesh.Scene
+
+    @override
+    def _parse_file(self) -> None:
+        """
+        Opens and validates the OBJ file, creating a native representation of it.
+        """
+        self.scene = trimesh.load_scene(
+            self.obj_file,
+            split_object=True,
+            file_type="obj",
+            # in future when we need texture data this will need to change, in the meantime not
+            # loading textures to PIL saves quite a bit of memory:
+            skip_materials=True,
+        )
+
+    @override
+    async def create_tables(
+        self, publish_parquet: bool = False
+    ) -> Tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
+        """
+        Creates the triangles and indices tables, optionally publishing the tables to Evo as it goes.
+
+        :param publish_parquet: Set `True` to upload Parquet tables to Evo as they're produced
+        :return: Tuple of the vertices GO, Indices GO, chunks array GO
+        """
+        vertex_count_accum = 0
+        vertices_tables = []
+        indices_tables = []
+        parts_tables = []
+
+        for node_name in self.scene.graph.nodes_geometry:
+            # Shift the mesh into world frame
+            transform, geom_name = self.scene.graph.get(node_name)
+            mesh = self.scene.geometry[geom_name].copy()
+            mesh.apply_transform(transform)
+
+            vertices_array = np.asarray(mesh.vertices)
+
+            vertex_table = pa.Table.from_pydict(
+                {"x": vertices_array[:, 0], "y": vertices_array[:, 1], "z": vertices_array[:, 2]},
+                schema=VERTICES_SCHEMA,
+            )
+            del vertices_array
+            vertices_tables.append(vertex_table)
+
+            # We need to offset the face indices because the vertices will be concatenated
+            faces_array = np.asarray(mesh.faces) + vertex_count_accum
+            index_table = pa.Table.from_pydict(
+                {"n0": faces_array[:, 0], "n1": faces_array[:, 1], "n2": faces_array[:, 2]}, schema=INDICES_SCHEMA
+            )
+            del faces_array
+            indices_tables.append(index_table)
+
+            # very short, one-row table
+            part_table = pa.Table.from_pydict(
+                {"offset": [vertex_count_accum], "count": [len(vertex_table)]}, schema=PARTS_SCHEMA
+            )
+            parts_tables.append(part_table)
+
+            vertex_count_accum += len(vertex_table)
+
+        vertices_table = pa.concat_tables(vertices_tables)
+        indices_table = pa.concat_tables(indices_tables)
+        parts_table = pa.concat_tables(parts_tables)
+
+        del vertices_tables, indices_tables, parts_tables
+        gc.collect()
+
+        if publish_parquet:
+            # Publish the tables in parallel
+            vertices_table_obj, indices_table_obj, parts_table_obj = await asyncio.gather(
+                self.data_client.upload_table(vertices_table),
+                self.data_client.upload_table(indices_table),
+                self.data_client.upload_table(parts_table),
+            )
+        else:
+            vertices_table_obj = self.data_client.save_table(vertices_table)
+            indices_table_obj = self.data_client.save_table(indices_table)
+            parts_table_obj = self.data_client.save_table(parts_table)
+
+        vertices_go = Triangles_V1_2_0_Vertices(
+            **vertices_table_obj,
+            attributes=None,
+        )
+
+        indices_go = Triangles_V1_2_0_Indices(
+            **indices_table_obj,
+            attributes=None,
+        )
+
+        chunks_go = IndexArray2_V1_0_1(**parts_table_obj)
+        parts_go = EmbeddedTriangulatedMesh_V2_1_0_Parts(attributes=None, chunks=chunks_go, triangle_indices=None)
+
+        return (vertices_go, indices_go, parts_go)
+
+    @override
+    def _get_bounding_box(self) -> BoundingBox_V1_0_1:
+        """
+        Generates the bounding box GeoObject of the vertices in the world scene.
+
+        :return: Bounding Box GeoObject with coordinates of the boundaries
+        """
+        bounds = self.scene.bounds
+        return BoundingBox_V1_0_1(
+            min_x=bounds[0][0],
+            max_x=bounds[1][0],
+            min_y=bounds[0][1],
+            max_y=bounds[1][1],
+            min_z=bounds[0][2],
+            max_z=bounds[1][2],
+        )
