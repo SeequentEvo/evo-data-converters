@@ -135,6 +135,23 @@ class AttributeSpec:
             attr for i in range(attr_count) if (attr := cls.layer_attribute_by_index(layer, i, evo_schema)) is not None
         ]
 
+    def _double_to_go(self, data_client: ObjectDataClient, values: list[numpy.floating | None]):
+        table = pa.table(
+            [values],
+            schema=pa.schema(
+                [
+                    pa.field("n0", pa.float64()),
+                ]
+            ),
+        )
+        table = data_client.save_table(table)
+        return ContinuousAttribute_V1_1_0(
+            name=self.evo_name,
+            key=self.name,
+            values=FloatArray1_V1_0_1(**table),
+            nan_description=NanContinuous_V1_0_1(values=[]),
+        )
+
     def to_go(self, data_client: ObjectDataClient, values: list[Any]) -> OneOfAttribute_V1_2_0_Item:
         category_set = None
         if self.attr_type is AttributeType.String:
@@ -196,6 +213,11 @@ class AttributeSpec:
                     values=IntegerArray1_V1_0_1(**values_table),
                 )
             case AttributeType.Integer:
+                if any(v is None for v in values):
+                    # Leapfrog does not handle cases where integer columns have NaN values. So, convert it to double.
+                    doubles = [v if v is None else float(v) for v in values]
+                    logger.warning(f"Integer column {self.name} has NaNs. Converting to double.")
+                    return self._double_to_go(data_client, doubles)
                 nan_values = [max((v for v in values if v is not None), default=-1) + 1]
                 data_type = pa.int32() if numpy.can_cast(nan_values[0], "int32", "safe") else pa.int64()
                 table = pa.table(
@@ -219,21 +241,7 @@ class AttributeSpec:
                     nan_description=NanCategorical_V1_0_1(values=nan_values),
                 )
             case AttributeType.Double:
-                table = pa.table(
-                    [values],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", pa.float64()),
-                        ]
-                    ),
-                )
-                table = data_client.save_table(table)
-                return ContinuousAttribute_V1_1_0(
-                    name=self.evo_name,
-                    key=self.name,
-                    values=FloatArray1_V1_0_1(**table),
-                    nan_description=NanContinuous_V1_0_1(values=[]),
-                )
+                return self._double_to_go(data_client, values)
             case AttributeType.DateTime:
                 # The conversion is a little painful here as pyarrow can't always find tzdata to handle the timezones
                 min_value = float("inf")
@@ -310,6 +318,17 @@ class AttributeSpec:
                 return None
 
 
+def _try_cast(cast_func, value) -> Any | None:
+    if value in (None, ""):
+        return None
+    try:
+        return cast_func(value)
+    except ValueError:
+        # It is possible for a Deswik entity to have an attribute that doesn't match its layer's type spec.
+        logger.debug(f"Not able to use `{cast_func}` to cast `{value}`")
+        return None
+
+
 def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeType) -> Any:
     if obj.XProperties is None:
         return None
@@ -320,13 +339,11 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
         case AttributeType.String | AttributeType.Category:
             return str(value) if value is not None else None
         case AttributeType.Integer:
-            return int(value) if value not in {None, ""} else None
+            return _try_cast(int, value)
         case AttributeType.Double:
-            return float(value) if value not in {None, ""} else None
+            return _try_cast(float, value)
         case AttributeType.DateTime | AttributeType.Boolean:
             return value if value not in {None, ""} else None
-        # case AttributeType.Color:
-        #     return value.ValueColor
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None

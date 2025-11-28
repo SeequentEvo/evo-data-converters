@@ -115,3 +115,25 @@ def id_attribute_path():
 def id_attribute(id_attribute_path):
     with DUFCollectorContext(id_attribute_path) as context:
         yield context.collector
+
+
+@pytest.fixture(scope="session")
+def missing_ints_path():
+    return str((Path(__file__).parent.parent / "data" / "missing_ints.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def missing_ints(missing_ints_path):
+    with DUFCollectorContext(missing_ints_path) as context:
+        yield context.collector
+
+
+@pytest.fixture(scope="session")
+def mismatching_type_desc_and_values_path():
+    return str((Path(__file__).parent.parent / "data" / "mismatching_type_desc_and_values.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def mismatching_type_desc_and_values(mismatching_type_desc_and_values_path):
+    with DUFCollectorContext(mismatching_type_desc_and_values_path) as context:
+        yield context.collector
