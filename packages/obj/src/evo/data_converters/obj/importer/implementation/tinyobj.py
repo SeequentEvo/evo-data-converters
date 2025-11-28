@@ -1,0 +1,119 @@
+import asyncio
+import gc
+
+from typing import Tuple
+from typing_extensions import override
+
+import tinyobjloader
+
+import pyarrow as pa
+
+from evo_schemas.components import (
+    BoundingBox_V1_0_1,
+    Triangles_V1_2_0_Indices,
+    Triangles_V1_2_0_Vertices,
+    EmbeddedTriangulatedMesh_V2_1_0_Parts,
+)
+from evo_schemas.elements import IndexArray2_V1_0_1
+
+from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
+
+
+class TinyobjObjImporter(ObjImporterBase):
+    reader: tinyobjloader.ObjReader
+
+    @override
+    def _parse_file(self) -> None:
+        """
+        Opens and validates the OBJ file, creating a native representation of it.
+        """
+        self.reader = tinyobjloader.ObjReader()
+        config = tinyobjloader.ObjReaderConfig()
+        config.triangulate = True
+        ret = self.reader.ParseFromFile(str(self.obj_file), option=config)
+        if not ret:
+            raise ValueError(f"Failed to parse {self.obj_file}")
+
+    @override
+    async def create_tables(
+        self, publish_parquet: bool = False
+    ) -> Tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
+        """
+        Creates the triangles and indices tables, optionally publishing the tables to Evo as it goes.
+
+        :param publish_parquet: Set `True` to upload Parquet tables to Evo as they're produced
+        :return: Tuple of the vertices GO, Indices GO, chunks array GO
+        """
+        attrib = self.reader.GetAttrib()
+        vertices_array = attrib.numpy_vertices().reshape(-1, 3)
+        vertices_table = pa.Table.from_pydict(
+            {"x": vertices_array[:, 0], "y": vertices_array[:, 1], "z": vertices_array[:, 2]}, schema=VERTICES_SCHEMA
+        )
+        del vertices_array
+
+        shapes = self.reader.GetShapes()
+        indices_tables = []
+        for shape in shapes:
+            # This is gross because of struct packing, see index_t
+            # index_t is vertex_index, normal_index, texcoord_index
+            # we extract only vertex_index, then we group them back into triangles of 3
+            faces_array = shape.mesh.numpy_indices().reshape(-1, 3)[:, 0].reshape(-1, 3)
+            index_table = pa.Table.from_pydict(
+                {"n0": faces_array[:, 0], "n1": faces_array[:, 1], "n2": faces_array[:, 2]}, schema=INDICES_SCHEMA
+            )
+            del faces_array
+            indices_tables.append(index_table)
+
+        del attrib
+        del shapes
+        gc.collect()
+
+        # very short, one-row table as we don't support separate parts with tinyobj right now
+        parts_table = pa.Table.from_pydict({"offset": [0], "count": [0]}, schema=PARTS_SCHEMA)
+
+        indices_table = pa.concat_tables(indices_tables)
+
+        if publish_parquet:
+            # Publish the tables in parallel
+            vertices_table_obj, indices_table_obj, parts_table_obj = await asyncio.gather(
+                self.data_client.upload_table(vertices_table),
+                self.data_client.upload_table(indices_table),
+                self.data_client.upload_table(parts_table),
+            )
+        else:
+            vertices_table_obj = self.data_client.save_table(vertices_table)
+            indices_table_obj = self.data_client.save_table(indices_table)
+            parts_table_obj = self.data_client.save_table(parts_table)
+
+        vertices_go = Triangles_V1_2_0_Vertices(
+            **vertices_table_obj,
+            attributes=None,
+        )
+
+        indices_go = Triangles_V1_2_0_Indices(
+            **indices_table_obj,
+            attributes=None,
+        )
+
+        chunks_go = IndexArray2_V1_0_1(**parts_table_obj)
+        parts_go = EmbeddedTriangulatedMesh_V2_1_0_Parts(attributes=None, chunks=chunks_go, triangle_indices=None)
+
+        return (vertices_go, indices_go, parts_go)
+
+    @override
+    def _get_bounding_box(self) -> BoundingBox_V1_0_1:
+        """
+        Generates the bounding box GeoObject of the vertices of the imported file.
+
+        :return: Bounding Box GeoObject with coordinates of the boundaries
+        """
+        attrib = self.reader.GetAttrib()
+        vertices = attrib.numpy_vertices().reshape(-1, 3)
+        return BoundingBox_V1_0_1(
+            min_x=vertices[:, 0].min(),
+            max_x=vertices[:, 0].max(),
+            min_y=vertices[:, 1].min(),
+            max_y=vertices[:, 1].max(),
+            min_z=vertices[:, 2].min(),
+            max_z=vertices[:, 2].max(),
+        )
