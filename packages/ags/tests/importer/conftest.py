@@ -54,6 +54,46 @@ def valid_ags_path():
 
 
 @pytest.fixture(scope="session")
+def valid_ags_1a_path():
+    """Path to a valid AGS file with proper structure in PROJ_ID EXAMPLE-1"""
+    return str((Path(__file__).parent / "data" / "valid_ags_1a.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def valid_ags_1b_path():
+    """Path to a valid AGS file in PROJ_ID EXAMPLE-1.
+    Contains different LOCA_ID to valid_ags_1a.ags"""
+    return str((Path(__file__).parent / "data" / "valid_ags_1b.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def valid_ags_2a_path():
+    """Path to a valid AGS file in PROJ_ID EXAMPLE-2"""
+    return str((Path(__file__).parent / "data" / "valid_ags_2a.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def invalid_ags_2b_path():
+    """Path to an invalid AGS file in PROJ_ID EXAMPLE-2.
+    Contains a duplicate LOCA_ID, present in valid_ags_2a.ags."""
+    return str((Path(__file__).parent / "data" / "invalid_ags_2b.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def valid_ags_2c_path():
+    """Path to a valid AGS file in PROJ_ID EXAMPLE-2.
+    Contains non-identical PROJ table entry, raising warning only."""
+    return str((Path(__file__).parent / "data" / "valid_ags_2c.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def invalid_ags_2d_path():
+    """Path to an invalid AGS file in PROJ_ID EXAMPLE-2.
+    Incompatible CRS information."""
+    return str((Path(__file__).parent / "data" / "invalid_ags_2d.ags").resolve())
+
+
+@pytest.fixture(scope="session")
 def valid_ags_no_cpt_path():
     """Path to a valid AGS file without CPT data."""
     return str((Path(__file__).parent / "data" / "valid_ags_no_cpt.ags").resolve())

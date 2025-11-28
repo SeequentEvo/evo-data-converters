@@ -17,6 +17,7 @@ from .pandas_utils import coerce_to_object_int
 from pyproj import CRS
 from pyproj.exceptions import CRSError
 from python_ags4 import AGS4
+from functools import cached_property
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -37,21 +38,32 @@ class AgsContext:
     table access, and serialization utilities for AGS4 files.
 
     :cvar list[str] REQUIRED_GROUPS: Groups required for import operations (e.g., ``LOCA``, ``SCPG``, ``SCPT``).
-    :cvar list[str] RETAINED_GROUPS: Groups always retained from an AGS file (e.g., ``PROJ``, ``UNIT``, ``ABBR``, ``DICT``, ``TRAN``).
-    :cvar list[str] MEASUREMENT_GROUPS: Groups that contain measurement data (e.g., ``SCPT``, ``SCPP``, ``GEOL``, ``SCDG``).
+    :cvar list[str] MEASUREMENT_GROUPS: Groups that contain measurement data
+        (e.g., ``SCPT``, ``SCPP``, ``GEOL``, ``SCDG``).
+    :cvar list[str] RETAINED_GROUPS: Other groups retained from an AGS file (e.g., ``PROJ``, ``UNIT``).
     :cvar list[str] IGNORED_RULES: AGS validation rules that are ignored during file checks.
     :cvar dict[str, str] TYPE_CATEGORY: Mapping of AGS ``TYPE`` codes to conversion categories used during
         dataframe coercion. Known categories are ``"int"``, ``"float"``, ``"datetime"``, ``timedelta``, and ``"bool"``.
 
-    :ivar dict[str, pandas.DataFrame] tables: Processed tables keyed by group name. Only relevant downhole collection groups are retained.
+    :ivar dict[str, pandas.DataFrame] tables: Processed tables keyed by group
+        name. Only relevant downhole collection groups are retained.
     :ivar dict[str, list[str]] headings: Original AGS headings per group.
-    :ivar str filename: The file name if parsed from a path; otherwise derived from ``PROJ.PROJ_NAME`` and ``PROJ.PROJ_ID``. Raises ``ValueError`` if neither is available.
-    :ivar int | None coordinate_reference_system: The CRS identifier if available (e.g., from ``LOCA_GREF``), otherwise ``None``.
+    :ivar str filename: The file name if parsed from a path; otherwise derived
+        from ``PROJ.PROJ_NAME`` and ``PROJ.PROJ_ID``. Raises ``ValueError`` if
+        neither is available.
+    :ivar int | None coordinate_reference_system: The CRS identifier if
+        available (e.g., from ``LOCA_GREF``), otherwise ``None``.
 
-    :meth:`parse_ags(filepath)`: Parse an AGS file (path or buffer) into DataFrames, apply type conversions based on AGS TYPE rows, and validate the result for import suitability.
+    :meth:`parse_ags(filepath)`: Parse an AGS file (path or buffer) into
+        DataFrames, apply type conversions based on AGS TYPE rows, and validate
+        the result for import suitability.
     :meth:`write_ags(filepath)`: Write the current tables and headings to an AGS4 file.
     :meth:`check_ags_file(filepath)`: Validate an AGS file against the AGS specification, ignoring configured rules.
-    :meth:`set_tables_and_headings(tables, headings)`: Store processed tables and their headings. Applies dtype conversions from the AGS TYPE row, strips UNIT/TYPE rows, standardizes missing values to ``pandas.NA``, and indexes on ``LOCA_ID`` where present. Only relevant groups are retained.
+    :meth:`set_tables_and_headings(tables, headings)`: Store processed tables
+        and their headings. Applies dtype conversions from the AGS TYPE row,
+        strips UNIT/TYPE rows, standardizes missing values to ``pandas.NA``,
+        and indexes on ``LOCA_ID`` where present. Only relevant groups are
+        retained.
     :meth:`validate_ags()`: Validate the in-memory AGS data for import requirements.
     :meth:`get_table(group)`: Get a table by group name.
     :meth:`get_tables(groups)`: Get all present tables whose names appear in the provided list.
@@ -65,8 +77,9 @@ class AgsContext:
     _filename: str | None
 
     REQUIRED_GROUPS: list[str] = ["LOCA", "SCPG", "SCPT"]
-    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT", "ABBR", "DICT", "TRAN", "HORN"]
+    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT", "HORN"]
     MEASUREMENT_GROUPS: list[str] = ["SCPT", "SCPP", "GEOL", "SCDG"]
+    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT"]
 
     IGNORED_RULES: list[str] = [
         # 2a: Each line should be terminated by CR and LF characters
@@ -167,9 +180,6 @@ class AgsContext:
         # Validate whether we can import these dataframes to a Downhole Collection
         if errors := self.validate_ags():
             raise AgsFileInvalidException("AGS file is invalid: ", ", ".join(errors))
-
-    def write_ags(self, filepath: Path | str) -> None:
-        AGS4.dataframe_to_AGS4(self._tables, self._headings, filepath)
 
     def check_ags_file(self, filepath: Path | str | StringIO) -> None:
         """Checks an AGS file to validate conformity to AGS spec.
@@ -326,6 +336,20 @@ class AgsContext:
         """
         return self._headings
 
+    @cached_property
+    def proj_id(self) -> str:
+        """Gets the PROJ_ID from the PROJ table.
+
+        :returns: PROJ_ID string
+        :rtype: str
+        :raises ValueError: if PROJ_ID is not found
+        """
+        try:
+            proj_id = self.get_table("PROJ").at[0, "PROJ_ID"]
+            return str(proj_id)
+        except (KeyError, ValueError):
+            raise ValueError("PROJ_ID not found in PROJ table")
+
     @property
     def coordinate_reference_system(self) -> int | str | None:
         """Gets the coordinate reference system used by the in-memory AGS file.
@@ -349,9 +373,6 @@ class AgsContext:
 
     def get_table(self, group: str) -> pd.DataFrame:
         """Gets a table by group name.
-
-        .. todo::
-           Add documentation for filtering by LOCA_ID
 
         :param group: Group name to retrieve the DataFrame for
         :return: DataFrame containing the table data, or an empty DataFrame if not present
@@ -394,7 +415,8 @@ class AgsContext:
         """
         Try to determine CRS from LOCA_GREF, if it exists.
 
-        :returns: None if we can't determine a CRS, "unspecified" if the CRS is locally defined, an integer if we found the projected CRS.
+        :returns: None if we can't determine a CRS, "unspecified" if the
+            CRS is locally defined, an integer if we found the projected CRS.
         """
         try:
             gref = self.get_table("LOCA").at[0, "LOCA_GREF"]
@@ -436,6 +458,171 @@ class AgsContext:
             return None
 
         return crs.to_epsg()
+
+    def validate_merge(self, other: "AgsContext", raise_on_error: bool = True) -> list[str]:
+        """Validate whether another AgsContext can be merged into this one.
+
+        Checks PROJ_ID and CRS compatibility, returning a list of incompatibility
+        issues found.
+
+        :param other: The AgsContext to validate for merging
+        :param raise_on_error: If True, raises ValueError on first incompatibility found
+        :returns: List of incompatibility warning messages (empty if compatible)
+        :raises ValueError: If raise_on_error=True and contexts are incompatible
+        """
+        issues = []
+
+        # Check PROJ_ID compatibility
+        if self.proj_id != other.proj_id:
+            msg = (
+                f"Incompatible PROJ_ID: first has '{self.proj_id}', second has '{other.proj_id}'. "
+                f"Rows from first context will be kept for duplicate LOCA_IDs and (LOCA_ID, SCPG_TESN) pairs."
+            )
+            if raise_on_error:
+                raise ValueError(f"Cannot merge AgsContext instances: {msg}")
+            issues.append(msg)
+
+        # Check CRS compatibility
+        self_crs = self.coordinate_reference_system
+        other_crs = other.coordinate_reference_system
+        if self_crs is not None and other_crs is not None and self_crs != other_crs:
+            msg = (
+                f"Incompatible CRS: first has '{self_crs}', second has '{other_crs}'. "
+                f"This may result in incorrect spatial positioning of merged data."
+            )
+            if raise_on_error:
+                raise ValueError(f"Cannot merge AgsContext instances: {msg}")
+            issues.append(msg)
+
+        return issues
+
+    def merge(self, other: "AgsContext", validate_compatibility: bool = True) -> None:
+        """Merge another AgsContext into this one (in-place).
+
+        Concatenates measurement and location tables while validating metadata
+        compatibility. Modifies self and leaves other unchanged.
+        If no longer needed, consider freeing memory by deleting other.
+
+        Merging strategy:
+        - Metadata-like tables (e.g., PROJ, UNIT): Keep from self, warn if different
+        - LOCA: Concatenate, check for duplicate LOCA_ID
+        - SCPG: Concatenate, check for duplicate (LOCA_ID, SCPG_TESN) pairs
+        - Measurement tables (SCPT, SCPP, GEOL, SCDG): Concatenate all rows
+
+        :param other: The AgsContext to merge into this one
+        :param validate_compatibility: If True, raises error on incompatibility; if False, logs warnings
+        :raises ValueError: If contexts are incompatible and validation is enabled
+        """
+        # Check compatibility and handle based on validate_compatibility flag
+        issues = self.validate_merge(other, raise_on_error=validate_compatibility)
+
+        # Log any issues as warnings when validation is disabled
+        for issue in issues:
+            logger.warning(f"Merging AgsContext instances: {issue}")
+
+        # Metadata tables: keep from self, warn if different
+        for group in self.RETAINED_GROUPS:
+            if group in other.tables and group in self.tables:
+                # Check if tables are identical
+                # TODO: This may not be necessary for most tables - consider removing or limiting to PROJ only
+                if not self.get_table(group).equals(other.get_table(group)):
+                    logger.warning(f"Table '{group}' differs between files. Keeping values from first context.")
+
+        # LOCA table: concatenate and check for duplicates
+        self._merge_loca(other)
+
+        # SCPG table: concatenate and check for duplicate (LOCA_ID, SCPG_TESN) pairs
+        self._merge_scpg(other)
+
+        # Measurement tables: concatenate all rows
+        for group in self.MEASUREMENT_GROUPS:
+            self._merge_measurement_table(group, other)
+
+    def _merge_loca(self, other: "AgsContext") -> None:
+        """Merge LOCA tables from another AgsContext into this one.
+
+        Checks for duplicate LOCA_ID values and if so, keeps rows from self.
+        All unique rows are concatenated.
+
+        :param other: The AgsContext to merge LOCA table from
+        """
+        self_loca = self.get_table("LOCA")
+        other_loca = other.get_table("LOCA").copy()
+
+        # Concatenate and remove duplicates, keeping first occurrence (from self)
+        merged_loca = pd.concat([self_loca, other_loca], ignore_index=True)
+
+        # Check for duplicates before dropping them
+        duplicate_count = merged_loca.duplicated(subset=["LOCA_ID"], keep="first").sum()
+        if duplicate_count > 0:
+            duplicate_ids = merged_loca[merged_loca.duplicated(subset=["LOCA_ID"], keep="first")]["LOCA_ID"].tolist()
+            logger.warning(
+                f"Found {duplicate_count} duplicate LOCA_ID values "
+                f"when merging contexts. Keeping rows from first context. "
+                f"Duplicate IDs: {duplicate_ids}"
+            )
+
+        merged_loca = merged_loca.drop_duplicates(subset=["LOCA_ID"], keep="first", ignore_index=True)
+        self.set_table("LOCA", merged_loca)
+
+        # Merge headings (union of both)
+        merged_headings = list(dict.fromkeys(self.get_headings("LOCA") + other.get_headings("LOCA")))
+        self.set_heading("LOCA", merged_headings)
+
+    def _merge_scpg(self, other: "AgsContext") -> None:
+        """Merge SCPG tables from another AgsContext into this one.
+
+        Checks for duplicate (LOCA_ID, SCPG_TESN) pairs and if so, keeps rows from self.
+        All unique rows are concatenated.
+
+        :param other: The AgsContext to merge SCPG table from
+        """
+        self_scpg = self.get_table("SCPG")
+        other_scpg = other.get_table("SCPG").copy()
+
+        # Concatenate and remove duplicates, keeping first occurrence (from self)
+        merged_scpg = pd.concat([self_scpg, other_scpg], ignore_index=True)
+
+        # Check for duplicates before dropping them
+        duplicate_count = merged_scpg.duplicated(subset=["LOCA_ID", "SCPG_TESN"], keep="first").sum()
+        if duplicate_count > 0:
+            logger.warning(
+                f"Found {duplicate_count} duplicate (LOCA_ID, SCPG_TESN) pairs "
+                f"when merging contexts. Keeping rows from first context."
+            )
+
+        merged_scpg = merged_scpg.drop_duplicates(subset=["LOCA_ID", "SCPG_TESN"], keep="first", ignore_index=True)
+        self.set_table("SCPG", merged_scpg)
+
+        # Merge headings
+        merged_headings = list(dict.fromkeys(self.get_headings("SCPG") + other.get_headings("SCPG")))
+        self.set_heading("SCPG", merged_headings)
+
+    def _merge_measurement_table(self, group: str, other: "AgsContext") -> None:
+        """Merge a measurement table from another AgsContext into this one.
+
+        Concatenates all rows from both tables, removing duplicate rows.
+
+        :param group: The measurement group name to merge (e.g., SCPT, SCPP)
+        :param other: The AgsContext to merge the measurement table from
+        """
+        if group in other.tables:
+            if group in self.tables:
+                self_table = self.get_table(group)
+                other_table = other.get_table(group)
+
+                # Concatenate and remove duplicates
+                merged_table = pd.concat([self_table, other_table], ignore_index=True)
+                merged_table = merged_table.drop_duplicates(ignore_index=True)
+                self.set_table(group, merged_table)
+
+                # Merge headings
+                merged_headings = list(dict.fromkeys(self.get_headings(group) + other.get_headings(group)))
+                self.set_heading(group, merged_headings)
+            else:
+                # Add table and headings from other
+                self.set_table(group, other.get_table(group).copy())
+                self.set_heading(group, other.get_headings(group))
 
 
 def ags4_errors_to_str(errors: dict[str, dict[str, str | int]]) -> str:

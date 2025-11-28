@@ -12,18 +12,21 @@
 
 from typing import TYPE_CHECKING
 
+from evo_schemas.objects import DownholeCollection_V1_3_1
+from python_ags4.AGS4 import AGS4Error
+
+import evo.logging
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
-from .ags_to_downhole_collection import create_from_parsed_ags
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
 )
 from evo.data_converters.common.objects import DownholeCollection, DownholeCollectionToGeoscienceObject
-import evo.logging
 from evo.objects.data import ObjectMetadata
-from evo_schemas.objects import DownholeCollection_V1_3_1
-from python_ags4.AGS4 import AGS4Error
+
+from .ags_to_downhole_collection import create_from_parsed_ags
+from .parse_ags_files import parse_ags_files
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -32,14 +35,14 @@ if TYPE_CHECKING:
 
 
 def convert_ags(
-    filepath: str,
+    filepaths: list[str],
     evo_workspace_metadata: EvoWorkspaceMetadata | None = None,
     service_manager_widget: "ServiceManagerWidget | None" = None,
     tags: dict[str, str] | None = None,
     upload_path: str = "",
     overwrite_existing_objects: bool = False,
-) -> DownholeCollection_V1_3_1 | ObjectMetadata | None:
-    """Converts an AGS file into a Downhole Collection Geoscience Object.
+) -> list[DownholeCollection_V1_3_1] | list[ObjectMetadata] | None:
+    """Converts one or more AGS files into a list of Downhole Collection Geoscience Objects.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -48,7 +51,7 @@ def convert_ags(
     - evo_workspace_metadata.hub_url is present, or
     - service_manager_widget was passed to this function.
 
-    :param filepath: Path to the AGS file.
+    :param filepaths: List of paths to one or more AGS files.
     :param evo_workspace_metadata: Evo workspace metadata (optional).
     :param service_manager_widget: Service Manager Widget for use in jupyter notebooks (optional).
     :param tags: Dict of tags to add to the Geoscience Object(s) (optional).
@@ -61,7 +64,7 @@ def convert_ags(
     :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget
         were provided.
     """
-    publish_object = True
+    publish_objects = True
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
@@ -69,13 +72,13 @@ def convert_ags(
     )
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing will be skipped due to missing hub_url.")
-        publish_object = False
+        publish_objects = False
 
-    ags_context = AgsContext()
     try:
-        ags_context.parse_ags(filepath)
+        # TODO: Errors not propagated to here currently, handled(ish) in parse_ags_files
+        ags_contexts: list[AgsContext] = parse_ags_files(filepaths).values()
     except (AGS4Error, AgsFileInvalidException) as e:
-        logger.error("Failed to parse AGS file: %s", e)
+        logger.error("Failed to parse AGS file(s): %s", e)
         return
 
     default_tags: dict[str, str] = {
@@ -85,19 +88,23 @@ def convert_ags(
     }
     merged_tags: dict[str, str] = {**default_tags, **(tags or {})}
 
-    downhole_collection: DownholeCollection | None = create_from_parsed_ags(ags_context, merged_tags)
+    downhole_collections: list[DownholeCollection] = [
+        create_from_parsed_ags(context, merged_tags) for context in ags_contexts
+    ]
 
     object_metadata: None | list[ObjectMetadata] = None
-    downhole_collection_gs = DownholeCollectionToGeoscienceObject(downhole_collection, data_client).convert()
+    geoscience_objects: list[DownholeCollection_V1_3_1] = [
+        DownholeCollectionToGeoscienceObject(dhc, data_client).convert() for dhc in downhole_collections
+    ]
 
-    if publish_object:
+    if publish_objects:
         logger.debug("Publishing Geoscience Object")
         object_metadata = publish_geoscience_objects(
-            object_models=[downhole_collection_gs],
+            object_models=geoscience_objects,
             object_service_client=object_service_client,
             data_client=data_client,
             path_prefix=upload_path,
             overwrite_existing_objects=overwrite_existing_objects,
         )
 
-    return object_metadata[0] if object_metadata else downhole_collection_gs
+    return object_metadata if object_metadata else geoscience_objects
