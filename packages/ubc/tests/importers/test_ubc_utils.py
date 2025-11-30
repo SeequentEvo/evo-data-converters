@@ -16,7 +16,8 @@ import numpy as np
 import pytest
 from evo_schemas import Tensor3DGrid_V1_2_0
 
-from evo.data_converters.ubc.importer.utils import get_geoscience_object_from_ubc
+from evo.data_converters.common import TensorGridData
+from evo.data_converters.ubc.importer.utils import get_geoscience_object_from_ubc, get_grid_data
 from evo.objects.utils.data import ObjectDataClient
 
 
@@ -88,6 +89,30 @@ def test_get_geoscience_object_from_ubc_success(
         result.bounding_box.max_z,
     )
     assert bbox == (1.0, 4.0, 2.0, 6.0, 3.0, 8.0)
+
+
+def test_get_grid_data_from_ubc_success(mock_mesh_importer: MagicMock, mock_property_importer: MagicMock) -> None:
+    files_path = ["dummy_file.msh", "dummy_values.txt"]
+
+    mock_mesh_importer.return_value.execute.return_value = (
+        np.array([1.0, 2.0, 3.0]),
+        [np.array([3.0]), np.array([4.0]), np.array([5.0])],
+        [3, 4, 5],
+    )
+    mock_property_importer.return_value.execute.return_value = np.array([1.0])
+
+    name, grid_data = get_grid_data(files_path)
+
+    assert isinstance(grid_data, TensorGridData)
+    assert grid_data.size == [3, 4, 5]
+    assert grid_data.origin == [1.0, 2.0, 3.0]
+    assert len(grid_data.cell_attributes) == 1
+    assert grid_data.cell_attributes[0]["name"] == "dummy_values"
+    assert grid_data.cell_sizes_x == [3.0]
+    assert grid_data.cell_sizes_y == [4.0]
+    assert grid_data.cell_sizes_z == [5.0]
+    assert grid_data.bounding_box == [1.0, 4.0, 2.0, 6.0, 3.0, 8.0]
+    np.testing.assert_array_equal(grid_data.rotation, [0.0, 0.0, 0.0])
 
 
 def test_get_geoscience_object_from_ubc_no_mesh_file(mock_data_client: MagicMock) -> None:
