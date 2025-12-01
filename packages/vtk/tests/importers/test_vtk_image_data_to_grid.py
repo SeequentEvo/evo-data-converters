@@ -17,7 +17,6 @@ import numpy.testing
 import pytest
 import vtk
 from evo.data_converters.common import RegularGridData
-from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from vtk.util.numpy_support import numpy_to_vtk
 from vtk_test_helpers import add_ghost_value
 
@@ -44,11 +43,9 @@ def test_metadata(data_object_type: Callable[[], vtk.vtkImageData]) -> None:
     assert isinstance(result, RegularGridData)
     assert result.origin == [12.0, 10.0, -8.0]
     assert result.cell_size == [1.5, 2.5, 5.0]
-    assert result.bounding_box == BoundingBox_V1_0_1(
-        min_x=12.0, max_x=15.0, min_y=10.0, max_y=17.5, min_z=-8.0, max_z=22.0
-    )
+    assert result.bounding_box == [12.0, 15.0, 10.0, 17.5, -8.0, 22.0]
     assert result.size == [2, 3, 6]
-    assert result.rotation == Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0)
+    assert result.rotation == [0.0, 0.0, 0.0]
     assert result.cell_attributes == []
     assert result.vertex_attributes == []
 
@@ -71,11 +68,9 @@ def test_rotated_and_extent() -> None:
     # z origin value is shifted to -8.0 + -(2.5 * 1) = -10.5  (as the grid's y-axis is pointing down)
     assert result.origin == [15.0, 5.0, -10.5]
     assert result.cell_size == [1.5, 2.5, 5.0]
-    assert result.bounding_box == BoundingBox_V1_0_1(
-        min_x=15.0, max_x=25.5, min_y=5.0, max_y=35.0, min_z=-33.0, max_z=-10.5
-    )
+    assert result.bounding_box == [15.0, 25.5, 5.0, 35.0, -33.0, -10.5]
     assert result.size == [7, 9, 6]
-    assert result.rotation == Rotation_V1_1_0(dip_azimuth=0.0, dip=90.0, pitch=0.0)
+    assert result.rotation == [0.0, 90.0, 0.0]
 
     data_client.assert_not_called()
 
