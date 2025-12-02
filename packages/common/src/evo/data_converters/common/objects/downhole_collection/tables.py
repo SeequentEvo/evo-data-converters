@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import evo.logging
 import pandas as pd
 import sys
 import typing
@@ -20,6 +21,11 @@ if sys.version_info >= (3, 12):
     from typing import override
 else:
     from typing_extensions import override
+
+logger = evo.logging.getLogger("data_converters")
+
+DEFAULT_AZIMUTH: float = 0.0  # Assume vertical, so no bearing
+DEFAULT_DIP: float = 90.0  # Positive dip = down
 
 
 class MeasurementTableAdapter(ABC):
@@ -142,6 +148,24 @@ class MeasurementTableAdapter(ABC):
         :return: List of primary column names that define the measurement structure
         """
         pass
+
+    def get_dip_values(self) -> pd.Series:
+        dip_column: str | None = self._find_column(self.mapping.DIP_COLUMNS)
+
+        if not dip_column:
+            logger.info("Dip information missing, assuming vertical downhole")
+            return pd.Series(DEFAULT_DIP, index=range(len(self.df)), dtype="float64")
+
+        return self.df[dip_column]
+
+    def get_azimuth_values(self) -> pd.Series:
+        azimuth_column = self._find_column(self.mapping.AZIMUTH_COLUMNS)
+
+        if not azimuth_column:
+            logger.info("Azimuth information missing, assuming no bearing")
+            return pd.Series(DEFAULT_AZIMUTH, index=range(len(self.df)), dtype="float64")
+
+        return self.df[azimuth_column]
 
 
 class DistanceTable(MeasurementTableAdapter):

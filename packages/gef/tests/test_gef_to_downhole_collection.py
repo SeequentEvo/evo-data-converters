@@ -395,6 +395,142 @@ class TestPrepareMeasurements:
         assert "coneResistance" in measurements.columns
         assert "friction" in measurements.columns
 
+    def test_adds_dip_when_inclination_resultant_present(self, builder: DownholeCollectionBuilder) -> None:
+        mock_cpt = Mock()
+        mock_cpt.data = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0, 2.0],
+                "inclinationResultant": [0.0, 10.0, 20.0],
+            }
+        )
+
+        measurements = builder._prepare_measurements(1, mock_cpt)
+
+        assert "dip" in measurements.columns
+        assert measurements["dip"][0] == 90.0
+        assert measurements["dip"][1] == 80.0
+        assert measurements["dip"][2] == 70.0
+
+    def test_adds_azimuth_when_inclination_components_present(self, builder: DownholeCollectionBuilder) -> None:
+        mock_cpt = Mock()
+        mock_cpt.data = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0],
+                "inclinationNS": [1.0, 0.0],
+                "inclinationEW": [0.0, 1.0],
+            }
+        )
+
+        measurements = builder._prepare_measurements(1, mock_cpt)
+
+        assert "azimuth" in measurements.columns
+        assert measurements["azimuth"][0] == pytest.approx(0.0)  # North
+        assert measurements["azimuth"][1] == pytest.approx(90.0)  # East
+
+
+class TestCalculateDip:
+    def test_calculates_dip_from_inclination_resultant(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0, 2.0],
+                "inclinationResultant": [0.0, 15.0, 30.0],
+            }
+        )
+
+        result = builder.calculate_dip(df)
+
+        assert "dip" in result.columns
+        assert result["dip"][0] == 90.0  # 90 - 0
+        assert result["dip"][1] == 75.0  # 90 - 15
+        assert result["dip"][2] == 60.0  # 90 - 30
+
+    def test_no_inclination_resultant_returns_original(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0, 2.0],
+                "coneResistance": [1.0, 2.0, 3.0],
+            }
+        )
+
+        result = builder.calculate_dip(df)
+
+        assert "dip" not in result.columns
+        assert result.equals(df)
+
+
+class TestCalculateAzimuth:
+    def test_calculates_azimuth_from_ns_ew_components(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0, 2.0, 3.0],
+                "inclinationNS": [2.0, 0.0, -1.0, 1.0],
+                "inclinationEW": [0.0, 2.0, 0.0, 1.0],
+            }
+        )
+
+        result = builder.calculate_azimuth(df)
+
+        assert "azimuth" in result.columns
+        assert result["azimuth"][0] == pytest.approx(0.0)  # North
+        assert result["azimuth"][1] == pytest.approx(90.0)  # East
+        assert result["azimuth"][2] == pytest.approx(180.0)  # South
+        assert result["azimuth"][3] == pytest.approx(45.0)  # Northeast
+
+    def test_nan_values_produce_nan_azimuth(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0, 2.0],
+                "inclinationNS": [None, 1.0, 1.0],
+                "inclinationEW": [1.0, None, 1.0],
+            }
+        )
+
+        result = builder.calculate_azimuth(df)
+
+        assert "azimuth" in result.columns
+        assert result["azimuth"].is_null()[0]
+        assert result["azimuth"].is_null()[1]
+        assert result["azimuth"][2] == pytest.approx(45.0)
+
+    def test_missing_ns_column_returns_original(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0],
+                "inclinationEW": [1.0, 2.0],
+            }
+        )
+
+        result = builder.calculate_azimuth(df)
+
+        assert "azimuth" not in result.columns
+        assert result.equals(df)
+
+    def test_missing_ew_column_returns_original(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0],
+                "inclinationNS": [1.0, 2.0],
+            }
+        )
+
+        result = builder.calculate_azimuth(df)
+
+        assert "azimuth" not in result.columns
+        assert result.equals(df)
+
+    def test_missing_both_columns_returns_original(self, builder: DownholeCollectionBuilder) -> None:
+        df = pl.DataFrame(
+            {
+                "penetrationLength": [0.0, 1.0],
+                "coneResistance": [1.0, 2.0],
+            }
+        )
+
+        result = builder.calculate_azimuth(df)
+
+        assert "azimuth" not in result.columns
+        assert result.equals(df)
+
 
 class TestTrackNanValues:
     def test_tracks_nan_values_by_attribute(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
