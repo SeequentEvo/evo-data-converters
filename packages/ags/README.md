@@ -66,7 +66,8 @@ This converter currently supports **Cone Penetration Test (CPT) data** and conve
 
 ### Publish geoscience objects from an AGS file
 
-The `convert_ags` function reads an AGS file and converts it into a Downhole Collection Geoscience Object that can be published to Evo.
+The `convert_ags` function reads AGS files and converts them into Downhole Collection Geoscience Objects that can be published to Evo.
+Multiple projects can be imported at once, and all files within the same project (`PROJ_ID`) will be included in a downhole collection together.
 
 ```python
 from evo.data_converters.ags.importer import convert_ags
@@ -77,7 +78,7 @@ manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").
 
 # Convert and publish AGS file
 objects_metadata = convert_ags(
-    filepath="path/to/your/file.ags",
+    filepaths=["path/to/your/file.ags"],
     service_manager_widget=manager,
     tags={"source": "field_survey"},
     upload_path="cpt_data",
@@ -85,7 +86,7 @@ objects_metadata = convert_ags(
 )
 ```
 
-For a complete working example, see the [import-ags notebook](./samples/import-ags/import-ags.ipynb).
+For a complete working example, see the [convert-ags notebook](./samples/convert-ags/convert-ags.ipynb).
 
 ### Export objects to AGS
 
