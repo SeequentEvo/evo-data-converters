@@ -6,6 +6,7 @@ from typing_extensions import override
 
 import tinyobjloader
 
+import numpy as np
 import pyarrow as pa
 
 from evo_schemas.components import (
@@ -53,6 +54,7 @@ class TinyobjObjImporter(ObjImporterBase):
 
         shapes = self.reader.GetShapes()
         indices_tables = []
+        parts_tables = []
         for shape in shapes:
             # This is gross because of struct packing, see index_t
             # index_t is vertex_index, normal_index, texcoord_index
@@ -62,15 +64,19 @@ class TinyobjObjImporter(ObjImporterBase):
                 {"n0": faces_array[:, 0], "n1": faces_array[:, 1], "n2": faces_array[:, 2]}, schema=INDICES_SCHEMA
             )
             del faces_array
+
+            # very short, one-row table
+            part_table = pa.Table.from_pydict(
+                {"offset": [np.sum([len(v) for v in indices_tables])], "count": [len(index_table)]}, schema=PARTS_SCHEMA
+            )
             indices_tables.append(index_table)
+            parts_tables.append(part_table)
 
         del attrib
         del shapes
         gc.collect()
 
-        # very short, one-row table as we don't support separate parts with tinyobj right now
-        parts_table = pa.Table.from_pydict({"offset": [0], "count": [0]}, schema=PARTS_SCHEMA)
-
+        parts_table = pa.concat_tables(parts_tables)
         indices_table = pa.concat_tables(indices_tables)
 
         if publish_parquet:

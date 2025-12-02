@@ -47,7 +47,6 @@ class TrimeshObjImporter(ObjImporterBase):
         :param publish_parquet: Set `True` to upload Parquet tables to Evo as they're produced
         :return: Tuple of the vertices GO, Indices GO, chunks array GO
         """
-        vertex_count_accum = 0
         vertices_tables = []
         indices_tables = []
         parts_tables = []
@@ -65,23 +64,21 @@ class TrimeshObjImporter(ObjImporterBase):
                 schema=VERTICES_SCHEMA,
             )
             del vertices_array
-            vertices_tables.append(vertex_table)
 
-            # We need to offset the face indices because the vertices will be concatenated
-            faces_array = np.asarray(mesh.faces) + vertex_count_accum
+            # We need to offset the face vertex indices based on how many vertices we've accumulated on previous parts
+            faces_array = np.asarray(mesh.faces) + np.sum([len(v) for v in vertices_tables])
             index_table = pa.Table.from_pydict(
                 {"n0": faces_array[:, 0], "n1": faces_array[:, 1], "n2": faces_array[:, 2]}, schema=INDICES_SCHEMA
             )
             del faces_array
-            indices_tables.append(index_table)
 
             # very short, one-row table
             part_table = pa.Table.from_pydict(
-                {"offset": [vertex_count_accum], "count": [len(vertex_table)]}, schema=PARTS_SCHEMA
+                {"offset": [np.sum([len(v) for v in indices_tables])], "count": [len(index_table)]}, schema=PARTS_SCHEMA
             )
+            vertices_tables.append(vertex_table)
+            indices_tables.append(index_table)
             parts_tables.append(part_table)
-
-            vertex_count_accum += len(vertex_table)
 
         vertices_table = pa.concat_tables(vertices_tables)
         indices_table = pa.concat_tables(indices_tables)
