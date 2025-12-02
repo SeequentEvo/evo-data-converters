@@ -161,7 +161,7 @@ class TestObjGeometryParsing(TestCase):
             matches.append(found)
 
         intersection = faces1[matches]
-        return len(intersection) == len(faces2)
+        return len(intersection) == len(faces2) == len(faces1)
 
     def test_correct_faces(self) -> None:
         triangle_mesh = self._make_geoobject()
@@ -181,16 +181,34 @@ class TestObjGeometryParsing(TestCase):
     def test_correct_parts(self) -> None:
         triangle_mesh = self._make_geoobject()
         chunks = self._get_dataframe_for_table(triangle_mesh.parts.chunks)
+        faces = self._get_dataframe_for_table(triangle_mesh.triangles.indices)
         vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices)
 
         assert len(chunks) == 2, "Cube and Pyramid should form two chunks"
 
-        # We now need to slice up the triangles and vertices tables chunk by chunk to ensure they have the right vertices
+        # We now need to slice up the triangles table chunk by chunk to ensure they have the right vertices
         for _, chunk in chunks.iterrows():
-            chunk_vertices = vertices.iloc[chunk["offset"] : chunk["offset"] + chunk["count"]]
-            assert len(chunk_vertices) == chunk["count"]
+            chunk_indices = faces.iloc[chunk["offset"] : chunk["offset"] + chunk["count"]]
+            assert len(chunk_indices) == chunk["count"]
 
-            # Not yet asserting that these vertices make up a part, as we don't know which one yet.
+            if len(chunk_indices) == 12:
+                # This should match the cube faces
+                cube_vertex_sets = self._make_face_vertices_sets(vertices, chunk_indices)
+                correct_cube_vertex_sets = simple_shape_faces[simple_shape_faces["object"] == "Cube"][
+                    ["n0", "n1", "n2"]
+                ].apply(lambda r: tuple(r), axis=1)
+                assert self._compare_face_sets(cube_vertex_sets, correct_cube_vertex_sets), (
+                    "Check the Cube part has the right vertices"
+                )
+            else:
+                # This should match the pyramid faces
+                pyramid_vertex_sets = self._make_face_vertices_sets(vertices, chunk_indices)
+                correct_pyramid_vertex_sets = simple_shape_faces[simple_shape_faces["object"] == "Pyramid"][
+                    ["n0", "n1", "n2"]
+                ].apply(lambda r: tuple(r), axis=1)
+                assert self._compare_face_sets(pyramid_vertex_sets, correct_pyramid_vertex_sets), (
+                    "Check the Pyramid part has the right vertices"
+                )
 
     def test_quad_triangulation(self) -> None:
         """
@@ -222,10 +240,6 @@ class TestObjGeometryParsing(TestCase):
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
 class TestObjGeometryParsingTinyObj(TestObjGeometryParsing):
     implementation = "tinyobj"
-
-    # tinyobj not currently handling parts
-    def test_correct_parts(self) -> None:
-        pytest.skip("Part splitting unsupported")
 
 
 @pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
