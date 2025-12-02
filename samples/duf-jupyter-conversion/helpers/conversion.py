@@ -1,5 +1,3 @@
-import pprint
-
 from evo.data_converters.duf.importer import convert_duf
 
 
@@ -28,11 +26,5 @@ def convert_duf_to_evo(selected_file_path: str, epsg_code: int, upload_path: str
         combine_objects_in_layers=True,
         overwrite_existing_objects=True,
     )
-
-    # Optional: log to notebook output
-    print("\nThese objects have now been published:")
-    print("-" * 50)
-    for metadata in objects_metadata:
-        pprint.pp(metadata, indent=4)
 
     return objects_metadata
