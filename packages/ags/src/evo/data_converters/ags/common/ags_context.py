@@ -470,7 +470,7 @@ class AgsContext:
         :returns: List of incompatibility warning messages (empty if compatible)
         :raises ValueError: If raise_on_error=True and contexts are incompatible
         """
-        issues = []
+        issues: list[str] = []
 
         # Check PROJ_ID compatibility
         if self.proj_id != other.proj_id:

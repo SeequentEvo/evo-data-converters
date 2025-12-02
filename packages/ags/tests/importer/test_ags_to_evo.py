@@ -68,13 +68,33 @@ def test_should_add_custom_tags(evo_metadata, valid_ags_1a_path):
     assert published_obj.tags["InputType"] == "AGS"
 
 
-def test_should_handle_parse_error(evo_metadata, not_ags_path):
+def test_should_handle_parse_error(evo_metadata, not_ags_path, caplog):
     """Integration: invalid AGS files return empty list (parse error handled)."""
     result = convert_ags(filepaths=[not_ags_path], evo_workspace_metadata=evo_metadata)
     assert result == []
+    # Should log a warning
+    assert "AGS Format Rule 3" in caplog.text
 
 
-def test_convert_ags_with_multiple_files_from_different_projects(evo_metadata, valid_ags_1a_path, valid_ags_2a_path):
+def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2a_path, invalid_ags_2b_path, caplog):
+    """Integration: multiple ags files with warnings should be imported"""
+    result = convert_ags(filepaths=[valid_ags_2a_path, invalid_ags_2b_path], evo_workspace_metadata=evo_metadata)
+    assert len(result) == 1
+
+    expected_warnings = [
+        "Table 'PROJ' differs between files. Keeping values from first context.",
+        "Found 1 duplicate LOCA_ID values when merging contexts.",
+        "Duplicate IDs: ['EXAMPLE-2-CPT1']",
+        "Found 1 duplicate (LOCA_ID, SCPG_TESN) pairs when merging contexts.",
+    ]
+
+    for warning_message in expected_warnings:
+        assert warning_message in caplog.text
+
+
+def test_convert_ags_with_multiple_files_from_different_projects(
+    evo_metadata, valid_ags_1a_path, valid_ags_2a_path, caplog
+):
     """Integration: Test multiple AGS files from different PROJ_IDs creates separate DownholeCollections."""
     result = convert_ags(filepaths=[valid_ags_1a_path, valid_ags_2a_path], evo_workspace_metadata=evo_metadata)
 
@@ -82,8 +102,6 @@ def test_convert_ags_with_multiple_files_from_different_projects(evo_metadata, v
     assert isinstance(result, list)
     assert len(result) == 2
     assert all(isinstance(obj, DownholeCollection_V1_3_1) for obj in result)
-
-    # TODO: verify some data from ags files e.g. collars or scpt
 
 
 def test_convert_ags_with_multiple_files_same_project(evo_metadata, valid_ags_1a_path, valid_ags_1b_path):
@@ -111,7 +129,7 @@ def test_convert_ags_with_multiple_files_same_project(evo_metadata, valid_ags_1a
 
 
 def test_convert_ags_with_mixed_projects(evo_metadata, valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path):
-    """Integration:Test mixed PROJ_IDs merge same projects and separates different ones."""
+    """Integration: Test mixed PROJ_IDs merge same projects and separates different ones."""
     result = convert_ags(
         filepaths=[valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path], evo_workspace_metadata=evo_metadata
     )

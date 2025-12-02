@@ -41,7 +41,7 @@ def convert_ags(
     tags: dict[str, str] | None = None,
     upload_path: str = "",
     overwrite_existing_objects: bool = False,
-) -> list[DownholeCollection_V1_3_1] | list[ObjectMetadata] | None:
+) -> list[DownholeCollection_V1_3_1] | list[ObjectMetadata]:
     """Converts one or more AGS files into a list of Downhole Collection Geoscience Objects.
 
     One of evo_workspace_metadata or service_manager_widget is required.
@@ -59,7 +59,7 @@ def convert_ags(
     :param overwrite_existing_objects: Whether existing objects will be overwritten with a new version
         (optional, default False).
     :return: The converted Downhole Collection object, or metadata of the published object if published.
-    :rtype: DownholeCollection_V1_3_1 | ObjectMetadata | None
+    :rtype: DownholeCollection_V1_3_1 | ObjectMetadata
     :raises MissingConnectionDetailsError: If no connection details could be derived.
     :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget
         were provided.
@@ -75,11 +75,10 @@ def convert_ags(
         publish_objects = False
 
     try:
-        # TODO: Errors not propagated to here currently, handled(ish) in parse_ags_files
-        ags_contexts: list[AgsContext] = parse_ags_files(filepaths).values()
+        ags_contexts: list[AgsContext] = list(parse_ags_files(filepaths).values())
     except (AGS4Error, AgsFileInvalidException) as e:
         logger.error("Failed to parse AGS file(s): %s", e)
-        return
+        return []
 
     default_tags: dict[str, str] = {
         "Source": "AGS files (via Evo Data Converters)",

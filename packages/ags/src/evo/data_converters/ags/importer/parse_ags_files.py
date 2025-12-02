@@ -18,25 +18,40 @@ logger = evo.logging.getLogger("data_converters")
 def parse_ags_files(filepaths: list[str]) -> dict[str, AgsContext]:
     """Parse one or more AGS files and group results by PROJ_ID.
 
+    Major errors will fail to create a downhole collection,
+    while warnings will be logged. Execution does not break
+    early if a failure occurs, and a list of failed files is
+    logged.
+
+    .. todo:: Parallelise parsing of multiple files if necessary.
+
     :param filepaths: List of paths to AGS files.
     :return: Mapping of ``PROJ_ID`` to an ``AgsContext`` containing parsed tables.
     """
     ags_contexts: dict[str, AgsContext] = {}
+    parse_failed_files: list[str] = []
     for filepath in filepaths:
-        # TODO: Handle exceptions for individual files (log and continue, or fail the whole operation?)
-        # TODO: Parallelize parsing if needed (IO bound)
         try:
-            ags_context = parse_ags_file(filepath)
+            ags_context: AgsContext = parse_ags_file(filepath)
         except AgsFileInvalidException:
+            parse_failed_files.append(filepath)
             continue
 
         if ags_context.proj_id in ags_contexts:
             logger.info(f"Merging AGS file '{filepath}' into existing PROJ_ID '{ags_context.proj_id}'.")
-            ags_contexts[ags_context.proj_id].merge(ags_context)
+            try:
+                ags_contexts[ags_context.proj_id].merge(ags_context)
+            except ValueError as e:
+                logger.error(f"Failed to merge AGS file '{filepath}': {e}")
+                parse_failed_files.append(filepath)
+                continue
         else:
             ags_contexts[ags_context.proj_id] = ags_context
 
         del ags_context
+
+    if parse_failed_files:
+        logger.error(f"Failed to parse the following AGS files: {', '.join(parse_failed_files)}")
 
     return ags_contexts
 
