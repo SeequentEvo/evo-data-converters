@@ -8,3 +8,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+from pint import UnitRegistry, set_application_registry
+
+# Create one registry for the GEF package
+gef_unit_registry = UnitRegistry()
+
+# Set up pint-pandas to use that registry
+set_application_registry(gef_unit_registry)

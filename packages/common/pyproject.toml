@@ -22,6 +22,7 @@ dependencies = [
     "scipy",
     "pyproj>=3.7.1",
     "typing_extensions; python_version < '3.12'",
+    "pint-pandas>=0.7.1",
 ]
 
 [project.urls]

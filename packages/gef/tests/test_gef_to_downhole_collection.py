@@ -12,15 +12,23 @@
 from datetime import datetime
 from unittest.mock import Mock, patch
 
+import numpy as np
 import pandas as pd
+import pint_pandas
 import polars as pl
 import pytest
 
 from evo.data_converters.common.objects import DownholeCollection
+from evo.data_converters.gef import gef_unit_registry
 from evo.data_converters.gef.converter.gef_to_downhole_collection import (
     DownholeCollectionBuilder,
     create_from_parsed_gef_cpts,
 )
+
+
+@pytest.fixture
+def shared_gef_unit_registry():
+    return gef_unit_registry
 
 
 @pytest.fixture
@@ -59,14 +67,14 @@ def mock_cpt_data() -> Mock:
         {
             "penetrationLength": [0.0, 1.0, 2.0, 3.0],
             "coneResistance": [0.5, 1.5, 2.5, 3.5],
-            "friction": [0.02, 0.03, 0.04, 0.03],
+            "localFriction": [0.02, 0.03, 0.04, 0.03],
         }
     )
 
     mock.column_void_mapping = {
         "penetrationLength": 9999.0,
         "coneResistance": 9999.0,
-        "friction": 9999.0,
+        "localFriction": 9999.0,
     }
 
     mock.raw_headers = {
@@ -118,14 +126,14 @@ def mock_cpt_data_2() -> Mock:
         {
             "penetrationLength": [0.0, 1.0, 2.0, 3.0],
             "coneResistance": [1.0, 2.0, 3.0, 4.0],
-            "friction": [0.01, 0.02, 0.03, 0.04],
+            "localFriction": [0.01, 0.02, 0.03, 0.04],
         }
     )
 
     mock.column_void_mapping = {
         "penetrationLength": 9999.0,
         "coneResistance": 9999.0,
-        "friction": 9999.0,
+        "localFriction": 9999.0,
     }
 
     mock.raw_headers = {
@@ -175,14 +183,14 @@ def mock_cpt_data_3() -> Mock:
         {
             "penetrationLength": [0.0, 1.0, 2.0, 3.0],
             "coneResistance": [1.0, 2.0, 3.0, 4.0],
-            "friction": [0.01, 0.02, 0.03, 0.04],
+            "localFriction": [0.01, 0.02, 0.03, 0.04],
         }
     )
 
     mock.column_void_mapping = {
         "penetrationLength": 9999.0,
         "coneResistance": 9999.0,
-        "friction": 9999.0,
+        "localFriction": 9999.0,
     }
 
     mock.raw_headers = {}
@@ -191,6 +199,69 @@ def mock_cpt_data_3() -> Mock:
     mock.engineer = "Sally"
     mock.wind_speed = 15.0
     mock.cone_size = 3.14
+
+    return mock
+
+
+@pytest.fixture
+def mock_cpt_data_4() -> Mock:
+    """Create a mock CPTData object with some extra attributes."""
+    mock = Mock(
+        spec=[
+            "delivered_location",
+            "delivered_vertical_position_offset",
+            "final_depth",
+            "data",
+            "column_void_mapping",
+            "report_date",
+            "engineer",
+            "wind_speed",
+            "signed_off",
+            "raw_headers",
+        ]
+    )
+
+    mock.delivered_location = Mock()
+    mock.delivered_location.srs_name = "EPSG:28992"
+    mock.delivered_location.x = 100000.0
+    mock.delivered_location.y = 500000.0
+
+    mock.delivered_vertical_position_offset = 0.5
+    mock.final_depth = 10.0
+
+    mock.data = pl.DataFrame(
+        {
+            "penetrationLength": [0.0, 1.0, 2.0, 3.0],
+            "coneResistance": [0.5, 1.5, 2.5, 3.5],
+            "localFriction": [0.02, 0.03, 0.04, 0.03],
+            "frictionRatio": [0.01, 0.02, 0.03, 0.04],
+            "soilDensity": [1.2, 2.4, 3.3, 4.1],
+        }
+    )
+
+    mock.column_void_mapping = {
+        "penetrationLength": 9999.0,
+        "coneResistance": 9999.0,
+        "localFriction": 9999.0,
+        "frictionRatio": 9999.0,
+        "soilDensity": 9999.0,
+    }
+
+    mock.raw_headers = {
+        "MEASUREMENTTEXT": [
+            ["4", "S10-CFIIP.1721", "conus type en serienummer"],
+            ["5", "Sondeerrups 1; 12400 kg; geen ankers", "sondeerequipment"],
+        ],
+        "MEASUREMENTVAR": [
+            ["1", "1000", "mm2", "nom. oppervlak conuspunt"],
+            ["2", "15000", "mm2", "oppervlakte kleefmantel"],
+        ],
+    }
+
+    mock.report_date = datetime(year=2020, month=10, day=20)
+    mock.engineer = "Bob"
+    mock.wind_speed = 12.2
+    mock.signed_off = False
 
     return mock
 
@@ -433,7 +504,7 @@ class TestPrepareMeasurements:
 
         assert "penetrationLength" in measurements.columns
         assert "coneResistance" in measurements.columns
-        assert "friction" in measurements.columns
+        assert "localFriction" in measurements.columns
 
     def test_adds_dip_when_inclination_resultant_present(self, builder: DownholeCollectionBuilder) -> None:
         mock_cpt = Mock()
@@ -466,6 +537,49 @@ class TestPrepareMeasurements:
         assert "azimuth" in measurements.columns
         assert measurements["azimuth"][0] == pytest.approx(0.0)  # North
         assert measurements["azimuth"][1] == pytest.approx(90.0)  # East
+
+
+class TestApplyMeasurementUnits:
+    def test_penetration_length_has_m_unit(self, builder: DownholeCollectionBuilder, mock_cpt_data_4) -> None:
+        measurements = builder._prepare_measurements(1, mock_cpt_data_4)
+        measurements = builder._apply_measurement_units(measurements, mock_cpt_data_4)
+        dtype = measurements["penetrationLength"].dtype
+        assert isinstance(dtype, pint_pandas.PintType)
+        assert dtype.units == "meter", f"Expected unit 'meter', got {dtype.units}"
+
+    def test_cone_resistance_has_kpa_unit(self, builder: DownholeCollectionBuilder, mock_cpt_data_4) -> None:
+        measurements = builder._prepare_measurements(1, mock_cpt_data_4)
+        measurements = builder._apply_measurement_units(measurements, mock_cpt_data_4)
+        dtype = measurements["coneResistance"].dtype
+        assert isinstance(dtype, pint_pandas.PintType)
+        assert dtype.units == "megapascal", f"Expected unit 'megapascal', got {dtype.units}"
+
+    def test_local_friction_has_kpa_unit(self, builder: DownholeCollectionBuilder, mock_cpt_data_4) -> None:
+        measurements = builder._prepare_measurements(1, mock_cpt_data_4)
+        measurements = builder._apply_measurement_units(measurements, mock_cpt_data_4)
+        dtype = measurements["localFriction"].dtype
+        assert isinstance(dtype, pint_pandas.PintType)
+        assert dtype.units == "megapascal", f"Expected unit 'megapascal', got {dtype.units}"
+
+    def test_friction_ratio_has_float64_unit(self, builder: DownholeCollectionBuilder, mock_cpt_data_4) -> None:
+        measurements = builder._prepare_measurements(1, mock_cpt_data_4)
+        measurements = builder._apply_measurement_units(measurements, mock_cpt_data_4)
+        dtype = measurements["frictionRatio"].dtype
+        assert not isinstance(dtype, pint_pandas.PintType)
+        assert dtype == np.float64, f"Expected unit 'np.float64', got {dtype}"
+
+    def test_soil_density_is_converted_to_n_per_m3_unit(
+        self, builder: DownholeCollectionBuilder, mock_cpt_data_4
+    ) -> None:
+        measurements = builder._prepare_measurements(1, mock_cpt_data_4)
+        measurements = builder._apply_measurement_units(measurements, mock_cpt_data_4)
+        dtype = measurements["soilDensity"].dtype
+        assert isinstance(dtype, pint_pandas.PintType)
+        assert dtype.units == "newton / meter ** 3", f"Expected unit 'newton / meter ** 3', got {dtype.units}"
+        assert measurements["soilDensity"].iloc[0].magnitude == 1200.0
+        assert measurements["soilDensity"].iloc[1].magnitude == 2400.0
+        assert measurements["soilDensity"].iloc[2].magnitude == 3300.0
+        assert measurements["soilDensity"].iloc[3].magnitude == 4100.0
 
 
 class TestCalculateDip:
@@ -578,7 +692,7 @@ class TestTrackNanValues:
 
         assert builder.nan_values_by_attribute["penetrationLength"] == [9999.0]
         assert builder.nan_values_by_attribute["coneResistance"] == [9999.0]
-        assert builder.nan_values_by_attribute["friction"] == [9999.0]
+        assert builder.nan_values_by_attribute["localFriction"] == [9999.0]
 
     def test_accumulates_nan_values_across_files(
         self, builder: DownholeCollectionBuilder, mock_cpt_data, mock_cpt_data_2
@@ -770,13 +884,13 @@ class TestCreateFromParsedGefCpts:
                 {
                     "penetrationLength": [j * 0.5 for j in range(20)],
                     "coneResistance": [j * 0.1 + i for j in range(20)],
-                    "friction": [j * 0.01 for j in range(20)],
+                    "localFriction": [j * 0.01 for j in range(20)],
                 }
             )
             mock.column_void_mapping = {
                 "penetrationLength": 9999.0,
                 "coneResistance": 9999.0,
-                "friction": 9999.0,
+                "localFriction": 9999.0,
             }
             mock.raw_headers = {}
 
