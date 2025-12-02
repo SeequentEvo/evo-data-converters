@@ -415,6 +415,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pyproj", version = "3.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "ruff" },
 ]
 
 [package.optional-dependencies]
@@ -430,6 +431,7 @@ requires-dist = [
     { name = "jupyterlab", specifier = ">=4.0.0" },
     { name = "numpy", specifier = "<=1.26.4" },
     { name = "pyproj", specifier = ">=3.6.0" },
+    { name = "ruff", specifier = ">=0.14.7" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.6" },
 ]
 provides-extras = ["dev"]

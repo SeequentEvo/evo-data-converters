@@ -10,6 +10,7 @@ dependencies = [
     "evo-sdk>=0.1.17",
     "jupyterlab>=4.0.0",
     "pyproj>=3.6.0",
+    "ruff>=0.14.7",
 ]
 
 [project.optional-dependencies]
