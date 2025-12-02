@@ -12,6 +12,7 @@ authors = [
 dependencies = [
     "evo-data-converters-common",
     "pandas",
+    "pint-pandas",
     "pygef[plot]",
     "pyarrow>=17.0.0",
 ]

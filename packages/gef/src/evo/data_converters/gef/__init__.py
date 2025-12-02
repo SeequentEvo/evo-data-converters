@@ -8,3 +8,15 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+from pint import UnitRegistry, set_application_registry
+
+# Create one registry for the GEF package
+gef_unit_registry = UnitRegistry()
+
+# Custom units not standard in pint
+gef_unit_registry.define("kN_per_m3 = kilonewton / meter ** 3 = kN/m3")
+gef_unit_registry.define("percent = 0.01 = % = pct")
+
+# Set up pint-pandas to use that registry
+set_application_registry(gef_unit_registry)

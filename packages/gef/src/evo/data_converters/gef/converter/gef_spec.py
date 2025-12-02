@@ -101,3 +101,39 @@ MEASUREMENT_VAR_NAMES: dict[int, str] = {
     41: "mileage",
     42: "x_axis_north_orientation",
 }
+
+# It should be noted here that the following column names are those provided
+# by PyGef. If a column name maps to an empty string then this implies a
+# dimensionless unit. Examples of dimensionless columns would be percentage
+# values or ratios.
+MEASUREMENT_UNITS: dict[str, str] = {
+    "penetrationLength": "m",
+    "coneResistance": "MPa",
+    "localFriction": "MPa",
+    "frictionRatio": "%",
+    "porePressureU1": "MPa",
+    "porePressureU2": "MPa",
+    "porePressureU3": "MPa",
+    "inclinationResultant": "degrees",
+    "inclinationNS": "degrees",
+    "inclinationEW": "degrees",
+    "depth": "m",
+    "elapsedTime": "s",
+    "correctedConeResistance": "MPa",
+    "netConeResistance": "MPa",
+    "poreRatio": "",
+    "coneResistanceRatio": "",
+    "soilDensity": "kN/m3",
+    "porePressure": "MPa",
+    "verticalPorePressureTotal": "MPa",
+    "verticalPorePressureEffective": "MPa",
+    "inclinationX": "degrees",
+    "inclinationY": "degrees",
+    "electricalConductivity": "S/m",
+    "magneticFieldStrengthX": "nT",
+    "magneticFieldStrengthY": "nT",
+    "magneticFieldStrengthZ": "nT",
+    "magneticFieldStrengthTotal": "nT",
+    "magneticInclination": "degrees",
+    "magneticDeclination": "degrees",
+}
