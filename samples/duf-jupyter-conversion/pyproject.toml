@@ -1,12 +1,13 @@
 [project]
-name = "convert-duf"
+name = "convert-duf-jupyter"
 version = "0.0.1"
-description = "DUF file converter for Evo workspace"
+description = "Jupyter notebook for DUF file conversion to an Evo workspace"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "numpy<=1.26.4",
     "evo-data-converters-common>=0.2.4",
     "evo-data-converters-duf>=0.1.8",
+    "evo-sdk>=0.1.17",
     "jupyterlab>=4.0.0",
 ]
 
