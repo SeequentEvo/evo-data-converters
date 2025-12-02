@@ -41,6 +41,7 @@ def mock_cpt_data() -> Mock:
             "engineer",
             "wind_speed",
             "signed_off",
+            "raw_headers",
         ]
     )
 
@@ -66,6 +67,17 @@ def mock_cpt_data() -> Mock:
         "friction": 9999.0,
     }
 
+    mock.raw_headers = {
+        "MEASUREMENTTEXT": [
+            ["4", "S10-CFIIP.1721", "conus type en serienummer"],
+            ["5", "Sondeerrups 1; 12400 kg; geen ankers", "sondeerequipment"],
+        ],
+        "MEASUREMENTVAR": [
+            ["1", "1000", "mm2", "nom. oppervlak conuspunt"],
+            ["2", "15000", "mm2", "oppervlakte kleefmantel"],
+        ],
+    }
+
     mock.report_date = datetime(year=2020, month=10, day=20)
     mock.engineer = "Bob"
     mock.wind_speed = 12.2
@@ -88,6 +100,7 @@ def mock_cpt_data_2() -> Mock:
             "engineer",
             "wind_speed",
             "signed_off",
+            "raw_headers",
         ]
     )
 
@@ -113,6 +126,15 @@ def mock_cpt_data_2() -> Mock:
         "friction": 9999.0,
     }
 
+    mock.raw_headers = {
+        "MEASUREMENTTEXT": [
+            ["99999", "Unmapped header should come back with measurementtext_99999"],
+        ],
+        "MEASUREMENTVAR": [
+            ["99999", "Unmapped header", "should come back with", "measurementvar_99999"],
+        ],
+    }
+
     mock.report_date = datetime(year=2020, month=10, day=20)
     mock.engineer = "Bob"
     mock.wind_speed = 17.0
@@ -135,6 +157,7 @@ def mock_cpt_data_3() -> Mock:
             "engineer",
             "wind_speed",
             "cone_size",
+            "raw_headers",
         ]
     )
 
@@ -159,6 +182,8 @@ def mock_cpt_data_3() -> Mock:
         "coneResistance": 9999.0,
         "friction": 9999.0,
     }
+
+    mock.raw_headers = {}
 
     mock.report_date = datetime(year=2020, month=10, day=21)
     mock.engineer = "Sally"
@@ -330,6 +355,7 @@ class TestGetCollarAttributes:
         assert "data" not in attributes
         assert "final_depth" not in attributes
         assert "column_void_mapping" not in attributes
+        assert "raw_headers" not in attributes
 
     def test_returns_valid_attributes(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
         attributes = builder._get_collar_attributes(mock_cpt_data)
@@ -374,6 +400,18 @@ class TestCreateCollarRow:
 
         assert collar_row["engineer"] == "Bob"
         assert collar_row["wind_speed"] == 12.2
+
+    def test_includes_raw_headers(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
+        collar_row = builder._create_collar_row(1, "CPT-001", mock_cpt_data)
+
+        assert collar_row["cone_type_serial"] == "S10-CFIIP.1721, conus type en serienummer"
+        assert collar_row["friction_sleeve_area"] == "15000, mm2, oppervlakte kleefmantel"
+
+    def test_unmapped_raw_headers(self, builder: DownholeCollectionBuilder, mock_cpt_data_2) -> None:
+        collar_row = builder._create_collar_row(1, "CPT-001", mock_cpt_data_2)
+
+        assert collar_row["measurementtext_99999"] == "Unmapped header should come back with measurementtext_99999"
+        assert collar_row["measurementvar_99999"] == "Unmapped header, should come back with, measurementvar_99999"
 
 
 class TestPrepareMeasurements:
@@ -717,6 +755,7 @@ class TestCreateFromParsedGefCpts:
                     "final_depth",
                     "data",
                     "column_void_mapping",
+                    "raw_headers",
                 ]
             )
             mock.delivered_location = Mock()
@@ -737,6 +776,7 @@ class TestCreateFromParsedGefCpts:
                 "coneResistance": 9999.0,
                 "friction": 9999.0,
             }
+            mock.raw_headers = {}
 
             cpts[f"CPT-{i:03d}"] = mock
 
