@@ -16,7 +16,6 @@ import sys
 from pathlib import Path
 
 from evo.data_converters.common.evo_client import EvoWorkspaceMetadata
-from evo.data_converters.duf import DUFFileNotFoundException, InvalidDUFFileException
 from evo.data_converters.duf.importer import convert_duf
 
 
@@ -35,7 +34,7 @@ def main():
     parser.add_argument("--combine-layers", action="store_true", default=True, help="Combine objects in layers")
 
     args = parser.parse_args()
-    
+
     # Strip whitespace from parameters that shouldn't contain spaces
     args.org_id = args.org_id.strip().replace(" ", "")
     args.workspace_id = args.workspace_id.strip().replace(" ", "")
