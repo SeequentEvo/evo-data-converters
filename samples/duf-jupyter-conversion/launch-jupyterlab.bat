@@ -1,6 +1,5 @@
 @echo off
 echo Launching JupyterLab...
-echo File: %~1
 echo.
 
 REM Get the directory where the batch file is located
