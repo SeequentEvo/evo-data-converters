@@ -15,6 +15,7 @@ env:
 
 jobs:
   build-and-publish:
+    if: startsWith(github.event.release.tag_name, 'evo-data-converters-duf@')
     name: Build and publish package
     runs-on: ubuntu-latest
     steps:

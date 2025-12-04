@@ -86,7 +86,7 @@ def test_combining_duf_polyface_geometry(multiple_objects, data_client):
     triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, epsg_code)
 
     expected_triangle_mesh_go = TriangleMesh_V2_1_0(
-        name="FACELAYER",
+        name="FACELAYER - polyfaces",
         uuid=None,
         coordinate_reference_system=crs_from_epsg_code(epsg_code),
         parts=triangle_mesh_go.parts,  # Tested later

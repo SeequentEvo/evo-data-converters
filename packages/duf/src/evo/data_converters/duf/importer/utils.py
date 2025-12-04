@@ -46,6 +46,7 @@ from evo_schemas.components import (
 
 from evo.data_converters.common.utils import vertices_bounding_box
 from evo.data_converters.duf.common import deswik_types as dw
+from evo.data_converters.duf.common.consts import EvoSchema
 from evo.data_converters.duf.xprops import get_xprops_value
 
 logger = evo.logging.getLogger("data_converters")
@@ -64,6 +65,7 @@ class AttributeType(Enum):
 @dataclass(frozen=True)
 class AttributeSpec:
     name: str
+    evo_name: str
     attr_type: AttributeType
     options: tuple[str] | None = None
     required: bool = False
@@ -74,7 +76,9 @@ class AttributeSpec:
         return f"_dw_Attribute[{attr_index}].{name}"
 
     @classmethod
-    def layer_attribute_by_index(cls, layer: dw.Layer, attr_index: int) -> "AttributeSpec | None":
+    def layer_attribute_by_index(
+        cls, layer: dw.Layer, attr_index: int, evo_schema: EvoSchema
+    ) -> "AttributeSpec | None":
         assert 0 < attr_index + 1 <= value_from_xproperties(layer, "_dw_AttributeCount", AttributeType.Integer), (
             f"Attribute index {attr_index} exceeds the number of attributes in layer {layer.Name}."
         )
@@ -99,8 +103,20 @@ class AttributeSpec:
             logger.warning(f"Unsupported attribute type {attr_type} for layer {layer.Name}, returning None.")
             return None
 
+        name = value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String)
+        if evo_schema in (EvoSchema.triangle_mesh, EvoSchema.line_segments):
+            if name.lower() == "id":
+                # Leapfrog does not handle columns named "ID", so rename them on the fly. We'll just hope
+                # that there isn't another column named "external_id".
+                evo_name = "external_id"
+                logger.warning(f"Column {name} is being converted to {evo_name}")
+            else:
+                evo_name = name
+        else:
+            raise NotImplementedError()
         return cls(
-            name=value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String),
+            name=name,
+            evo_name=evo_name,
             attr_type=attr_type,
             options=options,
             required=value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Required"), AttributeType.Boolean),
@@ -110,12 +126,31 @@ class AttributeSpec:
         )
 
     @classmethod
-    def layer_attributes(cls, layer: dw.Layer) -> list["AttributeSpec"]:
+    def layer_attributes(cls, layer: dw.Layer, evo_schema: EvoSchema) -> list["AttributeSpec"]:
         attr_count = value_from_xproperties(layer, "_dw_AttributeCount", AttributeType.Integer)
         if not attr_count:
             return []
 
-        return [attr for i in range(attr_count) if (attr := cls.layer_attribute_by_index(layer, i)) is not None]
+        return [
+            attr for i in range(attr_count) if (attr := cls.layer_attribute_by_index(layer, i, evo_schema)) is not None
+        ]
+
+    def _double_to_go(self, data_client: ObjectDataClient, values: list[numpy.floating | None]):
+        table = pa.table(
+            [values],
+            schema=pa.schema(
+                [
+                    pa.field("n0", pa.float64()),
+                ]
+            ),
+        )
+        table = data_client.save_table(table)
+        return ContinuousAttribute_V1_1_0(
+            name=self.evo_name,
+            key=self.name,
+            values=FloatArray1_V1_0_1(**table),
+            nan_description=NanContinuous_V1_0_1(values=[]),
+        )
 
     def to_go(self, data_client: ObjectDataClient, values: list[Any]) -> OneOfAttribute_V1_2_0_Item:
         category_set = None
@@ -134,7 +169,7 @@ class AttributeSpec:
                 )
                 table = data_client.save_table(table)
                 return StringAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=StringArray_V1_0_1(**table),
                 )
@@ -171,13 +206,18 @@ class AttributeSpec:
                 values_table = data_client.save_table(values_table)
 
                 return CategoryAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     table=LookupTable_V1_0_1(**lookup_table),
                     nan_description=NanCategorical_V1_0_1(values=[0]),
                     values=IntegerArray1_V1_0_1(**values_table),
                 )
             case AttributeType.Integer:
+                if any(v is None for v in values):
+                    # Leapfrog does not handle cases where integer columns have NaN values. So, convert it to double.
+                    doubles = [v if v is None else float(v) for v in values]
+                    logger.warning(f"Integer column {self.name} has NaNs. Converting to double.")
+                    return self._double_to_go(data_client, doubles)
                 nan_values = [max((v for v in values if v is not None), default=-1) + 1]
                 data_type = pa.int32() if numpy.can_cast(nan_values[0], "int32", "safe") else pa.int64()
                 table = pa.table(
@@ -195,27 +235,13 @@ class AttributeSpec:
                     nan_values = []
                 table = data_client.save_table(table)
                 return IntegerAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=IntegerArray1_V1_0_1(**table),
                     nan_description=NanCategorical_V1_0_1(values=nan_values),
                 )
             case AttributeType.Double:
-                table = pa.table(
-                    [values],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", pa.float64()),
-                        ]
-                    ),
-                )
-                table = data_client.save_table(table)
-                return ContinuousAttribute_V1_1_0(
-                    name=self.name,
-                    key=self.name,
-                    values=FloatArray1_V1_0_1(**table),
-                    nan_description=NanContinuous_V1_0_1(values=[]),
-                )
+                return self._double_to_go(data_client, values)
             case AttributeType.DateTime:
                 # The conversion is a little painful here as pyarrow can't always find tzdata to handle the timezones
                 min_value = float("inf")
@@ -265,7 +291,7 @@ class AttributeSpec:
 
                 table = data_client.save_table(table)
                 return DateTimeAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=DateTimeArray_V1_0_1(**table),
                     nan_description=NanCategorical_V1_0_1(values=nan_values),
@@ -281,7 +307,7 @@ class AttributeSpec:
                 )
                 table = data_client.save_table(table)
                 return BoolAttribute_V1_1_0(
-                    name=self.name,
+                    name=self.evo_name,
                     key=self.name,
                     values=BoolArray1_V1_0_1(**table),
                 )
@@ -290,6 +316,17 @@ class AttributeSpec:
                     f"Skipping unsupported DUF attribute data type '{self.attr_type.name}' for attribute '{self.name}'."
                 )
                 return None
+
+
+def _try_cast(cast_func, value) -> Any | None:
+    if value in (None, ""):
+        return None
+    try:
+        return cast_func(value)
+    except ValueError:
+        # It is possible for a Deswik entity to have an attribute that doesn't match its layer's type spec.
+        logger.debug(f"Not able to use `{cast_func}` to cast `{value}`")
+        return None
 
 
 def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeType) -> Any:
@@ -302,13 +339,11 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
         case AttributeType.String | AttributeType.Category:
             return str(value) if value is not None else None
         case AttributeType.Integer:
-            return int(value) if value not in {None, ""} else None
+            return _try_cast(int, value)
         case AttributeType.Double:
-            return float(value) if value not in {None, ""} else None
+            return _try_cast(float, value)
         case AttributeType.DateTime | AttributeType.Boolean:
             return value if value not in {None, ""} else None
-        # case AttributeType.Color:
-        #     return value.ValueColor
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None
@@ -382,7 +417,7 @@ def parts_to_go(
     return None
 
 
-def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays: list[NDArray]):
+def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays: list[NDArray], evo_schema: EvoSchema):
     # Avoid mutating the input later on in the function
     indices_arrays = [arr.copy() for arr in indices_arrays]
 
@@ -406,15 +441,17 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
         orig_to_unique = None
         unique_vertices_array = vertices_array  # np.unique sorts the returned array, we need to use the original here
 
-    attribute_specs = AttributeSpec.layer_attributes(layer)
+    attribute_specs = AttributeSpec.layer_attributes(layer, evo_schema)
     if num_parts > 1 or attribute_specs:
+        logger.info(f"Processing {num_parts} attributes for {len(obj_list)} entities")
+
         # We use parts to store object-level attributes, so we need at least a single part if we have any
         parts = {"offset": [], "count": [], "attributes": defaultdict(list)}
         attributes = parts["attributes"]
 
         offset = 0
         vertex_offset = 0
-        for obj, obj_indices_array in zip(obj_list, indices_arrays):
+        for i, (obj, obj_indices_array) in enumerate(zip(obj_list, indices_arrays)):
             obj_num_vertices = obj.VertexList.Count
             obj_count = len(obj_indices_array)
 
@@ -434,6 +471,9 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
                     logger.warning(f"Required attribute '{spec.name}' is missing in object {get_name(obj)}.")
 
                 attributes[spec].append(attr)
+
+            if i % 1000 == 0:
+                logger.info(f"Processed attributes for entity {i}")
     else:
         parts = None
 

@@ -90,3 +90,91 @@ def test_import_object_with_missing_attrs(evo_metadata, data_client, missing_att
 
     check_attr_values(attr1_go)
     check_attr_values(attr2_go)
+
+
+def test_combined_import_with_different_entity_types_in_layer(
+    evo_metadata, data_client, layer_with_2polylines_2meshes_2points_2texts_1face_path
+) -> None:
+    """
+    The polylines and points should get combined into one object. The meshes should get combined into another. The text and face objects should be ignored.
+    """
+    go_objects = convert_duf(
+        filepath=layer_with_2polylines_2meshes_2points_2texts_1face_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+    )
+
+    assert len(go_objects) == 2
+
+    go_objects.sort(key=str)
+    line_segments, mesh_triangles = go_objects
+
+    assert "line-segments" in line_segments.schema
+    assert line_segments.parts.attributes[0].values.length == 4  # polylines + points
+    assert "triangle-mesh" in mesh_triangles.schema
+    assert mesh_triangles.parts.attributes[0].values.length == 2
+
+
+def test_import_attribute_named_id(evo_metadata, data_client, id_attribute_path) -> None:
+    go_objects = convert_duf(
+        filepath=id_attribute_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+    )
+
+    assert len(go_objects) == 2
+    line_segments, mesh_triangles = sorted(go_objects, key=str)
+
+    assert (line_segments_attr := line_segments.parts.attributes[0]).name == "external_id"
+    assert numpy.array_equal(["id polyline 1"], data_client.load_category(line_segments_attr))
+
+    assert (mesh_tri_attr := mesh_triangles.parts.attributes[0]).name == "external_id"
+    assert numpy.array_equal(["id polyface 1"], data_client.load_category(mesh_tri_attr))
+
+
+def test_int_column_with_missing_values_gets_published_as_double(evo_metadata, data_client, missing_ints_path) -> None:
+    go_objects = convert_duf(
+        filepath=missing_ints_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+    )
+
+    # The Deswik entities are named "MISSING INTS" and "NO_MISSING_INTS"
+    go_objects.sort(key=lambda go: go.name)
+    missing_ints_go, no_missing_ints_go = go_objects
+
+    missing_ints_attr = missing_ints_go.parts.attributes[0]
+    # The layer that has entities with missing ints has been converted to double
+    assert missing_ints_attr.attribute_type == "scalar"  # double
+    [missing_ints_column] = data_client.load_columns(missing_ints_attr.values)
+    assert numpy.isnan(missing_ints_column[0])
+    assert not numpy.isnan(missing_ints_column[1])
+
+    no_missing_ints_go = no_missing_ints_go.parts.attributes[0]
+    assert no_missing_ints_go.attribute_type == "integer"
+    [no_missing_ints_column] = data_client.load_columns(no_missing_ints_go.values)
+    assert not numpy.isnan(no_missing_ints_column).any()
+
+
+def test_mismatch_of_attribute_type_spec_and_value(
+    evo_metadata, data_client, mismatching_type_desc_and_values_path
+) -> None:
+    go_objects = convert_duf(
+        filepath=mismatching_type_desc_and_values_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+    )
+
+    assert len(go_objects) == 1
+    mesh_go = go_objects[0]
+
+    def check_attr_values(attr_go):
+        table = data_client.load_table(attr_go.values).to_pandas()
+        column = table[table.columns[0]].to_numpy()
+        assert numpy.isnan(column).all()
+
+    check_attr_values(mesh_go.parts.attributes[0])
+    check_attr_values(mesh_go.parts.attributes[1])
