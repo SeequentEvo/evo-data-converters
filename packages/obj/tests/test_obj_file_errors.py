@@ -1,5 +1,19 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import tempfile
+import pytest
+from pathlib import Path
 from unittest import TestCase
+from importlib.util import find_spec
 
 
 from evo.data_converters.common import (
@@ -7,8 +21,13 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
 )
 
+from evo.data_converters.obj.importer.obj_to_evo import convert_obj
+from evo.data_converters.obj.importer.implementation.base import InvalidOBJError
+
 
 class TestObjFileErrors(TestCase):
+    implementation: str = "trimesh"
+
     def setUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
         self.metadata = EvoWorkspaceMetadata(
@@ -16,3 +35,58 @@ class TestObjFileErrors(TestCase):
         )
         _, data_client = create_evo_object_service_and_data_client(self.metadata)
         self.data_client = data_client
+
+    def test_missing_vertices_file(self) -> None:
+        """
+        Attempts to load a file that's missing referenced vertices.
+        """
+        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes_corrupt.obj"
+
+        with self.assertRaises(InvalidOBJError):
+            (triangle_mesh,) = convert_obj(
+                filepath=obj_file,
+                evo_workspace_metadata=self.metadata,
+                epsg_code=4326,
+                publish_objects=False,
+                implementation=self.implementation,
+            )
+
+    def test_wrong_format_file(self) -> None:
+        """
+        Attempts to load an STL version of simple_shapes that should refuse to load, even
+        though several of the implementations would otherwise support STL.
+        """
+        stl_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.stl"
+
+        with self.assertRaises(InvalidOBJError):
+            (triangle_mesh,) = convert_obj(
+                filepath=stl_file,
+                evo_workspace_metadata=self.metadata,
+                epsg_code=4326,
+                publish_objects=False,
+                implementation=self.implementation,
+            )
+            print(triangle_mesh)
+
+
+@pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
+class TestObjFileErrorsTinyObj(TestObjFileErrors):
+    implementation = "tinyobj"
+
+
+@pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
+class TestObjFileErrorsOpen3D(TestObjFileErrors):
+    implementation = "open3d"
+
+
+@pytest.mark.skipif(find_spec("vtk") is None, reason="vtk not installed")
+class TestObjFileErrorsVTK(TestObjFileErrors):
+    implementation = "vtk"
+
+    def test_missing_vertices_file(self) -> None:
+        pytest.skip("VTK can't detect this")
+
+
+@pytest.mark.skipif(find_spec("pyassimp") is None, reason="pyassimp not installed")
+class TestObjFileErrorsAssimp(TestObjFileErrors):
+    implementation = "assimp"

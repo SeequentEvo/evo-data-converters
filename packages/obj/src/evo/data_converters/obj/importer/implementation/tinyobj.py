@@ -1,3 +1,14 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import asyncio
 import gc
 
@@ -17,10 +28,18 @@ from evo_schemas.components import (
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
 
-from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
+from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA, InvalidOBJError
 
 
 class TinyobjObjImporter(ObjImporterBase):
+    """
+    An OBJ importer implementation using the TinyOBJ library.
+
+    This implementation is by far the most memory-efficient and fastest for large meshes,
+    though currently the binding to use it isn't stable. This implementation may become the preferred
+    one when a stable v2.0 of the Python binding is released.
+    """
+
     reader: tinyobjloader.ObjReader
 
     @override
@@ -33,7 +52,9 @@ class TinyobjObjImporter(ObjImporterBase):
         config.triangulate = True
         ret = self.reader.ParseFromFile(str(self.obj_file), option=config)
         if not ret:
-            raise ValueError(f"Failed to parse {self.obj_file}")
+            raise InvalidOBJError(f"Failed to parse {self.obj_file}")
+        if not self.reader.Valid() or len(self.reader.GetShapes()) == 0:
+            raise InvalidOBJError("Input file contains no OBJ geometry (or is wrong format)")
 
     @override
     async def create_tables(
@@ -78,6 +99,8 @@ class TinyobjObjImporter(ObjImporterBase):
 
         parts_table = pa.concat_tables(parts_tables)
         indices_table = pa.concat_tables(indices_tables)
+
+        self._check_tables(vertices_table, indices_table, parts_table)
 
         if publish_parquet:
             # Publish the tables in parallel

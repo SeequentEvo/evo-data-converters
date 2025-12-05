@@ -1,6 +1,6 @@
 <p align="center"><a href="https://seequent.com" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="https://developer.seequent.com/img/seequent-logo-dark.svg" alt="Seequent logo" width="400" /><img src="https://developer.seequent.com/img/seequent-logo.svg" alt="Seequent logo" width="400" /></picture></a></p>
 <p align="center">
-    <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>
+    <a href="https://pypi.org/project/evo-data-converters-obj/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml"><img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt="" /></a>
 </p>
 <p align="center">
@@ -29,7 +29,9 @@ Evo is powered by Seequent, a Bentley organisation.
 The OBJ 3D mesh format is a legacy of Wavefront Technologies, but is now a common format for specifying polygon meshes,
 optionally with texture data (stored in a separate MTL file).
 
-The Python Open3D package is used to work with these files, for import and export.
+### Implementations
+
+The Python [Trimesh](https://trimesh.org/index.html) package is used to work with OBJ files by default, for import and export. There are other optional importer implementations such as [TinyOBJ](https://github.com/tinyobjloader/tinyobjloader), [Open3D](https://www.open3d.org/) and the VTK library that `evo-data-converters-vtk` provides. These can be installed as an optional extra as `optional_parsers` and then passed as the `implementation` string to `convert_obj()`. Trimesh and TinyOBJ are the preferred implementations for completeness and speed respectively.
 
 ### Publish geoscience objects from an OBJ file
 
@@ -39,7 +41,7 @@ Have a look at the `samples/publish-obj.ipynb` Notebook for an example of how to
 
 ### Export objects to OBJ
 
-To export an object from Evo to an OMF file, specify the Evo object UUID of the object you want to export and the output file path, and then call `export_obj()`.
+To export an object from Evo to an OBJ file, specify the Evo object UUID of the object you want to export and the output file path, and then call `export_obj()`.
 See documentation on the `ObjectAPIClient` for listing objects and getting their IDs and versions.
 
 You may also specify the version of this object to export. If not specified, so it will export the latest version.

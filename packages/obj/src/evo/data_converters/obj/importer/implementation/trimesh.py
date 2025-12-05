@@ -1,3 +1,14 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import asyncio
 import gc
 
@@ -17,10 +28,19 @@ from evo_schemas.components import (
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
 
-from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
+from .base import ObjImporterBase, InvalidOBJError, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
 
 
 class TrimeshObjImporter(ObjImporterBase):
+    """
+    An OBJ importer using the Trimesh pure-python Library.
+
+    This implementation is fairly complete and handles parts and textures well,
+    though Evo doesn't currently support textures. Due to the re-sorting of vertices and
+    general in-memory manipulation, Trimesh can be inefficient/slow on very large
+    meshes over 2 million triangles.
+    """
+
     scene: trimesh.Scene
 
     @override
@@ -28,14 +48,20 @@ class TrimeshObjImporter(ObjImporterBase):
         """
         Opens and validates the OBJ file, creating a native representation of it.
         """
-        self.scene = trimesh.load_scene(
-            self.obj_file,
-            split_object=True,
-            file_type="obj",
-            # in future when we need texture data this will need to change, in the meantime not
-            # loading textures to PIL saves quite a bit of memory:
-            skip_materials=True,
-        )
+        try:
+            self.scene = trimesh.load_scene(
+                self.obj_file,
+                split_object=True,
+                file_type="obj",
+                # in future when we need texture data this will need to change, in the meantime not
+                # loading textures to PIL saves quite a bit of memory:
+                skip_materials=True,
+            )
+            if len(self.scene.geometry) == 0:
+                raise InvalidOBJError("Input file contains no OBJ geometry (or is wrong format)")
+        except IndexError:
+            # this typically means bad indices
+            raise InvalidOBJError("Indexing error (indices out of range, probably)")
 
     @override
     async def create_tables(

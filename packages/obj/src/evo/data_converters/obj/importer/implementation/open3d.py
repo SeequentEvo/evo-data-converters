@@ -1,3 +1,14 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import asyncio
 
 from typing import Tuple
@@ -16,10 +27,18 @@ from evo_schemas.components import (
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
 
-from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
+from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA, InvalidOBJError
 
 
 class Open3dObjImporter(ObjImporterBase):
+    """
+    An importer for OBJ files using the Open3D library.
+
+    There is no overwhelming reason to choose this library over TinyOBJ, though
+    some manipulation operations are easier to perform with Open3D if you were to
+    subclass this implementation.
+    """
+
     model: open3d.cpu.pybind.visualization.rendering.TriangleMeshModel
     cached_bbox: BoundingBox_V1_0_1
 
@@ -28,7 +47,12 @@ class Open3dObjImporter(ObjImporterBase):
         """
         Opens and validates the OBJ file, creating a native representation of it.
         """
+        if ".obj" not in str(self.obj_file).lower():
+            # this is a crutch because we can't otherwise block loading other file types with O3D
+            raise InvalidOBJError("Input file is not OBJ")
         self.model = open3d.io.read_triangle_model(self.obj_file)
+        if not self.model or len(self.model.meshes) == 0:
+            raise InvalidOBJError("Input file contains no OBJ geometry (or is wrong format)")
 
     @override
     async def create_tables(
@@ -73,6 +97,8 @@ class Open3dObjImporter(ObjImporterBase):
         vertices_table = pa.concat_tables(vertices_tables)
         indices_table = pa.concat_tables(indices_tables)
         parts_table = pa.concat_tables(parts_tables)
+
+        self._check_tables(vertices_table, indices_table, parts_table)
 
         if publish_parquet:
             # Publish the tables in parallel
