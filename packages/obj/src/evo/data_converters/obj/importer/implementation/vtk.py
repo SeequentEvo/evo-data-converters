@@ -1,3 +1,14 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import asyncio
 
 from typing import Tuple
@@ -17,10 +28,18 @@ from evo_schemas.components import (
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
 
-from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA, UnsupportedOBJError
+from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA, UnsupportedOBJError, InvalidOBJError
 
 
 class VtkObjImporter(ObjImporterBase):
+    """
+    An implementation of OBJ import using the VTK library.
+
+    There is no compelling reason to use this implementation except that it's also used for the
+    VTK converter, so is already available. In future if performance improves it may become a
+    recommended option.
+    """
+
     reader: vtkmodules.vtkIOCore.vtkAbstractPolyDataReader
 
     @override
@@ -28,9 +47,17 @@ class VtkObjImporter(ObjImporterBase):
         """
         Opens and validates the OBJ file, creating a native representation of it.
         """
+
+        def error_handler(caller, event) -> None:
+            raise InvalidOBJError(f"Parse error {event}")
+
         self.reader = vtk.vtkOBJReader()
+        self.reader.AddObserver("ErrorEvent", error_handler)
+        self.reader.AddObserver("WarningEvent", error_handler)
         self.reader.SetFileName(str(self.obj_file))
         self.reader.Update()
+        if self.reader.GetOutput() is None or self.reader.GetOutput().GetNumberOfPoints() == 0:
+            raise InvalidOBJError("Input file contains no OBJ geometry (or is wrong format)")
 
     @override
     async def create_tables(

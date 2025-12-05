@@ -1,7 +1,18 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import asyncio
 
 from contextlib import ExitStack
-from typing import Tuple, Any
+from typing import Tuple
 from typing_extensions import override
 
 import pyassimp
@@ -17,11 +28,20 @@ from evo_schemas.components import (
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
 
-from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA
+from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA, InvalidOBJError
 
 
 class AssimpObjImporter(ObjImporterBase):
-    scene: Any  # FIXME
+    """
+    This implementation of the importer uses the Assimp library, which typically needs to be installed
+    to the system separately to the Python bindings.
+
+    Performance of this implementation is not particularly high on large meshes, but a lot of common
+    software uses the Assimp library to produce OBJ files, so this implementation may be more compatible
+    with files produced using such applications.
+    """
+
+    scene: pyassimp.structs.Scene
     stack: ExitStack
 
     @override
@@ -29,15 +49,27 @@ class AssimpObjImporter(ObjImporterBase):
         """
         Opens and validates the OBJ file, creating a native representation of it.
         """
+        if ".obj" not in str(self.obj_file).lower():
+            # this is a crutch because we can't otherwise block loading other file types with Assimp
+            raise InvalidOBJError("Input file is not OBJ")
+
         # manually use the contextmanager with ExitStack, as we're not in context ourselves.
         self.stack = ExitStack()
-        self.scene = self.stack.enter_context(
-            # pyassimp.load(str(self.obj_file), processing=pyassimp.postprocess.aiProcess_Triangulate)
-            pyassimp.load(str(self.obj_file))
-        )
+
+        try:
+            self.scene = self.stack.enter_context(
+                pyassimp.load(
+                    str(self.obj_file), processing=pyassimp.postprocess.aiProcess_Triangulate, file_type="obj"
+                )
+            )
+        except pyassimp.AssimpError as e:
+            raise InvalidOBJError(f"Load error: {e}")
+        if self.scene.mNumMeshes == 0:
+            raise InvalidOBJError("Input file contains no OBJ geometry (or is wrong format)")
 
     def __del__(self) -> None:
-        self.stack.close()
+        if hasattr(self, "stack"):
+            self.stack.close()
 
     @override
     async def create_tables(
