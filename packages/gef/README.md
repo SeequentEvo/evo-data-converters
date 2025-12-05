@@ -20,6 +20,8 @@ Evo is powered by Seequent, a Bentley organisation.
 * Python virtual environment with Python 3.10, 3.11, or 3.12
 * Git
 
+**Note:** Python 3.11+ is required to ingest MEASUREMENTTEXT and MEASUREMENTVAR headers from the GEF source files. These will be mapped to human readable names specified in `packages/gef/src/evo/data_converters/gef/converter/gef_spec.py`.
+
 ## Installation
 
 The `gef` data-converter package depends upon the `pygef` package. Pygef should install automatically when evo-data-converter-gef is installed.
