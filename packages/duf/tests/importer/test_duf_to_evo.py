@@ -20,7 +20,9 @@ from packages.duf.tests.utils import convert_duf
 
 
 def test_should_log_warnings(evo_metadata, simple_objects_path, caplog: pytest.LogCaptureFixture) -> None:
-    convert_duf(filepath=simple_objects_path, evo_workspace_metadata=evo_metadata, epsg_code=32650)
+    convert_duf(
+        filepath=simple_objects_path, evo_workspace_metadata=evo_metadata, epsg_code=32650, publish_objects=False
+    )
 
     expected_log_message = r"Unsupported DUF object type: Circle, ignoring 1 object."
     assert any(re.search(expected_log_message, line) for line in caplog.messages)
@@ -30,7 +32,11 @@ def test_should_add_expected_tags(evo_metadata, simple_objects_path) -> None:
     tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
     go_objects = convert_duf(
-        filepath=simple_objects_path, evo_workspace_metadata=evo_metadata, epsg_code=32650, tags=tags
+        filepath=simple_objects_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        tags=tags,
+        publish_objects=False,
     )
 
     expected_tags = {
@@ -43,7 +49,10 @@ def test_should_add_expected_tags(evo_metadata, simple_objects_path) -> None:
 
 
 def test_should_convert_expected_geometry_types(evo_metadata, simple_objects_path) -> None:
-    go_objects = convert_duf(filepath=simple_objects_path, evo_workspace_metadata=evo_metadata, epsg_code=32650)
+    go_objects = convert_duf(
+        filepath=simple_objects_path, evo_workspace_metadata=evo_metadata, epsg_code=32650, publish_objects=False
+    )
+    go_objects.sort(key=str)
 
     expected_go_object_types = [LineSegments_V2_1_0, TriangleMesh_V2_1_0]
     assert [type(obj) for obj in go_objects] == expected_go_object_types
@@ -57,6 +66,7 @@ def test_import_category_with_missing_attrs(
         evo_workspace_metadata=evo_metadata,
         epsg_code=32650,
         combine_objects_in_layers=True,
+        publish_objects=False,
     )
     imported_line_segments = go_objects[0]
     category_go = next(attr for attr in imported_line_segments.parts.attributes if attr.attribute_type == "category")
@@ -75,6 +85,7 @@ def test_import_object_with_missing_attrs(evo_metadata, data_client, missing_att
         evo_workspace_metadata=evo_metadata,
         epsg_code=32650,
         combine_objects_in_layers=True,
+        publish_objects=False,
     )
     imported_line_segments = go_objects[0]
 
@@ -103,6 +114,7 @@ def test_combined_import_with_different_entity_types_in_layer(
         evo_workspace_metadata=evo_metadata,
         epsg_code=32650,
         combine_objects_in_layers=True,
+        publish_objects=False,
     )
 
     assert len(go_objects) == 2
@@ -118,9 +130,7 @@ def test_combined_import_with_different_entity_types_in_layer(
 
 def test_import_attribute_named_id(evo_metadata, data_client, id_attribute_path) -> None:
     go_objects = convert_duf(
-        filepath=id_attribute_path,
-        evo_workspace_metadata=evo_metadata,
-        epsg_code=32650,
+        filepath=id_attribute_path, evo_workspace_metadata=evo_metadata, epsg_code=32650, publish_objects=False
     )
 
     assert len(go_objects) == 2
@@ -139,6 +149,7 @@ def test_int_column_with_missing_values_gets_published_as_double(evo_metadata, d
         evo_workspace_metadata=evo_metadata,
         epsg_code=32650,
         combine_objects_in_layers=True,
+        publish_objects=False,
     )
 
     # The Deswik entities are named "MISSING INTS" and "NO_MISSING_INTS"
@@ -166,6 +177,7 @@ def test_mismatch_of_attribute_type_spec_and_value(
         evo_workspace_metadata=evo_metadata,
         epsg_code=32650,
         combine_objects_in_layers=True,
+        publish_objects=False,
     )
 
     assert len(go_objects) == 1
