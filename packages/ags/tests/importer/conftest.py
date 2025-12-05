@@ -100,6 +100,12 @@ def valid_ags_no_cpt_path():
 
 
 @pytest.fixture(scope="session")
+def valid_ags_with_geol_path():
+    """Path to a valid AGS file with GEOL data including an unmatched LOCA_ID."""
+    return str((Path(__file__).parent / "data" / "valid_ags_with_geol.ags").resolve())
+
+
+@pytest.fixture(scope="session")
 def not_ags_path():
     """Path to an invalid AGS file."""
     return str((Path(__file__).parent / "data" / "not_ags.ags").resolve())

@@ -45,9 +45,8 @@ def create_from_parsed_ags(
     collars_df = hole_collars.df
 
     # Prepare lookup tables for merging hole_index into measurements
-    # GEOL only has LOCA_ID, all others have both LOCA_ID and SCPG_TESN
     lookup_with_tesn = collars_df[["LOCA_ID", "SCPG_TESN", "hole_index"]]
-    lookup_without_tesn = collars_df[["LOCA_ID", "hole_index"]]
+    lookup_without_tesn = collars_df[["LOCA_ID", "hole_index"]].drop_duplicates(subset=["LOCA_ID"], keep="first")
 
     measurements: list[pd.DataFrame] = ags_context.get_tables(groups=AgsContext.MEASUREMENT_GROUPS)
     for table in measurements:
@@ -56,10 +55,15 @@ def create_from_parsed_ags(
             table_with_index = table.merge(lookup_with_tesn, on=["LOCA_ID", "SCPG_TESN"], how="left")
         else:
             # Location-level data (e.g., GEOL): merge on LOCA_ID only
-            # This will duplicate rows if multiple collars exist at the same location
             table_with_index = table.merge(lookup_without_tesn, on=["LOCA_ID"], how="left")
 
+        # Drop rows with unmatched LOCA_ID and ensure integer dtype
         table["hole_index"] = table_with_index["hole_index"]
+        unmatched_count = table["hole_index"].isna().sum()
+        if unmatched_count > 0:
+            logger.warning(f"Dropping {unmatched_count} rows with unmatched LOCA_ID in measurement table")
+            table.dropna(subset=["hole_index"], inplace=True)
+        table["hole_index"] = table["hole_index"].astype(int)
 
     downhole_collection: DownholeCollection = DownholeCollection(
         collars=hole_collars,
