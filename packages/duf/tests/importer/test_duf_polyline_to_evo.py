@@ -156,11 +156,19 @@ def test_polyline_obj_attrs(polyline_attrs_boat, data_client):
     polyline_objs = [obj for _, obj in polyline_attrs_boat.get_objects_of_type(dw.Polyline)]
     polyline_objs = sorted(polyline_objs, key=lambda pl: pl.VertexList[0].X)  # Ensure consistent order
 
-    line_segments_gos = [convert_duf_polyline(pl, data_client, 12345) for pl in polyline_objs]
+    line_segments_gos = [convert_duf_polyline(pl, data_client, 4326) for pl in polyline_objs]
     all_attrs = [ls.parts.attributes for ls in line_segments_gos]
-    for attrs in all_attrs:
+
+    # This list records which objects/entities have an integer attribute with at least one None value
+    int_column_has_none = [True, False, False, False]
+
+    for i, attrs in enumerate(all_attrs):
         assert [attr.name for attr in attrs] == ["Part", "Date", "Doub", "Int", "Choice"]
-        assert [attr.attribute_type for attr in attrs] == ["category", "date_time", "scalar", "integer", "category"]
+        expected_types = ["category", "date_time", "scalar", "integer", "category"]
+        if int_column_has_none[i]:
+            # Integer columns with None get transformed to double (scalar) on publish
+            expected_types[3] = "scalar"
+        assert [attr.attribute_type for attr in attrs] == expected_types
 
     part_values = [extract_single_attr_value(attrs[0], data_client) for attrs in all_attrs]
     datetime_values = [extract_single_attr_value(attrs[1], data_client) for attrs in all_attrs]
@@ -184,10 +192,11 @@ def test_combine_polyline_attrs(polyline_attrs_boat, data_client):
     polyline_objs = [obj for _, obj in polyline_attrs_boat.get_objects_of_type(dw.Polyline)]
     polyline_objs = sorted(polyline_objs, key=lambda pl: pl.VertexList[0].X)  # Ensure consistent order
 
-    line_segments_go = combine_duf_polylines(polyline_objs, data_client, 12345)
+    line_segments_go = combine_duf_polylines(polyline_objs, data_client, 4326)
     attrs = line_segments_go.parts.attributes
     assert [attr.name for attr in attrs] == ["Part", "Date", "Doub", "Int", "Choice"]
-    assert [attr.attribute_type for attr in attrs] == ["category", "date_time", "scalar", "integer", "category"]
+    # The "Int" column was converted to double (scalar) because it has None values
+    assert [attr.attribute_type for attr in attrs] == ["category", "date_time", "scalar", "scalar", "category"]
 
     part_values, datetime_values, doub_values, int_values, choice_values = [
         extract_attr_values(attr, data_client) for attr in attrs
