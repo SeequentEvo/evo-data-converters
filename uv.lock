@@ -764,7 +764,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-common"
-version = "0.2.3"
+version = "0.2.4"
 source = { editable = "packages/common" }
 dependencies = [
     { name = "aiohttp" },
@@ -811,7 +811,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-duf"
-version = "0.1.9"
+version = "0.2.0"
 source = { editable = "packages/duf" }
 dependencies = [
     { name = "evo-data-converters-common" },

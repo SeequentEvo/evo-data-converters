@@ -13,7 +13,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 from evo.common.exceptions import NotFoundException
-from evo.data_converters.common.publish import publish_geoscience_object, publish_geoscience_objects
+from evo.data_converters.common.publish import publish_geoscience_object, publish_geoscience_objects_sync
 
 
 class TestPublishGeoscienceObjects(IsolatedAsyncioTestCase):
@@ -35,7 +35,7 @@ class TestPublishGeoscienceObjects(IsolatedAsyncioTestCase):
         mock_publish_geoscience_object.return_value = expected_metadata
         mock_generate_paths.return_value = ["test/mock_1.json", "test/mock_2.json"]
 
-        objects_metadata = publish_geoscience_objects(
+        objects_metadata = publish_geoscience_objects_sync(
             object_models=self.test_objects,
             object_service_client=self.mock_object_service_client,
             data_client=self.mock_data_client,
@@ -62,7 +62,7 @@ class TestPublishGeoscienceObjects(IsolatedAsyncioTestCase):
 
     @patch("evo.data_converters.common.publish.publish_geoscience_object")
     def test_publish_geoscience_objects_empty_list(self, mock_publish_geoscience_object: AsyncMock) -> None:
-        objects_metadata = publish_geoscience_objects([], self.mock_object_service_client, self.mock_data_client)
+        objects_metadata = publish_geoscience_objects_sync([], self.mock_object_service_client, self.mock_data_client)
 
         self.assertEqual(objects_metadata, [])
         mock_publish_geoscience_object.assert_not_called()

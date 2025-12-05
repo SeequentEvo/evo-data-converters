@@ -34,7 +34,7 @@ def test_convert_ubc_success() -> None:
         patch(
             "evo.data_converters.ubc.importer.ubc_to_evo.create_evo_object_service_and_data_client"
         ) as mock_create_client,
-        patch("evo.data_converters.ubc.importer.ubc_to_evo.publish_geoscience_objects") as mock_publish,
+        patch("evo.data_converters.ubc.importer.ubc_to_evo.publish_geoscience_objects_sync") as mock_publish,
         patch(
             "evo.data_converters.ubc.importer.utils.get_geoscience_object_from_ubc", return_value=mock_geoscience_object
         ),

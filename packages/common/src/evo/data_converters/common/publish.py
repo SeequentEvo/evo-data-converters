@@ -25,7 +25,7 @@ from .generate_paths import generate_paths
 logger = evo.logging.getLogger("data_converters")
 
 
-def publish_geoscience_objects(
+def publish_geoscience_objects_sync(
     object_models: list[BaseSpatialDataProperties_V1_0_1],
     object_service_client: ObjectAPIClient,
     data_client: ObjectDataClient,
@@ -44,6 +44,30 @@ def publish_geoscience_objects(
     for obj, obj_path in zip(object_models, paths):
         object_metadata = asyncio.run(
             publish_geoscience_object(obj_path, obj, object_service_client, data_client, overwrite_existing_objects)
+        )
+        logger.debug(f"Got object metadata: {object_metadata}")
+        objects_metadata.append(object_metadata)
+
+    return objects_metadata
+
+
+async def publish_geoscience_objects(
+    object_models: list[BaseSpatialDataProperties_V1_0_1],
+    object_service_client: ObjectAPIClient,
+    data_client: ObjectDataClient,
+    path_prefix: str = "",
+    overwrite_existing_objects: bool = False,
+) -> list[ObjectMetadata]:
+    """
+    Publishes a list of Geoscience Objects.
+    """
+    objects_metadata = []
+    paths = generate_paths(object_models, path_prefix)
+
+    logger.debug(f"Preparing to publish {len(object_models)} objects to paths: {paths}")
+    for obj, obj_path in zip(object_models, paths):
+        object_metadata = await publish_geoscience_object(
+            obj_path, obj, object_service_client, data_client, overwrite_existing_objects
         )
         logger.debug(f"Got object metadata: {object_metadata}")
         objects_metadata.append(object_metadata)

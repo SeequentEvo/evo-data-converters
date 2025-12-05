@@ -119,7 +119,7 @@ def _convert_duf_objects(
     return geoscience_objects
 
 
-def convert_duf(
+async def convert_duf(
     filepath: str,
     epsg_code: int,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
@@ -179,7 +179,7 @@ def convert_duf(
     objects_metadata = None
     if publish_objects:
         logger.debug(f"Publishing {len(geoscience_objects)} Geoscience Objects")
-        objects_metadata = publish_geoscience_objects(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 
