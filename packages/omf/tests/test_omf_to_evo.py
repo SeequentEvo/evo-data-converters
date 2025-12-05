@@ -30,7 +30,7 @@ class TestOMFToEvoProblems:
         )
         omf_file = path.join(path.dirname(__file__), "data/duplicate_element_name.omf")
 
-        convert_omf(filepath=omf_file, evo_workspace_metadata=metadata, epsg_code=32650)
+        convert_omf(filepath=omf_file, evo_workspace_metadata=metadata, epsg_code=32650, publish_objects=False)
 
         expected_log_message = r"WARNING  evo.data_converters:omf_to_evo.py:\d+ Problems returned reading OMF project:"
         assert any(re.search(expected_log_message, line) for line in caplog.text.splitlines())
@@ -53,7 +53,9 @@ class TestOMFToEvoConverter(TestCase):
 
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
-        go_objects = convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, tags=tags)
+        go_objects = convert_omf(
+            filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, tags=tags, publish_objects=False
+        )
 
         expected_tags = {
             "Source": "pointset_v2.omf (via Evo Data Converters)",
@@ -65,7 +67,9 @@ class TestOMFToEvoConverter(TestCase):
 
     def test_should_convert_expected_geometry_types(self) -> None:
         omf_file = path.join(path.dirname(__file__), "data/one_of_everything.omf")
-        go_objects = convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650)
+        go_objects = convert_omf(
+            filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=False
+        )
 
         expected_go_object_types = [TriangleMesh_V2_1_0, Pointset_V1_2_0, LineSegments_V2_1_0, TriangleMesh_V2_1_0]
         self.assertListEqual(expected_go_object_types, [type(obj) for obj in go_objects])

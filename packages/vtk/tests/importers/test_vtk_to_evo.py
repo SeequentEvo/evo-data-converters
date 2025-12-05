@@ -34,7 +34,7 @@ def test_unsupported(caplog: pytest.LogCaptureFixture, test_file: str, n_message
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / test_file
-    result = convert_vtk(str(file_name), 0, evo_workspace_metadata=workspace_metadata)
+    result = convert_vtk(str(file_name), 0, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert result == []
 
     messages = caplog.text.splitlines()
@@ -45,7 +45,7 @@ def test_unsupported(caplog: pytest.LogCaptureFixture, test_file: str, n_message
 def test_data_with_ghosts(caplog: pytest.LogCaptureFixture) -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "image_data_with_ghosts.vti"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata)
+    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 0
 
     messages = caplog.text.splitlines()
@@ -58,7 +58,9 @@ def test_convert_object() -> None:
     tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
     file_name = this_dir / "data" / "image_data.vti"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags)
+    result = convert_vtk(
+        str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags, publish_objects=False
+    )
     assert len(result) == 1
     assert isinstance(result[0], Regular3DGrid_V1_2_0)
 
@@ -74,7 +76,7 @@ def test_convert_object() -> None:
 def test_convert_rectilinear_grid() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "rectilinear_grid.vtr"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata)
+    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 1
     assert isinstance(result[0], Tensor3DGrid_V1_2_0)
 
@@ -82,7 +84,7 @@ def test_convert_rectilinear_grid() -> None:
 def test_convert_unstructured_grid() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "unstructured_grid.vtu"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata)
+    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 1
     assert isinstance(result[0], UnstructuredTetGrid_V1_2_0)
 
@@ -90,7 +92,7 @@ def test_convert_unstructured_grid() -> None:
 def test_convert_multiple() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "collection.vtm"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata)
+    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 3
     assert isinstance(result[0], Regular3DGrid_V1_2_0)
     assert isinstance(result[1], Tensor3DGrid_V1_2_0)

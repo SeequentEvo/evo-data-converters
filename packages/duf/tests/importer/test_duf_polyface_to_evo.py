@@ -220,7 +220,7 @@ def test_indices_from_polyface_incomplete():
 def test_polyface_obj_attrs(pit_mesh_attrs, data_client):
     polyface = [obj for _, obj in pit_mesh_attrs.get_objects_of_type(dw.Polyface)][0]
 
-    triangle_mesh_go = convert_duf_polyface(polyface, data_client, 12345)
+    triangle_mesh_go = convert_duf_polyface(polyface, data_client, 4326)
     attrs = triangle_mesh_go.parts.attributes
     assert [attr.name for attr in attrs] == ["String attr", "Double attr", "Integer attr", "DateTime attr", "Choice"]
     assert [attr.attribute_type for attr in attrs] == ["category", "scalar", "integer", "date_time", "category"]
@@ -238,10 +238,11 @@ def test_combine_polyface_attrs(simple_objects_with_attrs, data_client):
     polyface_objs = [obj for _, obj in simple_objects_with_attrs.get_objects_of_type(dw.Polyface)]
     polyface_objs = sorted(polyface_objs, key=lambda pl: pl.VertexList[0].Y)  # Ensure consistent order
 
-    triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, 12345)
+    triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, 4326)
     attrs = triangle_mesh_go.parts.attributes
     assert [attr.name for attr in attrs] == ["integer", "string", "enum"]
-    assert [attr.attribute_type for attr in attrs] == ["integer", "category", "category"]
+    # The "integer" column was converted to double (scalar) because it has None values
+    assert [attr.attribute_type for attr in attrs] == ["scalar", "category", "category"]
 
     integer_values, string_values, enum_values = [extract_attr_values(attr, data_client) for attr in attrs]
 
