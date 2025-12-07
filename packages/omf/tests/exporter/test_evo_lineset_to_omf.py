@@ -27,7 +27,7 @@ from evo_schemas.objects import LineSegments_V2_0_0, LineSegments_V2_0_0_Parts, 
 from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_omf_lineset
 from evo.data_converters.omf.importer import convert_omf
-from evo.data_converters.common.test_support import EvoDataConvertersTestCase
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestExportOMFLineSet(EvoDataConvertersTestCase):

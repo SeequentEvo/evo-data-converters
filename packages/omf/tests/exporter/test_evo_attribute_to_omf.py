@@ -47,7 +47,7 @@ from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_attribute_to_omf
 from evo.data_converters.omf.importer import convert_omf
 from evo.data_converters.omf.importer.omf_attributes_to_evo import int_to_rgba
-from evo.data_converters.common.test_support import EvoDataConvertersTestCase
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestOMFAttributeExporter(EvoDataConvertersTestCase):

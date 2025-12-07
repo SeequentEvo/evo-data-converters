@@ -24,7 +24,7 @@ from evo.data_converters.common import (
 from evo.data_converters.omf import OMFMetadata
 from evo.data_converters.omf.exporter import UnsupportedObjectError, export_omf
 from evo.data_converters.omf.importer import convert_omf
-from evo.data_converters.common.test_support import EvoDataConvertersTestCase
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):

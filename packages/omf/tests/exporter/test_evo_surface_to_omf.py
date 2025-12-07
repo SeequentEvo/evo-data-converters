@@ -32,7 +32,7 @@ from evo_schemas.objects import (
 from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_omf_surface
 from evo.data_converters.omf.importer import convert_omf
-from evo.data_converters.common.test_support import EvoDataConvertersTestCase
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
