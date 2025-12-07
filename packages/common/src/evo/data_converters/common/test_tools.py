@@ -53,12 +53,12 @@ class EvoDataConvertersTestCase(TestWithConnector, TestWithStorage):
         self, object_id: UUID, version_id: str, table_info: dict, fb: Any = None
     ) -> pa.Table:
         """
-        download_table() historically consulted the cache before downloading the parent object. This mock restores the behaviour of
-        checking the cache first (and only, in this case).
+        download_table() historically consulted the cache before downloading the parent object.
+        This mock shortcuts the reference to the parent Geoscience Object to open the cached file only.
         """
-        # There should be one metadata-based path inside the cache dir that we can't guess, just find the first.
-        object_subdir = next(iter([d for d in self.CACHE_DIR.iterdir() if d.is_dir()]))
-        parquet_file = object_subdir / str(table_info["data"])
+        cache_path = self.cache.get_location(self.environment, "geoscience-object")
+        parquet_file = cache_path / str(table_info["data"])
+        assert parquet_file.exists(), f"Require pre-existence of {parquet_file}"
         with pa.OSFile(str(parquet_file), "r") as paf:
             with ParquetLoader(paf) as loader:
                 return loader.load_as_table()
