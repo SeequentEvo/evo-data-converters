@@ -22,7 +22,7 @@ from evo.data_converters.common import (
     BaseGridData,
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects,
+    publish_geoscience_objects_sync,
 )
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
@@ -179,7 +179,7 @@ def convert_vtk(
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
-        objects_metadata = publish_geoscience_objects(
+        objects_metadata = publish_geoscience_objects_sync(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 

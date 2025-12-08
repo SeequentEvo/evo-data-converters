@@ -16,7 +16,7 @@ import numpy
 import pytest
 from evo_schemas.objects import LineSegments_V2_1_0, TriangleMesh_V2_1_0
 
-from evo.data_converters.duf.importer import convert_duf
+from packages.duf.tests.utils import convert_duf
 
 
 def test_should_log_warnings(evo_metadata, simple_objects_path, caplog: pytest.LogCaptureFixture) -> None:
