@@ -34,10 +34,11 @@ class TestEvoToObjExporter(TestCase):
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/pyramid.omf")
+        self.epsg_code = 32650
         self.evo_objects = convert_omf(
             filepath=omf_file,
             evo_workspace_metadata=self.workspace_metadata,
-            epsg_code=32650,
+            epsg_code=self.epsg_code,
         )
         self.evo_object = self.evo_objects[0]
         self.assertIsInstance(self.evo_object, TriangleMesh_V2_1_0)
@@ -57,6 +58,11 @@ class TestEvoToObjExporter(TestCase):
             objects=[object],
             evo_workspace_metadata=self.workspace_metadata,
         )
+
+        expected_header = f"# Evo Data Converters; Object ID={object_id}, EPSG={self.epsg_code}\n"
+        with open(temp_obj_file.name) as f:
+            header = f.readline()
+            self.assertEqual(expected_header, header)
 
         scene = trimesh.load_scene(temp_obj_file.name)
 

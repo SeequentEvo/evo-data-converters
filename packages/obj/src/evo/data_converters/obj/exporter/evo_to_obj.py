@@ -20,6 +20,7 @@ import numpy as np
 import trimesh
 from evo_schemas import schema_lookup
 from evo_schemas.objects import TriangleMesh_V2_0_0, TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
+from evo_schemas.components import Crs_V1_0_1_EpsgCode
 from trimesh.exchange.export import export_scene
 
 import evo.logging
@@ -72,10 +73,15 @@ def export_obj(
 
     scene = trimesh.Scene()
     for object_metadata in objects:
-        mesh, _ = asyncio.run(_evo_object_to_trimesh(object_metadata, service_client, data_client))
+        mesh, obj_description = asyncio.run(_evo_object_to_trimesh(object_metadata, service_client, data_client))
         scene.add_geometry(mesh)
 
-    export_scene(scene, filepath, file_type="obj")
+    # Header is a one line description
+    header = "Evo Data Converters"
+    if len(objects) == 1:
+        header += f"; {obj_description}"
+
+    export_scene(scene, filepath, file_type="obj", header=header)
 
 
 async def _download_evo_object_by_id(
@@ -92,7 +98,7 @@ async def _evo_object_to_trimesh(
     object_metadata: EvoObjectMetadata,
     service_client: ObjectAPIClient,
     data_client: ObjectDataClient,
-) -> tuple[trimesh.Trimesh, ObjectSchema]:
+) -> tuple[trimesh.Trimesh, str]:
     object_id = object_metadata.object_id
     version_id = object_metadata.version_id
 
@@ -117,7 +123,13 @@ async def _evo_object_to_trimesh(
                 f"Exporting {geoscience_object.__class__.__name__} Geoscience Objects to OBJ is not supported"
             )
 
-    return mesh, schema
+    description = f"Object ID={object_id}"
+
+    crs = geoscience_object.coordinate_reference_system
+    if isinstance(crs, Crs_V1_0_1_EpsgCode):
+        description += f", EPSG={crs.epsg_code}"
+
+    return mesh, description
 
 
 async def _triangle_mesh_to_trimesh(
