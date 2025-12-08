@@ -43,6 +43,7 @@ evo-data-converters-resqml = { workspace = true }
 evo-data-converters-ubc = { workspace = true }
 evo-data-converters-vtk = { workspace = true }
 omf2 = { git = "https://github.com/gmggroup/omf-rust", subdirectory = "omf-python" }
+evo-objects = { git = "https://github.com/BenLewis-Seequent/evo-python-sdk", subdirectory = "packages/evo-objects", branch = "masked-grid" }
 
 [tool.uv.workspace]
 members = ["packages/*"]

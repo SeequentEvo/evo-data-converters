@@ -14,7 +14,8 @@ from typing import Any
 import numpy as np
 from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from numpy.typing import NDArray
-from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import ScipyRotation
+from evo.objects.typed import Rotation
 
 
 def vertices_bounding_box(vertices: NDArray[Any]) -> BoundingBox_V1_0_1:
@@ -108,7 +109,7 @@ def convert_rotation(rotation: Rotation) -> Rotation_V1_1_0:
         azimuth = (azimuth + 180) % 360
         dip = -dip
         pitch = (pitch + 180) % 360
-    return Rotation_V1_1_0(dip_azimuth=azimuth, dip=dip, pitch=pitch)
+    return Rotation(dip_azimuth=azimuth, dip=dip, pitch=pitch)
 
 
 def get_object_tags(path: str, input_type: str, extra_tags: dict = None) -> dict[str, str]:

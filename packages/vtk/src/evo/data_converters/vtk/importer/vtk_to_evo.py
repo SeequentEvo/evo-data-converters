@@ -9,6 +9,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
+import dataclasses
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Generator, Optional, TypeAlias
@@ -19,18 +21,21 @@ from vtk.util.data_model import ImageData, RectilinearGrid, UnstructuredGrid  # 
 
 import evo.logging
 from evo.data_converters.common import (
-    BaseGridData,
     EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
-    publish_geoscience_objects,
+    create_context,
+    
 )
+from evo.data_converters.common.utils import get_object_tags
+from evo.data_converters.common.generate_paths import generate_paths
+from evo.common import EvoContext
+from evo.objects import ObjectReference
 from evo.objects.data import ObjectMetadata
-from evo.objects.utils import ObjectDataClient
+from evo.objects.typed.base import BaseObjectData, BaseObject
 
 from .exceptions import VTKConversionError, VTKImportError
-from .vtk_image_data_to_evo import convert_vtk_image_data, get_vtk_image_data
-from .vtk_rectilinear_grid_to_evo import convert_vtk_rectilinear_grid, get_vtk_rectilinear_grid
-from .vtk_unstructured_grid_to_evo import convert_vtk_unstructured_grid
+from .vtk_image_data_to_evo import convert_vtk_image_data
+from .vtk_rectilinear_grid_to_evo import convert_vtk_rectilinear_grid
+# from .vtk_unstructured_grid_to_evo import convert_vtk_unstructured_grid
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -49,7 +54,7 @@ def _get_leaf_objects(data_object: vtk.vtkDataSet, name: str) -> Generator[tuple
         yield name, data_object
 
 
-def _get_data_objects(filepath: str) -> list[tuple[str, vtk.vtkDataObject]]:
+def _get_vtk_data_objects(filepath: str) -> list[tuple[str, vtk.vtkDataObject]]:
     xml_reader = vtk.vtkXMLGenericDataObjectReader()
     xml_reader.SetFileName(filepath)
     xml_reader.Update()
@@ -59,20 +64,9 @@ def _get_data_objects(filepath: str) -> list[tuple[str, vtk.vtkDataObject]]:
     return list(_get_leaf_objects(data_object, Path(filepath).stem))
 
 
-GetFunction: TypeAlias = Callable[[vtk.vtkDataObject], BaseGridData]
-
 ConverterFunction: TypeAlias = Callable[
-    [str, vtk.vtkDataObject, ObjectDataClient, int], BaseSpatialDataProperties_V1_0_1
+    [str, vtk.vtkDataObject, int], BaseObjectData
 ]
-
-_get_functions: dict[type[vtk.vtkDataObject], GetFunction] = {
-    vtk.vtkImageData: get_vtk_image_data,
-    ImageData: get_vtk_image_data,
-    vtk.vtkUniformGrid: get_vtk_image_data,
-    vtk.vtkStructuredPoints: get_vtk_image_data,
-    vtk.vtkRectilinearGrid: get_vtk_rectilinear_grid,
-    RectilinearGrid: get_vtk_rectilinear_grid,
-}
 
 _convert_functions: dict[type[vtk.vtkDataObject], ConverterFunction] = {
     vtk.vtkImageData: convert_vtk_image_data,
@@ -81,31 +75,39 @@ _convert_functions: dict[type[vtk.vtkDataObject], ConverterFunction] = {
     vtk.vtkStructuredPoints: convert_vtk_image_data,
     vtk.vtkRectilinearGrid: convert_vtk_rectilinear_grid,
     RectilinearGrid: convert_vtk_rectilinear_grid,
-    vtk.vtkUnstructuredGrid: convert_vtk_unstructured_grid,
-    UnstructuredGrid: convert_vtk_unstructured_grid,
+    # vtk.vtkUnstructuredGrid: convert_vtk_unstructured_grid,
+    # UnstructuredGrid: convert_vtk_unstructured_grid,
 }
 
 
-def get_vtk_grids(filepath: str) -> list[tuple[str, BaseGridData]]:
-    """Extract grid data from a VTK file without converting to Geoscience Objects.
+def extract_vtk(filepath: str, epsg_code: int, extra_tags: dict[str, str] | None=None) -> list[tuple[str, BaseObjectData]]:
+    """Extract data from a VTK file without publishing it to Geoscience Objects.
+
     :param filepath: Path to the VTK file.
-    :return: List of (name, BaseGridData) tuples.
+    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param tags: (Optional) Dict of tags to add to the Geoscience Object
+    :return: List of (name, BaseObjectData) tuples.
     :raise VTKImportError: If the VTK file could not be read.
     """
-    data_objects = _get_data_objects(filepath)
-    grid_data_list = []
+    data_objects = _get_vtk_data_objects(filepath)
+    data_list = []
+
+    tags = get_object_tags(filepath, "VTK", extra_tags)
     for name, data_object in data_objects:
-        get_function = _get_functions.get(type(data_object))
-        if get_function is None:
+        convert_function = _convert_functions.get(type(data_object))
+        if convert_function is None:
             logger.warning(f"{type(data_object).__name__} data object are not supported.")
             continue
         try:
-            grid_data = get_function(data_object)
-            grid_data_list.append((name, grid_data))
+            data = convert_function(name, data_object, epsg_code)
+            if tags:
+                old_tags = data.tags or {}
+                data = dataclasses.replace(data, tags={**old_tags, **tags})
+            data_list.append((name, data))
         except VTKConversionError as e:
             logger.warning(f"{e}, skipping this grid")
             continue
-    return grid_data_list
+    return data_list
 
 
 def convert_vtk(
@@ -116,7 +118,7 @@ def convert_vtk(
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
     overwrite_existing_objects: bool = False,
-) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
+) -> list[BaseObjectData | ObjectMetadata]:
     """Converts an VTK file into Geoscience Objects.
 
     :param filepath: Path to the VTK file.
@@ -145,42 +147,68 @@ def convert_vtk(
     publish_objects = True
     geoscience_objects = []
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+    context = create_context(
+        evo_workspace_metadata=evo_workspace_metadata,
+        service_manager_widget=service_manager_widget,
     )
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing objects will be skipped due to missing hub_url.")
         publish_objects = False
 
-    data_objects = _get_data_objects(filepath)
-    for name, data_object in data_objects:
-        try:
-            convert_function = _convert_functions.get(type(data_object))
-            if convert_function is None:
-                logger.warning(f"{type(data_object).__name__} data object are not supported.")
-                continue
-            geoscience_object = convert_function(name, data_object, data_client, epsg_code)
-        except VTKConversionError as e:
-            logger.warning(f"{e}, skipping this grid")
-            continue
-
-        if geoscience_object.tags is None:
-            geoscience_object.tags = {}
-        geoscience_object.tags["Source"] = f"{os.path.basename(filepath)} (via Evo Data Converters)"
-        geoscience_object.tags["Stage"] = "Experimental"
-        geoscience_object.tags["InputType"] = "VTK"
-
-        # Add custom tags
-        if tags:
-            geoscience_object.tags.update(tags)
-
-        geoscience_objects.append(geoscience_object)
-
+    geoscience_objects = convert_vtk(filepath, epsg_code, tags)
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
-        objects_metadata = publish_geoscience_objects(
-            geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
+        objects_metadata = _publish_geoscience_objects(
+            context, geoscience_objects, upload_path, overwrite_existing_objects
         )
 
     return objects_metadata if objects_metadata else geoscience_objects
+
+
+async def _publish_single_geoscience_object(
+    context: EvoContext,
+    obj: BaseObjectData,
+    obj_path: str,
+    overwrite_existing_objects: bool,
+) -> ObjectMetadata:
+    if overwrite_existing_objects:
+        reference = ObjectReference(
+            context.get_environment(),
+            path=obj_path,
+        )
+        uploaded_obj = await BaseObject.create_or_replace(
+            context=context,
+            reference=reference,
+            data=obj,
+        )
+    else:
+        uploaded_obj = await BaseObject.create(
+            context=context,
+            data=obj,
+            path=obj_path,
+        )
+    return uploaded_obj.metadata
+
+
+def _publish_geoscience_objects(
+    context: EvoContext,
+    object_models: list[BaseSpatialDataProperties_V1_0_1],
+    path_prefix: str = "",
+    overwrite_existing_objects: bool = False,
+) -> list[ObjectMetadata]:
+    """
+    Publishes a list of Geoscience Objects.
+    """
+    objects_metadata = []
+    paths = generate_paths(object_models, path_prefix)
+
+    logger.debug(f"Preparing to publish {len(object_models)} objects to paths: {paths}")
+    for obj, obj_path in zip(object_models, paths):
+        object_metadata = asyncio.run(
+            _publish_single_geoscience_object(context, obj, obj_path, overwrite_existing_objects)
+        )
+        logger.debug(f"Got object metadata: {object_metadata}")
+        objects_metadata.append(object_metadata)
+
+    return objects_metadata

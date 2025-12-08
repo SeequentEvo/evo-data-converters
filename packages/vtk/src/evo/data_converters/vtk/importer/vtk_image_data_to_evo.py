@@ -9,25 +9,25 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pyarrow as pa
 import vtk
-from evo.data_converters.common import RegularGridData
-from evo_schemas.components import BoolAttribute_V1_1_0
-from evo_schemas.elements import BoolArray1_V1_0_1
-from evo_schemas.objects import Regular3DGrid_V1_2_0, RegularMasked3DGrid_V1_2_0
+from evo.objects.typed import Regular3DGridData, RegularMasked3DGridData, Point3, Size3d, Size3i
 
 import evo.logging
-from evo.objects.utils.data import ObjectDataClient
 
-from ._utils import check_for_ghosts, common_fields, get_bounding_box, get_rotation
+from ._utils import check_for_ghosts, common_fields, get_rotation
 from .vtk_attributes_to_evo import convert_attributes
-from .vtk_attributes_to_grid import convert_attributes_for_grid
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def _extract_vtk_data(image_data: vtk.vtkImageData):
-    # GetDimensions returns the number of points in each dimension, so we need to subtract 1 to get the number of cells
+def convert_vtk_image_data(
+    name: str,
+    image_data: vtk.vtkImageData,
+    epsg_code: int,
+) -> Regular3DGridData | RegularMasked3DGridData:
+    """Convert a vtkImageData object to a Regular3DGrid or RegularMasked3DGrid object, depending on whether the
+    vtkImageData object has any blanked cells.
+    """
     size = image_data.GetDimensions()
     size = [dim - 1 for dim in size]
     spacing = image_data.GetSpacing()
@@ -43,81 +43,29 @@ def _extract_vtk_data(image_data: vtk.vtkImageData):
 
     mask = check_for_ghosts(image_data)
 
-    return cell_data, mask, vertex_data, origin, size, spacing
-
-
-def get_vtk_image_data(image_data: vtk.vtkImageData) -> RegularGridData:
-    cell_data, mask, vertex_data, origin, size, spacing = _extract_vtk_data(image_data)
-
     if mask is not None and not mask.all():
         if vertex_data.GetNumberOfArrays() > 0:
             logger.warning("Blank cells are not supported with point data, skipping the point data")
 
-        cell_attributes = convert_attributes_for_grid(cell_data, mask=mask, grid_is_filtered=True)
-        return RegularGridData(
-            origin=origin,
-            size=list(size),
-            cell_size=list(spacing),
+        cell_attributes = convert_attributes(cell_data, mask=mask, grid_is_filtered=True)
+       
+        return RegularMasked3DGridData(
+            **common_fields(name, epsg_code, image_data),
+            origin=Point3(*origin),
+            size=Size3i(*size),
+            cell_size=Size3d(*spacing),
             rotation=get_rotation(image_data.GetDirectionMatrix()),
+            cell_data=cell_attributes,
             mask=mask,
-            bounding_box=get_bounding_box(image_data),
-            cell_attributes=cell_attributes,
-            vertex_attributes=None,
         )
     else:
-        cell_attributes = convert_attributes_for_grid(cell_data)
-        vertex_attributes = convert_attributes_for_grid(vertex_data)
-        return RegularGridData(
-            origin=origin,
-            size=list(size),
-            cell_size=list(spacing),
-            rotation=get_rotation(image_data.GetDirectionMatrix()),
-            mask=None,
-            bounding_box=get_bounding_box(image_data),
-            cell_attributes=cell_attributes,
-            vertex_attributes=vertex_attributes,
-        )
-
-
-def convert_vtk_image_data(
-    name: str,
-    image_data: vtk.vtkImageData,
-    data_client: ObjectDataClient,
-    epsg_code: int,
-) -> Regular3DGrid_V1_2_0 | RegularMasked3DGrid_V1_2_0:
-    """Convert a vtkImageData object to a Regular3DGrid or RegularMasked3DGrid object, depending on whether the
-    vtkImageData object has any blanked cells.
-    """
-    cell_data, mask, vertex_data, origin, size, spacing = _extract_vtk_data(image_data)
-
-    if mask is not None and not mask.all():
-        if vertex_data.GetNumberOfArrays() > 0:
-            logger.warning("Blank cells are not supported with point data, skipping the point data")
-
-        cell_attributes = convert_attributes(cell_data, data_client, mask=mask, grid_is_filtered=True)
-        mask_attributes = BoolAttribute_V1_1_0(
-            name="mask",
-            key="mask",
-            values=BoolArray1_V1_0_1(**data_client.save_table(pa.table({"mask": mask}))),
-        )
-        return RegularMasked3DGrid_V1_2_0(
-            **common_fields(name, epsg_code, image_data),
-            origin=origin,
-            size=list(size),
-            cell_size=list(spacing),
-            rotation=get_rotation(image_data.GetDirectionMatrix()),
-            cell_attributes=cell_attributes,
-            mask=mask_attributes,
-            number_of_active_cells=int(mask.sum()),
-        )
-    else:
-        cell_attributes = convert_attributes(cell_data, data_client)
-        vertex_attributes = convert_attributes(vertex_data, data_client)
-        return Regular3DGrid_V1_2_0(
-            **common_fields(name, epsg_code, image_data),
-            origin=origin,
-            size=list(size),
-            cell_size=list(spacing),
+        cell_attributes = convert_attributes(cell_data)
+        vertex_attributes = convert_attributes(vertex_data)
+        return Regular3DGridData(
+            **common_fields(name, epsg_code),
+            origin=Point3(*origin),
+            size=Size3i(*size),
+            cell_size=Size3d(*spacing),
             rotation=get_rotation(image_data.GetDirectionMatrix()),
             cell_attributes=cell_attributes,
             vertex_attributes=vertex_attributes,

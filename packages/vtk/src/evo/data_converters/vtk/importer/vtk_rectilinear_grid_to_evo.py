@@ -11,22 +11,26 @@
 
 import numpy as np
 import vtk
-from evo.data_converters.common import TensorGridData
-from evo_schemas.components import Rotation_V1_1_0
-from evo_schemas.objects import Tensor3DGrid_V1_2_0, Tensor3DGrid_V1_2_0_GridCells3D
 from vtk.util.numpy_support import vtk_to_numpy
 
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
+from evo.objects.typed import Tensor3DGridData, Point3, Size3i, Rotation
 
-from ._utils import check_for_ghosts, common_fields, get_bounding_box
+from ._utils import check_for_ghosts, common_fields
 from .vtk_attributes_to_evo import convert_attributes
-from .vtk_attributes_to_grid import convert_attributes_for_grid
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def _extract_vtk_data(rectilinear_grid):
+
+def convert_vtk_rectilinear_grid(
+    name: str,
+    rectilinear_grid: vtk.vtkRectilinearGrid,
+    data_client: ObjectDataClient,
+    epsg_code: int,
+) -> Tensor3DGridData:
+
     # GetDimensions returns the number of points in each dimension, so we need to subtract 1 to get the number of cells
     size = rectilinear_grid.GetDimensions()
     size = [dim - 1 for dim in size]
@@ -44,41 +48,6 @@ def _extract_vtk_data(rectilinear_grid):
     vertex_data = rectilinear_grid.GetPointData()
 
     mask = check_for_ghosts(rectilinear_grid)
-    return cell_data, mask, vertex_data, origin, size, x_spacings, y_spacings, z_spacings
-
-
-def get_vtk_rectilinear_grid(rectilinear_grid: vtk.vtkRectilinearGrid) -> TensorGridData:
-    cell_data, mask, vertex_data, origin, size, x_spacings, y_spacings, z_spacings = _extract_vtk_data(rectilinear_grid)
-
-    cell_attributes = convert_attributes_for_grid(cell_data, mask)
-    if mask is not None and not mask.all():
-        if vertex_data.GetNumberOfArrays() > 0:
-            logger.warning("Blank cells are not supported with point data, skipping the point data")
-        vertex_attributes = []
-    else:
-        vertex_attributes = convert_attributes_for_grid(vertex_data)
-
-    return TensorGridData(
-        origin=origin,
-        size=list(size),
-        bounding_box=get_bounding_box(rectilinear_grid),
-        cell_sizes_x=list(x_spacings),
-        cell_sizes_y=list(y_spacings),
-        cell_sizes_z=list(z_spacings),
-        rotation=np.zeros(3),  # Rectilinear grids don't have rotation
-        mask=mask,
-        cell_attributes=cell_attributes,
-        vertex_attributes=vertex_attributes,
-    )
-
-
-def convert_vtk_rectilinear_grid(
-    name: str,
-    rectilinear_grid: vtk.vtkRectilinearGrid,
-    data_client: ObjectDataClient,
-    epsg_code: int,
-) -> Tensor3DGrid_V1_2_0:
-    cell_data, mask, vertex_data, origin, size, x_spacings, y_spacings, z_spacings = _extract_vtk_data(rectilinear_grid)
 
     cell_attributes = convert_attributes(cell_data, data_client, mask)
     if mask is not None and not mask.all():
@@ -88,16 +57,14 @@ def convert_vtk_rectilinear_grid(
     else:
         vertex_attributes = convert_attributes(vertex_data, data_client)
 
-    return Tensor3DGrid_V1_2_0(
-        **common_fields(name, epsg_code, rectilinear_grid),
-        origin=origin,
-        size=list(size),
-        grid_cells_3d=Tensor3DGrid_V1_2_0_GridCells3D(
-            cell_sizes_x=list(x_spacings),
-            cell_sizes_y=list(y_spacings),
-            cell_sizes_z=list(z_spacings),
-        ),
-        rotation=Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0),  # Rectilinear grids don't have rotation
+    return Tensor3DGridData(
+        **common_fields(name, epsg_code),
+        origin=Point3(*origin),
+        size=Size3i(*size),
+        cell_sizes_x=x_spacings,
+        cell_sizes_y=y_spacings,
+        cell_sizes_z=z_spacings,
+        rotation=Rotation(dip_azimuth=0.0, dip=0.0, pitch=0.0),  # Rectilinear grids don't have rotation
         cell_attributes=cell_attributes,
         vertex_attributes=vertex_attributes,
     )

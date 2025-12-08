@@ -15,25 +15,18 @@ import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
-from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import Rotation as ScipyRotation
 from vtk.util.numpy_support import vtk_to_numpy
 
-from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.common.utils import convert_rotation
-
+from evo.objects.typed import Rotation, EpsgCode
 
 from .exceptions import GhostValueError
 
 
-def get_bounding_box(grid: vtk.vtkDataSet) -> BoundingBox_V1_0_1:
-    min_x, max_x, min_y, max_y, min_z, max_z = grid.GetBounds()
-    return BoundingBox_V1_0_1(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, min_z=min_z, max_z=max_z)
-
-
-def get_rotation(vtk_matrix: vtk.vtkMatrix3x3) -> Rotation_V1_1_0:
+def get_rotation(vtk_matrix: vtk.vtkMatrix3x3) -> Rotation:
     matrix = [[vtk_matrix.GetElement(i, j) for j in range(3)] for i in range(3)]
-    rot = Rotation.from_matrix(matrix)
+    rot = ScipyRotation.from_matrix(matrix)
     return convert_rotation(rot)
 
 
@@ -60,13 +53,10 @@ def check_for_ghosts(dataset: vtk.vtkDataSet) -> npt.NDArray[np.bool_] | None:
         return None
 
 
-def common_fields(name: str, epsg_code: int, dataset: vtk.vtkDataSet) -> dict:
-    bounding_box = get_bounding_box(dataset)
+def common_fields(name: str, epsg_code: int) -> dict:
     return {
         "name": name,
-        "coordinate_reference_system": crs_from_epsg_code(epsg_code),
-        "bounding_box": bounding_box,
-        "uuid": None,
+        "coordinate_reference_system": EpsgCode(epsg_code),
     }
 
 
@@ -93,16 +83,17 @@ def is_string_array(array: vtk.vtkAbstractArray) -> bool:
     return cast(bool, array.GetDataType() == vtk.VTK_STRING)
 
 
-def create_table(
-    values: npt.NDArray,
+def convert_array(
+    values: npt.NDArray | vtk.vtkAbstractArray,
     mask: npt.NDArray[np.bool_] | None,
     grid_is_filtered: bool,
     dtype: npt.DTypeLike,
-) -> pa.Table:
+) -> pa.Array:
+    if isinstance(values, vtk.vtkAbstractArray):
+        values = vtk_to_numpy(values)
     if grid_is_filtered and mask is not None:
         values = values[mask]
         mask = None  # Don't need to filter the values again
 
     values = values.astype(dtype)
-    array = pa.array(values, mask=~mask if mask is not None else None)
-    return pa.table({"values": array})
+    return pa.array(values, mask=~mask if mask is not None else None)

@@ -12,118 +12,32 @@
 import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
+from pandas import pd
 import vtk
-from evo_schemas.components import (
-    CategoryAttribute_V1_1_0,
-    ContinuousAttribute_V1_1_0,
-    IntegerAttribute_V1_1_0,
-    NanCategorical_V1_0_1,
-    NanContinuous_V1_0_1,
-    OneOfAttribute_V1_2_0,
-)
-from evo_schemas.elements import FloatArray1_V1_0_1, IntegerArray1_V1_0_1, LookupTable_V1_0_1
 from vtk.util.numpy_support import vtk_to_numpy
 
 import evo.logging
-from evo.objects.utils.data import ObjectDataClient
 
-from ._utils import is_float_array, is_integer_array, is_string_array, create_table
+from ._utils import is_float_array, is_integer_array, is_string_array, convert_array
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def _create_continuous_attribute(
-    data_client: ObjectDataClient,
-    name: str,
-    array: vtk.vtkAbstractArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
-) -> ContinuousAttribute_V1_1_0:
-    values = vtk_to_numpy(array)
-    # Convert to float64, as Geoscience Objects only support float64 for continuous attributes
-    table = create_table(values, mask, grid_is_filtered, np.float64)
-    return ContinuousAttribute_V1_1_0(
-        name=name,
-        key=name,
-        nan_description=NanContinuous_V1_0_1(values=[]),
-        values=FloatArray1_V1_0_1(**data_client.save_table(table)),
-    )
-
-
-def _create_integer_attribute(
-    data_client: ObjectDataClient,
-    name: str,
-    array: vtk.vtkAbstractArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
-) -> IntegerAttribute_V1_1_0:
-    values = vtk_to_numpy(array)
-    # Convert to int32 or int64
-    dtype = np.int64 if values.dtype in [np.uint32, np.int64] else np.int32
-    table = create_table(values, mask, grid_is_filtered, dtype)
-    return IntegerAttribute_V1_1_0(
-        name=name,
-        key=name,
-        nan_description=NanCategorical_V1_0_1(values=[]),
-        values=IntegerArray1_V1_0_1(**data_client.save_table(table)),
-    )
-
-
-_numpy_dtype_for_pyarrow_type = {
-    pa.int32(): np.int32,
-    pa.int64(): np.int64,
-}
-
-
-def _create_categorical_attribute(
-    data_client: ObjectDataClient,
-    name: str,
-    array: vtk.vtkStringArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
-) -> CategoryAttribute_V1_1_0:
-    values = [array.GetValue(i) for i in range(array.GetNumberOfValues())]
-    arrow_array = pa.array(values, mask=~mask if mask is not None else None)
-
-    # Encode the array as a dictionary encoded array
-    dict_array = arrow_array.dictionary_encode()
-
-    indices = dict_array.indices
-    if grid_is_filtered and mask is not None:
-        indices = indices.filter(mask)
-
-    # Create a lookup table
-    indices_dtype = _numpy_dtype_for_pyarrow_type[indices.type]
-    lookup_table = pa.table(
-        {"key": np.arange(len(dict_array.dictionary), dtype=indices_dtype), "value": dict_array.dictionary}
-    )
-
-    values_table = pa.table({"values": indices})
-    return CategoryAttribute_V1_1_0(
-        name=name,
-        key=name,
-        nan_description=NanCategorical_V1_0_1(values=[]),
-        table=LookupTable_V1_0_1(**data_client.save_table(lookup_table)),
-        values=IntegerArray1_V1_0_1(**data_client.save_table(values_table)),
-    )
-
 
 def convert_attributes(
     vtk_data: vtk.vtkDataSetAttributes,
-    data_client: ObjectDataClient,
     mask: npt.NDArray[np.bool_] | None = None,
     grid_is_filtered: bool = False,
-) -> OneOfAttribute_V1_2_0:
+) -> pd.DataFrame:
     """
     Convert VTK attributes to Geoscience Objects attributes.
 
     :param vtk_data: VTK attributes
-    :param data_client: Data client used to save the attribute values
     :param mask: Mask to filter the attribute values
     :param grid_is_filtered: True if the attribute values should be filtered by the mask, otherwise the
         attribute values should be set to null where the mask is False.
     """
-    attributes = []
+    attributes = {}
 
     for i in range(vtk_data.GetNumberOfArrays()):
         name = vtk_data.GetArrayName(i)
@@ -135,15 +49,18 @@ def convert_attributes(
             continue
 
         if is_float_array(array):
-            attribute = _create_continuous_attribute(data_client, name, array, mask, grid_is_filtered)
+            attributes[name] = convert_array(array, mask, grid_is_filtered, np.float64)
         elif is_integer_array(array):
-            attribute = _create_integer_attribute(data_client, name, array, mask, grid_is_filtered)
+            values = vtk_to_numpy(array)
+            # Convert to int32 or int64
+            dtype = np.int64 if values.dtype in [np.uint32, np.int64] else np.int32
+            attributes[name] = convert_array(array, mask, grid_is_filtered, dtype)
         elif is_string_array(array):
-            attribute = _create_categorical_attribute(data_client, name, array, mask, grid_is_filtered)
+            values = [array.GetValue(i) for i in range(array.GetNumberOfValues())]
+            attributes[name] = pa.array(values, mask=~mask if mask is not None else None)
         else:
             logger.warning(
                 f"Unsupported data type {array.GetDataTypeAsString()} for attribute {name}, skipping this attribute"
             )
             continue
-        attributes.append(attribute)
-    return attributes
+    return pd.DataFrame(attributes)
