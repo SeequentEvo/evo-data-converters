@@ -229,7 +229,7 @@ class TestOMFToBlockSyncConverter(TestCase):
             org_id="bf1a040c-8c58-4bc2-bec2-c5ae7de8bd84",
         )
 
-    @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects")
+    @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects_sync")
     @patch.object(BlockSyncClient, "get_auth_header")
     def test_should_convert_blockmodels(
         self, mock_publish_geoscience_objects: MagicMock, mock_get_auth_header: MagicMock
