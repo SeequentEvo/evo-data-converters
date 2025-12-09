@@ -49,6 +49,8 @@ def _extract_vtk_data(image_data: vtk.vtkImageData):
 def get_vtk_image_data(image_data: vtk.vtkImageData) -> RegularGridData:
     cell_data, mask, vertex_data, origin, size, spacing = _extract_vtk_data(image_data)
 
+    rotation = get_rotation(image_data.GetDirectionMatrix())
+    bbox = get_bounding_box(image_data)
     if mask is not None and not mask.all():
         if vertex_data.GetNumberOfArrays() > 0:
             logger.warning("Blank cells are not supported with point data, skipping the point data")
@@ -58,9 +60,9 @@ def get_vtk_image_data(image_data: vtk.vtkImageData) -> RegularGridData:
             origin=origin,
             size=list(size),
             cell_size=list(spacing),
-            rotation=get_rotation(image_data.GetDirectionMatrix()),
+            rotation=[rotation.dip_azimuth, rotation.dip, rotation.pitch],
             mask=mask,
-            bounding_box=get_bounding_box(image_data),
+            bounding_box=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z],
             cell_attributes=cell_attributes,
             vertex_attributes=None,
         )
@@ -71,9 +73,9 @@ def get_vtk_image_data(image_data: vtk.vtkImageData) -> RegularGridData:
             origin=origin,
             size=list(size),
             cell_size=list(spacing),
-            rotation=get_rotation(image_data.GetDirectionMatrix()),
+            rotation=[rotation.dip_azimuth, rotation.dip, rotation.pitch],
             mask=None,
-            bounding_box=get_bounding_box(image_data),
+            bounding_box=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z],
             cell_attributes=cell_attributes,
             vertex_attributes=vertex_attributes,
         )
