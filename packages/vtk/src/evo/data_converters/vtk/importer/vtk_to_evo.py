@@ -11,7 +11,7 @@
 
 import asyncio
 import dataclasses
-import os
+import os.path
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Generator, Optional, TypeAlias
 
@@ -27,7 +27,7 @@ from evo.data_converters.common import (
 )
 from evo.data_converters.common.utils import get_object_tags
 from evo.data_converters.common.generate_paths import generate_paths
-from evo.common import EvoContext
+from evo.common import IContext
 from evo.objects import ObjectReference
 from evo.objects.data import ObjectMetadata
 from evo.objects.typed.base import BaseObjectData, BaseObject
@@ -80,7 +80,7 @@ _convert_functions: dict[type[vtk.vtkDataObject], ConverterFunction] = {
 }
 
 
-def extract_vtk(filepath: str, epsg_code: int, extra_tags: dict[str, str] | None=None) -> list[tuple[str, BaseObjectData]]:
+def extract_vtk(filepath: str, epsg_code: int, extra_tags: dict[str, str] | None=None) -> list[BaseObjectData]:
     """Extract data from a VTK file without publishing it to Geoscience Objects.
 
     :param filepath: Path to the VTK file.
@@ -92,7 +92,7 @@ def extract_vtk(filepath: str, epsg_code: int, extra_tags: dict[str, str] | None
     data_objects = _get_vtk_data_objects(filepath)
     data_list = []
 
-    tags = get_object_tags(filepath, "VTK", extra_tags)
+    tags = get_object_tags(os.path.basename(filepath), "VTK", extra_tags)
     for name, data_object in data_objects:
         convert_function = _convert_functions.get(type(data_object))
         if convert_function is None:
@@ -103,7 +103,7 @@ def extract_vtk(filepath: str, epsg_code: int, extra_tags: dict[str, str] | None
             if tags:
                 old_tags = data.tags or {}
                 data = dataclasses.replace(data, tags={**old_tags, **tags})
-            data_list.append((name, data))
+            data_list.append(data)
         except VTKConversionError as e:
             logger.warning(f"{e}, skipping this grid")
             continue
@@ -155,7 +155,7 @@ def convert_vtk(
         logger.debug("Publishing objects will be skipped due to missing hub_url.")
         publish_objects = False
 
-    geoscience_objects = convert_vtk(filepath, epsg_code, tags)
+    geoscience_objects = extract_vtk(filepath, epsg_code, tags)
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
@@ -167,7 +167,7 @@ def convert_vtk(
 
 
 async def _publish_single_geoscience_object(
-    context: EvoContext,
+    context: IContext,
     obj: BaseObjectData,
     obj_path: str,
     overwrite_existing_objects: bool,
@@ -192,7 +192,7 @@ async def _publish_single_geoscience_object(
 
 
 def _publish_geoscience_objects(
-    context: EvoContext,
+    context: IContext,
     object_models: list[BaseSpatialDataProperties_V1_0_1],
     path_prefix: str = "",
     overwrite_existing_objects: bool = False,

@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from numpy.typing import NDArray
-from scipy.spatial.transform import ScipyRotation
+from scipy.spatial.transform import Rotation as ScipyRotation
 from evo.objects.typed import Rotation
 
 

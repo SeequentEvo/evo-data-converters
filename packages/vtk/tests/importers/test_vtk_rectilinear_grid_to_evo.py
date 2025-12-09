@@ -13,8 +13,11 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import numpy.testing
+import pandas as pd
+import pandas.testing as pdt
 import pytest
 import vtk
+from evo.objects.typed import Tensor3DGridData, EpsgCode, Point3, Size3d, Size3i, BoundingBox, Rotation
 from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
 from evo_schemas.objects import Tensor3DGrid_V1_2_0
 from vtk.util.numpy_support import numpy_to_vtk
@@ -45,28 +48,29 @@ def test_convert() -> None:
     cell_data.SetName("cell_data")
     vtk_data.GetCellData().AddArray(cell_data)
 
-    data_client = MockDataClient()
-    result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
-    assert isinstance(result, Tensor3DGrid_V1_2_0)
+    result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326)
+    assert isinstance(result, Tensor3DGridData)
     assert result.name == "Test"
-    assert result.coordinate_reference_system == crs_from_epsg_code(4326)
-    assert result.origin == [2.4, 1.2, -1.3]
-    assert result.grid_cells_3d.cell_sizes_x == pytest.approx([0.8])
-    assert result.grid_cells_3d.cell_sizes_y == pytest.approx([2.1, 1.8])
-    assert result.grid_cells_3d.cell_sizes_z == pytest.approx([1.4, 4.8, 0.1])
-    assert result.bounding_box == BoundingBox_V1_0_1(min_x=2.4, min_y=1.2, min_z=-1.3, max_x=3.2, max_y=5.1, max_z=5.0)
-    assert result.size == [1, 2, 3]
-    assert result.rotation == Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0)
+    assert result.coordinate_reference_system == EpsgCode(4326)
+    assert result.origin == Point3(2.4, 1.2, -1.3)
+    numpy.testing.assert_array_almost_equal(result.cell_sizes_x, np.array([0.8]))
+    numpy.testing.assert_array_almost_equal(result.cell_sizes_y, np.array([2.1, 1.8]))
+    numpy.testing.assert_array_almost_equal(result.cell_sizes_z, np.array([1.4, 4.8, 0.1]))
+    assert result.size == Size3i(1, 2, 3)
+    assert result.rotation == Rotation(dip_azimuth=0.0, dip=0.0, pitch=0.0)
 
-    assert len(result.vertex_attributes) == 1
-    assert result.vertex_attributes[0].name == "point_data"
-    point_attribute_table = data_client.tables[result.vertex_attributes[0].values.data]
-    numpy.testing.assert_array_equal(point_attribute_table[0].to_numpy(), np.linspace(0, 1, 24))
-    assert len(result.cell_attributes) == 1
-    assert result.cell_attributes[0].name == "cell_data"
-    cell_attribute_table = data_client.tables[result.cell_attributes[0].values.data]
-    numpy.testing.assert_array_equal(cell_attribute_table[0].to_numpy(), np.linspace(0, 1, 6))
-
+    pdt.assert_frame_equal(
+        result.vertex_data,
+        pd.DataFrame({
+            "point_data": np.linspace(0, 1, 24),
+        })
+    )
+    pdt.assert_frame_equal(
+        result.cell_data,
+        pd.DataFrame({
+            "cell_data": np.linspace(0, 1, 6),
+        })
+    )
 
 def test_blanked_cell(caplog: pytest.LogCaptureFixture) -> None:
     vtk_data = _create_rectilinear_grid()
@@ -81,15 +85,15 @@ def test_blanked_cell(caplog: pytest.LogCaptureFixture) -> None:
 
     vtk_data.BlankCell(2)
 
-    data_client = MockDataClient()
-    result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326)
 
-    assert len(result.cell_attributes) == 1
-    assert result.cell_attributes[0].name == "cell_data"
-    cell_attribute_table = data_client.tables[result.cell_attributes[0].values.data]
-    numpy.testing.assert_almost_equal(cell_attribute_table[0].to_numpy(), [0.0, 0.2, np.nan, 0.6, 0.8, 1.0])
-
-    assert len(result.vertex_attributes) == 0
+    pdt.assert_frame_equal(
+        result.cell_data,
+        pd.DataFrame({
+            "cell_data": [0.0, 0.2, np.nan, 0.6, 0.8, 1.0],
+        })
+    )
+    assert result.vertex_data is None
 
     assert "Blank cells are not supported with point data, skipping the point dat" in caplog.text
 
@@ -98,10 +102,8 @@ def test_blanked_point(caplog: pytest.LogCaptureFixture) -> None:
     vtk_data = _create_rectilinear_grid()
     vtk_data.BlankPoint(3)
 
-    data_client = MagicMock()
-
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326)
     assert "Grid with blank points are not supported" in str(ctx.value)
 
 
@@ -127,7 +129,6 @@ def test_ghost(caplog: pytest.LogCaptureFixture, geometry: int, ghost_value: int
 
     add_ghost_value(vtk_data, geometry, ghost_value)
 
-    data_client = MagicMock()
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326)
     assert warning_message in str(ctx.value)

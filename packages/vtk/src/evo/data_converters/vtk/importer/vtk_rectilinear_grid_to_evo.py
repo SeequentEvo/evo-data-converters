@@ -27,7 +27,6 @@ logger = evo.logging.getLogger("data_converters")
 def convert_vtk_rectilinear_grid(
     name: str,
     rectilinear_grid: vtk.vtkRectilinearGrid,
-    data_client: ObjectDataClient,
     epsg_code: int,
 ) -> Tensor3DGridData:
 
@@ -49,13 +48,13 @@ def convert_vtk_rectilinear_grid(
 
     mask = check_for_ghosts(rectilinear_grid)
 
-    cell_attributes = convert_attributes(cell_data, data_client, mask)
+    cell_attributes = convert_attributes(cell_data, mask)
     if mask is not None and not mask.all():
         if vertex_data.GetNumberOfArrays() > 0:
             logger.warning("Blank cells are not supported with point data, skipping the point data")
-        vertex_attributes = []
+        vertex_attributes = None
     else:
-        vertex_attributes = convert_attributes(vertex_data, data_client)
+        vertex_attributes = convert_attributes(vertex_data)
 
     return Tensor3DGridData(
         **common_fields(name, epsg_code),
@@ -65,6 +64,6 @@ def convert_vtk_rectilinear_grid(
         cell_sizes_y=y_spacings,
         cell_sizes_z=z_spacings,
         rotation=Rotation(dip_azimuth=0.0, dip=0.0, pitch=0.0),  # Rectilinear grids don't have rotation
-        cell_attributes=cell_attributes,
-        vertex_attributes=vertex_attributes,
+        cell_data=cell_attributes,
+        vertex_data=vertex_attributes,
     )

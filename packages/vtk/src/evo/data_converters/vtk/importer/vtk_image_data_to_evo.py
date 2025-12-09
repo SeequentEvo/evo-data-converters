@@ -50,7 +50,7 @@ def convert_vtk_image_data(
         cell_attributes = convert_attributes(cell_data, mask=mask, grid_is_filtered=True)
        
         return RegularMasked3DGridData(
-            **common_fields(name, epsg_code, image_data),
+            **common_fields(name, epsg_code),
             origin=Point3(*origin),
             size=Size3i(*size),
             cell_size=Size3d(*spacing),
@@ -67,6 +67,6 @@ def convert_vtk_image_data(
             size=Size3i(*size),
             cell_size=Size3d(*spacing),
             rotation=get_rotation(image_data.GetDirectionMatrix()),
-            cell_attributes=cell_attributes,
-            vertex_attributes=vertex_attributes,
+            cell_data=cell_attributes,
+            vertex_data=vertex_attributes,
         )

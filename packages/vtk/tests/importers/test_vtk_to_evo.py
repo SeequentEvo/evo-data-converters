@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from evo_schemas.objects import Regular3DGrid_V1_2_0, Tensor3DGrid_V1_2_0, UnstructuredTetGrid_V1_2_0
 
+from evo.objects.typed import Regular3DGridData, Tensor3DGridData
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.vtk.importer import VTKImportError, convert_vtk
 
@@ -60,7 +61,7 @@ def test_convert_object() -> None:
     file_name = this_dir / "data" / "image_data.vti"
     result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags)
     assert len(result) == 1
-    assert isinstance(result[0], Regular3DGrid_V1_2_0)
+    assert isinstance(result[0], Regular3DGridData)
 
     expected_tags = {
         "Source": "image_data.vti (via Evo Data Converters)",
@@ -76,7 +77,7 @@ def test_convert_rectilinear_grid() -> None:
     file_name = this_dir / "data" / "rectilinear_grid.vtr"
     result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata)
     assert len(result) == 1
-    assert isinstance(result[0], Tensor3DGrid_V1_2_0)
+    assert isinstance(result[0], Tensor3DGridData)
 
 
 def test_convert_unstructured_grid() -> None:

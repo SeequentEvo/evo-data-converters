@@ -16,7 +16,7 @@ from uuid import UUID
 
 import evo.logging
 from evo.aio import AioTransport
-from evo.common import APIConnector, Environment, NoAuth, EvoContext
+from evo.common import APIConnector, Environment, NoAuth, IContext
 from evo.common.interfaces import ITransport
 from evo.common.utils.cache import Cache
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError, MissingConnectionDetailsError
@@ -90,22 +90,18 @@ def create_evo_object_service_and_data_client(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
 ) -> tuple[ObjectAPIClient, ObjectDataClient]:
-    if evo_workspace_metadata and service_manager_widget:
-        raise ConflictingConnectionDetailsError(
-            "Please provide only one of EvoWorkspaceMetadata or ServiceManagerWidget."
-        )
-    elif evo_workspace_metadata:
-        return create_service_and_data_client_from_metadata(evo_workspace_metadata)
-    elif service_manager_widget:
-        return create_service_and_data_client_from_manager(service_manager_widget)
-    raise MissingConnectionDetailsError(
-        "Missing one of EvoWorkspaceMetadata or ServiceManagerWidget needed to construct an ObjectAPIClient."
+    context = create_context(
+        evo_workspace_metadata=evo_workspace_metadata,
+        service_manager_widget=service_manager_widget,
     )
+    service_client = ObjectAPIClient.from_context(context)
+    data_client = service_client.get_data_client(context.get_cache())
+    return service_client, data_client
 
 def create_context(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
-) -> EvoContext:
+) -> IContext:
     if evo_workspace_metadata and service_manager_widget:
         raise ConflictingConnectionDetailsError(
             "Please provide only one of EvoWorkspaceMetadata or ServiceManagerWidget."
@@ -119,63 +115,9 @@ def create_context(
     )
 
 
-def create_service_and_data_client_from_manager(
-    service_manager_widget: "ServiceManagerWidget",
-) -> tuple[ObjectAPIClient, ObjectDataClient]:
-    logger.debug("Creating ObjectAPIClient from ServiceManagerWidget")
-    environment = service_manager_widget.get_environment()
-    connector = service_manager_widget.get_connector()
-    service_client = ObjectAPIClient(environment, connector)
-    data_client = service_client.get_data_client(service_manager_widget.cache)
-
-    return service_client, data_client
-
-
-def create_service_and_data_client_from_metadata(
-    metadata: EvoWorkspaceMetadata,
-) -> tuple[ObjectAPIClient, ObjectDataClient]:
-    logger.debug(
-        "Creating evo.objects.ObjectAPIClient and evo.objects.utils.data.ObjectDataClient with "
-        f"EvoWorkspaceMetadata={metadata}"
-    )
-
-    cache = Cache(root=metadata.cache_root, mkdir=True)
-    transport = AioTransport(user_agent="evo-data-converters")
-    authorizer = NoAuth
-
-    org_uuid = UUID(metadata.org_id) if metadata.org_id else metadata.org_id
-    if metadata.has_client_credentials_params():
-        authorizer = asyncio.run(client_credentials_authorizer(transport, metadata))
-        hub_connector = APIConnector(
-            base_url=metadata.hub_url,
-            transport=transport,
-            authorizer=authorizer,
-            additional_headers={"s2s-org-info": metadata.org_id, "s2s-user-info": metadata.user_id},
-        )
-    else:
-        if metadata.has_authentication_code_params():
-            authorizer = asyncio.run(_authorization_code_authorizer(transport, metadata))
-        else:
-            logger.debug("Skipping authentication due to missing required parameters.")
-
-        hub_connector = APIConnector(base_url=metadata.hub_url, transport=transport, authorizer=authorizer)
-
-    workspace_uuid = UUID(metadata.workspace_id) if metadata.workspace_id else metadata.workspace_id
-
-    environment = Environment(
-        hub_url=metadata.hub_url,
-        org_id=org_uuid,
-        workspace_id=workspace_uuid,
-    )
-    service_client = ObjectAPIClient(environment, hub_connector)
-    data_client = service_client.get_data_client(cache)
-
-    return service_client, data_client
-
-
 def create_context_from_metadata(
     metadata: EvoWorkspaceMetadata,
-) -> EvoContext:
+) -> IContext:
     logger.debug(
         "Creating EvoContext with "
         f"EvoWorkspaceMetadata={metadata}"

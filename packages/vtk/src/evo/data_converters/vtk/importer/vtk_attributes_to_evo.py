@@ -12,7 +12,7 @@
 import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
-from pandas import pd
+import pandas as pd
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
@@ -28,7 +28,7 @@ def convert_attributes(
     vtk_data: vtk.vtkDataSetAttributes,
     mask: npt.NDArray[np.bool_] | None = None,
     grid_is_filtered: bool = False,
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
     """
     Convert VTK attributes to Geoscience Objects attributes.
 
@@ -36,6 +36,8 @@ def convert_attributes(
     :param mask: Mask to filter the attribute values
     :param grid_is_filtered: True if the attribute values should be filtered by the mask, otherwise the
         attribute values should be set to null where the mask is False.
+
+    :return: DataFrame of converted attributes, or None if there are no attributes
     """
     attributes = {}
 
@@ -57,10 +59,13 @@ def convert_attributes(
             attributes[name] = convert_array(array, mask, grid_is_filtered, dtype)
         elif is_string_array(array):
             values = [array.GetValue(i) for i in range(array.GetNumberOfValues())]
-            attributes[name] = pa.array(values, mask=~mask if mask is not None else None)
+            array = pa.array(values, mask=~mask if mask is not None else None)
+            if grid_is_filtered and mask is not None:
+                array = array.filter(mask)
+            attributes[name] = array.to_pandas()
         else:
             logger.warning(
                 f"Unsupported data type {array.GetDataTypeAsString()} for attribute {name}, skipping this attribute"
             )
             continue
-    return pd.DataFrame(attributes)
+    return pd.DataFrame(attributes) if attributes else None
