@@ -14,12 +14,13 @@ from os import path
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
-
+import pyarrow.parquet as pq
 from evo_schemas.objects import TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
 
 from evo.data_converters.common import (
     EvoObjectMetadata,
     EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
 )
 from evo.data_converters.obj.exporter import UnsupportedObjectError, export_obj
 from evo.data_converters.omf.importer import convert_omf
@@ -31,6 +32,8 @@ class TestEvoToObjExporter(TestCase):
     def setUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
         self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
+
+        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/pyramid.omf")
@@ -183,3 +186,62 @@ class TestEvoToObjExporter(TestCase):
         self.assertEqual(face[0], 0)
         self.assertEqual(face[1], 1)
         self.assertEqual(face[2], 2)
+
+    @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
+    def test_should_handle_parts_with_one_chunk_of_all_triangles(
+        self, mock_download_evo_object_by_id: MagicMock
+    ) -> None:
+        obj_file = path.join(path.dirname(__file__), "../data/cube.obj")
+        self.evo_objects = convert_obj(
+            filepath=obj_file,
+            evo_workspace_metadata=self.workspace_metadata,
+            epsg_code=32650,
+            publish_objects=False,
+        )
+        self.assertEqual(len(self.evo_objects), 1)
+
+        self.evo_object = self.evo_objects[0]
+        self.assertIsInstance(self.evo_object, TriangleMesh_V2_2_0)
+
+        # Given a triangle mesh which has a single chunk of all triangles
+        triangle_count = 12
+        chunks_parquet_file = path.join(str(self.data_client.cache_location), self.evo_object.parts.chunks.data)
+        chunks = pq.read_table(chunks_parquet_file)
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(chunks["offset"][0].as_py(), 0)
+        self.assertEqual(chunks["count"][0].as_py(), triangle_count)
+
+        object_id = uuid4()
+        version_id = "any version"
+
+        object = EvoObjectMetadata(object_id=object_id, version_id=version_id)
+        mock_download_evo_object_by_id.return_value = self.evo_object.as_dict()
+
+        temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
+
+        export_obj(
+            temp_obj_file.name,
+            objects=[object],
+            evo_workspace_metadata=self.workspace_metadata,
+        )
+
+        scene = trimesh.load_scene(temp_obj_file.name)
+
+        self.assertEqual(len(scene.geometry.keys()), 1)
+
+        geometry_name = "geometry_0"
+        self.assertIn(geometry_name, scene.geometry)
+        geometry = scene.geometry[geometry_name]
+
+        self.assertEqual(len(geometry.vertices), 8)
+        self.assertEqual(len(geometry.faces), triangle_count)
+
+        vertex = geometry.vertices[0]
+        self.assertAlmostEqual(vertex[0], 1)
+        self.assertAlmostEqual(vertex[1], 1)
+        self.assertAlmostEqual(vertex[2], -1)
+
+        face = geometry.faces[0]
+        self.assertEqual(face[0], 0)
+        self.assertEqual(face[1], 4)
+        self.assertEqual(face[2], 6)
