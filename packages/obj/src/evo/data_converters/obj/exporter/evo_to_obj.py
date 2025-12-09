@@ -162,8 +162,12 @@ async def _triangle_mesh_to_trimesh(
         chunks_table = await data_client.download_table(object_id, version_id, parts.chunks.as_dict())
         chunks = np.asarray(chunks_table)
 
-        # expand chunks into one list of triangles
-        chunked_data = ChunkedData(data=triangles, chunks=chunks)
-        triangles = chunked_data.unpack()
+        # skip handling chunks if just one chunk of the current list of triangles
+        # NOTE: this exporter doesn't currently use the attributes associated with chunks,
+        # if it did this would need to change
+        if not (len(chunks) == 1 and chunks[0][0] == 0 and chunks[0][1] == len(triangles)):
+            # expand chunks into one list of triangles
+            chunked_data = ChunkedData(data=triangles, chunks=chunks)
+            triangles = chunked_data.unpack()
 
     return trimesh.Trimesh(vertices=vertices, faces=triangles, process=False, validate=False)
