@@ -12,4 +12,4 @@
 from evo.data_converters.ubc.importer.ubc_reader import UBCFileIOError, UBCInvalidDataError, UBCOOMError
 from evo.data_converters.ubc.importer.ubc_to_evo import convert_ubc
 
-__all__ = ["UBCFileIOError", "UBCInvalidDataError", "UBCOOMError", "convert_ubc"]
+__all__ = ["UBCFileIOError", "UBCInvalidDataError", "UBCOOMError", "convert_ubc", "get_ubc_grids"]
