@@ -1,10 +1,13 @@
+import asyncio
 import os
+import ssl
 import threading
 import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog
 
+import aiohttp
 import ipywidgets as widgets
 from pyproj import CRS
 
@@ -12,7 +15,7 @@ from .conversion import convert_duf_to_evo
 from .portal import build_portal_url
 
 
-def create_duf_widget(manager, cache_location: str = "data"):
+async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     # Preload and helpers
     selected_file_path = None
     epsg_valid = False
@@ -248,36 +251,62 @@ def create_duf_widget(manager, cache_location: str = "data"):
         t = threading.Thread(target=tick, daemon=True)
         t.start()
 
-        try:
-            epsg_code = int(epsg_input.value.strip())
-            upload_path = object_path_input.value.strip() or ""
-            object_metadata = convert_duf_to_evo(selected_file_path, epsg_code, upload_path, manager)
+        async def do_convert():
+            nonlocal manager
+            max_retries = 3
+            retry_count = 0
 
-            # Display link to open workspace
-            if object_metadata:
-                num_objects = len(object_metadata) if isinstance(object_metadata, list) else 1
-                status_message.value = (
-                    f"<div style='color:green;font-weight:600'>✓ Published {num_objects} object(s) successfully</div>"
-                )
-                # Handle both single object and list of objects
-                obj = object_metadata[0] if isinstance(object_metadata, list) else object_metadata
-                workspace_url = build_portal_url(obj)
-                workspace_link.value = f'<a href="{workspace_url}" target="_blank">Open Evo workspace</a>'
-            else:
-                status_message.value = "<div style='color:orange;font-weight:600'>⚠ Something went wrong...</div>"
-        except ValueError as e:
-            status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
-        except ConnectionError as e:
-            status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
-        except Exception as e:
-            status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {type(e).__name__} - {str(e)}</div>"
-        finally:
+            while retry_count < max_retries:
+                try:
+                    epsg_code = int(epsg_input.value.strip())
+                    upload_path = object_path_input.value.strip() or ""
+                    object_metadata = await convert_duf_to_evo(selected_file_path, epsg_code, upload_path, manager)
+
+                    # Display link to open workspace
+                    if object_metadata:
+                        num_objects = len(object_metadata) if isinstance(object_metadata, list) else 1
+                        status_message.value = f"<div style='color:green;font-weight:600'>✓ Published {num_objects} object(s) successfully</div>"
+                        # Handle both single object and list of objects
+                        obj = object_metadata[0] if isinstance(object_metadata, list) else object_metadata
+                        workspace_url = build_portal_url(obj)
+                        workspace_link.value = f'<a href="{workspace_url}" target="_blank">Open Evo workspace</a>'
+                    else:
+                        status_message.value = (
+                            "<div style='color:orange;font-weight:600'>⚠ Something went wrong...</div>"
+                        )
+                    break  # Success, exit retry loop
+
+                except (aiohttp.ClientOSError, ssl.SSLError):
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        status_message.value = (
+                            f"<div style='color:orange;'>SSL error, retrying ({retry_count}/{max_retries})...</div>"
+                        )
+                        await asyncio.sleep(1)  # Brief pause before retry
+                    else:
+                        status_message.value = f"<div style='color:red;font-weight:600'>ERROR: SSL connection failed after {max_retries} attempts. Please restart the kernel and try again.</div>"
+                except ValueError as e:
+                    status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
+                    break
+                except ConnectionError as e:
+                    status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
+                    break
+                except Exception as e:
+                    status_message.value = (
+                        f"<div style='color:red;font-weight:600'>ERROR: {type(e).__name__} - {str(e)}</div>"
+                    )
+                    break
+
+            # Cleanup
             stop_event.set()
             t.join(timeout=1.0)
             convert_button.disabled = False
             select_button.disabled = False
             epsg_input.disabled = False
             object_path_input.disabled = False
+
+        # Schedule the async conversion on the event loop
+        asyncio.ensure_future(do_convert())
 
     convert_button.on_click(on_convert_click, remove=True)
     convert_button.on_click(on_convert_click)
