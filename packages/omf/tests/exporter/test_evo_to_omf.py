@@ -20,25 +20,21 @@ from evo_schemas.objects import LineSegments_V2_1_0, Pointset_V1_2_0, TriangleMe
 
 from evo.data_converters.common import (
     EvoObjectMetadata,
-    EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
 )
 from evo.data_converters.omf import OMFMetadata
 from evo.data_converters.omf.exporter import UnsupportedObjectError, export_omf
 from evo.data_converters.omf.importer import convert_omf
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
-class TestEvoToOMFExporter(TestCase):
+class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
-
-        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+        EvoDataConvertersTestCase.setUp(self)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
         self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650
+            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )[1:]
         self.evo_object = self.evo_objects[0]
         self.assertIsInstance(self.evo_objects[0], Pointset_V1_2_0)

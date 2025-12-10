@@ -9,9 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import tempfile
 from os import path
-from unittest import TestCase
 from uuid import uuid4
 
 import omf
@@ -26,22 +24,21 @@ from evo_schemas.components import (
 from evo_schemas.elements import IndexArray2_V1_0_1
 from evo_schemas.objects import LineSegments_V2_0_0, LineSegments_V2_0_0_Parts, LineSegments_V2_1_0
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_omf_lineset
 from evo.data_converters.omf.importer import convert_omf
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
-class TestExportOMFLineSet(TestCase):
+class TestExportOMFLineSet(EvoDataConvertersTestCase):
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
-
+        EvoDataConvertersTestCase.setUp(self)
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "..", "data", "lineset_v1.omf")
         self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650
+            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )
 
     def test_should_create_expected_omf_lineset_element(self) -> None:

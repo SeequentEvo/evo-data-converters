@@ -50,44 +50,40 @@ def convert_omf_blockmodel(
     nest_asyncio.apply()
     block_model_metadata = []
 
-    if environment.hub_url == "":
-        # This should only apply when running the convert-omf notebook
-        logger.warning("Skipping block models")
-    else:
-        client = _create_block_sync_client(environment, api_connector)
-        geometry = element.geometry()
+    client = _create_block_sync_client(environment, api_connector)
+    geometry = element.geometry()
 
-        match geometry.grid:
-            case omf2.Grid3Tensor():
-                block_sync_model = convert_omf_tensor_grid_model(element, client, reader, epsg_code)
-                if block_sync_model:
-                    block_model_id, block_model, block_table = block_sync_model
-                    upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
-                    block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
-            case omf2.Grid3Regular():
-                if geometry.subblocks:
-                    match geometry.subblocks:
-                        case omf2.FreeformSubblocks():
-                            logger.warning(
-                                "BlockSync does not support freeform subblock models where blocks do not have to align with any grid."
-                            )
-                        case omf2.RegularSubblocks():
-                            block_model_id, block_model, block_table = convert_omf_regular_subblock_model(
-                                element, client, reader, epsg_code
-                            )
-                            upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
-                            block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
-                        case _:
-                            logger.warning(
-                                f"Skipping block model with unsupported subblocks type '{geometry.subblocks.__class__.__name__}'"
-                            )
-                else:
-                    # Block model does not contain sub blocks
-                    block_model_id, block_model, block_table = convert_omf_regular_block_model(
-                        element, client, reader, epsg_code
-                    )
-                    upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
-                    block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
+    match geometry.grid:
+        case omf2.Grid3Tensor():
+            block_sync_model = convert_omf_tensor_grid_model(element, client, reader, epsg_code)
+            if block_sync_model:
+                block_model_id, block_model, block_table = block_sync_model
+                upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
+                block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
+        case omf2.Grid3Regular():
+            if geometry.subblocks:
+                match geometry.subblocks:
+                    case omf2.FreeformSubblocks():
+                        logger.warning(
+                            "BlockSync does not support freeform subblock models where blocks do not have to align with any grid."
+                        )
+                    case omf2.RegularSubblocks():
+                        block_model_id, block_model, block_table = convert_omf_regular_subblock_model(
+                            element, client, reader, epsg_code
+                        )
+                        upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
+                        block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
+                    case _:
+                        logger.warning(
+                            f"Skipping block model with unsupported subblocks type '{geometry.subblocks.__class__.__name__}'"
+                        )
+            else:
+                # Block model does not contain sub blocks
+                block_model_id, block_model, block_table = convert_omf_regular_block_model(
+                    element, client, reader, epsg_code
+                )
+                upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
+                block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
 
     return block_model_metadata
 
