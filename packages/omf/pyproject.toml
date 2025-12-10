@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-omf"
 description = "Python data converters for OMF to Evo geoscience objects"
-version = "0.1.5"
+version = "0.1.6"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "evo-data-converters-common",
+    "evo-data-converters-common>=0.3.1",
     "pandas",
     "omf>=1.0.1",
     # Dependency is unstable. Provide a constraint when we have some published.

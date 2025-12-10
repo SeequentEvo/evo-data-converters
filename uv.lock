@@ -764,7 +764,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-common"
-version = "0.2.4"
+version = "0.3.1"
 source = { editable = "packages/common" }
 dependencies = [
     { name = "aiohttp" },
@@ -811,7 +811,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-duf"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "packages/duf" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -840,7 +840,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-gocad"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "packages/gocad" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -859,7 +859,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-omf"
-version = "0.1.5"
+version = "0.1.6"
 source = { editable = "packages/omf" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -890,7 +890,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-resqml"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "packages/resqml" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -917,7 +917,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-ubc"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "packages/ubc" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -936,7 +936,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-vtk"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "packages/vtk" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -984,16 +984,16 @@ wheels = [
 
 [[package]]
 name = "evo-sdk-common"
-version = "0.5.11"
+version = "0.5.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pure-interface" },
     { name = "pydantic" },
     { name = "python-dateutil" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/46/2e2c8fd4e12e7457d2c7c633907aaaf9299a20467b4f54f257e64bfd7804/evo_sdk_common-0.5.11.tar.gz", hash = "sha256:9343574ee23d12b59c51665fa7fedb106dcde58c1b73a06d049f19ac332e09be", size = 112539, upload-time = "2025-11-23T21:52:43.882Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/36/7e0fc8ad98fe0f595b735ef0775fa5bd341b2ca9e6e2c5dbc8cc1a3b58d7/evo_sdk_common-0.5.12.tar.gz", hash = "sha256:6cf4c60328750e7c3e153126a5c610c7e658b34a8aac2109516d3632ee327ece", size = 113664, upload-time = "2025-12-01T23:23:45.938Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/b1/3e6b659c52c6d64199add21119f83745addda974da5164d25086d7e5fe61/evo_sdk_common-0.5.11-py3-none-any.whl", hash = "sha256:74a0c7e85a23cb26f30ea0acd47588b6441c1834bc4deb8f2f6a8bcda0532f68", size = 177257, upload-time = "2025-11-23T21:52:42.058Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/1f/4586560812873a1850d740224e668b256424b6d3df2985f350ab212d54b9/evo_sdk_common-0.5.12-py3-none-any.whl", hash = "sha256:8b9d666b180c7139d569411812718611dacd344197f54bcc7f0ac5c20a0d203d", size = 178344, upload-time = "2025-12-01T23:23:44.381Z" },
 ]
 
 [package.optional-dependencies]
