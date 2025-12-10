@@ -14,8 +14,8 @@ dependencies = [
 ]
 
 [project.urls]
-Source = "https://github.com/SeequentEvo/evo-python-sdk"
-Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
+Source = "https://github.com/SeequentEvo/evo-data-converters"
+Tracker = "https://github.com/SeequentEvo/evo-data-converters/issues"
 Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
