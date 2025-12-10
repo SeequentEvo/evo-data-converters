@@ -11,9 +11,7 @@
 
 from __future__ import annotations
 
-import asyncio
 import gc
-import nest_asyncio
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -36,7 +34,7 @@ if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_obj(
+async def convert_obj(
     filepath: str,
     epsg_code: int,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
@@ -65,7 +63,6 @@ def convert_obj(
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
-    nest_asyncio.apply()
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
         service_manager_widget=service_manager_widget,
@@ -97,7 +94,7 @@ def convert_obj(
 
     importer = impl_class(obj_file=filepath, crs=crs_from_any(epsg_code), data_client=data_client)
 
-    triangle_mesh_go = asyncio.run(importer.convert_file(publish_parquet=publish_objects))
+    triangle_mesh_go = await importer.convert_file(publish_parquet=publish_objects)
     del importer
     gc.collect()
 
@@ -115,7 +112,7 @@ def convert_obj(
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
-        objects_metadata = publish_geoscience_objects(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 
