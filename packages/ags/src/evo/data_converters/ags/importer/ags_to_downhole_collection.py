@@ -61,7 +61,8 @@ def create_from_parsed_ags(
         table["hole_index"] = table_with_index["hole_index"]
         unmatched_count = table["hole_index"].isna().sum()
         if unmatched_count > 0:
-            logger.warning(f"Dropping {unmatched_count} rows with unmatched LOCA_ID in measurement table")
+            table_name = getattr(table, "name", "")
+            logger.warning(f"Dropping {unmatched_count} rows with unmatched LOCA_ID in measurement table {table_name}")
             table.dropna(subset=["hole_index"], inplace=True)
         table["hole_index"] = table["hole_index"].astype(int)
 
@@ -119,7 +120,9 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
     collars_df = collars_df.merge(final_depths, on=["LOCA_ID", "SCPG_TESN"], how="left")
 
     # Create hole_id as composite of LOCA_ID and SCPG_TESN and assign hole_index
-    collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str) + ":" + collars_df["SCPG_TESN"].astype(str)
+    loca_str = collars_df["LOCA_ID"].astype(str)
+    tesn_str = collars_df["SCPG_TESN"].fillna("").astype(str)
+    collars_df["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
 
     # Rename coordinates and set z
@@ -136,7 +139,7 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
     collars_df = collars_df[standard_cols + key_cols + other_cols]
 
     # Drop duplicate collars if present (defensive)
-    collars_df = collars_df.drop_duplicates(subset=["LOCA_ID", "SCPG_TESN"], keep="first").reset_index(drop=True)
+    collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
 
     return HoleCollars(df=collars_df)
 

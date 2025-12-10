@@ -79,7 +79,6 @@ class AgsContext:
     REQUIRED_GROUPS: list[str] = ["LOCA", "SCPG", "SCPT"]
     RETAINED_GROUPS: list[str] = ["PROJ", "UNIT", "HORN"]
     MEASUREMENT_GROUPS: list[str] = ["SCPT", "SCPP", "GEOL", "SCDG"]
-    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT"]
 
     IGNORED_RULES: list[str] = [
         # 2a: Each line should be terminated by CR and LF characters
