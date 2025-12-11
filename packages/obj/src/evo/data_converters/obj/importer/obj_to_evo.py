@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import gc
-
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -24,9 +23,10 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
 )
-from .implementation.base import ObjImporterBase
 from evo.data_converters.common.crs import crs_from_any
 from evo.objects.data import ObjectMetadata
+
+from .implementation.base import ObjImporterBase
 
 logger = evo.logging.getLogger("data_converters")
 

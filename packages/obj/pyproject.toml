@@ -29,6 +29,10 @@ dev = [
 [tool.ruff]
 src = ["src", "tests"]
 line-length = 120
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP006"]
+
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
