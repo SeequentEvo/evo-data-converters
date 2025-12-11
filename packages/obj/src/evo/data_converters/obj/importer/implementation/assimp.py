@@ -10,25 +10,21 @@
 #  limitations under the License.
 
 import asyncio
-
 from contextlib import ExitStack
-from typing import Tuple
-from typing_extensions import override
 
-import pyassimp
-
-import pyarrow as pa
 import numpy as np
-
+import pyarrow as pa
+import pyassimp
 from evo_schemas.components import (
     BoundingBox_V1_0_1,
+    EmbeddedTriangulatedMesh_V2_1_0_Parts,
     Triangles_V1_2_0_Indices,
     Triangles_V1_2_0_Vertices,
-    EmbeddedTriangulatedMesh_V2_1_0_Parts,
 )
 from evo_schemas.elements import IndexArray2_V1_0_1
+from typing_extensions import override
 
-from .base import ObjImporterBase, VERTICES_SCHEMA, INDICES_SCHEMA, PARTS_SCHEMA, InvalidOBJError
+from .base import INDICES_SCHEMA, PARTS_SCHEMA, VERTICES_SCHEMA, InvalidOBJError, ObjImporterBase
 
 
 class AssimpObjImporter(ObjImporterBase):
@@ -74,7 +70,7 @@ class AssimpObjImporter(ObjImporterBase):
     @override
     async def create_tables(
         self, publish_parquet: bool = False
-    ) -> Tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
+    ) -> tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
         """
         Creates the triangles and indices tables, optionally publishing the tables to Evo as it goes.
 

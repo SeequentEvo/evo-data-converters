@@ -9,20 +9,19 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import tempfile
-import pytest
 import math
+import tempfile
 import zipfile
+from importlib.util import find_spec
 from pathlib import Path
 from unittest import TestCase
-from importlib.util import find_spec
 
+import pytest
 
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
-
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 
 

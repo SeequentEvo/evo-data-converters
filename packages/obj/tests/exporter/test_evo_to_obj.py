@@ -13,7 +13,9 @@ import tempfile
 from os import path
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
+
 import pyarrow.parquet as pq
+import trimesh
 from evo_schemas.objects import TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
 
 from evo.data_converters.common import (
@@ -22,9 +24,8 @@ from evo.data_converters.common import (
 )
 from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 from evo.data_converters.obj.exporter import UnsupportedObjectError, export_obj
-from evo.data_converters.omf.importer import convert_omf
 from evo.data_converters.obj.importer import convert_obj
-import trimesh
+from evo.data_converters.omf.importer import convert_omf
 
 
 class TestEvoToObjExporter(EvoDataConvertersTestCase):

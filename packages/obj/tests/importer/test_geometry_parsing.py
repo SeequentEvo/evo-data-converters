@@ -10,25 +10,24 @@
 #  limitations under the License.
 
 import math
-import numpy as np
-import pytest
-import pandas as pd
-from pathlib import Path
 from importlib.util import find_spec
+from pathlib import Path
 
-from evo.objects.utils.tables import KnownTableFormat
-from evo_schemas.objects import TriangleMesh_V2_2_0
+import numpy as np
+import pandas as pd
+import pytest
 from evo_schemas.components import (
     Crs_V1_0_1_EpsgCode,
 )
+from evo_schemas.objects import TriangleMesh_V2_2_0
 
 from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
 )
-
-from evo.data_converters.obj.importer.obj_to_evo import convert_obj
-from evo.data_converters.obj.importer.implementation.base import UnsupportedOBJError
 from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
+from evo.data_converters.obj.importer.implementation.base import UnsupportedOBJError
+from evo.data_converters.obj.importer.obj_to_evo import convert_obj
+from evo.objects.utils.tables import KnownTableFormat
 
 # Specify the simple_shapes.obj in terms of its faces, as different parsers format the faces and vertices
 # in different orders, but the total set of vertices and faces should always be there.

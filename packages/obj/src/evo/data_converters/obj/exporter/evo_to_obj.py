@@ -19,8 +19,8 @@ import nest_asyncio
 import numpy as np
 import trimesh
 from evo_schemas import schema_lookup
-from evo_schemas.objects import TriangleMesh_V2_0_0, TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
 from evo_schemas.components import Crs_V1_0_1_EpsgCode
+from evo_schemas.objects import TriangleMesh_V2_0_0, TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
 from trimesh.exchange.export import export_scene
 
 import evo.logging

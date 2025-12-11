@@ -11,21 +11,20 @@
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Tuple
 
 import pyarrow as pa
 import pyarrow.compute as pc
-
-from evo_schemas.objects import TriangleMesh_V2_2_0
-from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
     BoundingBox_V1_0_1,
+    Crs_V1_0_1,
+    EmbeddedTriangulatedMesh_V2_1_0_Parts,
     Triangles_V1_2_0,
     Triangles_V1_2_0_Indices,
     Triangles_V1_2_0_Vertices,
-    EmbeddedTriangulatedMesh_V2_1_0_Parts,
-    Crs_V1_0_1,
 )
+from evo_schemas.objects import TriangleMesh_V2_2_0
+
+from evo.objects.utils.data import ObjectDataClient
 
 VERTICES_SCHEMA = pa.schema([pa.field("x", pa.float64()), pa.field("y", pa.float64()), pa.field("z", pa.float64())])
 INDICES_SCHEMA = pa.schema([pa.field("n0", pa.uint64()), pa.field("n1", pa.uint64()), pa.field("n2", pa.uint64())])
@@ -86,7 +85,7 @@ class ObjImporterBase:
     @abstractmethod
     async def create_tables(
         self, publish_parquet: bool = False
-    ) -> Tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
+    ) -> tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
         """
         Creates the triangles and indices tables, optionally publishing the tables to Evo as it goes.
 
