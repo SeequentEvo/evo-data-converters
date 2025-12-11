@@ -18,7 +18,7 @@ import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects,
+    publish_geoscience_objects_sync,
 )
 from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
     DownholeCollectionToGeoscienceObject,
@@ -90,7 +90,7 @@ def convert_gef(
     object_metadata = None
     if publish_object:
         logger.debug("Publishing Geoscience Object")
-        object_metadata = publish_geoscience_objects(
+        object_metadata = publish_geoscience_objects_sync(
             [geoscience_object], object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 

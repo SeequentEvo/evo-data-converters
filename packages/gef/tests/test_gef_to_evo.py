@@ -59,7 +59,7 @@ class TestConvertGef:
         """Mock object metadata."""
         return Mock(spec=ObjectMetadata)
 
-    @patch("evo.data_converters.gef.importer.gef_to_evo.publish_geoscience_objects")
+    @patch("evo.data_converters.gef.importer.gef_to_evo.publish_geoscience_objects_sync")
     @patch("evo.data_converters.gef.importer.gef_to_evo.create_evo_object_service_and_data_client")
     @patch("evo.data_converters.gef.importer.gef_to_evo.create_from_parsed_gef_cpts")
     @patch("evo.data_converters.gef.importer.gef_to_evo.parse_gef_files")
