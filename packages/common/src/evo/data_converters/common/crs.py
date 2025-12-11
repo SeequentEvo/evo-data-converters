@@ -9,13 +9,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from pyproj import CRS
-from pyproj._crs import is_wkt
-from pyproj.exceptions import CRSError
-
 from evo_schemas.components import Crs_V1_0_1 as Crs
 from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from evo_schemas.components import Crs_V1_0_1_OgcWkt as Crs_OgcWkt
+from pyproj import CRS
+from pyproj._crs import is_wkt
+from pyproj.exceptions import CRSError
 
 
 def _is_epsg_code(auth_code: int | str) -> bool:
@@ -84,6 +83,7 @@ def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_O
         crs = crs_from_any(2193)
         crs = crs_from_any("2193")
         crs = crs_from_any("EPSG:2193")
+        crs = crs_from_any("unspecified")
         crs = crs_from_any("<valid OGC WKT string>")
     """
     if crs_def is None or crs_def == "unspecified":
