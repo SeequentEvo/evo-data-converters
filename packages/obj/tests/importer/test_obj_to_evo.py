@@ -31,11 +31,11 @@ class TestObjToEvoConverter(TestCase):
         _, data_client = create_evo_object_service_and_data_client(self.metadata)
         self.data_client = data_client
 
-    def test_should_add_expected_tags(self) -> None:
+    async def test_should_add_expected_tags(self) -> None:
         obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.obj"
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
-        go_objects = convert_obj(
+        go_objects = await convert_obj(
             filepath=obj_file, evo_workspace_metadata=self.metadata, epsg_code=4326, tags=tags, publish_objects=False
         )
 
@@ -47,9 +47,9 @@ class TestObjToEvoConverter(TestCase):
         }
         self.assertEqual(go_objects[0].tags, expected_tags)
 
-    def test_should_convert_expected_geometry_types(self) -> None:
+    async def test_should_convert_expected_geometry_types(self) -> None:
         obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.obj"
-        go_objects = convert_obj(
+        go_objects = await convert_obj(
             filepath=obj_file, evo_workspace_metadata=self.metadata, epsg_code=4326, publish_objects=False
         )
 

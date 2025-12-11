@@ -11,6 +11,8 @@
 
 import tempfile
 import pytest
+import math
+import zipfile
 from pathlib import Path
 from unittest import TestCase
 from importlib.util import find_spec
@@ -22,10 +24,9 @@ from evo.data_converters.common import (
 )
 
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
-from evo.data_converters.obj.importer.implementation.base import InvalidOBJError
 
 
-class TestObjFileErrors(TestCase):
+class TestObjZipLoading(TestCase):
     implementation: str = "trimesh"
 
     def setUp(self) -> None:
@@ -36,57 +37,39 @@ class TestObjFileErrors(TestCase):
         _, data_client = create_evo_object_service_and_data_client(self.metadata)
         self.data_client = data_client
 
-    def test_missing_vertices_file(self) -> None:
-        """
-        Attempts to load a file that's missing referenced vertices.
-        """
-        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes_corrupt.obj"
+    async def test_open_zip_file(self) -> None:
+        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.obj"
+        with tempfile.NamedTemporaryFile(suffix=".obj.zip", delete=True) as zip_tempfile:
+            with zipfile.ZipFile(zip_tempfile, mode="w") as zip_file:
+                zip_file.write(obj_file, arcname=obj_file.name)
 
-        with self.assertRaises(InvalidOBJError):
-            (triangle_mesh,) = convert_obj(
-                filepath=obj_file,
+            (triangle_mesh,) = await convert_obj(
+                filepath=zip_tempfile.name,
                 evo_workspace_metadata=self.metadata,
                 epsg_code=4326,
                 publish_objects=False,
                 implementation=self.implementation,
             )
 
-    def test_wrong_format_file(self) -> None:
-        """
-        Attempts to load an STL version of simple_shapes that should refuse to load, even
-        though several of the implementations would otherwise support STL.
-        """
-        stl_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.stl"
-
-        with self.assertRaises(InvalidOBJError):
-            (triangle_mesh,) = convert_obj(
-                filepath=stl_file,
-                evo_workspace_metadata=self.metadata,
-                epsg_code=4326,
-                publish_objects=False,
-                implementation=self.implementation,
-            )
-            print(triangle_mesh)
+            # Rough test of whether it parsed at all
+            assert math.isclose(triangle_mesh.bounding_box.min_x, 174.54, rel_tol=0.01)
 
 
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
-class TestObjFileErrorsTinyObj(TestObjFileErrors):
+class TestObjZipLoadingTinyObj(TestObjZipLoading):
     implementation = "tinyobj"
 
 
 @pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
-class TestObjFileErrorsOpen3D(TestObjFileErrors):
+class TestObjZipLoadingOpen3D(TestObjZipLoading):
     implementation = "open3d"
 
 
 @pytest.mark.skipif(find_spec("vtk") is None, reason="vtk not installed")
-class TestObjFileErrorsVTK(TestObjFileErrors):
+class TestObjZipLoadingVTK(TestObjZipLoading):
     implementation = "vtk"
-
-    def test_missing_vertices_file(self) -> None:
-        pytest.skip("VTK can't detect this")
 
 
 @pytest.mark.skipif(find_spec("pyassimp") is None, reason="pyassimp not installed")
-class TestObjFileErrorsAssimp(TestObjFileErrors):
+class TestObjZipLoadingAssimp(TestObjZipLoading):
     implementation = "assimp"
