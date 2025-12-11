@@ -9,13 +9,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import tempfile
 import math
 import numpy as np
 import pytest
 import pandas as pd
 from pathlib import Path
-from unittest import TestCase
 from importlib.util import find_spec
 
 from evo.objects.utils.tables import KnownTableFormat
@@ -25,13 +23,12 @@ from evo_schemas.components import (
 )
 
 from evo.data_converters.common import (
-    EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
 
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 from evo.data_converters.obj.importer.implementation.base import UnsupportedOBJError
-
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 # Specify the simple_shapes.obj in terms of its faces, as different parsers format the faces and vertices
 # in different orders, but the total set of vertices and faces should always be there.
@@ -62,23 +59,20 @@ simple_shape_faces = pd.DataFrame(
 )
 
 
-class TestObjGeometryParsing(TestCase):
+class TestObjGeometryParsing(EvoDataConvertersTestCase):
     implementation: str = "trimesh"
 
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.metadata = EvoWorkspaceMetadata(
-            workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
-        )
-        _, data_client = create_evo_object_service_and_data_client(self.metadata)
+        EvoDataConvertersTestCase.setUp(self)
+        _, data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
         self.data_client = data_client
 
-    def _make_geoobject(self, filename="simple_shapes.obj") -> TriangleMesh_V2_2_0:
-        obj_file = Path(__file__).parent / "data" / "simple_shapes" / filename
+    async def _make_geoobject(self, filename: str = "simple_shapes.obj") -> TriangleMesh_V2_2_0:
+        obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / filename
 
-        (triangle_mesh,) = convert_obj(
+        (triangle_mesh,) = await convert_obj(
             filepath=obj_file,
-            evo_workspace_metadata=self.metadata,
+            evo_workspace_metadata=self.workspace_metadata,
             epsg_code=4326,
             publish_objects=False,
             implementation=self.implementation,
@@ -91,8 +85,8 @@ class TestObjGeometryParsing(TestCase):
             table_info = table_info.as_dict()
         return KnownTableFormat.load_table(table_info, self.data_client.cache_location).to_pandas()
 
-    def test_geoobject_complete(self) -> None:
-        triangle_mesh = self._make_geoobject()
+    async def test_geoobject_complete(self) -> None:
+        triangle_mesh = await self._make_geoobject()
 
         assert isinstance(triangle_mesh, TriangleMesh_V2_2_0), "GeoObject is TriangleMesh_V2_2_0"
 
@@ -122,8 +116,8 @@ class TestObjGeometryParsing(TestCase):
         # We're not using triangle_indices
         assert triangle_mesh.parts.triangle_indices is None
 
-    def test_correct_vertices(self) -> None:
-        triangle_mesh = self._make_geoobject()
+    async def test_correct_vertices(self) -> None:
+        triangle_mesh = await self._make_geoobject()
         vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices).drop_duplicates()
 
         # Extract the unique set of vertices from the faces and make sure all those vertices exist in the table
@@ -174,8 +168,8 @@ class TestObjGeometryParsing(TestCase):
         intersection = faces1[matches]
         return len(intersection) == len(faces2) == len(faces1)
 
-    def test_correct_faces(self) -> None:
-        triangle_mesh = self._make_geoobject()
+    async def test_correct_faces(self) -> None:
+        triangle_mesh = await self._make_geoobject()
         faces = self._get_dataframe_for_table(triangle_mesh.triangles.indices)
         vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices)
         assert len(faces) == len(simple_shape_faces), "Check number of faces is correct"
@@ -189,8 +183,8 @@ class TestObjGeometryParsing(TestCase):
             "Check all faces have the right triple of vertices"
         )
 
-    def test_correct_parts(self) -> None:
-        triangle_mesh = self._make_geoobject()
+    async def test_correct_parts(self) -> None:
+        triangle_mesh = await self._make_geoobject()
         chunks = self._get_dataframe_for_table(triangle_mesh.parts.chunks)
         faces = self._get_dataframe_for_table(triangle_mesh.triangles.indices)
         vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices)
@@ -221,12 +215,12 @@ class TestObjGeometryParsing(TestCase):
                     "Check the Pyramid part has the right vertices"
                 )
 
-    def test_quad_triangulation(self) -> None:
+    async def test_quad_triangulation(self) -> None:
         """
         It's difficult to correctly assert the conversion to triangles from quads, but we'll do some rudimentary tests.
         """
         try:
-            triangle_mesh = self._make_geoobject(filename="simple_shapes_quad.obj")
+            triangle_mesh = await self._make_geoobject(filename="simple_shapes_quad.obj")
         except UnsupportedOBJError:
             pytest.skip(f"{self.implementation} doesn't support triangulation")
 

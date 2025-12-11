@@ -11,7 +11,6 @@
 
 import tempfile
 from os import path
-from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 import pyarrow.parquet as pq
@@ -19,20 +18,18 @@ from evo_schemas.objects import TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
 
 from evo.data_converters.common import (
     EvoObjectMetadata,
-    EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 from evo.data_converters.obj.exporter import UnsupportedObjectError, export_obj
 from evo.data_converters.omf.importer import convert_omf
 from evo.data_converters.obj.importer import convert_obj
 import trimesh
 
 
-class TestEvoToObjExporter(TestCase):
+class TestEvoToObjExporter(EvoDataConvertersTestCase):
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
-
+        EvoDataConvertersTestCase.setUp(self)
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
@@ -42,6 +39,7 @@ class TestEvoToObjExporter(TestCase):
             filepath=omf_file,
             evo_workspace_metadata=self.workspace_metadata,
             epsg_code=self.epsg_code,
+            publish_objects=False,
         )
         self.evo_object = self.evo_objects[0]
         self.assertIsInstance(self.evo_object, TriangleMesh_V2_1_0)
@@ -139,9 +137,9 @@ class TestEvoToObjExporter(TestCase):
         )
 
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
-    def test_can_handle_multiple_parts(self, mock_download_evo_object_by_id: MagicMock) -> None:
+    async def test_can_handle_multiple_parts(self, mock_download_evo_object_by_id: MagicMock) -> None:
         obj_file = path.join(path.dirname(__file__), "../data/simple_shapes/simple_shapes.obj")
-        self.evo_objects = convert_obj(
+        self.evo_objects = await convert_obj(
             filepath=obj_file,
             evo_workspace_metadata=self.workspace_metadata,
             epsg_code=32650,
@@ -188,11 +186,11 @@ class TestEvoToObjExporter(TestCase):
         self.assertEqual(face[2], 2)
 
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
-    def test_should_handle_parts_with_one_chunk_of_all_triangles(
+    async def test_should_handle_parts_with_one_chunk_of_all_triangles(
         self, mock_download_evo_object_by_id: MagicMock
     ) -> None:
         obj_file = path.join(path.dirname(__file__), "../data/cube.obj")
-        self.evo_objects = convert_obj(
+        self.evo_objects = await convert_obj(
             filepath=obj_file,
             evo_workspace_metadata=self.workspace_metadata,
             epsg_code=32650,
