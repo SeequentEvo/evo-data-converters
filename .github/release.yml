@@ -11,6 +11,9 @@ changelog:
     - title: evo-data-converters-gocad
       labels:
         - gocad
+    - title: evo-data-converters-obj
+      labels:
+        - obj
     - title: evo-data-converters-omf
       labels:
         - omf
