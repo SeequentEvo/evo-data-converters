@@ -36,6 +36,7 @@ dev = [
 
 [tool.uv.sources]
 evo-data-converters-common = { workspace = true }
+evo-data-converters-ags = { workspace = true }
 evo-data-converters-duf = { workspace = true }
 evo-data-converters-gocad = { workspace = true }
 evo-data-converters-omf = { workspace = true }
