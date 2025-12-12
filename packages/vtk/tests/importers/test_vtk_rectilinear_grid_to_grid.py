@@ -15,7 +15,6 @@ import numpy as np
 import numpy.testing
 import pytest
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1
 from evo.data_converters.common import TensorGridData
 from vtk.util.numpy_support import numpy_to_vtk
 from vtk_test_helpers import add_ghost_value
@@ -51,7 +50,7 @@ def test_get() -> None:
     assert result.cell_sizes_x == pytest.approx([0.8])
     assert result.cell_sizes_y == pytest.approx([2.1, 1.8])
     assert result.cell_sizes_z == pytest.approx([1.4, 4.8, 0.1])
-    assert result.bounding_box == BoundingBox_V1_0_1(min_x=2.4, min_y=1.2, min_z=-1.3, max_x=3.2, max_y=5.1, max_z=5.0)
+    assert result.bounding_box == [2.4, 3.2, 1.2, 5.1, -1.3, 5.0]
     assert result.size == [1, 2, 3]
     numpy.testing.assert_array_equal(result.rotation, numpy.zeros(3))
 

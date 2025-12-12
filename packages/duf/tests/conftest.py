@@ -10,16 +10,23 @@
 #  limitations under the License.
 
 import os
-from os import path
+import sys
 
 import numpy
 import pyarrow.parquet as pq
 import pytest
 
+from pathlib import Path
+
 from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     EvoWorkspaceMetadata,
 )
+
+
+def pytest_ignore_collect(collection_path: Path, config) -> bool:
+    # All the tests in this package require Windows to work, so skip collection otherwise
+    return not sys.platform.startswith("win")
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +46,7 @@ class TestDataClient:
         return getattr(self.data_client, name)
 
     def load_table(self, table):
-        chunks_parquet_file = path.join(str(self.data_client.cache_location), table.data)
+        chunks_parquet_file = os.path.join(str(self.data_client.cache_location), table.data)
         return pq.read_table(chunks_parquet_file)
 
     def load_columns(self, table) -> list:

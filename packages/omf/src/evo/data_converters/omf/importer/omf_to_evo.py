@@ -42,6 +42,7 @@ def convert_omf(
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
+    publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata | dict]:
     """Converts an OMF file into Geoscience Objects.
@@ -52,12 +53,13 @@ def convert_omf(
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
+    :publish_objects: (Optional) Set False to return rather than publish objects.
+    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
-    Converted objects will be published if either of the following is true:
-    - evo_workspace_metadata.hub_url is present, or
-    - service_manager_widget was passed to this function.
+    Converted objects will be published if the publish_objects option is set, and this requires a valid
+    `evo_workspace_metadata.hub_url` or `service_manager_widget` to be provided.
 
     If problems are encountered while loading the OMF project, these will be logged as warnings.
 
@@ -71,16 +73,12 @@ def convert_omf(
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
-    publish_objects = True
     geoscience_objects = []
     block_models = []
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
-    if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
-        logger.debug("Publishing objects will be skipped due to missing hub_url.")
-        publish_objects = False
 
     context = OMFReaderContext(filepath)
     reader = context.reader()
@@ -108,7 +106,10 @@ def convert_omf(
             case omf2.LineSet():
                 geoscience_object = convert_omf_lineset(element, project, reader, data_client, epsg_code)
             case omf2.BlockModel():
-                block_models = convert_omf_blockmodel(object_service_client, element, reader, epsg_code)
+                if publish_objects:
+                    block_models = convert_omf_blockmodel(object_service_client, element, reader, epsg_code)
+                else:
+                    logger.warning("Skipping block models due to publish_objects=False")
             case _:
                 continue
 

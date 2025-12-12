@@ -9,31 +9,29 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import tempfile
 from os import path
-from unittest import TestCase
 from uuid import uuid4
 
 import omf
 from evo_schemas.components import CategoryAttribute_V1_0_1, CategoryAttribute_V1_1_0
 from evo_schemas.objects import Pointset_V1_1_0, Pointset_V1_1_0_Locations, Pointset_V1_2_0
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_omf_pointset
 from evo.data_converters.omf.importer import convert_omf
+from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
-class TestExportOMFPointSet(TestCase):
+class TestExportOMFPointSet(EvoDataConvertersTestCase):
     def setUp(self) -> None:
-        self.cache_root_dir = tempfile.TemporaryDirectory()
-        self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.cache_root_dir.name)
+        EvoDataConvertersTestCase.setUp(self)
 
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
         self.evo_object = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650
+            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )[1]
         self.evo_object.description = "any description"
         self.assertIsInstance(self.evo_object, Pointset_V1_2_0)

@@ -58,10 +58,11 @@ def get_vtk_rectilinear_grid(rectilinear_grid: vtk.vtkRectilinearGrid) -> Tensor
     else:
         vertex_attributes = convert_attributes_for_grid(vertex_data)
 
+    bbox = get_bounding_box(rectilinear_grid)
     return TensorGridData(
         origin=origin,
         size=list(size),
-        bounding_box=get_bounding_box(rectilinear_grid),
+        bounding_box=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z],
         cell_sizes_x=list(x_spacings),
         cell_sizes_y=list(y_spacings),
         cell_sizes_z=list(z_spacings),
