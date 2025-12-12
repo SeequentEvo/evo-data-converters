@@ -34,7 +34,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
-        omf_file = path.join(path.dirname(__file__), "../../../omf/tests/data/omf2.omf")
+        omf_file = path.join(path.dirname(__file__), "../data/omf2.omf")
         self.epsg_code = 32650
         self.evo_objects = convert_omf(
             filepath=omf_file,
