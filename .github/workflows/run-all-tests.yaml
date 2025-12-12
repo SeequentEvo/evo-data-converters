@@ -26,6 +26,7 @@ jobs:
         package:
           - common
           - gocad
+          - obj
           - omf
           - resqml
           - ubc
