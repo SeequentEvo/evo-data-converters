@@ -301,15 +301,15 @@ wheels = [
 
 [[package]]
 name = "evo-data-converters-duf"
-version = "0.1.8"
+version = "0.1.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "evo-data-converters-common" },
     { name = "pythonnet" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9b/70/ff26196ea599eeaafe6a9a204eec1772fdc6823ffdd25170400233326137/evo_data_converters_duf-0.1.8.tar.gz", hash = "sha256:71403f5c5fd8a1f88a46a87daae1c138a6fa24ce73d322e8b2e6ff20223354b1", size = 22668, upload-time = "2025-11-27T01:12:37.513Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/15/4b8230cd30d12c344ff2bdb7452fb1e936b6e68b83dfb2d5df10b8f26ed2/evo_data_converters_duf-0.1.9.tar.gz", hash = "sha256:332c6db33f3c9b5e1f8940beb80c560bf3c62526b4b4c6430a55a98aae0ddb15", size = 22907, upload-time = "2025-11-28T01:23:28.404Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/19/854572a26345c78be18166a59f849830833043dc3c0add21f7a79647db01/evo_data_converters_duf-0.1.8-py3-none-any.whl", hash = "sha256:e1c62c3e1c2e7dcd12dcc2f113756e3891ab04b54117da19bc436c56abd5acda", size = 32614, upload-time = "2025-11-27T01:12:36.06Z" },
+    { url = "https://files.pythonhosted.org/packages/44/57/294f437971803bb6df3c242d23108edaeb41b4437959fbf05bdb32a17ad8/evo_data_converters_duf-0.1.9-py3-none-any.whl", hash = "sha256:893243056cc0cb359fc99fbb63891e8cc18fba4181a83b5d7008af7a821822fd", size = 32884, upload-time = "2025-11-28T01:23:27.089Z" },
 ]
 
 [[package]]
