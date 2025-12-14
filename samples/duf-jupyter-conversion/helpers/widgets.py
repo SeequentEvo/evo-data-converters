@@ -16,6 +16,9 @@ from .portal import build_portal_url
 
 
 async def create_duf_widget(manager, cache_location: str = "notebook-data"):
+    # Capture the current event loop for use in button callbacks
+    event_loop = asyncio.get_running_loop()
+
     # Preload and helpers
     selected_file_path = None
     epsg_valid = False
@@ -252,7 +255,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
         t.start()
 
         async def do_convert():
-            nonlocal manager
+            """Async conversion function with retry logic for SSL errors"""
             max_retries = 3
             retry_count = 0
 
@@ -279,12 +282,13 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
                 except (aiohttp.ClientOSError, ssl.SSLError):
                     retry_count += 1
                     if retry_count < max_retries:
-                        status_message.value = (
-                            f"<div style='color:orange;'>SSL error, retrying ({retry_count}/{max_retries})...</div>"
-                        )
-                        await asyncio.sleep(1)  # Brief pause before retry
+                        status_message.value = f"<div style='color:orange;font-weight:600'>Connection issue, retrying... (attempt {retry_count + 1}/{max_retries})</div>"
+                        await asyncio.sleep(1)  # Wait before retry
                     else:
-                        status_message.value = f"<div style='color:red;font-weight:600'>ERROR: SSL connection failed after {max_retries} attempts. Please restart the kernel and try again.</div>"
+                        status_message.value = (
+                            f"<div style='color:red;font-weight:600'>SSL connection failed after {max_retries} attempts.<br>"
+                            f"Please restart the kernel and try again.</div>"
+                        )
                 except ValueError as e:
                     status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
                     break
@@ -297,7 +301,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
                     )
                     break
 
-            # Cleanup
+            # Cleanup (always runs regardless of success/failure)
             stop_event.set()
             t.join(timeout=1.0)
             convert_button.disabled = False
@@ -305,8 +309,8 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             epsg_input.disabled = False
             object_path_input.disabled = False
 
-        # Schedule the async conversion on the event loop
-        asyncio.ensure_future(do_convert())
+        # Schedule the async conversion on the captured event loop
+        asyncio.run_coroutine_threadsafe(do_convert(), event_loop)
 
     convert_button.on_click(on_convert_click, remove=True)
     convert_button.on_click(on_convert_click)

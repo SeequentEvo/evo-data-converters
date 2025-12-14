@@ -28,4 +28,4 @@ async def convert_duf_to_evo(selected_file_path: str, epsg_code: int, upload_pat
     )
 
     # Return single combined object
-    return objects_metadata if objects_metadata else None
+    return objects_metadata
