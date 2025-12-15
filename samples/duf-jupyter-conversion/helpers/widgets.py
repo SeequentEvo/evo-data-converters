@@ -9,7 +9,6 @@ from tkinter import filedialog
 
 import aiohttp
 import ipywidgets as widgets
-from pyproj import CRS
 
 from .conversion import convert_duf_to_evo
 from .portal import build_portal_url
@@ -129,6 +128,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             return
         epsg_info.value = "Validating..."
         try:
+            from pyproj import CRS
             crs = CRS.from_epsg(int(code))
             epsg_info.value = f"Valid: {crs.name}"
             epsg_info.style = {"text_color": "green"}
@@ -207,6 +207,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             if saved_epsg:
                 epsg_input.value = saved_epsg
                 try:
+                    from pyproj import CRS
                     crs = CRS.from_epsg(int(saved_epsg))
                     epsg_info.value = f"Valid: {crs.name}"
                     epsg_info.style = {"text_color": "green"}
