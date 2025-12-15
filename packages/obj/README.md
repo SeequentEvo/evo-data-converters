@@ -41,12 +41,13 @@ Have a look at the `samples/publish-obj.ipynb` Notebook for an example of how to
 
 Also see the `samples/publish-obj-script.py` example of using `convert_obj()` inside a python script.
 
-### Export objects to OBJ
+### Exporting Triangle Mesh objects to OBJ
 
-To export an object from Evo to an OBJ file, specify the Evo object UUID of the object you want to export and the output file path, and then call `export_obj()`.
+To export Triangle Mesh objects from Evo to an OBJ file, call `export_obj()` supplying an output file path and a list of `EvoObjectMetadata` containing the UUIDs of the Evo objects.
+
+`EvoObjectMetadata` can also specify the version of each object to export. If not specified, so it will export the latest version.
+
 See documentation on the `ObjectAPIClient` for listing objects and getting their IDs and versions.
-
-You may also specify the version of this object to export. If not specified, so it will export the latest version.
 
 You will need the same selection of organisation, Evo hub, and workspace that is needed for importing objects.
 
