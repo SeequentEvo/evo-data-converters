@@ -11,6 +11,7 @@
 
 import tempfile
 from os import path
+from shutil import copy
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -25,24 +26,55 @@ from evo.data_converters.common import (
 from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 from evo.data_converters.obj.exporter import UnsupportedObjectError, export_obj
 from evo.data_converters.obj.importer import convert_obj
-from evo.data_converters.omf.importer import convert_omf
 
 
 class TestEvoToObjExporter(EvoDataConvertersTestCase):
+    def _load_triangle_mesh_v2_1_0_evo_object(self):
+        # Load a TriangleMesh_V2_1_0 object created by convert_omf()
+        parquet_files_path = path.join(path.dirname(__file__), "../data/pyramid_triangle_mesh_v2_1_0")
+        triangle_indices_file = path.join(
+            parquet_files_path, "19f99f536a9cf5c813690154107d5eeda27349f33c1c39d316267548eba1c7aa"
+        )
+        triangle_vertices_file = path.join(
+            parquet_files_path, "2fcce216e920715c619004749afb892a99a26bd7a90968fa8e35cce887f1567a"
+        )
+
+        copy(triangle_indices_file, self.data_client.cache_location)
+        copy(triangle_vertices_file, self.data_client.cache_location)
+
+        triangle_mesh_object_dict = {
+            "bounding_box": {"max_x": 1.0, "max_y": 1.0, "max_z": 1.0, "min_x": -1.0, "min_y": -1.0, "min_z": 0.0},
+            "coordinate_reference_system": {"epsg_code": 32650},
+            "name": "Pyramid surface",
+            "schema": "/objects/triangle-mesh/2.1.0/triangle-mesh.schema.json",
+            "tags": {"InputType": "OMF", "Source": "omf2.omf (via Evo Data Converters)", "Stage": "Experimental"},
+            "triangles": {
+                "indices": {
+                    "attributes": [],
+                    "data": "19f99f536a9cf5c813690154107d5eeda27349f33c1c39d316267548eba1c7aa",
+                    "data_type": "uint64",
+                    "length": 6,
+                    "width": 3,
+                },
+                "vertices": {
+                    "attributes": [],
+                    "data": "2fcce216e920715c619004749afb892a99a26bd7a90968fa8e35cce887f1567a",
+                    "data_type": "float64",
+                    "length": 5,
+                    "width": 3,
+                },
+            },
+            "uuid": None,
+        }
+
+        return TriangleMesh_V2_1_0.from_dict(triangle_mesh_object_dict)
+
     def setUp(self) -> None:
         EvoDataConvertersTestCase.setUp(self)
         _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
-        omf_file = path.join(path.dirname(__file__), "../data/omf2.omf")
-        self.epsg_code = 32650
-        self.evo_objects = convert_omf(
-            filepath=omf_file,
-            evo_workspace_metadata=self.workspace_metadata,
-            epsg_code=self.epsg_code,
-            publish_objects=False,
-        )
-        self.evo_object = self.evo_objects[0]
+        self.evo_object = self._load_triangle_mesh_v2_1_0_evo_object()
         self.assertIsInstance(self.evo_object, TriangleMesh_V2_1_0)
 
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
@@ -61,7 +93,8 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
             evo_workspace_metadata=self.workspace_metadata,
         )
 
-        expected_header = f"# Evo Data Converters; Object ID={object_id}, EPSG={self.epsg_code}\n"
+        epsg_code = self.evo_object.coordinate_reference_system.epsg_code
+        expected_header = f"# Evo Data Converters; Object ID={object_id}, EPSG={epsg_code}\n"
         with open(temp_obj_file.name) as f:
             header = f.readline()
             self.assertEqual(expected_header, header)
