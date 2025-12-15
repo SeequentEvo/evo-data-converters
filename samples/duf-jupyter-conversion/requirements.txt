@@ -1,7 +1,6 @@
 numpy<=1.26.4
-evo-data-converters-duf>=0.2.0
-evo-data-converters-common>=0.3.0
+evo-data-converters-duf>=0.2.1
+evo-data-converters-common>=0.3.1
 evo-sdk>=0.1.17
-jupyterlab>=4.0.0
 pyproj>=3.6.0
 ruff>=0.14.6

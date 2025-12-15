@@ -1,20 +1,59 @@
 @echo off
+setlocal EnableDelayedExpansion
 echo Launching JupyterLab...
 echo.
+
+REM Check if long file paths are enabled
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled 2>nul | find "0x1" >nul
+if !ERRORLEVEL! neq 0 (
+    echo WARNING: Long file paths are not enabled on this system.
+    echo This may cause issues with the Jupyter notebook.
+    echo.
+    echo To enable, run PowerShell as Administrator and execute:
+    echo   New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+    echo.
+    echo Press any key to continue anyway...
+    pause >nul
+    echo.
+) else (
+    echo Long file paths are enabled.
+    echo.
+)
 
 REM Get the directory where the batch file is located
 set "SCRIPT_DIR=%~dp0"
 
-REM Check if uv is installed
+REM Ensure uv is installed (install or upgrade if needed)
+set "UV_WAS_INSTALLED=0"
 where uv >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: uv not found in PATH
-    echo Please install uv: https://github.com/astral-sh/uv
-    echo Run: pip install uv
-    echo.
-    pause
-    exit /b 1
+if %ERRORLEVEL% equ 0 (
+    set "UV_WAS_INSTALLED=1"
 )
+
+if %ERRORLEVEL% neq 0 (
+    echo uv not found. Installing...
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    
+    REM Refresh PATH to pick up newly installed uv
+    set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
+    
+    REM Verify uv is now available
+    where uv >nul 2>&1
+    if !ERRORLEVEL! neq 0 (
+        echo ERROR: Failed to install uv.
+        echo Please install manually: https://github.com/astral-sh/uv
+        pause
+        exit /b 1
+    )
+    echo uv installed successfully!
+)
+
+REM Try upgrading uv to latest if it was already installed
+if %UV_WAS_INSTALLED% equ 1 (
+    echo Updating uv to latest...
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" >nul 2>&1
+)
+
 
 REM Check if virtual environment exists, if not create it
 if not exist "%SCRIPT_DIR%.venv\" (
@@ -33,7 +72,7 @@ echo Activating virtual environment...
 call "%SCRIPT_DIR%.venv\Scripts\activate.bat"
 
 REM Launch JupyterLab with the notebook
-jupyter lab "%~1"
+jupyter notebook "convert_duf.ipynb"
 
 REM Keep window open if there's an error
 if errorlevel 1 (
