@@ -39,6 +39,8 @@ The Python [Trimesh](https://trimesh.org/index.html) package is used to work wit
 
 Have a look at the `samples/publish-obj.ipynb` Notebook for an example of how to publish an OBJ (and related) files.
 
+Also see the `samples/publish-obj-script.py` example of using `convert_obj()` inside a python script.
+
 ### Export objects to OBJ
 
 To export an object from Evo to an OBJ file, specify the Evo object UUID of the object you want to export and the output file path, and then call `export_obj()`.
