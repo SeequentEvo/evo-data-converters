@@ -77,7 +77,7 @@ from evo.notebooks import ServiceManagerWidget
 manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
 
 # Convert and publish AGS file
-objects_metadata = convert_ags(
+objects_metadata = await convert_ags(
     filepaths=["path/to/your/file.ags"],
     service_manager_widget=manager,
     tags={"source": "field_survey"},

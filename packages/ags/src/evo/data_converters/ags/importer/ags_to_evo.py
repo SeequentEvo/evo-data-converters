@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_ags(
+async def convert_ags(
     filepaths: list[str],
     evo_workspace_metadata: EvoWorkspaceMetadata | None = None,
     service_manager_widget: "ServiceManagerWidget | None" = None,
@@ -98,7 +98,7 @@ def convert_ags(
 
     if publish_objects:
         logger.debug("Publishing Geoscience Object")
-        object_metadata = publish_geoscience_objects(
+        object_metadata = await publish_geoscience_objects(
             object_models=geoscience_objects,
             object_service_client=object_service_client,
             data_client=data_client,
