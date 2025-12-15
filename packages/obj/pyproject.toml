@@ -23,6 +23,7 @@ optional_parsers = [
 [dependency-groups]
 dev = [
     "memray>=1.19.1",
+    "pandas",
     "pytest",
 ]
 
