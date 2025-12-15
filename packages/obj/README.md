@@ -50,6 +50,8 @@ You will need the same selection of organisation, Evo hub, and workspace that is
 
 See the `samples/export-obj.ipynb` Notebook for an example of how to download a Evo Geoscience object to an OBJ.
 
+Also see the `samples/export-obj-script.py` example of using `export_obj()` inside a python script.
+
 ## Code of conduct
 
 We rely on an open, friendly, inclusive environment. To help us ensure this remains possible, please familiarise yourself with our [code of conduct.](https://github.com/SeequentEvo/evo-data-converters/blob/main/CODE_OF_CONDUCT.md)
