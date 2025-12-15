@@ -19,9 +19,6 @@ optional_parsers = [
     "pyassimp>=5.2.5",
     "tinyobjloader",
 ]
-performance_testing = [
-    "memray>=1.19.1"
-]
 
 [dependency-groups]
 dev = [
