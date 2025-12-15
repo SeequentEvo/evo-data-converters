@@ -129,6 +129,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
         epsg_info.value = "Validating..."
         try:
             from pyproj import CRS
+
             crs = CRS.from_epsg(int(code))
             epsg_info.value = f"Valid: {crs.name}"
             epsg_info.style = {"text_color": "green"}
@@ -208,6 +209,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
                 epsg_input.value = saved_epsg
                 try:
                     from pyproj import CRS
+
                     crs = CRS.from_epsg(int(saved_epsg))
                     epsg_info.value = f"Valid: {crs.name}"
                     epsg_info.style = {"text_color": "green"}
