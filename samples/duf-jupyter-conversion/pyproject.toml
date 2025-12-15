@@ -13,5 +13,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "nbstripout>=0.8.2",
     "ruff>=0.14.8",
 ]
