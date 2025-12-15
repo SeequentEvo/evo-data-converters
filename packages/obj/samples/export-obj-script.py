@@ -11,9 +11,12 @@
 
 
 import argparse
+import asyncio
 import logging
 import tempfile
 import uuid
+
+import nest_asyncio
 
 from evo.data_converters.common import EvoObjectMetadata, EvoWorkspaceMetadata
 from evo.data_converters.obj.exporter import export_obj
@@ -90,8 +93,13 @@ for obj_str in args.object:
     objects.append(object_metadata)
     logger.debug(f"Exporting Evo object '{object_metadata.object_id}' to OBJ file '{args.filename}'")
 
-export_obj(
-    args.filename,
-    objects=objects,
-    evo_workspace_metadata=workspace_metadata,
+# NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
+nest_asyncio.apply()
+
+asyncio.run(
+    export_obj(
+        args.filename,
+        objects=objects,
+        evo_workspace_metadata=workspace_metadata,
+    )
 )

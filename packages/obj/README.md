@@ -43,7 +43,7 @@ Also see the `samples/publish-obj-script.py` example of using `convert_obj()` in
 
 ### Exporting Triangle Mesh objects to OBJ
 
-To export Triangle Mesh objects from Evo to an OBJ file, call `export_obj()` supplying an output file path and a list of `EvoObjectMetadata` containing the UUIDs of the Evo objects.
+To export Triangle Mesh objects from Evo to an OBJ file, call `await export_obj()` supplying an output file path and a list of `EvoObjectMetadata` containing the UUIDs of the Evo objects.
 
 `EvoObjectMetadata` can also specify the version of each object to export. If not specified, so it will export the latest version.
 

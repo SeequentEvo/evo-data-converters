@@ -78,7 +78,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         self.assertIsInstance(self.evo_object, TriangleMesh_V2_1_0)
 
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
-    def test_should_create_expected_obj_file(self, mock_download_evo_object_by_id: MagicMock) -> None:
+    async def test_should_create_expected_obj_file(self, mock_download_evo_object_by_id: MagicMock) -> None:
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
 
         object_id = uuid4()
@@ -87,7 +87,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         mock_download_evo_object_by_id.return_value = self.evo_object.as_dict()
 
-        export_obj(
+        await export_obj(
             temp_obj_file.name,
             objects=[object],
             evo_workspace_metadata=self.workspace_metadata,
@@ -121,7 +121,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         self.assertEqual(face[2], 4)
 
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
-    def test_should_raise_expected_exception_for_unknown_object_schema(
+    async def test_should_raise_expected_exception_for_unknown_object_schema(
         self, mock_download_evo_object_by_id: MagicMock
     ) -> None:
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
@@ -132,7 +132,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         mock_download_evo_object_by_id.return_value = evo_object_dict
 
         with self.assertRaises(UnsupportedObjectError) as context:
-            export_obj(
+            await export_obj(
                 temp_obj_file.name,
                 objects=[EvoObjectMetadata(object_id=uuid4())],
                 evo_workspace_metadata=self.workspace_metadata,
@@ -140,7 +140,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         self.assertEqual(str(context.exception), f"Unknown Geoscience Object schema '{schema}'")
 
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
-    def test_should_raise_expected_exception_for_unsupported_object(
+    async def test_should_raise_expected_exception_for_unsupported_object(
         self, mock_download_evo_object_by_id: MagicMock
     ) -> None:
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
@@ -161,7 +161,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         mock_download_evo_object_by_id.return_value = evo_object_dict
 
         with self.assertRaises(UnsupportedObjectError) as context:
-            export_obj(
+            await export_obj(
                 temp_obj_file.name,
                 objects=[EvoObjectMetadata(object_id=uuid4())],
                 evo_workspace_metadata=self.workspace_metadata,
@@ -192,7 +192,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
 
-        export_obj(
+        await export_obj(
             temp_obj_file.name,
             objects=[object],
             evo_workspace_metadata=self.workspace_metadata,
@@ -251,7 +251,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
 
-        export_obj(
+        await export_obj(
             temp_obj_file.name,
             objects=[object],
             evo_workspace_metadata=self.workspace_metadata,

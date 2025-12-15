@@ -11,11 +11,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID
 
-import nest_asyncio
 import numpy as np
 import trimesh
 from evo_schemas import schema_lookup
@@ -45,7 +43,7 @@ class UnsupportedObjectError(Exception):
 logger = evo.logging.getLogger("data_converters")
 
 
-def export_obj(
+async def export_obj(
     filepath: str,
     objects: list[EvoObjectMetadata],
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
@@ -69,11 +67,9 @@ def export_obj(
         evo_workspace_metadata, service_manager_widget
     )
 
-    nest_asyncio.apply()
-
     scene = trimesh.Scene()
     for object_metadata in objects:
-        mesh, obj_description = asyncio.run(_evo_object_to_trimesh(object_metadata, service_client, data_client))
+        mesh, obj_description = await _evo_object_to_trimesh(object_metadata, service_client, data_client)
         scene.add_geometry(mesh)
 
     # Header is a one line description
