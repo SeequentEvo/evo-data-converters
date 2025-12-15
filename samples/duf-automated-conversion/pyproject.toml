@@ -1,5 +1,5 @@
 [project]
-name = "convert-duf-automated"
+name = "duf-automated-conversion"
 version = "0.0.1"
 description = "Automated DUF file conversion to an Evo workspace"
 requires-python = ">=3.10,<3.13"

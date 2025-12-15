@@ -1,5 +1,5 @@
 [project]
-name = "convert-duf-jupyter"
+name = "duf-jupyter-conversion"
 version = "0.0.1"
 description = "Jupyter notebook for DUF file conversion to an Evo workspace"
 requires-python = ">=3.10,<3.13"
