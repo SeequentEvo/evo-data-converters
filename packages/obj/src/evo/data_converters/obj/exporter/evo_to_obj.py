@@ -162,10 +162,20 @@ async def _triangle_mesh_to_trimesh(
         chunks_table = await data_client.download_table(object_id, version_id, parts.chunks.as_dict())
         chunks = np.asarray(chunks_table)
 
-        # skip handling chunks if just one chunk of the current list of triangles
+        # can skip handling chunks if just one chunk of the current list of triangles
         # NOTE: this exporter doesn't currently use the attributes associated with chunks,
         # if it did this would need to change
-        if not (len(chunks) == 1 and chunks[0][0] == 0 and chunks[0][1] == len(triangles)):
+        single_contiguous_chunk = False
+        if len(chunks) == 1 and chunks[0][0] == 0:
+            expected_triangle_count = len(triangles)
+            if chunks[0][1] == expected_triangle_count:
+                single_contiguous_chunk = True
+            else:
+                logger.warning(
+                    f"Chunk does not have expected triangle count. {chunks[0][1]} != {expected_triangle_count}"
+                )
+
+        if not single_contiguous_chunk:
             # expand chunks into one list of triangles
             chunked_data = ChunkedData(data=triangles, chunks=chunks)
             triangles = chunked_data.unpack()
