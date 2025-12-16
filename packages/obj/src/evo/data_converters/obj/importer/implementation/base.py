@@ -112,7 +112,7 @@ class ObjImporterBase:
         for col in ["n0", "n1", "n2"]:
             min_max = pc.min_max(indices_table[col])
             if min_max["min"].as_py() < 0 or min_max["max"].as_py() >= len(vertices_table):
-                raise InvalidOBJError(f"{col} face index is out of range")
+                raise InvalidOBJError(f"Invalid OBJ file: {col} face index is out of range")
 
 
 class UnsupportedOBJError(Exception):

@@ -53,9 +53,9 @@ class TrimeshObjImporter(ObjImporterBase):
             )
             if len(self.scene.geometry) == 0:
                 raise InvalidOBJError("Input file contains no OBJ geometry (or is wrong format)")
-        except IndexError:
+        except IndexError as e:
             # this typically means bad indices
-            raise InvalidOBJError("Indexing error (indices out of range, probably)")
+            raise InvalidOBJError(f"Invalid OBJ flie: Indexing error (probably invalid faces in file): {e}")
 
     @override
     def create_tables(
