@@ -52,15 +52,14 @@ class ObjImporterBase:
         self.data_client = data_client
         self.crs = crs
 
-    async def convert_file(self, publish_parquet: bool = False) -> TriangleMesh_V2_2_0:
+    def convert_file(self) -> TriangleMesh_V2_2_0:
         """
         Performs a conversion to an unpublished TriangleMesh GeoObject
 
-        :param publish_parquet Set `True` to upload Parquet tables to Evo as they're produced
         :return: The GeoObject representation of the mesh
         """
         self._parse_file()
-        (vertices_go, indices_go, parts_go) = await self.create_tables(publish_parquet)
+        (vertices_go, indices_go, parts_go) = self.create_tables()
 
         triangles_go = Triangles_V1_2_0(vertices=vertices_go, indices=indices_go)
 
@@ -83,13 +82,12 @@ class ObjImporterBase:
         pass
 
     @abstractmethod
-    async def create_tables(
-        self, publish_parquet: bool = False
+    def create_tables(
+        self,
     ) -> tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
         """
-        Creates the triangles and indices tables, optionally publishing the tables to Evo as it goes.
+        Creates the triangles and indices tables.
 
-        :param publish_parquet: Set `True` to upload Parquet tables to Evo as they're produced
         :return: Tuple of the vertices GO, Indices GO, chunks array GO
         """
         pass

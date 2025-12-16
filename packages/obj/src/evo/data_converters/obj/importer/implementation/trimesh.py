@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import asyncio
 
 import numpy as np
 import pyarrow as pa
@@ -59,13 +58,12 @@ class TrimeshObjImporter(ObjImporterBase):
             raise InvalidOBJError("Indexing error (indices out of range, probably)")
 
     @override
-    async def create_tables(
-        self, publish_parquet: bool = False
+    def create_tables(
+        self,
     ) -> tuple[Triangles_V1_2_0_Vertices, Triangles_V1_2_0_Indices, EmbeddedTriangulatedMesh_V2_1_0_Parts]:
         """
         Creates the triangles and indices tables, optionally publishing the tables to Evo as it goes.
 
-        :param publish_parquet: Set `True` to upload Parquet tables to Evo as they're produced
         :return: Tuple of the vertices GO, Indices GO, chunks array GO
         """
         vertices_tables = []
@@ -105,17 +103,9 @@ class TrimeshObjImporter(ObjImporterBase):
         indices_table = pa.concat_tables(indices_tables)
         parts_table = pa.concat_tables(parts_tables)
 
-        if publish_parquet:
-            # Publish the tables in parallel
-            vertices_table_obj, indices_table_obj, parts_table_obj = await asyncio.gather(
-                self.data_client.upload_table(vertices_table),
-                self.data_client.upload_table(indices_table),
-                self.data_client.upload_table(parts_table),
-            )
-        else:
-            vertices_table_obj = self.data_client.save_table(vertices_table)
-            indices_table_obj = self.data_client.save_table(indices_table)
-            parts_table_obj = self.data_client.save_table(parts_table)
+        vertices_table_obj = self.data_client.save_table(vertices_table)
+        indices_table_obj = self.data_client.save_table(indices_table)
+        parts_table_obj = self.data_client.save_table(parts_table)
 
         vertices_go = Triangles_V1_2_0_Vertices(
             **vertices_table_obj,
