@@ -111,13 +111,12 @@ async def _evo_object_to_trimesh(
     geoscience_object = object_class.from_dict(geoscience_object_dict)
 
     # Convert to Trimesh
-    match geoscience_object:
-        case TriangleMesh_V2_0_0() | TriangleMesh_V2_1_0() | TriangleMesh_V2_2_0():
-            mesh = await _triangle_mesh_to_trimesh(object_id, version_id, geoscience_object, data_client)
-        case _:
-            raise UnsupportedObjectError(
-                f"Exporting {geoscience_object.__class__.__name__} Geoscience Objects to OBJ is not supported"
-            )
+    if schema.classification == "objects/triangle-mesh" and schema.version.major == 2:
+        mesh = await _triangle_mesh_to_trimesh(object_id, version_id, geoscience_object, data_client)
+    else:
+        raise UnsupportedObjectError(
+            f"Exporting {geoscience_object.__class__.__name__} Geoscience Objects to OBJ is not supported"
+        )
 
     description = f"Object ID={object_id}"
 
