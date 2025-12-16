@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 import asyncio
-import gc
 
 import numpy as np
 import pyarrow as pa
@@ -105,9 +104,6 @@ class TrimeshObjImporter(ObjImporterBase):
         vertices_table = pa.concat_tables(vertices_tables)
         indices_table = pa.concat_tables(indices_tables)
         parts_table = pa.concat_tables(parts_tables)
-
-        del vertices_tables, indices_tables, parts_tables
-        gc.collect()
 
         if publish_parquet:
             # Publish the tables in parallel

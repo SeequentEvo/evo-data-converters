@@ -65,7 +65,6 @@ class TestObjFileErrors(TestCase):
                 publish_objects=False,
                 implementation=self.implementation,
             )
-            print(triangle_mesh)
 
 
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")

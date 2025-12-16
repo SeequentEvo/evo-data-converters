@@ -95,6 +95,8 @@ async def convert_obj(
     importer = impl_class(obj_file=filepath, crs=crs_from_any(epsg_code), data_client=data_client)
 
     triangle_mesh_go = await importer.convert_file(publish_parquet=publish_objects)
+
+    # Deallocate the parser's memory to shorten the memory peak during a conversion.
     del importer
     gc.collect()
 

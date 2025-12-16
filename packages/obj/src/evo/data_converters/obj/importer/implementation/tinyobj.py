@@ -89,6 +89,7 @@ class TinyobjObjImporter(ObjImporterBase):
             indices_tables.append(index_table)
             parts_tables.append(part_table)
 
+        # Release memory that we don't need prior to the Parquet transform
         del attrib
         del shapes
         gc.collect()
