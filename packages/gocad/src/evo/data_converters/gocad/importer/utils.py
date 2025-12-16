@@ -10,7 +10,7 @@
 #  limitations under the License.
 
 import os
-from typing import Optional
+from typing import Any, Optional
 
 import numpy
 import pyarrow as pa
@@ -22,7 +22,7 @@ from evo_schemas.elements import FloatArray1_V1_0_1
 from evo_schemas.objects import Regular3DGrid_V1_2_0
 from scipy.spatial.transform import Rotation
 
-from evo.data_converters.common import crs_from_epsg_code
+from evo.data_converters.common import crs_from_epsg_code, RegularGridData
 from evo.data_converters.common.utils import check_rotation_matrix, convert_rotation, grid_bounding_box
 from evo.data_converters.gocad.importer.gocad_reader import import_gocad_voxel
 from evo.objects.utils.data import ObjectDataClient
@@ -47,10 +47,17 @@ def _create_continuous_attributes(
     return cell_attributes
 
 
-def get_geoscience_object_from_gocad(
-    data_client: ObjectDataClient, filepath: str, epsg_code: int, tags: Optional[dict[str, str]] = None
-) -> Regular3DGrid_V1_2_0:
-    vo_result, label_to_values_and_filter, final_grid = import_gocad_voxel(filepath)
+def _create_continuous_attributes_for_grid(label_to_values_and_filter: dict) -> list[dict[str, Any]]:
+    cell_attributes = []
+    for name, values_and_filter in label_to_values_and_filter.items():
+        values, filter = values_and_filter
+        table = pa.table({"values": values})
+        nans = numpy.unique(values[filter])
+        cell_attributes.append(dict(name=name, values=table, nans=nans.tolist()))  # TODO do we need these?
+    return cell_attributes
+
+
+def _extract_gocad_data(vo_result, final_grid):
     tx_rotation, tx_offset = vo_result.transform
     base_point, spacing, grid_size = final_grid
     rotation = tx_rotation if tx_rotation is not None else numpy.identity(3)
@@ -63,6 +70,39 @@ def get_geoscience_object_from_gocad(
         rotated_origin += tx_offset
 
     bbox = grid_bounding_box(rotated_origin, rotation, numpy.array(spacing) * numpy.array(grid_size))
+    return origin, rotated_origin, grid_size, spacing, bbox, rotation
+
+
+def get_grids_from_gocad(filepath: str) -> tuple[str, RegularGridData]:
+    vo_result, label_to_values_and_filter, final_grid = import_gocad_voxel(filepath)
+
+    origin, rotated_origin, grid_size, spacing, bbox, rotation = _extract_gocad_data(vo_result, final_grid)
+
+    cell_attributes = _create_continuous_attributes_for_grid(label_to_values_and_filter)
+    rotation_object = convert_rotation(Rotation.from_matrix(rotation.T))
+
+    return (
+        vo_result.header["name"],
+        RegularGridData(
+            origin=rotated_origin.tolist(),
+            size=grid_size.tolist(),
+            cell_size=spacing.tolist(),
+            rotation=[rotation_object.dip_azimuth, rotation_object.dip, rotation_object.pitch],
+            bounding_box=[bbox.min_x, bbox.max_x, bbox.min_y, bbox.max_y, bbox.min_z, bbox.max_z],
+            mask=None,
+            cell_attributes=cell_attributes,
+            vertex_attributes=None,
+        ),
+    )
+
+
+def get_geoscience_object_from_gocad(
+    data_client: ObjectDataClient, filepath: str, epsg_code: int, tags: Optional[dict[str, str]] = None
+) -> Regular3DGrid_V1_2_0:
+    vo_result, label_to_values_and_filter, final_grid = import_gocad_voxel(filepath)
+
+    origin, rotated_origin, grid_size, spacing, bbox, rotation = _extract_gocad_data(vo_result, final_grid)
+
     cell_attributes = _create_continuous_attributes(data_client, label_to_values_and_filter)
 
     object_tags = {}
