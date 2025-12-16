@@ -492,6 +492,17 @@ class TestPathTable:
 
         assert distances == [10.0, 20.0, 30.0, 15.0, 25.0]
 
+    def test_works_with_pint_units(self, converter_distance, distance_table_mock, distance_measurements_df) -> None:
+        distance_table_mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].astype(
+            "pint[meter]"
+        )
+
+        table = converter_distance.path_table(distance_table_mock)
+
+        distances = table.column("distance").to_pylist()
+
+        assert distances == [10.0, 20.0, 30.0, 15.0, 25.0]
+
 
 class TestCollectionDistancesTable:
     def test_creates_table_with_values_column(self, converter_distance, distance_table_mock) -> None:
