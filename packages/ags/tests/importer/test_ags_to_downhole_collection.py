@@ -157,7 +157,7 @@ class TestCreateFromParsedAgsMeasurements:
         for adapter in result.measurements:
             all_columns.update(col.upper() for col in adapter.df.columns)
 
-        depth_columns = {"SCPT_DPTH", "SCPP_DPTH", "SCDG_DPTH"}
+        depth_columns = {"SCPT_DPTH", "SCPP_DPTH"}
         found_depth_columns = depth_columns & all_columns
 
         assert len(found_depth_columns) > 0, (
@@ -168,7 +168,7 @@ class TestCreateFromParsedAgsMeasurements:
         """Test that the correct number of measurement tables are created."""
         result = create_from_parsed_ags(mock_ags_context)
 
-        assert len(result.measurements) == 4
+        assert len(result.measurements) == 3  # SCPT, SCPP, GEOL
 
     def test_measurements_scpt_data(self, mock_ags_context):
         """Test that SCPT measurement data is correctly converted."""
@@ -216,22 +216,6 @@ class TestCreateFromParsedAgsMeasurements:
         assert "hole_index" in geol_df.columns
         assert len(geol_df) == 2
         assert set(geol_df["GEOL_DESC"].values) == {"Clay", "Sand"}
-
-    def test_measurements_scdg_data(self, mock_ags_context):
-        """Test that SCDG measurement data is correctly converted."""
-        result = create_from_parsed_ags(mock_ags_context)
-
-        scdg_adapter = next((a for a in result.measurements if "SCDG_DPTH" in a.df.columns), None)
-        assert scdg_adapter is not None, "SCDG measurement table not found"
-
-        scdg_df = scdg_adapter.df
-
-        assert "SCDG_DPTH" in scdg_df.columns
-        assert "SCDG_T" in scdg_df.columns
-        assert "hole_index" in scdg_df.columns
-        assert len(scdg_df) == 2
-        assert set(scdg_df["SCDG_DPTH"].values) == {7.5, 11.0}
-        assert set(scdg_df["SCDG_T"].values) == {100, 150}
 
     def test_measurements_scpt_empty_table(self, mock_ags_context):
         """Test handling when SCPT table is empty."""

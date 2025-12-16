@@ -39,7 +39,7 @@ class AgsContext:
 
     :cvar list[str] REQUIRED_GROUPS: Groups required for import operations (e.g., ``LOCA``, ``SCPG``, ``SCPT``).
     :cvar list[str] MEASUREMENT_GROUPS: Groups that contain measurement data
-        (e.g., ``SCPT``, ``SCPP``, ``GEOL``, ``SCDG``).
+        (e.g., ``SCPT``, ``SCPP``, ``GEOL``).
     :cvar list[str] RETAINED_GROUPS: Other groups retained from an AGS file (e.g., ``PROJ``, ``UNIT``).
     :cvar list[str] IGNORED_RULES: AGS validation rules that are ignored during file checks.
     :cvar dict[str, str] TYPE_CATEGORY: Mapping of AGS ``TYPE`` codes to conversion categories used during
@@ -514,7 +514,7 @@ class AgsContext:
         - Metadata-like tables (e.g., PROJ, UNIT): Keep from self, warn if different
         - LOCA: Concatenate, check for duplicate LOCA_ID
         - SCPG: Concatenate, check for duplicate (LOCA_ID, SCPG_TESN) pairs
-        - Measurement tables (SCPT, SCPP, GEOL, SCDG): Concatenate all rows
+        - Measurement tables (SCPT, SCPP, GEOL): Concatenate all rows
 
         :param other: The AgsContext to merge into this one
         :param validate_compatibility: If True, raises error on incompatibility; if False, logs warnings

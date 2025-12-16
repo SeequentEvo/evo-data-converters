@@ -33,7 +33,7 @@ def create_from_parsed_ags(
     For hole collars, we need information from the SCPG table as well as the LOCA details of the SCPG row.
     Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
 
-    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL, SCDG) and assigns hole_index.
+    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL) and assigns hole_index.
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param tags: Optional dict of tags to add to the DownholeCollection.
@@ -73,7 +73,7 @@ def create_from_parsed_ags(
         coordinate_reference_system=ags_context.coordinate_reference_system or "unspecified",
         tags=tags,
         column_mapping=ColumnMapping(
-            DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
+            DEPTH_COLUMNS=["SCPT_DPTH"],
             FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
             TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
         ),

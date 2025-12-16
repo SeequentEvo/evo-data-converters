@@ -193,15 +193,6 @@ def mock_ags_context():
         }
     )
 
-    scdg_df = pd.DataFrame(
-        {
-            "LOCA_ID": ["BH01", "BH03"],
-            "SCPG_TESN": ["T01", "T01"],
-            "SCDG_DPTH": [7.5, 11.0],
-            "SCDG_T": [100, 150],
-        }
-    )
-
     def get_table_side_effect(table_name):
         if table_name == "LOCA":
             return loca_df.copy()
@@ -213,8 +204,6 @@ def mock_ags_context():
             return scpp_df.copy()
         elif table_name == "GEOL":
             return geol_df.copy()
-        elif table_name == "SCDG":
-            return scdg_df.copy()
         return pd.DataFrame()
 
     def get_tables_side_effect(groups=None):
@@ -226,8 +215,6 @@ def mock_ags_context():
                 tables.append(scpp_df.copy())
             if "GEOL" in groups:
                 tables.append(geol_df.copy())
-            if "SCDG" in groups:
-                tables.append(scdg_df.copy())
         return tables
 
     context.get_table.side_effect = get_table_side_effect

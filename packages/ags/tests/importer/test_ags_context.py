@@ -26,7 +26,7 @@ def test_ags_file_missing_cpt_groups(valid_ags_no_cpt_path):
     context = AgsContext()
     with pytest.raises(
         AgsFileInvalidException,
-        match="Missing importable groups: one or more of SCPT, SCPP, GEOL, SCDG required.",
+        match="Missing importable groups: one or more of SCPT, SCPP, GEOL required.",
     ):
         context.parse_ags(valid_ags_no_cpt_path)
 
