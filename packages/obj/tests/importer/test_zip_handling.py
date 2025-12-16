@@ -57,18 +57,3 @@ class TestObjZipLoading(TestCase):
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
 class TestObjZipLoadingTinyObj(TestObjZipLoading):
     implementation = "tinyobj"
-
-
-@pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
-class TestObjZipLoadingOpen3D(TestObjZipLoading):
-    implementation = "open3d"
-
-
-@pytest.mark.skipif(find_spec("vtk") is None, reason="vtk not installed")
-class TestObjZipLoadingVTK(TestObjZipLoading):
-    implementation = "vtk"
-
-
-@pytest.mark.skipif(find_spec("pyassimp") is None, reason="pyassimp not installed")
-class TestObjZipLoadingAssimp(TestObjZipLoading):
-    implementation = "assimp"

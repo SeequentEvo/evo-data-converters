@@ -244,26 +244,3 @@ class TestObjGeometryParsing(EvoDataConvertersTestCase):
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
 class TestObjGeometryParsingTinyObj(TestObjGeometryParsing):
     implementation = "tinyobj"
-
-
-@pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
-class TestObjGeometryParsingOpen3D(TestObjGeometryParsing):
-    implementation = "open3d"
-
-    # open3d doesn't support part splitting
-    def test_correct_parts(self) -> None:
-        pytest.skip("Part splitting unsupported")
-
-
-@pytest.mark.skipif(find_spec("vtk") is None, reason="vtk not installed")
-class TestObjGeometryParsingVTK(TestObjGeometryParsing):
-    implementation = "vtk"
-
-    # vtk doesn't support part splitting
-    def test_correct_parts(self) -> None:
-        pytest.skip("Part splitting unsupported")
-
-
-@pytest.mark.skipif(find_spec("pyassimp") is None, reason="pyassimp not installed")
-class TestObjGeometryParsingAssimp(TestObjGeometryParsing):
-    implementation = "assimp"

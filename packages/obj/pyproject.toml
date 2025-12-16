@@ -15,9 +15,8 @@ dependencies = [
 
 [project.optional-dependencies]
 optional_parsers = [
-    "open3d-cpu>=0.19.0",
-    "pyassimp>=5.2.5",
-    "tinyobjloader",
+    # v2 is not yet stable, the current release (2.0.0rc13) doesn't work
+    "tinyobjloader@git+https://github.com/tinyobjloader/tinyobjloader.git#a4e519b0a0f29c790464fcfeadfe25a7f9fa15ff",
 ]
 
 [dependency-groups]
@@ -42,6 +41,10 @@ include = ["src"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/evo"]
+
+# This is only needed for the tinyobjloader github ref above. Once a stable release exists this can go.
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"

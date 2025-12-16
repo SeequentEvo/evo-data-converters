@@ -77,20 +77,8 @@ async def convert_obj(
         from .implementation.tinyobj import TinyobjObjImporter
 
         impl_class = TinyobjObjImporter
-    elif implementation == "assimp":
-        from .implementation.assimp import AssimpObjImporter
-
-        impl_class = AssimpObjImporter
-    elif implementation == "open3d":
-        from .implementation.open3d import Open3dObjImporter
-
-        impl_class = Open3dObjImporter
-    elif implementation == "vtk":
-        from .implementation.vtk import VtkObjImporter
-
-        impl_class = VtkObjImporter
     else:
-        raise ValueError(f"Unknown implementation {implementation}")
+        raise ValueError(f"Unknown implementation {implementation}, possible options: trimesh, tinyobj")
 
     importer = impl_class(obj_file=filepath, crs=crs_from_any(epsg_code), data_client=data_client)
 

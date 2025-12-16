@@ -70,21 +70,3 @@ class TestObjFileErrors(TestCase):
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
 class TestObjFileErrorsTinyObj(TestObjFileErrors):
     implementation = "tinyobj"
-
-
-@pytest.mark.skipif(find_spec("open3d") is None, reason="open3d not installed")
-class TestObjFileErrorsOpen3D(TestObjFileErrors):
-    implementation = "open3d"
-
-
-@pytest.mark.skipif(find_spec("vtk") is None, reason="vtk not installed")
-class TestObjFileErrorsVTK(TestObjFileErrors):
-    implementation = "vtk"
-
-    def test_missing_vertices_file(self) -> None:
-        pytest.skip("VTK can't detect this")
-
-
-@pytest.mark.skipif(find_spec("pyassimp") is None, reason="pyassimp not installed")
-class TestObjFileErrorsAssimp(TestObjFileErrors):
-    implementation = "assimp"
