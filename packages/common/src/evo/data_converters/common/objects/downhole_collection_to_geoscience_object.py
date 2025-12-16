@@ -100,15 +100,17 @@ logger = evo.logging.getLogger("data_converters")
 class DownholeCollectionToGeoscienceObject:
     """Converter for transforming DownholeCollection data into a DownholeCollectionGeoscienceObject"""
 
-    def __init__(self, dhc: DownholeCollection, data_client: ObjectDataClient) -> None:
+    def __init__(self, dhc: DownholeCollection, data_client: ObjectDataClient, epsg_code: int | None = None) -> None:
         """
         Initialize the converter with a downhole collection and data client.
 
         :param dhc: The downhole collection to convert
         :param data_client: Client for saving and managing object data
+        :param epsg_code: default epsg_code to create a Crs if the dhc does not have one.
         """
         self.dhc: DownholeCollection = dhc
         self.data_client: ObjectDataClient = data_client
+        self.epsg_code = epsg_code
 
     def convert(self) -> DownholeCollectionGeoscienceObject:
         """
@@ -147,9 +149,15 @@ class DownholeCollectionToGeoscienceObject:
         """
         Create a coordinate reference system object from the downhole collection's CRS.
 
+        If unable to create a Crs from the collection data, create one from the
+        default epsg_code
+
         :return: Standardised CRS object
         """
-        return crs_from_any(self.dhc.coordinate_reference_system)
+        code = crs_from_any(self.dhc.coordinate_reference_system)
+        if code == "unspecified":
+            code = crs_from_any(self.epsg_code)
+        return code
 
     def create_bounding_box(self) -> BoundingBox:
         """
