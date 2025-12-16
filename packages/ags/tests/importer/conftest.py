@@ -129,6 +129,18 @@ def test_timedelta_ags_path():
     return str((Path(__file__).parent / "data" / "test_timedelta.ags").resolve())
 
 
+@pytest.fixture(scope="session")
+def test_coordinate_columns_ags_path():
+    """Path to an AGS file for testing coordinate column handling."""
+    return str((Path(__file__).parent / "data" / "test_coordinate_columns.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def test_no_coordinates_ags_path():
+    """Path to an AGS file with no coordinate values."""
+    return str((Path(__file__).parent / "data" / "test_no_coordinates.ags").resolve())
+
+
 @pytest.fixture
 def mock_ags_context():
     """Create a mock AgsContext with sample data."""

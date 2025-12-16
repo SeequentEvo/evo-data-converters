@@ -44,6 +44,8 @@ class AgsContext:
     :cvar list[str] IGNORED_RULES: AGS validation rules that are ignored during file checks.
     :cvar dict[str, str] TYPE_CATEGORY: Mapping of AGS ``TYPE`` codes to conversion categories used during
         dataframe coercion. Known categories are ``"int"``, ``"float"``, ``"datetime"``, ``timedelta``, and ``"bool"``.
+    :cvar tuple[tuple[str, tuple[str, ...]], ...] COORDINATE_COLUMN_PRIORITY: Column priority for coordinates as
+        (target_col, (source_col1, source_col2, ...)) pairs for x, y, z coordinates.
 
     :ivar dict[str, pandas.DataFrame] tables: Processed tables keyed by group
         name. Only relevant downhole collection groups are retained.
@@ -76,11 +78,11 @@ class AgsContext:
     _headings: dict[str, list[str]]
     _filename: str | None
 
-    REQUIRED_GROUPS: list[str] = ["LOCA", "SCPG", "SCPT"]
-    RETAINED_GROUPS: list[str] = ["PROJ", "UNIT", "HORN"]
-    MEASUREMENT_GROUPS: list[str] = ["SCPT", "SCPP", "GEOL", "SCDG"]
+    REQUIRED_GROUPS: tuple[str, ...] = ("LOCA", "SCPG", "SCPT")
+    RETAINED_GROUPS: tuple[str, ...] = ("PROJ", "UNIT", "HORN")
+    MEASUREMENT_GROUPS: tuple[str, ...] = ("SCPT", "SCPP", "GEOL")
 
-    IGNORED_RULES: list[str] = [
+    IGNORED_RULES: tuple[str, ...] = (
         # 2a: Each line should be terminated by CR and LF characters
         # Files from various sources use Unix line endings (LF only)
         # This is a formatting issue that doesn't affect data integrity
@@ -97,7 +99,7 @@ class AgsContext:
         # 16: Each data file shall contain the ABBR GROUP when abbreviations have been included in the data file.
         # Abbreviations are not always defined, and sometime erroneously detected.
         "AGS Format Rule 16",
-    ]
+    )
 
     # TODO: Implement proper handling for DMS (degrees/minutes/seconds)
     TYPE_CATEGORY: dict[str, str] = {
@@ -129,6 +131,12 @@ class AgsContext:
         "YN": "bool",
         # Note: ID, PA, PT, PU, RL, U, X, XN types fall back to string (default)
     }
+
+    COORDINATE_COLUMN_PRIORITY: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("x", ("LOCA_NATE", "LOCA_LOCX", "LOCA_LON")),
+        ("y", ("LOCA_NATN", "LOCA_LOCY", "LOCA_LAT")),
+        ("z", ("LOCA_GL", "LOCA_LOCZ")),
+    )
 
     def __init__(self) -> None:
         self._tables = dict()

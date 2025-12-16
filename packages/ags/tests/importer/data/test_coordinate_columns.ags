@@ -1,0 +1,93 @@
+"GROUP","PROJ"
+"HEADING","PROJ_ID","PROJ_NAME","PROJ_LOC","PROJ_CLNT","PROJ_CONT","PROJ_ENG","PROJ_MEMO","FILE_FSET"
+"UNIT","","","","","","","",""
+"TYPE","ID","X","X","X","X","X","X","X"
+"DATA","TEST-COORDS","Test coordinate column handling","","","","","",""
+
+
+"GROUP","TRAN"
+"HEADING","TRAN_ISNO","TRAN_DATE","TRAN_PROD","TRAN_STAT","TRAN_DESC","TRAN_AGS","TRAN_RECV","TRAN_DLIM","TRAN_RCON","TRAN_REM","FILE_FSET"
+"UNIT","yy-mm-ddThh:hh","yyyy-mm-dd","","","","","","","","",""
+"TYPE","X","DT","X","X","X","X","X","X","X","X","X"
+"DATA","2025-11-11T11:22","2025-11-16","FGC","Final","","4.1.1","Client","|","+","",""
+
+
+"GROUP","ABBR"
+"HEADING","ABBR_HDNG","ABBR_CODE","ABBR_DESC"
+"UNIT","","",""
+"TYPE","X","X","X"
+"DATA","Abbreviation Example","ABC","Example Description"
+"DATA","HDPH_TYPE","SCP","Static cone penetrometer"
+
+
+"GROUP","TYPE"
+"HEADING","TYPE_TYPE","TYPE_DESC"
+"UNIT","",""
+"TYPE","X","X"
+"DATA","X","Text"
+"DATA","DT","Date and time in international format"
+"DATA","ID","Unique identifier"
+"DATA","0DP","Value; 0 decimal places"
+"DATA","1DP","Value; 1 decimal place"
+"DATA","2DP","Value; 2 decimal places"
+"DATA","3DP","Value; 3 decimal places"
+"DATA","4DP","Value; 4 decimal places"
+"DATA","5DP","Value; 5 decimal places"
+"DATA","DMS","Degrees, minutes and seconds"
+"DATA","PA","Pick text defined in ABBR group"
+"DATA","PT","Pick text defined in TYPE group"
+"DATA","YN","Y or N"
+
+
+"GROUP","DICT"
+"HEADING","DICT_TYPE","DICT_GRP","DICT_HDNG","DICT_STAT","DICT_DTYP","DICT_DESC","DICT_UNIT","DICT_EXMP","DICT_PGRP"
+"UNIT","","","","","","","","",""
+"TYPE","X","X","X","PT","X","X","X","X","X"
+"DATA","HEADING","SCPG","SCPG_CDIA","OTHER","2DP","Cone diameter","mm","43.7",""
+"DATA","HEADING","SCPG","SCPG_SLVL","OTHER","2DP","Sleeve length","mm","144.40",""
+"DATA","HEADING","SCPG","SCPG_SLVA","OTHER","1DP","Sleeve area","cm2","200.0",""
+"DATA","HEADING","SCPG","SCPG_ZLOC","OTHER","PA","Location zero reading","","SB",""
+
+
+"GROUP","UNIT"
+"HEADING","UNIT_UNIT","UNIT_DESC"
+"UNIT","",""
+"TYPE","ID","X"
+"DATA","U001","Example Unit"
+"DATA","yyyy-mm-dd","year month day"
+"DATA","yyyy-mm-ddThh:mm","year month day hour minute"
+
+
+"GROUP","LOCA"
+"HEADING","LOCA_ID","LOCA_TYPE","LOCA_STAT","LOCA_NATE","LOCA_NATN","LOCA_GL","LOCA_REM","LOCA_FDEP","LOCA_STAR","LOCA_PURP","LOCA_TERM","LOCA_ENDD","LOCA_LOCX","LOCA_LOCY","LOCA_LOCZ","LOCA_DATM","LOCA_LAT","LOCA_LON","LOCA_LLZ"
+"UNIT","","","","m","m","m","","m","yyyy-mm-dd","","","yyyy-mm-dd","m","m","m","","","",""
+"TYPE","ID","PA","PA","2DP","2DP","2DP","X","2DP","DT","X","X","DT","2DP","2DP","2DP","X","DMS","DMS","X"
+"DATA","BH01","SCP","Final","100.0","200.0","5.0","","10.0","2025-06-17","","","","","","","","","",""
+"DATA","BH02","SCP","Final","","","","","15.0","2025-06-17","","","","300.0","400.0","10.0","","","",""
+"DATA","BH03","SCP","Final","","","","","20.0","2025-06-17","","","","","","","","51.5074","-0.1278",""
+"DATA","BH04","SCP","Final","500.0","600.0","","","25.0","2025-06-17","","","","700.0","800.0","15.0","","","",""
+"DATA","BH05","SCP","Final","","","","","30.0","2025-06-17","","","","","","","","","",""
+
+
+"GROUP","SCPG"
+"HEADING","LOCA_ID","SCPG_TESN","SCPG_TYPE","SCPG_REF","SCPG_CSA","SCPG_RATE","SCPG_FILT","SCPG_FRIC","SCPG_WAT","SCPG_WATA","SCPG_REM","SCPG_ENV","SCPG_CONT","SCPG_METH","SCPG_CRED","SCPG_CAR","SCPG_SLAR","FILE_FSET","SCPG_CDIA","SCPG_SLVL","SCPG_SLVA","SCPG_ZLOC"
+"UNIT","","","","","cm2","mm/s","","","m","","","","","","","","","","mm","mm","cm2",""
+"TYPE","ID","X","PA","X","0DP","0DP","X","YN","2DP","X","X","X","X","X","X","2DP","5DP","X","2DP","2DP","1DP","X"
+"DATA","BH01","T1","PC","CP15-CF75PB20SN2 1701-2884","15","20","","N","","","","","","NEN 5140","","0.58","0.01392","","43.85","143.60","198.9","SB"
+"DATA","BH02","T1","PC","CP15-CF75PB20SN2 1701-2884","15","20","","N","","","","","","NEN 5140","","0.58","0.01392","","43.85","143.60","198.9","SB"
+"DATA","BH03","T1","PC","CP15-CF75PB20SN2 1701-2884","15","20","","N","","","","","","NEN 5140","","0.58","0.01392","","43.85","143.60","198.9","SB"
+"DATA","BH04","T1","PC","CP15-CF75PB20SN2 1701-2884","15","20","","N","","","","","","NEN 5140","","0.58","0.01392","","43.85","143.60","198.9","SB"
+"DATA","BH05","T1","PC","CP15-CF75PB20SN2 1701-2884","15","20","","N","","","","","","NEN 5140","","0.58","0.01392","","43.85","143.60","198.9","SB"
+
+
+"GROUP","SCPT"
+"HEADING","LOCA_ID","SCPG_TESN","SCPT_DPTH","SCPT_RES","SCPT_FRES","SCPT_PWP2","SCPT_FRR","SCPT_QT","SCPT_QNET","SCPT_BQ","FILE_FSET"
+"UNIT","","","m","MN/m2","kN/m2","kN/m2","%","MN/m2","MN/m2","",""
+"TYPE","ID","X","2DP","3DP","3DP","1DP","3DP","3DP","3DP","4DP","X"
+"DATA","BH01","T1","1.0","0.100","","","","0.100","0.100","1.0000",""
+"DATA","BH01","T1","2.0","0.200","","","","0.200","0.200","1.0000",""
+"DATA","BH02","T1","1.5","0.150","","","","0.150","0.150","1.0000",""
+"DATA","BH03","T1","2.5","0.250","","","","0.250","0.250","1.0000",""
+"DATA","BH04","T1","3.0","0.300","","","","0.300","0.300","1.0000",""
+"DATA","BH05","T1","1.0","0.100","","","","0.100","0.100","1.0000",""
+

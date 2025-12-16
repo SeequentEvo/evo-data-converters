@@ -384,3 +384,108 @@ class TestCreateDownholeCollectionWithHornTable:
         assert "dip" in scpt_adapter.mapping.DIP_COLUMNS
         assert "azimuth" in scpt_adapter.df.columns
         assert "azimuth" in scpt_adapter.mapping.AZIMUTH_COLUMNS
+
+
+class TestCoordinateColumnHandling:
+    """Tests for handling different coordinate column formats and missing values."""
+
+    def test_coordinate_column_priority_and_fallback(self, test_coordinate_columns_ags_path, caplog):
+        """Test coordinate column priority (NATE > LOCX > LON) and handling of missing/NaN values.
+
+        The implementation picks the FIRST column with ANY valid values and uses it for ALL rows.
+
+        Test file contains:
+        - BH01: NATE=100, NATN=200, GL=5
+        - BH02: LOCX=300, LOCY=400, LOCZ=10 (but NATE/NATN/GL exist in other rows)
+        - BH03: LAT=51.5074, LON=-0.1278 (but NATE/NATN/GL exist in other rows)
+        - BH04: NATE=500, NATN=600, LOCZ=15 (but GL exists in other rows)
+        - BH05: all NaN
+
+        Since BH01 and BH04 have NATE/NATN values, those columns are used for x/y for ALL rows.
+        Since BH01 has GL value, that column is used for z for ALL rows.
+        Rows without values in the chosen columns get filled with 0.0.
+        """
+        ags_context = AgsContext()
+        ags_context.parse_ags(test_coordinate_columns_ags_path)
+
+        result = create_from_parsed_ags(ags_context)
+        collars_df = result.collars.df
+
+        # BH01: Has NATE/NATN/GL values
+        bh01 = collars_df[collars_df["LOCA_ID"] == "BH01"].iloc[0]
+        assert bh01["x"] == 100.0
+        assert bh01["y"] == 200.0
+        assert bh01["z"] == 5.0
+
+        # BH02: NATE/NATN columns were chosen (have values in BH01/BH04)
+        # BH02 has no NATE/NATN, so filled with 0.0
+        # GL column was chosen for z (has value in BH01), BH02 has no GL, filled with 0.0
+        bh02 = collars_df[collars_df["LOCA_ID"] == "BH02"].iloc[0]
+        assert bh02["x"] == 0.0
+        assert bh02["y"] == 0.0
+        assert bh02["z"] == 0.0
+
+        # BH03: Same - uses NATE/NATN/GL columns but has no values, filled with 0.0
+        bh03 = collars_df[collars_df["LOCA_ID"] == "BH03"].iloc[0]
+        assert bh03["x"] == 0.0
+        assert bh03["y"] == 0.0
+        assert bh03["z"] == 0.0
+
+        # BH04: Has NATE/NATN values, no GL (filled with 0.0)
+        bh04 = collars_df[collars_df["LOCA_ID"] == "BH04"].iloc[0]
+        assert bh04["x"] == 500.0
+        assert bh04["y"] == 600.0
+        assert bh04["z"] == 0.0  # GL column chosen but no value in BH04
+
+        # BH05: Uses NATE/NATN/GL columns but has no values, filled with 0.0
+        bh05 = collars_df[collars_df["LOCA_ID"] == "BH05"].iloc[0]
+        assert bh05["x"] == 0.0
+        assert bh05["y"] == 0.0
+        assert bh05["z"] == 0.0
+
+        # No warnings should be logged for coordinates
+        warning_messages = [record.message for record in caplog.records if record.levelname == "WARNING"]
+        assert not any("coordinate data found" in msg for msg in warning_messages)
+
+    def test_nate_preferred_over_locx(self, test_coordinate_columns_ags_path):
+        """Test that NATE is preferred over LOCX when both are present."""
+        ags_context = AgsContext()
+        ags_context.parse_ags(test_coordinate_columns_ags_path)
+
+        result = create_from_parsed_ags(ags_context)
+        collars_df = result.collars.df
+
+        # BH04 has both NATE (500.0) and LOCX (700.0) - should use NATE
+        bh04 = collars_df[collars_df["LOCA_ID"] == "BH04"].iloc[0]
+        assert bh04["x"] == 500.0, "Should prefer NATE over LOCX"
+        assert bh04["y"] == 600.0, "Should prefer NATN over LOCY"
+
+    def test_coordinate_dtypes_are_float(self, test_coordinate_columns_ags_path):
+        """Test that coordinate columns are always float type."""
+        ags_context = AgsContext()
+        ags_context.parse_ags(test_coordinate_columns_ags_path)
+
+        result = create_from_parsed_ags(ags_context)
+        collars_df = result.collars.df
+
+        assert pd.api.types.is_float_dtype(collars_df["x"])
+        assert pd.api.types.is_float_dtype(collars_df["y"])
+        assert pd.api.types.is_float_dtype(collars_df["z"])
+
+    def test_no_coordinates_logs_warning(self, test_no_coordinates_ags_path, caplog):
+        """Test that warnings are logged when no valid coordinate data is found."""
+        ags_context = AgsContext()
+        ags_context.parse_ags(test_no_coordinates_ags_path)
+
+        result = create_from_parsed_ags(ags_context)
+        collars_df = result.collars.df
+
+        # All coordinates should default to 0.0
+        assert all(collars_df["x"] == 0.0)
+        assert all(collars_df["y"] == 0.0)
+        assert all(collars_df["z"] == 0.0)
+
+        # Check that warnings were logged for all three coordinates
+        assert "No valid x coordinate data found" in caplog.text
+        assert "No valid y coordinate data found" in caplog.text
+        assert "No valid z coordinate data found" in caplog.text
