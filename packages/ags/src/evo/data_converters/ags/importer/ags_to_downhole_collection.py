@@ -127,9 +127,10 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
         assigned = False
         for source_col in source_cols:
             if source_col in collars_df.columns:
-                collars_df[target_col] = pd.to_numeric(collars_df[source_col], errors="coerce")
+                temp_col = pd.to_numeric(collars_df[source_col], errors="coerce")
                 # Check if we have any non-null values to select this column
-                if collars_df[target_col].notna().any():
+                if temp_col.notna().any():
+                    collars_df[target_col] = temp_col
                     assigned = True
                     break
 

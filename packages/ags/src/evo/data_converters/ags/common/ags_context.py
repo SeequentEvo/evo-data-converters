@@ -37,11 +37,11 @@ class AgsContext:
     In-memory context for working with AGS data. Provides parsing, validation,
     table access, and serialization utilities for AGS4 files.
 
-    :cvar list[str] REQUIRED_GROUPS: Groups required for import operations (e.g., ``LOCA``, ``SCPG``, ``SCPT``).
-    :cvar list[str] MEASUREMENT_GROUPS: Groups that contain measurement data
+    :cvar tuple[str, ...] REQUIRED_GROUPS: Groups required for import operations (e.g., ``LOCA``, ``SCPG``, ``SCPT``).
+    :cvar tuple[str, ...] MEASUREMENT_GROUPS: Groups that contain measurement data
         (e.g., ``SCPT``, ``SCPP``, ``GEOL``).
-    :cvar list[str] RETAINED_GROUPS: Other groups retained from an AGS file (e.g., ``PROJ``, ``UNIT``).
-    :cvar list[str] IGNORED_RULES: AGS validation rules that are ignored during file checks.
+    :cvar tuple[str, ...] RETAINED_GROUPS: Other groups retained from an AGS file (e.g., ``PROJ``, ``UNIT``).
+    :cvar tuple[str, ...] IGNORED_RULES: AGS validation rules that are ignored during file checks.
     :cvar dict[str, str] TYPE_CATEGORY: Mapping of AGS ``TYPE`` codes to conversion categories used during
         dataframe coercion. Known categories are ``"int"``, ``"float"``, ``"datetime"``, ``timedelta``, and ``"bool"``.
     :cvar tuple[tuple[str, tuple[str, ...]], ...] COORDINATE_COLUMN_PRIORITY: Column priority for coordinates as
