@@ -22,7 +22,7 @@ from evo.data_converters.common.objects.downhole_collection import (
     ColumnMapping,
     DownholeCollection,
     HoleCollars,
-    MeasurementTableFactory,
+    create_measurement_table,
 )
 
 from .gef_spec import MEASUREMENT_TEXT_NAMES, MEASUREMENT_UNIT_CONVERSIONS, MEASUREMENT_UNITS, MEASUREMENT_VAR_NAMES
@@ -423,7 +423,7 @@ class DownholeCollectionBuilder:
         column_mapping = ColumnMapping(
             DEPTH_COLUMNS=["penetrationLength"], DIP_COLUMNS=["dip"], AZIMUTH_COLUMNS=["azimuth"]
         )
-        distance_measurements = MeasurementTableFactory.create(
+        distance_measurements = create_measurement_table(
             df=measurements_df, column_mapping=column_mapping, nan_values_by_column=self.nan_values_by_attribute
         )
         collars = HoleCollars(df=collars_df)

@@ -19,10 +19,7 @@ from evo.data_converters.common.objects.downhole_collection import (
     IntervalTable,
 )
 from evo.data_converters.common.objects.downhole_collection.hole_collars import HoleCollars
-from evo.data_converters.common.objects.downhole_collection.tables import (
-    MeasurementTable,
-    MeasurementTableFactory,
-)
+from evo.data_converters.common.objects.downhole_collection.tables import MeasurementTable, create_measurement_table
 
 
 @pytest.fixture
@@ -131,7 +128,7 @@ class TestDownholeCollectionInitialization:
     def test_init_with_measurement_adapter(self, valid_collars, distance_measurements_df):
         """Test initialization with a MeasurementTable."""
         col_mapping = ColumnMapping(DEPTH_COLUMNS=["penetrationLength"])
-        adapter = MeasurementTableFactory.create(distance_measurements_df, col_mapping)
+        adapter = create_measurement_table(distance_measurements_df, col_mapping)
         dc = DownholeCollection(
             collars=valid_collars,
             name="Test Collection",
@@ -175,7 +172,7 @@ class TestAddMeasurementTable:
         """Test adding a measurement table from an adapter."""
         col_mapping = ColumnMapping(DEPTH_COLUMNS=["penetrationLength"])
         dc = DownholeCollection(collars=valid_collars, name="Test")
-        adapter = MeasurementTableFactory.create(distance_measurements_df, col_mapping)
+        adapter = create_measurement_table(distance_measurements_df, col_mapping)
 
         dc.add_measurement_table(adapter)
 

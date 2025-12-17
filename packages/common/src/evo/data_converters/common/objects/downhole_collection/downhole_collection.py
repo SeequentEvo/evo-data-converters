@@ -17,7 +17,7 @@ import pandas as pd
 from ..base_properties import BaseSpatialDataProperties
 from .column_mapping import ColumnMapping
 from .hole_collars import HoleCollars
-from .tables import MeasurementTable, MeasurementTableFactory
+from .tables import MeasurementTable, create_measurement_table
 
 if sys.version_info >= (3, 12):
     from typing import override
@@ -97,10 +97,10 @@ class DownholeCollection(BaseSpatialDataProperties):
         :param column_mapping: Column mapping configuration (required if input is a DataFrame)
         """
         if isinstance(input, pd.DataFrame):
-            adapter: MeasurementTable = MeasurementTableFactory.create(input, column_mapping or ColumnMapping())
+            table: MeasurementTable = create_measurement_table(input, column_mapping or ColumnMapping())
         else:
-            adapter = input
-        self.measurements.append(adapter)
+            table = input
+        self.measurements.append(table)
 
     def get_measurement_tables(self, filter: list[type[MeasurementTable]] | None = None) -> list[MeasurementTable]:
         """
