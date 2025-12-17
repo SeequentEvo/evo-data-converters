@@ -15,6 +15,7 @@ from .evo_lineset_to_omf import export_omf_lineset
 from .evo_pointset_to_omf import export_omf_pointset
 from .evo_surface_to_omf import export_omf_surface
 from .evo_to_omf import UnsupportedObjectError, export_omf
+from .utils import ChunkedData, IndexedData
 
 __all__ = [
     "export_blocksync_omf",
@@ -23,5 +24,7 @@ __all__ = [
     "export_omf_lineset",
     "export_omf_pointset",
     "export_omf_surface",
+    "ChunkedData",
+    "IndexedData",
     "UnsupportedObjectError",
 ]

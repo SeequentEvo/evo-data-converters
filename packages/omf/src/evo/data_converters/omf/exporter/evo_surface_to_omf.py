@@ -18,10 +18,10 @@ from evo_schemas.objects import TriangleMesh_V2_0_0, TriangleMesh_V2_1_0
 from omf import SurfaceElement, SurfaceGeometry
 from omf.data import ProjectElementData
 
-from evo.data_converters.common.part_utils import ChunkedData, IndexedData
 from evo.objects.utils.data import ObjectDataClient
 
 from .evo_attributes_to_omf import export_omf_attributes
+from .utils import ChunkedData, IndexedData
 
 
 def export_omf_surface(

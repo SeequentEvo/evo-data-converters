@@ -15,7 +15,7 @@ from unittest import TestCase
 import numpy as np
 import numpy.typing as npt
 
-from evo.data_converters.common.part_utils import ChunkedData, IndexedData
+from evo.data_converters.omf.exporter import ChunkedData, IndexedData
 
 
 @dataclass
