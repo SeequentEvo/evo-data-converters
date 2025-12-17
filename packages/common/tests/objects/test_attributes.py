@@ -34,7 +34,18 @@ from evo_schemas.components import (
 from evo_schemas.elements.unit_energy_per_volume import UnitEnergyPerVolume_V1_0_1_UnitCategories as UnitEnergyPerVolume
 from evo_schemas.elements.unit_plane_angle import UnitPlaneAngle_V1_0_1_UnitCategories as UnitPlaneAngle
 
-from evo.data_converters.common.objects.attributes import AttributeFactory, AttributeType, create_table
+from evo.data_converters.common.objects.attributes import (
+    BOOL_CONFIG,
+    CONTINUOUS_CONFIG,
+    DATETIME_CONFIG,
+    INFERRED_TYPE_MAP,
+    INTEGER_CONFIG,
+    STRING_CONFIG,
+    AttributeType,
+    create_attribute,
+    create_categorical_attribute,
+    create_table,
+)
 
 
 class TestPyArrowTableFactory:
@@ -63,14 +74,14 @@ class TestPyArrowTableFactory:
         assert table.field("data").type == pa.string()
 
 
-class TestAttributeFactory:
+class TestAttributeCration:
     """Test evo attribute creation from pandas Series."""
 
     def test_create_continuous_attribute(self, mock_data_client) -> None:
         """Test creating a ContinuousAttribute from floating point data."""
         series = pd.Series([1.5, 2.5, pd.NA, 3.5, 4.5])
 
-        attribute = AttributeFactory.create("resistance", series, mock_data_client)
+        attribute = create_attribute("resistance", series, mock_data_client)
 
         assert isinstance(attribute, ContinuousAttribute)
         assert attribute.key == "resistance"
@@ -85,7 +96,7 @@ class TestAttributeFactory:
         series = pd.Series([1.5, 2.5, -999.0, 3.5, 4.5])
         series.attrs["nan_values"] = [-999.0, -9999.0]
 
-        attribute = AttributeFactory.create("pressure", series, mock_data_client)
+        attribute = create_attribute("pressure", series, mock_data_client)
 
         assert isinstance(attribute, ContinuousAttribute)
         assert attribute.nan_description.values == [-999.0, -9999.0]
@@ -95,7 +106,7 @@ class TestAttributeFactory:
         """Test that mixed integer-float data creates ContinuousAttribute."""
         series = pd.Series([1, 2.5, 3, pd.NA, 4.7])
 
-        attribute = AttributeFactory.create("values", series, mock_data_client)
+        attribute = create_attribute("values", series, mock_data_client)
 
         assert isinstance(attribute, ContinuousAttribute)
         assert attribute.attribute_description is None
@@ -104,7 +115,7 @@ class TestAttributeFactory:
         """Test creating a StringAttribute."""
         series = pd.Series(["alice", "bob", pd.NA, "charlie", "diana"])
 
-        attribute = AttributeFactory.create("engineer", series, mock_data_client)
+        attribute = create_attribute("engineer", series, mock_data_client)
 
         assert isinstance(attribute, StringAttribute)
         assert attribute.key == "engineer"
@@ -117,7 +128,7 @@ class TestAttributeFactory:
         """Test StringAttribute with unicode strings."""
         series = pd.Series(["hello world!", "世界", pd.NA, "🌍"])
 
-        attribute = AttributeFactory.create("notes", series, mock_data_client)
+        attribute = create_attribute("notes", series, mock_data_client)
 
         assert isinstance(attribute, StringAttribute)
         assert attribute.attribute_description is None
@@ -126,7 +137,7 @@ class TestAttributeFactory:
         """Test creating an IntegerAttribute."""
         series = pd.Series([1, 2, pd.NA, 3, 4, 5])
 
-        attribute = AttributeFactory.create("count", series, mock_data_client)
+        attribute = create_attribute("count", series, mock_data_client)
 
         assert isinstance(attribute, IntegerAttribute)
         assert attribute.key == "count"
@@ -141,7 +152,7 @@ class TestAttributeFactory:
         series = pd.Series([1, 2, -999, 3, 4])
         series.attrs["nan_values"] = [-999, -9999]
 
-        attribute = AttributeFactory.create("count", series, mock_data_client)
+        attribute = create_attribute("count", series, mock_data_client)
 
         assert isinstance(attribute, IntegerAttribute)
         assert attribute.nan_description.values == [-999, -9999]
@@ -151,7 +162,7 @@ class TestAttributeFactory:
         """Test DateTimeAttribute from date objects."""
         series = pd.Series([date(2023, 1, 1), date(2023, 6, 15), pd.NaT, date(2023, 12, 31)])
 
-        attribute = AttributeFactory.create("date", series, mock_data_client)
+        attribute = create_attribute("date", series, mock_data_client)
 
         assert isinstance(attribute, DateTimeAttribute)
         assert attribute.attribute_description is None
@@ -162,7 +173,7 @@ class TestAttributeFactory:
             [datetime(2023, 1, 1, 10, 30), datetime(2023, 6, 15, 14, 45), pd.NaT, datetime(2023, 12, 31, 23, 59)]
         )
 
-        attribute = AttributeFactory.create("datetime", series, mock_data_client)
+        attribute = create_attribute("datetime", series, mock_data_client)
 
         assert isinstance(attribute, DateTimeAttribute)
         assert attribute.attribute_description is None
@@ -171,7 +182,7 @@ class TestAttributeFactory:
         """Test creating a BoolAttribute."""
         series = pd.Series([True, False, pd.NA, True, False])
 
-        attribute = AttributeFactory.create("signed_off", series, mock_data_client)
+        attribute = create_attribute("signed_off", series, mock_data_client)
 
         assert isinstance(attribute, BoolAttribute)
         assert attribute.key == "signed_off"
@@ -183,7 +194,7 @@ class TestAttributeFactory:
         """Test creating a CategoryAttribute from categorical data."""
         series = pd.Series(["rock", "sand", "clay", "rock", "limestone"], dtype="category")
 
-        attribute = AttributeFactory.create("lithology", series, mock_data_client)
+        attribute = create_attribute("lithology", series, mock_data_client)
 
         assert isinstance(attribute, CategoryAttribute)
         assert attribute.key == "lithology"
@@ -199,7 +210,7 @@ class TestAttributeFactory:
         series = pd.Series([1.5, 2.5, -999.0, 3.5, 4.5]).astype("pint[MPa]")
         series.attrs["nan_values"] = [-999.0, -9999.0]
 
-        attribute = AttributeFactory.create("pressure", series, mock_data_client)
+        attribute = create_attribute("pressure", series, mock_data_client)
 
         assert isinstance(attribute, ContinuousAttribute)
         assert attribute.nan_description.values == [-999.0, -9999.0]
@@ -212,7 +223,7 @@ class TestAttributeFactory:
         series = pd.Series([1, 2, -999, 3, 4]).astype("pint[degrees]")
         series.attrs["nan_values"] = [-999, -9999]
 
-        attribute = AttributeFactory.create("angle", series, mock_data_client)
+        attribute = create_attribute("angle", series, mock_data_client)
 
         # Note that Pint arrays are floating point, not integer
         assert isinstance(attribute, ContinuousAttribute)
@@ -230,7 +241,7 @@ class TestAttributeFactory:
         series = pd.Series([1.5, 2.5, -999.0, 3.5, 4.5]).astype("pint[au]")
         series.attrs["nan_values"] = [-999.0, -9999.0]
 
-        attribute = AttributeFactory.create("distance", series, mock_data_client)
+        attribute = create_attribute("distance", series, mock_data_client)
 
         assert isinstance(attribute, ContinuousAttribute)
         assert attribute.nan_description.values == [-999.0, -9999.0]
@@ -241,7 +252,7 @@ class TestAttributeFactory:
         # Complex numbers will not be supported so use those
         series = pd.Series([1 + 2j, 3 + 4j, 5 + 6j])
 
-        attribute = AttributeFactory.create("unsupported", series, mock_data_client)
+        attribute = create_attribute("unsupported", series, mock_data_client)
 
         assert attribute is None
 
@@ -249,7 +260,7 @@ class TestAttributeFactory:
         """Test that mixed types return None."""
         series = pd.Series(["text", 123, True, None, 1.5])
 
-        attribute = AttributeFactory.create("mixed", series, mock_data_client)
+        attribute = create_attribute("mixed", series, mock_data_client)
 
         assert attribute is None
 
@@ -257,7 +268,7 @@ class TestAttributeFactory:
         series = pd.Series([1.5, 2.5, 3.5])
         table = create_table(series, AttributeType.CONTINUOUS)
 
-        AttributeFactory.create("floats", series, mock_data_client)
+        create_attribute("floats", series, mock_data_client)
 
         assert mock_data_client.save_table.called
 
@@ -266,13 +277,13 @@ class TestAttributeFactory:
         assert call_args.args[0] == table
 
 
-class TestCategoricalAttributeFactory:
-    """Test AttributeFactory.create_categorical_attribute()."""
+class TestCategoricalAttributeCreation:
+    """Test create_categorical_attribute()."""
 
     def test_create_categorical_attribute_basic(self, mock_data_client) -> None:
         series = pd.Series(["sand", "clay", "sand", "rock", "clay"], dtype="category")
 
-        attribute = AttributeFactory.create_categorical_attribute("lithology", series, mock_data_client)
+        attribute = create_categorical_attribute("lithology", series, mock_data_client)
 
         assert isinstance(attribute, CategoryAttribute)
         assert attribute.key == "lithology"
@@ -284,7 +295,7 @@ class TestCategoricalAttributeFactory:
     def test_create_categorical_attribute_with_nulls(self, mock_data_client) -> None:
         series = pd.Series(["sand", "clay", pd.NA, "rock", pd.NA], dtype="category")
 
-        attribute = AttributeFactory.create_categorical_attribute("lithology", series, mock_data_client)
+        attribute = create_categorical_attribute("lithology", series, mock_data_client)
 
         assert isinstance(attribute, CategoryAttribute)
         assert attribute.nan_description is not None
@@ -294,7 +305,7 @@ class TestCategoricalAttributeFactory:
     def test_create_categorical_saves_lookup_table(self, mock_data_client) -> None:
         series = pd.Series(["A", "B", "C", "A", "B"], dtype="category")
 
-        _ = AttributeFactory.create_categorical_attribute("code", series, mock_data_client)
+        _ = create_categorical_attribute("code", series, mock_data_client)
 
         # Should be called twice: once for lookup table, once for integer array
         assert mock_data_client.save_table.call_count == 2
@@ -311,7 +322,7 @@ class TestCategoricalAttributeFactory:
     def test_create_categorical_attribute_codes_mapping(self, mock_data_client) -> None:
         series = pd.Series(["sand", "clay", "sand", "rock", "clay"], dtype="category")
 
-        _ = AttributeFactory.create_categorical_attribute("lithology", series, mock_data_client)
+        _ = create_categorical_attribute("lithology", series, mock_data_client)
 
         integer_table = mock_data_client.save_table.call_args_list[1].args[0]
         codes = integer_table["data"].to_pylist()
@@ -323,15 +334,15 @@ class TestCategoricalAttributeFactory:
     def test_create_categorical_empty_series(self, mock_data_client) -> None:
         series = pd.Series([], dtype="category")
 
-        # Use create() which checks for empty series and returns None
-        attribute = AttributeFactory.create("empty_cat", series, mock_data_client)
+        # Use create_attribute() which checks for empty series and returns None
+        attribute = create_attribute("empty_cat", series, mock_data_client)
 
         assert attribute is None
 
     def test_create_defers_to_categorical_attribute(self, mock_data_client) -> None:
         series = pd.Series(["A", "B", "A", "C"], dtype="category")
 
-        attribute = AttributeFactory.create("category_test", series, mock_data_client)
+        attribute = create_attribute("category_test", series, mock_data_client)
 
         assert isinstance(attribute, CategoryAttribute)
 
@@ -340,41 +351,41 @@ class TestInferredTypeMapping:
     """Test single and multiple inferred types map to a single attribute type."""
 
     def test_boolean_type_is_mapped(self) -> None:
-        config = AttributeFactory.INFERRED_TYPE_MAP.get("boolean")
+        config = INFERRED_TYPE_MAP.get("boolean")
 
-        assert config is AttributeFactory.BOOL_CONFIG
+        assert config is BOOL_CONFIG
 
     def test_continuous_types_are_mapped(self) -> None:
         configs = [
-            AttributeFactory.INFERRED_TYPE_MAP.get("floating"),
-            AttributeFactory.INFERRED_TYPE_MAP.get("mixed-integer-float"),
-            AttributeFactory.INFERRED_TYPE_MAP.get("decimal"),
+            INFERRED_TYPE_MAP.get("floating"),
+            INFERRED_TYPE_MAP.get("mixed-integer-float"),
+            INFERRED_TYPE_MAP.get("decimal"),
         ]
 
-        assert all(c is AttributeFactory.CONTINUOUS_CONFIG for c in configs)
+        assert all(c is CONTINUOUS_CONFIG for c in configs)
 
     def test_integer_type_is_mapped(self) -> None:
-        config = AttributeFactory.INFERRED_TYPE_MAP.get("integer")
+        config = INFERRED_TYPE_MAP.get("integer")
 
-        assert config is AttributeFactory.INTEGER_CONFIG
+        assert config is INTEGER_CONFIG
 
     def test_string_types_are_mapped(self) -> None:
         configs = [
-            AttributeFactory.INFERRED_TYPE_MAP.get("string"),
-            AttributeFactory.INFERRED_TYPE_MAP.get("unicode"),
-            AttributeFactory.INFERRED_TYPE_MAP.get("bytes"),
+            INFERRED_TYPE_MAP.get("string"),
+            INFERRED_TYPE_MAP.get("unicode"),
+            INFERRED_TYPE_MAP.get("bytes"),
         ]
 
-        assert all(c is AttributeFactory.STRING_CONFIG for c in configs)
+        assert all(c is STRING_CONFIG for c in configs)
 
     def test_datetime_types_are_mapped(self) -> None:
         configs = [
-            AttributeFactory.INFERRED_TYPE_MAP.get("datetime64"),
-            AttributeFactory.INFERRED_TYPE_MAP.get("datetime"),
-            AttributeFactory.INFERRED_TYPE_MAP.get("date"),
+            INFERRED_TYPE_MAP.get("datetime64"),
+            INFERRED_TYPE_MAP.get("datetime"),
+            INFERRED_TYPE_MAP.get("date"),
         ]
 
-        assert all(c is AttributeFactory.DATETIME_CONFIG for c in configs)
+        assert all(c is DATETIME_CONFIG for c in configs)
 
 
 class TestEdgeCases:
@@ -383,14 +394,14 @@ class TestEdgeCases:
     def test_empty_series(self, mock_data_client) -> None:
         series = pd.Series([])
 
-        attribute = AttributeFactory.create("empty", series, mock_data_client)
+        attribute = create_attribute("empty", series, mock_data_client)
 
         assert attribute is None
 
     def test_all_null_values(self, mock_data_client) -> None:
         series = pd.Series([pd.NA, pd.NA, pd.NA])
 
-        attribute = AttributeFactory.create("all_nulls", series, mock_data_client)
+        attribute = create_attribute("all_nulls", series, mock_data_client)
 
         assert attribute is None
 
@@ -398,7 +409,7 @@ class TestEdgeCases:
         series = pd.Series([1, 2, 3])
         series.attrs["nan_values"] = {-999}  # set instead of list
 
-        attribute = AttributeFactory.create("test", series, mock_data_client)
+        attribute = create_attribute("test", series, mock_data_client)
 
         # Should get converted to a list
         assert isinstance(attribute, IntegerAttribute)
@@ -407,14 +418,14 @@ class TestEdgeCases:
     def test_categorical_all_nulls(self, mock_data_client) -> None:
         series = pd.Series([pd.NA, pd.NA, pd.NA], dtype="category")
 
-        attribute = AttributeFactory.create("all_nulls", series, mock_data_client)
+        attribute = create_attribute("all_nulls", series, mock_data_client)
 
         assert isinstance(attribute, CategoryAttribute)
 
     def test_categorical_single_category(self, mock_data_client) -> None:
         series = pd.Series(["sand", "sand", "sand"], dtype="category")
 
-        attribute = AttributeFactory.create("single_category", series, mock_data_client)
+        attribute = create_attribute("single_category", series, mock_data_client)
 
         assert isinstance(attribute, CategoryAttribute)
         lookup_table = mock_data_client.save_table.call_args_list[0].args[0]
