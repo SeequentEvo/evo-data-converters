@@ -14,7 +14,7 @@ import tempfile
 import zipfile
 from importlib.util import find_spec
 from pathlib import Path
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 
 import pytest
 
@@ -25,7 +25,7 @@ from evo.data_converters.common import (
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 
 
-class TestObjZipLoading(TestCase):
+class TestObjZipLoading(IsolatedAsyncioTestCase):
     implementation: str = "trimesh"
 
     def setUp(self) -> None:
@@ -37,7 +37,7 @@ class TestObjZipLoading(TestCase):
         self.data_client = data_client
 
     async def test_open_zip_file(self) -> None:
-        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.obj"
+        obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes.obj"
         with tempfile.NamedTemporaryFile(suffix=".obj.zip", delete=True) as zip_tempfile:
             with zipfile.ZipFile(zip_tempfile, mode="w") as zip_file:
                 zip_file.write(obj_file, arcname=obj_file.name)

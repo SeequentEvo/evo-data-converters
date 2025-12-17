@@ -11,7 +11,7 @@
 
 import tempfile
 from pathlib import Path
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 
 from evo_schemas.objects import TriangleMesh_V2_2_0
 
@@ -22,7 +22,7 @@ from evo.data_converters.common import (
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 
 
-class TestObjToEvoConverter(TestCase):
+class TestObjToEvoConverter(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
         self.metadata = EvoWorkspaceMetadata(
@@ -32,7 +32,7 @@ class TestObjToEvoConverter(TestCase):
         self.data_client = data_client
 
     async def test_should_add_expected_tags(self) -> None:
-        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.obj"
+        obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes.obj"
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
         go_objects = await convert_obj(
@@ -48,7 +48,7 @@ class TestObjToEvoConverter(TestCase):
         self.assertEqual(go_objects[0].tags, expected_tags)
 
     async def test_should_convert_expected_geometry_types(self) -> None:
-        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.obj"
+        obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes.obj"
         go_objects = await convert_obj(
             filepath=obj_file, evo_workspace_metadata=self.metadata, epsg_code=4326, publish_objects=False
         )

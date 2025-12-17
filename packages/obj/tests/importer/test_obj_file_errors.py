@@ -12,7 +12,7 @@
 import tempfile
 from importlib.util import find_spec
 from pathlib import Path
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 
 import pytest
 
@@ -24,7 +24,7 @@ from evo.data_converters.obj.importer.implementation.base import InvalidOBJError
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 
 
-class TestObjFileErrors(TestCase):
+class TestObjFileErrors(IsolatedAsyncioTestCase):
     implementation: str = "trimesh"
 
     def setUp(self) -> None:
@@ -39,7 +39,7 @@ class TestObjFileErrors(TestCase):
         """
         Attempts to load a file that's missing referenced vertices.
         """
-        obj_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes_corrupt.obj"
+        obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes_corrupt.obj"
 
         with self.assertRaises(InvalidOBJError):
             (triangle_mesh,) = await convert_obj(
@@ -55,7 +55,7 @@ class TestObjFileErrors(TestCase):
         Attempts to load an STL version of simple_shapes that should refuse to load, even
         though several of the implementations would otherwise support STL.
         """
-        stl_file = Path(__file__).parent / "data" / "simple_shapes" / "simple_shapes.stl"
+        stl_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes.stl"
 
         with self.assertRaises(InvalidOBJError):
             (triangle_mesh,) = await convert_obj(
