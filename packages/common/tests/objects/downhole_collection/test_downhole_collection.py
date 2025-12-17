@@ -20,7 +20,7 @@ from evo.data_converters.common.objects.downhole_collection import (
 )
 from evo.data_converters.common.objects.downhole_collection.hole_collars import HoleCollars
 from evo.data_converters.common.objects.downhole_collection.tables import (
-    MeasurementTableAdapter,
+    MeasurementTable,
     MeasurementTableFactory,
 )
 
@@ -111,7 +111,7 @@ class TestDownholeCollectionInitialization:
             column_mapping=ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]),
         )
         assert len(dc.measurements) == 1
-        assert isinstance(dc.measurements[0], MeasurementTableAdapter)
+        assert isinstance(dc.measurements[0], MeasurementTable)
 
     def test_init_with_multiple_measurement_dfs(
         self, valid_collars, distance_measurements_df, interval_measurements_df
@@ -126,10 +126,10 @@ class TestDownholeCollectionInitialization:
             ),
         )
         assert len(dc.measurements) == 2
-        assert all(isinstance(m, MeasurementTableAdapter) for m in dc.measurements)
+        assert all(isinstance(m, MeasurementTable) for m in dc.measurements)
 
     def test_init_with_measurement_adapter(self, valid_collars, distance_measurements_df):
-        """Test initialization with a MeasurementTableAdapter."""
+        """Test initialization with a MeasurementTable."""
         col_mapping = ColumnMapping(DEPTH_COLUMNS=["penetrationLength"])
         adapter = MeasurementTableFactory.create(distance_measurements_df, col_mapping)
         dc = DownholeCollection(
@@ -169,7 +169,7 @@ class TestAddMeasurementTable:
         dc.add_measurement_table(distance_measurements_df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
 
         assert len(dc.measurements) == 1
-        assert isinstance(dc.measurements[0], MeasurementTableAdapter)
+        assert isinstance(dc.measurements[0], MeasurementTable)
 
     def test_add_measurement_table_from_adapter(self, valid_collars, distance_measurements_df):
         """Test adding a measurement table from an adapter."""
@@ -225,7 +225,7 @@ class TestGetMeasurementTables:
         tables = dc.get_measurement_tables()
 
         assert len(tables) == 1
-        assert isinstance(tables[0], MeasurementTableAdapter)
+        assert isinstance(tables[0], MeasurementTable)
 
     def test_get_measurement_tables_returns_copy(self, valid_collars, distance_measurements_df):
         """Test that get_measurement_tables returns a copy, not the original list."""

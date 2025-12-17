@@ -30,7 +30,7 @@ DEFAULT_AZIMUTH: float = 0.0  # Assume vertical, so no bearing
 DEFAULT_DIP: float = 90.0  # Positive dip = down
 
 
-class MeasurementTableAdapter(ABC):
+class MeasurementTable(ABC):
     """
     Abstract base class for different measurement table types.
 
@@ -170,7 +170,7 @@ class MeasurementTableAdapter(ABC):
         return self.df[azimuth_column]
 
 
-class DistanceTable(MeasurementTableAdapter):
+class DistanceTable(MeasurementTable):
     """Measurement table adapter for point measurements at specific depths/distances"""
 
     @override
@@ -236,7 +236,7 @@ class DistanceTable(MeasurementTableAdapter):
         return self.df[self.get_depth_column()]
 
 
-class IntervalTable(MeasurementTableAdapter):
+class IntervalTable(MeasurementTable):
     """Measurement table adapter for measurements over depth intervals"""
 
     @override
@@ -332,7 +332,7 @@ class MeasurementTableFactory:
     @staticmethod
     def create(
         df: pd.DataFrame, column_mapping: ColumnMapping, nan_values_by_column: dict[str, typing.Any] | None = None
-    ) -> MeasurementTableAdapter:
+    ) -> MeasurementTable:
         """
         Create the appropriate measurement table adapter based on DataFrame columns.
 

@@ -17,7 +17,7 @@ import pandas as pd
 from ..base_properties import BaseSpatialDataProperties
 from .column_mapping import ColumnMapping
 from .hole_collars import HoleCollars
-from .tables import MeasurementTableAdapter, MeasurementTableFactory
+from .tables import MeasurementTable, MeasurementTableFactory
 
 if sys.version_info >= (3, 12):
     from typing import override
@@ -34,7 +34,7 @@ class DownholeCollection(BaseSpatialDataProperties):
 
     The collection separates collar information (stored once per hole) from measurement
     data (stored once per measurement). Supports multiple measurement tables of different
-    types (distance-based or interval-based) via the MeasurementTableAdapter interface.
+    types (distance-based or interval-based) via the MeasurementTable interface.
     """
 
     def __init__(
@@ -42,7 +42,7 @@ class DownholeCollection(BaseSpatialDataProperties):
         *,
         collars: HoleCollars,
         name: str,
-        measurements: list[MeasurementTableAdapter] | list[pd.DataFrame] | None = None,
+        measurements: list[MeasurementTable] | list[pd.DataFrame] | None = None,
         column_mapping: ColumnMapping | None = None,
         uuid: str | None = None,
         coordinate_reference_system: int | str | None = None,
@@ -54,7 +54,7 @@ class DownholeCollection(BaseSpatialDataProperties):
         Create a downhole collection intermediary object.
 
         Initialises the collection with collar information and optional measurement data.
-        Measurement data can be provided as either pre-constructed MeasurementTableAdapter
+        Measurement data can be provided as either pre-constructed MeasurementTable
         objects or as pandas DataFrames (which will be automatically converted to the
         appropriate adapter type using the provided column mapping).
 
@@ -77,41 +77,39 @@ class DownholeCollection(BaseSpatialDataProperties):
             coordinate_reference_system=coordinate_reference_system,
         )
         self.collars: HoleCollars = collars
-        self.measurements: list[MeasurementTableAdapter] = []
+        self.measurements: list[MeasurementTable] = []
         if measurements:
             for m in measurements:
                 self.add_measurement_table(m, column_mapping)
 
     def add_measurement_table(
-        self, input: pd.DataFrame | MeasurementTableAdapter, column_mapping: ColumnMapping | None = None
+        self, input: pd.DataFrame | MeasurementTable, column_mapping: ColumnMapping | None = None
     ) -> None:
         """
         Add a measurement table to the collection.
 
-        Accepts either a pre-constructed MeasurementTableAdapter or a pandas DataFrame.
+        Accepts either a pre-constructed MeasurementTable or a pandas DataFrame.
         If a DataFrame is provided, it will be automatically converted to the appropriate
-        adapter type (DistanceTable or IntervalTable) based on the column mapping and
+        type (DistanceTable or IntervalTable) based on the column mapping and
         available columns.
 
-        :param input: Either a MeasurementTableAdapter or DataFrame to add
+        :param input: Either a MeasurementTable or DataFrame to add
         :param column_mapping: Column mapping configuration (required if input is a DataFrame)
         """
         if isinstance(input, pd.DataFrame):
-            adapter: MeasurementTableAdapter = MeasurementTableFactory.create(input, column_mapping or ColumnMapping())
+            adapter: MeasurementTable = MeasurementTableFactory.create(input, column_mapping or ColumnMapping())
         else:
             adapter = input
         self.measurements.append(adapter)
 
-    def get_measurement_tables(
-        self, filter: list[type[MeasurementTableAdapter]] | None = None
-    ) -> list[MeasurementTableAdapter]:
+    def get_measurement_tables(self, filter: list[type[MeasurementTable]] | None = None) -> list[MeasurementTable]:
         """
         Get all or a filtered subset of measurement table adapters.
 
         Returns measurement tables from the collection. Optionally filters to return
         only tables of specific types (e.g., only DistanceTable or only IntervalTable).
 
-        :param filter: Optional list of MeasurementTableAdapter subclass types to filter by.
+        :param filter: Optional list of MeasurementTable subclass types to filter by.
                         If None, returns all measurement tables.
 
         :return: List of measurement table adapters matching the filter (or all if no filter)
@@ -119,7 +117,7 @@ class DownholeCollection(BaseSpatialDataProperties):
         if filter is None:
             return self.measurements.copy()
 
-        results: list[MeasurementTableAdapter] = []
+        results: list[MeasurementTable] = []
         for m in self.measurements:
             if any(isinstance(m, cls) for cls in filter):
                 results.append(m)

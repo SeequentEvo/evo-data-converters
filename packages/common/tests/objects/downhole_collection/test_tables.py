@@ -333,8 +333,8 @@ class TestMeasurementTableFactory:
             assert isinstance(table, IntervalTable)
 
 
-class TestMeasurementTableAdapter:
-    """Tests for base MeasurementTableAdapter class"""
+class TestMeasurementTable:
+    """Tests for base MeasurementTable class"""
 
     def test_get_hole_index_column(self):
         """Test getting hole index column through concrete implementation"""

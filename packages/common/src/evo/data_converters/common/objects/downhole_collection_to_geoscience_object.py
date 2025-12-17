@@ -77,7 +77,7 @@ from pint_pandas import PintType
 import evo.logging
 from evo.data_converters.common.crs import crs_from_any
 from evo.data_converters.common.objects.attributes import AttributeFactory
-from evo.data_converters.common.objects.downhole_collection.tables import MeasurementTableAdapter
+from evo.data_converters.common.objects.downhole_collection.tables import MeasurementTable
 from evo.data_converters.common.objects.units import UnitMapper
 from evo.objects.utils.data import ObjectDataClient
 
@@ -239,7 +239,7 @@ class DownholeCollectionToGeoscienceObject:
         distances_args = self.data_client.save_table(distances_table)
         return FloatArray3.from_dict(distances_args)
 
-    def create_dhc_hole_chunks(self, measurement_table: MeasurementTableAdapter) -> HoleChunks:
+    def create_dhc_hole_chunks(self, measurement_table: MeasurementTable) -> HoleChunks:
         """
         Create hole chunks metadata describing data organization for measurement tables.
 
@@ -350,7 +350,7 @@ class DownholeCollectionToGeoscienceObject:
 
         return interval_table_go
 
-    def create_collection_attributes(self, mt: MeasurementTableAdapter) -> OneOfAttribute | None:
+    def create_collection_attributes(self, mt: MeasurementTable) -> OneOfAttribute | None:
         """
         Create attribute objects from measurement table attribute columns.
 
@@ -412,7 +412,7 @@ class DownholeCollectionToGeoscienceObject:
         ]
         return pa.Table.from_arrays(arrays, schema=distances_schema)
 
-    def holes_table(self, mt: MeasurementTableAdapter) -> pa.Table:
+    def holes_table(self, mt: MeasurementTable) -> pa.Table:
         """
         Create hole chunk metadata table describing data organization for each downhole.
 
