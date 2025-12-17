@@ -38,12 +38,13 @@ class TestObjZipLoading(IsolatedAsyncioTestCase):
 
     async def test_open_zip_file(self) -> None:
         obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes.obj"
-        with tempfile.NamedTemporaryFile(suffix=".obj.zip", delete=True) as zip_tempfile:
+        with tempfile.TemporaryDirectory() as tempdirname:
+            zip_tempfile = Path(tempdirname) / "simple_shapes.obj.zip"
             with zipfile.ZipFile(zip_tempfile, mode="w") as zip_file:
                 zip_file.write(obj_file, arcname=obj_file.name)
 
             (triangle_mesh,) = await convert_obj(
-                filepath=zip_tempfile.name,
+                filepath=zip_tempfile,
                 evo_workspace_metadata=self.metadata,
                 epsg_code=4326,
                 publish_objects=False,
