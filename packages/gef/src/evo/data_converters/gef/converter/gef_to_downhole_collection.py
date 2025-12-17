@@ -62,14 +62,15 @@ class DownholeCollectionBuilder:
         self.measurement_dfs: list[pd.DataFrame] = []
         self.nan_values_by_attribute: dict[str, list[typing.Any]] = defaultdict(list)
 
-    def process_cpt_file(self, hole_index: int, hole_id: str, cpt_data: CPTData) -> None:
+    def process_cpt_file(self, hole_index: int, hole_id: str, cpt_data: CPTData, filepath: str) -> None:
         """Process a single CPT file and add to the collection.
 
         :param hole_index: Sequential index for this hole
         :param hole_id: Unique identifier for this hole
         :param cpt_data: Parsed CPT data object
+        :param filepath: Path of the file that was parsed
         """
-        self._validate_and_set_epsg(cpt_data, hole_id)
+        self._validate_and_set_epsg(cpt_data, hole_id, filepath)
         self._validate_location_attributes(cpt_data, hole_id)
 
         collar_row = self._create_collar_row(hole_index, hole_id, cpt_data)
@@ -131,11 +132,12 @@ class DownholeCollectionBuilder:
 
         return epsg_code
 
-    def _validate_and_set_epsg(self, cpt_data: CPTData, hole_id: str) -> None:
+    def _validate_and_set_epsg(self, cpt_data: CPTData, hole_id: str, filepath: str) -> None:
         """Validate and set EPSG code, ensuring consistency across files.
 
         :param cpt_data: CPT data object
         :param hole_id: Hole identifier for error messages
+        :param filepath: Name of the file being processed
 
         :raises ValueError: If EPSG codes are inconsistent across files
         """
@@ -146,7 +148,7 @@ class DownholeCollectionBuilder:
             logger.info(f"Using EPSG code {self.epsg_code} from first CPT file")
         elif self.epsg_code != current_epsg:
             raise ValueError(
-                f"Inconsistent EPSG codes: {hole_id} has EPSG:{current_epsg}, but expected EPSG:{self.epsg_code}"
+                f"Inconsistent EPSG codes: {hole_id} has EPSG:{current_epsg}, but expected EPSG:{self.epsg_code}, in file {filepath}"
             )
 
     def _validate_epsg_code(self) -> None:
@@ -459,7 +461,7 @@ def create_from_parsed_gef_cpts(
     if name:
         builder.set_name(name)
 
-    for hole_index, (hole_id, cpt_data) in enumerate(parsed_cpt_files.items(), start=1):
-        builder.process_cpt_file(hole_index, hole_id, cpt_data)
+    for hole_index, (hole_id, (filepath, cpt_data)) in enumerate(parsed_cpt_files.items(), start=1):
+        builder.process_cpt_file(hole_index, hole_id, cpt_data, filepath)
 
     return builder.build()
