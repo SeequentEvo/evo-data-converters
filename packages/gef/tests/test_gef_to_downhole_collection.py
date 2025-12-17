@@ -269,7 +269,7 @@ def mock_cpt_data_4() -> Mock:
 class TestProcessCptFile:
     @patch("evo.data_converters.gef.converter.gef_to_downhole_collection.logger")
     def test_successful_processing(self, mock_logger, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
-        builder.process_cpt_file(1, "CPT-001", mock_cpt_data)
+        builder.process_cpt_file(1, "CPT-001", mock_cpt_data, "file_name")
 
         assert len(builder.collar_rows) == 1
         assert len(builder.measurement_dfs) == 1
@@ -281,16 +281,16 @@ class TestProcessCptFile:
     def test_inconsistent_epsg_raises_error(
         self, builder: DownholeCollectionBuilder, mock_cpt_data, mock_cpt_data_2
     ) -> None:
-        builder.process_cpt_file(1, "CPT-001", mock_cpt_data)
+        builder.process_cpt_file(1, "CPT-001", mock_cpt_data, "file_name")
         mock_cpt_data_2.delivered_location.srs_name = "EPSG:4326"
 
         with pytest.raises(ValueError, match="Inconsistent EPSG codes"):
-            builder.process_cpt_file(2, "CPT-002", mock_cpt_data_2)
+            builder.process_cpt_file(2, "CPT-002", mock_cpt_data_2, "file_name_2")
 
 
 class TestBuild:
     def test_successful_build(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
-        builder.process_cpt_file(1, "CPT-001", mock_cpt_data)
+        builder.process_cpt_file(1, "CPT-001", mock_cpt_data, "path/to/the/data.file")
         result = builder.build()
 
         assert isinstance(result, DownholeCollection)
@@ -345,25 +345,25 @@ class TestExtractEpsgCode:
 class TestValidateAndSetEpsg:
     @patch("evo.data_converters.gef.converter.gef_to_downhole_collection.logger")
     def test_sets_epsg_on_first_file(self, mock_logger, builder, mock_cpt_data) -> None:
-        builder._validate_and_set_epsg(mock_cpt_data, "CPT-001")
+        builder._validate_and_set_epsg(mock_cpt_data, "CPT-001", "a_file_name")
 
         assert builder.epsg_code == 28992
         assert mock_logger.info.called
 
     def test_consistent_epsg_passes(self, builder: DownholeCollectionBuilder, mock_cpt_data, mock_cpt_data_2) -> None:
-        builder._validate_and_set_epsg(mock_cpt_data, "CPT-001")
-        builder._validate_and_set_epsg(mock_cpt_data_2, "CPT-002")
+        builder._validate_and_set_epsg(mock_cpt_data, "CPT-001", "file_cpt001")
+        builder._validate_and_set_epsg(mock_cpt_data_2, "CPT-002", "file_cpt002")
 
         assert builder.epsg_code == 28992
 
     def test_inconsistent_epsg_raises_error(
         self, builder: DownholeCollectionBuilder, mock_cpt_data, mock_cpt_data_2
     ) -> None:
-        builder._validate_and_set_epsg(mock_cpt_data, "CPT-001")
+        builder._validate_and_set_epsg(mock_cpt_data, "CPT-001", "the_data_file_name")
         mock_cpt_data_2.delivered_location.srs_name = "EPSG:4326"
 
         with pytest.raises(ValueError, match="Inconsistent EPSG codes"):
-            builder._validate_and_set_epsg(mock_cpt_data_2, "CPT-002")
+            builder._validate_and_set_epsg(mock_cpt_data_2, "CPT-002", "directory/file.extension")
 
 
 class TestValidateEpsgCode:
@@ -839,7 +839,7 @@ class TestCreateFromParsedGefCpts:
             create_from_parsed_gef_cpts({})
 
     def test_single_cpt_creates_valid_collection(self, mock_cpt_data) -> None:
-        parsed_files = {"CPT-001": mock_cpt_data}
+        parsed_files = {"CPT-001": ("file_name", mock_cpt_data)}
 
         result = create_from_parsed_gef_cpts(parsed_files)
 
@@ -850,7 +850,7 @@ class TestCreateFromParsedGefCpts:
         assert result.collars.df.iloc[0]["hole_id"] == "CPT-001"
 
     def test_multiple_cpts_creates_combined_collection(self, mock_cpt_data, mock_cpt_data_2) -> None:
-        parsed_files = {"CPT-001": mock_cpt_data, "CPT-002": mock_cpt_data_2}
+        parsed_files = {"CPT-001": ("file_one", mock_cpt_data), "CPT-002": ("file_two", mock_cpt_data_2)}
 
         result = create_from_parsed_gef_cpts(parsed_files)
 
@@ -894,7 +894,7 @@ class TestCreateFromParsedGefCpts:
             }
             mock.raw_headers = {}
 
-            cpts[f"CPT-{i:03d}"] = mock
+            cpts[f"CPT-{i:03d}"] = ("filename", mock)
 
         result = create_from_parsed_gef_cpts(cpts)
 
@@ -905,7 +905,7 @@ class TestCreateFromParsedGefCpts:
 
     def test_multiple_cpts_custom_name(self, mock_cpt_data, mock_cpt_data_2) -> None:
         """Test with multiple CPT, use custom name."""
-        parsed_files = {"CPT-001": mock_cpt_data, "CPT-002": mock_cpt_data_2}
+        parsed_files = {"CPT-001": ("file_0001", mock_cpt_data), "CPT-002": ("file_002", mock_cpt_data_2)}
 
         result = create_from_parsed_gef_cpts(parsed_files, name="Custom name")
 

@@ -63,7 +63,7 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
         raise RuntimeError(f"Error processing file '{filepath}': {e}") from e
 
 
-def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, CPTData]:
+def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, (str, CPTData)]:
     """Parse a list of GEF-CPT & GEF-XML files and return a dictionary of CPTData objects keyed by filename.
 
     Only files identified as CPT (Cone Penetration Test) are read and included.
@@ -85,7 +85,7 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
                     raise ValueError(
                         f"Duplicate ID '{cpt_id}' encountered. Each ID (from CPT 'alias' or 'bro_id') must be unique across all input files."
                     )
-                data[cpt_id] = cpt_data
+                data[cpt_id] = (filepath, cpt_data)
         except FileNotFoundError:
             raise
         except ValueError:
