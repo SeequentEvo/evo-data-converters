@@ -9,11 +9,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from unittest.mock import Mock, patch
 
 from evo_schemas.objects import DownholeCollection_V1_3_1
 
-import asyncio
 from evo.data_converters.ags.importer.ags_to_evo import convert_ags
 from evo.objects.data import ObjectMetadata
 
