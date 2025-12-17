@@ -27,10 +27,11 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
-from evo.data_converters.common.part_utils import ChunkedData, IndexedData
 from evo.objects.client import ObjectAPIClient
 from evo.objects.data import ObjectSchema
 from evo.objects.utils.data import ObjectDataClient
+
+from .part_utils import ChunkedData, IndexedData
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
