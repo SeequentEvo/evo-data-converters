@@ -87,23 +87,6 @@ class AttributeType(Enum):
     BOOL = pa.bool_()
 
 
-class PyArrowTableFactory:
-    """Factory for creating PyArrow tables from pandas Series with specified data types."""
-
-    @staticmethod
-    def create_table(series: pd.Series, data_type: AttributeType) -> pa.Table:
-        """
-        Create a PyArrow table from a pandas Series with the specified data type.
-
-        :param series: Pandas Series containing the data to convert
-        :param data_type: DataType enum specifying the PyArrow type to use
-
-        :return: PyArrow table with a single 'data' column of the specified type
-        """
-        schema = pa.schema([("data", data_type.value)])
-        return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
-
-
 @dataclass
 class AttributeConfig:
     """
@@ -239,7 +222,7 @@ class AttributeFactory:
             series = pd.to_datetime(series)
 
         # Create and save the pyarrow table
-        table: pa.Table = PyArrowTableFactory.create_table(series, config.data_type)
+        table: pa.Table = create_table(series, config.data_type)
         table_info = client.save_table(table)
 
         # Create the evo array element from saved table information
@@ -313,3 +296,16 @@ class AttributeFactory:
             values=integer_array_go,
             nan_description=NanCategorical(values=nan_codes),
         )
+
+
+def create_table(series: pd.Series, data_type: AttributeType) -> pa.Table:
+    """
+    Create a PyArrow table from a pandas Series with the specified data type.
+
+    :param series: Pandas Series containing the data to convert
+    :param data_type: DataType enum specifying the PyArrow type to use
+
+    :return: PyArrow table with a single 'data' column of the specified type
+    """
+    schema = pa.schema([("data", data_type.value)])
+    return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)

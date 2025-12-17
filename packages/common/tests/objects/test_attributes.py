@@ -34,7 +34,7 @@ from evo_schemas.components import (
 from evo_schemas.elements.unit_energy_per_volume import UnitEnergyPerVolume_V1_0_1_UnitCategories as UnitEnergyPerVolume
 from evo_schemas.elements.unit_plane_angle import UnitPlaneAngle_V1_0_1_UnitCategories as UnitPlaneAngle
 
-from evo.data_converters.common.objects.attributes import AttributeFactory, AttributeType, PyArrowTableFactory
+from evo.data_converters.common.objects.attributes import AttributeFactory, AttributeType, create_table
 
 
 class TestPyArrowTableFactory:
@@ -42,7 +42,7 @@ class TestPyArrowTableFactory:
 
     def test_create_continuous_table(self) -> None:
         series = pd.Series([1.5, 2.5, pd.NA, 3.5])
-        table = PyArrowTableFactory.create_table(series, AttributeType.CONTINUOUS)
+        table = create_table(series, AttributeType.CONTINUOUS)
 
         assert table.num_columns == 1
         assert table.column_names == ["data"]
@@ -53,7 +53,7 @@ class TestPyArrowTableFactory:
 
     def test_create_string_table(self) -> None:
         series = pd.Series(["alice", "bob", pd.NA, "edith"])
-        table = PyArrowTableFactory.create_table(series, AttributeType.STRING)
+        table = create_table(series, AttributeType.STRING)
 
         assert table.num_columns == 1
         assert table.column_names == ["data"]
@@ -255,7 +255,7 @@ class TestAttributeFactory:
 
     def test_data_client_save_table_called_with_correct_args(self, mock_data_client) -> None:
         series = pd.Series([1.5, 2.5, 3.5])
-        table = PyArrowTableFactory.create_table(series, AttributeType.CONTINUOUS)
+        table = create_table(series, AttributeType.CONTINUOUS)
 
         AttributeFactory.create("floats", series, mock_data_client)
 
