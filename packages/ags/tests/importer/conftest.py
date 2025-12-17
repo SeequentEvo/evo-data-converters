@@ -11,15 +11,14 @@
 
 import tempfile
 from pathlib import Path
-import pandas as pd
 from unittest.mock import Mock
-from evo.data_converters.ags.common import AgsContext
+
+import pandas as pd
 import pytest
 
-from evo.data_converters.common import (
-    create_evo_object_service_and_data_client,
-    EvoWorkspaceMetadata,
-)
+from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common.objects.downhole_collection.column_mapping import ColumnMapping
 
 
 @pytest.fixture(scope="session")
@@ -135,6 +134,11 @@ def mock_ags_context():
     context = Mock(spec=AgsContext)
     context.filename = "test_file.ags"
     context.coordinate_reference_system = "EPSG:4326"
+    context.column_mapping = ColumnMapping(
+        DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
+        FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
+        TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
+    )
 
     # LOCA table
     loca_df = pd.DataFrame(
