@@ -16,7 +16,7 @@ from evo.data_converters.common.objects.downhole_collection.tables import (
     ColumnMapping,
     DistanceTable,
     IntervalTable,
-    MeasurementTableFactory,
+    create_measurement_table,
 )
 
 
@@ -253,21 +253,21 @@ class TestIntervalTable:
         assert table.df.iloc[2]["SCPP_TOP"] == 1.0
 
 
-class TestMeasurementTableFactory:
-    """Tests for MeasurementTableFactory"""
+class TestMeasurementTableCreate:
+    """Tests for MeasurementTable creation"""
 
     def test_create_distance_table(self):
         """Test factory creates DistanceTable for depth data"""
         df = pd.DataFrame({"hole_index": [1], "penetrationLength": [1.0], "value": [10]})
 
-        table = MeasurementTableFactory.create(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
+        table = create_measurement_table(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
         assert isinstance(table, DistanceTable)
 
     def test_create_interval_table(self):
         """Test factory creates IntervalTable for interval data"""
         df = pd.DataFrame({"hole_index": [1], "SCPP_TOP": [0.0], "SCPP_BASE": [1.0], "value": [10]})
 
-        table = MeasurementTableFactory.create(df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"]))
+        table = create_measurement_table(df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"]))
         assert isinstance(table, IntervalTable)
 
     def test_interval_takes_precedence(self):
@@ -276,7 +276,7 @@ class TestMeasurementTableFactory:
             {"hole_index": [1], "penetrationLength": [1.0], "SCPP_TOP": [0.0], "SCPP_BASE": [1.0], "value": [10]}
         )
 
-        table = MeasurementTableFactory.create(
+        table = create_measurement_table(
             df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"], FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"])
         )
         assert isinstance(table, IntervalTable)
@@ -285,7 +285,7 @@ class TestMeasurementTableFactory:
         """Test factory detection is case-insensitive"""
         df = pd.DataFrame({"HOLE_INDEX": [1], "PenetrationLength": [1.0], "value": [10]})
 
-        table = MeasurementTableFactory.create(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
+        table = create_measurement_table(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
         assert isinstance(table, DistanceTable)
 
     def test_custom_column_mapping(self):
@@ -294,7 +294,7 @@ class TestMeasurementTableFactory:
 
         df = pd.DataFrame({"custom_hole": [1], "custom_depth": [1.0], "value": [10]})
 
-        table = MeasurementTableFactory.create(df, custom_mapping)
+        table = create_measurement_table(df, custom_mapping)
         assert isinstance(table, DistanceTable)
         assert table.get_depth_column() == "custom_depth"
 
@@ -303,21 +303,21 @@ class TestMeasurementTableFactory:
         df = pd.DataFrame({"hole_index": [1], "value": [10]})
 
         with pytest.raises(ValueError, match="Cannot determine measurement type"):
-            MeasurementTableFactory.create(df, ColumnMapping())
+            create_measurement_table(df, ColumnMapping())
 
     def test_missing_hole_index_raises_error(self):
         """Test that missing hole index column raises ValueError"""
         df = pd.DataFrame({"penetrationLength": [1.0], "value": [10]})
 
         with pytest.raises(ValueError, match="No hole index column found"):
-            MeasurementTableFactory.create(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
+            create_measurement_table(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
 
     def test_recognizes_all_depth_alternatives(self):
         """Test that all alternative depth column names are recognized"""
         for depth_col in ["penetrationLength", "SCPT_DPTH"]:
             df = pd.DataFrame({"hole_index": [1], depth_col: [1.0], "value": [10]})
 
-            table = MeasurementTableFactory.create(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength", "SCPT_DPTH"]))
+            table = create_measurement_table(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength", "SCPT_DPTH"]))
             assert isinstance(table, DistanceTable)
 
     def test_recognizes_all_interval_alternatives(self):
@@ -327,14 +327,14 @@ class TestMeasurementTableFactory:
         for from_col, to_col in interval_pairs:
             df = pd.DataFrame({"hole_index": [1], from_col: [0.0], to_col: [1.0], "value": [10]})
 
-            table = MeasurementTableFactory.create(
+            table = create_measurement_table(
                 df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP", "GEOL_TOP"], TO_COLUMNS=["SCPP_BASE", "GEOL_BASE"])
             )
             assert isinstance(table, IntervalTable)
 
 
-class TestMeasurementTableAdapter:
-    """Tests for base MeasurementTableAdapter class"""
+class TestMeasurementTable:
+    """Tests for base MeasurementTable class"""
 
     def test_get_hole_index_column(self):
         """Test getting hole index column through concrete implementation"""
@@ -422,9 +422,7 @@ class TestNanValuesHandling:
         df = pd.DataFrame({"hole_index": [1], "depth": [1.0], "qc": [10]})
         nan_values = {"qc": [9999.0, -999.0]}
 
-        table = MeasurementTableFactory.create(
-            df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values
-        )
+        table = create_measurement_table(df, ColumnMapping(DEPTH_COLUMNS=["depth"]), nan_values_by_column=nan_values)
 
         assert isinstance(table, DistanceTable)
         assert table.get_nan_values() == nan_values

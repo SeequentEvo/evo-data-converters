@@ -30,7 +30,7 @@ DEFAULT_AZIMUTH: float = 0.0  # Assume vertical, so no bearing
 DEFAULT_DIP: float = 90.0  # Positive dip = down
 
 
-class MeasurementTableAdapter(ABC):
+class MeasurementTable(ABC):
     """
     Abstract base class for different measurement table types.
 
@@ -170,7 +170,7 @@ class MeasurementTableAdapter(ABC):
         return self.df[azimuth_column]
 
 
-class DistanceTable(MeasurementTableAdapter):
+class DistanceTable(MeasurementTable):
     """Measurement table adapter for point measurements at specific depths/distances"""
 
     @override
@@ -236,7 +236,7 @@ class DistanceTable(MeasurementTableAdapter):
         return self.df[self.get_depth_column()]
 
 
-class IntervalTable(MeasurementTableAdapter):
+class IntervalTable(MeasurementTable):
     """Measurement table adapter for measurements over depth intervals"""
 
     @override
@@ -320,48 +320,38 @@ class IntervalTable(MeasurementTableAdapter):
         return self.df[[self.get_from_column(), self.get_to_column()]]
 
 
-class MeasurementTableFactory:
+def create_measurement_table(
+    df: pd.DataFrame, column_mapping: ColumnMapping, nan_values_by_column: dict[str, typing.Any] | None = None
+) -> MeasurementTable:
     """
-    Factory for detecting and creating the appropriate measurement table adapter.
+    Create the appropriate measurement table adapter based on DataFrame columns.
 
-    Automatically determines whether the DataFrame contains distance-based or
-    interval-based measurements based on the presence of specific columns, and
-    creates the corresponding adapter type.
+    Checks for the presence of interval columns (from/to) or depth columns to
+    determine the correct adapter type.
+
+    :param df: DataFrame containing measurement data
+    :param column_mapping: Column mapping configuration for locating required columns
+    :param nan_values_by_column: Optional mapping of column names to lists of NaN sentinel values
+
+    :return: Either an IntervalTable or DistanceTable adapter
+
+    :raises ValueError: If the measurement type cannot be determined from available columns
     """
+    df_columns_lower: set[str] = set(col.lower() for col in df.columns)
 
-    @staticmethod
-    def create(
-        df: pd.DataFrame, column_mapping: ColumnMapping, nan_values_by_column: dict[str, typing.Any] | None = None
-    ) -> MeasurementTableAdapter:
-        """
-        Create the appropriate measurement table adapter based on DataFrame columns.
+    # Check for interval measurement
+    has_from: bool = any(col.lower() in df_columns_lower for col in column_mapping.FROM_COLUMNS)
+    has_to: bool = any(col.lower() in df_columns_lower for col in column_mapping.TO_COLUMNS)
 
-        Checks for the presence of interval columns (from/to) or depth columns to
-        determine the correct adapter type.
+    if has_from and has_to:
+        return IntervalTable(df, column_mapping, nan_values_by_column)
 
-        :param df: DataFrame containing measurement data
-        :param column_mapping: Column mapping configuration for locating required columns
-        :param nan_values_by_column: Optional mapping of column names to lists of NaN sentinel values
+    # Check for distance measurement
+    has_depth = any(col.lower() in df_columns_lower for col in column_mapping.DEPTH_COLUMNS)
 
-        :return: Either an IntervalTable or DistanceTable adapter
+    if has_depth:
+        return DistanceTable(df, column_mapping, nan_values_by_column)
 
-        :raises ValueError: If the measurement type cannot be determined from available columns
-        """
-        df_columns_lower: set[str] = set(col.lower() for col in df.columns)
-
-        # Check for interval measurement
-        has_from: bool = any(col.lower() in df_columns_lower for col in column_mapping.FROM_COLUMNS)
-        has_to: bool = any(col.lower() in df_columns_lower for col in column_mapping.TO_COLUMNS)
-
-        if has_from and has_to:
-            return IntervalTable(df, column_mapping, nan_values_by_column)
-
-        # Check for distance measurement
-        has_depth = any(col.lower() in df_columns_lower for col in column_mapping.DEPTH_COLUMNS)
-
-        if has_depth:
-            return DistanceTable(df, column_mapping, nan_values_by_column)
-
-        raise ValueError(
-            f"Cannot determine measurement type. Expected either depth column {column_mapping.DEPTH_COLUMNS} or interval columns {column_mapping.FROM_COLUMNS}/{column_mapping.TO_COLUMNS}"
-        )
+    raise ValueError(
+        f"Cannot determine measurement type. Expected either depth column {column_mapping.DEPTH_COLUMNS} or interval columns {column_mapping.FROM_COLUMNS}/{column_mapping.TO_COLUMNS}"
+    )
