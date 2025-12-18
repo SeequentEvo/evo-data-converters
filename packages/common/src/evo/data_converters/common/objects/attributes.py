@@ -80,11 +80,11 @@ class AttributeType(Enum):
     and the corresponding PyArrow data types used for storage.
     """
 
-    CONTINUOUS = pa.float64()
-    STRING = pa.string()
-    INTEGER = pa.int64()
-    DATETIME = pa.timestamp("us", tz="UTC")
-    BOOL = pa.bool_()
+    CONTINUOUS = 1
+    STRING = 2
+    INTEGER = 3
+    DATETIME = 4
+    BOOL = 5
 
 
 @dataclass
@@ -289,7 +289,7 @@ def create_categorical_attribute(name: str, series: pd.Series, client: ObjectDat
     )
 
 
-def create_table(series: pd.Series, data_type: AttributeType) -> pa.Table:
+def create_table(series: pd.Series, attribute_type: AttributeType) -> pa.Table:
     """
     Create a PyArrow table from a pandas Series with the specified data type.
 
@@ -298,5 +298,20 @@ def create_table(series: pd.Series, data_type: AttributeType) -> pa.Table:
 
     :return: PyArrow table with a single 'data' column of the specified type
     """
-    schema = pa.schema([("data", data_type.value)])
+
+    data_type = get_data_type(attribute_type)
+    schema = pa.schema([("data", data_type)])
     return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
+
+
+def get_data_type(type: AttributeType) -> pa.DataType:
+    return _type_map[type]
+
+
+_type_map: dict[int, pa.DataType] = {
+    AttributeType.CONTINUOUS: pa.float64(),
+    AttributeType.STRING: pa.string(),
+    AttributeType.INTEGER: pa.int64(),
+    AttributeType.DATETIME: pa.timestamp("us", tz="UTC"),
+    AttributeType.BOOL: pa.bool_(),
+}
