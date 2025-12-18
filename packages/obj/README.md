@@ -31,7 +31,7 @@ optionally with texture data (stored in a separate MTL file).
 
 ### Implementations
 
-The Python [Trimesh](https://trimesh.org/index.html) package is used to work with OBJ files by default, for import and export. There are other optional importer implementations such as [TinyOBJ](https://github.com/tinyobjloader/tinyobjloader), [Open3D](https://www.open3d.org/) and the VTK library that `evo-data-converters-vtk` provides. These can be installed as an optional extra as `optional_parsers` and then passed as the `implementation` string to `convert_obj()`. Trimesh and TinyOBJ are the preferred implementations for completeness and speed respectively.
+The Python [Trimesh](https://trimesh.org/index.html) package is used to work with OBJ files by default, for import and export. There is a second importer implementation that uses [TinyOBJ](https://github.com/tinyobjloader/tinyobjloader). To use TinyOBJ, the `--extra optional_parsers` dependencies need to be installed then pass "tinyobj" as the `implementation` string to `convert_obj()`. TinyOBJ might be more suitable for larger meshes.
 
 ### Publish geoscience objects from an OBJ file
 
