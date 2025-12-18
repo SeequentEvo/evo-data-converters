@@ -10,6 +10,7 @@
 #  limitations under the License.
 
 import math
+import os
 import tempfile
 import zipfile
 from importlib.util import find_spec
@@ -40,8 +41,12 @@ class TestObjZipLoading(IsolatedAsyncioTestCase):
         obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes.obj"
         with tempfile.TemporaryDirectory() as tempdirname:
             zip_tempfile = Path(tempdirname) / "simple_shapes.obj.zip"
-            with zipfile.ZipFile(zip_tempfile, mode="w") as zip_file:
+            with zipfile.ZipFile(zip_tempfile, mode="w", compression=zipfile.ZIP_STORED) as zip_file:
                 zip_file.write(obj_file, arcname=obj_file.name)
+
+            # There are sporadic issues on Windows with Trimesh where the zipfile is not ready
+            # to be read immediately. Double check here.
+            assert os.access(zip_tempfile, os.R_OK), f"Check {zip_tempfile} is readable"
 
             (triangle_mesh,) = await convert_obj(
                 filepath=zip_tempfile,
