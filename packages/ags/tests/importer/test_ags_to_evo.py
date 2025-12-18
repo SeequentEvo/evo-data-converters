@@ -20,14 +20,16 @@ from evo.objects.data import ObjectMetadata
 
 def test_should_convert_ags_file_without_publish(evo_metadata, valid_ags_1a_path):
     """Integration: converts an AGS file to a geoscience object without publishing."""
-    result = asyncio.run(convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata))
+    result = asyncio.run(
+        convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata, publish_objects=False)
+    )
     assert isinstance(result, list)
     assert isinstance(result[0], DownholeCollection_V1_3_1)
     assert len(result) == 1
 
     obj_metadata = result[0]
     assert obj_metadata.tags is not None
-    assert obj_metadata.tags["Source"] == "AGS files (via Evo Data Converters)"
+    assert obj_metadata.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
     assert obj_metadata.tags["Stage"] == "Experimental"
     assert obj_metadata.tags["InputType"] == "AGS"
 
@@ -38,7 +40,9 @@ def test_should_publish_with_hub_url(mock_publish, evo_metadata_with_hub, valid_
     mock_metadata = [Mock(spec=ObjectMetadata)]
     mock_publish.return_value = mock_metadata
 
-    result = asyncio.run(convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata_with_hub))
+    result = asyncio.run(
+        convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata_with_hub, publish_objects=True)
+    )
 
     assert result == mock_metadata
     mock_publish.assert_called_once()
@@ -48,7 +52,7 @@ def test_should_publish_with_hub_url(mock_publish, evo_metadata_with_hub, valid_
     assert len(object_models) == 1
     published_obj = object_models[0]
     assert published_obj.tags is not None
-    assert published_obj.tags["Source"] == "AGS files (via Evo Data Converters)"
+    assert published_obj.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
     assert published_obj.tags["Stage"] == "Experimental"
     assert published_obj.tags["InputType"] == "AGS"
 
@@ -57,7 +61,9 @@ def test_should_add_custom_tags(evo_metadata, valid_ags_1a_path):
     """Integration: conversion succeeds with custom tags supplied (tags applied internally)."""
     custom_tags = {"CustomTag": "CustomValue", "AnotherTag": "AnotherValue"}
     result = asyncio.run(
-        convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata, tags=custom_tags)
+        convert_ags(
+            filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata, tags=custom_tags, publish_objects=False
+        )
     )
     assert len(result) == 1
 
@@ -66,14 +72,16 @@ def test_should_add_custom_tags(evo_metadata, valid_ags_1a_path):
 
     assert published_obj.tags["CustomTag"] == "CustomValue"
     assert published_obj.tags["AnotherTag"] == "AnotherValue"
-    assert published_obj.tags["Source"] == "AGS files (via Evo Data Converters)"
+    assert published_obj.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
     assert published_obj.tags["Stage"] == "Experimental"
     assert published_obj.tags["InputType"] == "AGS"
 
 
 def test_should_handle_parse_error(evo_metadata, not_ags_path, caplog):
     """Integration: invalid AGS files return empty list (parse error handled)."""
-    result = asyncio.run(convert_ags(filepaths=[not_ags_path], evo_workspace_metadata=evo_metadata))
+    result = asyncio.run(
+        convert_ags(filepaths=[not_ags_path], evo_workspace_metadata=evo_metadata, publish_objects=False)
+    )
     assert result == []
     # Should log a warning
     assert "AGS Format Rule 3" in caplog.text
@@ -82,7 +90,11 @@ def test_should_handle_parse_error(evo_metadata, not_ags_path, caplog):
 def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2a_path, invalid_ags_2b_path, caplog):
     """Integration: multiple ags files with warnings should be imported"""
     result = asyncio.run(
-        convert_ags(filepaths=[valid_ags_2a_path, invalid_ags_2b_path], evo_workspace_metadata=evo_metadata)
+        convert_ags(
+            filepaths=[valid_ags_2a_path, invalid_ags_2b_path],
+            evo_workspace_metadata=evo_metadata,
+            publish_objects=False,
+        )
     )
     assert len(result) == 1
 
@@ -102,7 +114,9 @@ def test_convert_ags_with_multiple_files_from_different_projects(
 ):
     """Integration: Test multiple AGS files from different PROJ_IDs creates separate DownholeCollections."""
     result = asyncio.run(
-        convert_ags(filepaths=[valid_ags_1a_path, valid_ags_2a_path], evo_workspace_metadata=evo_metadata)
+        convert_ags(
+            filepaths=[valid_ags_1a_path, valid_ags_2a_path], evo_workspace_metadata=evo_metadata, publish_objects=False
+        )
     )
 
     # Should create two separate DownholeCollection objects
@@ -114,7 +128,9 @@ def test_convert_ags_with_multiple_files_from_different_projects(
 def test_convert_ags_with_multiple_files_same_project(evo_metadata, valid_ags_1a_path, valid_ags_1b_path):
     """Integration: Test multiple files from same PROJ_ID merge into single DownholeCollection."""
     result = asyncio.run(
-        convert_ags(filepaths=[valid_ags_1a_path, valid_ags_1b_path], evo_workspace_metadata=evo_metadata)
+        convert_ags(
+            filepaths=[valid_ags_1a_path, valid_ags_1b_path], evo_workspace_metadata=evo_metadata, publish_objects=False
+        )
     )
 
     # Should create one merged DownholeCollection object
@@ -130,7 +146,7 @@ def test_convert_ags_with_multiple_files_same_project(evo_metadata, valid_ags_1a
     # Verify tags
     assert downhole_collection.tags is not None
     assert downhole_collection.tags["InputType"] == "AGS"
-    assert downhole_collection.tags["Source"] == "AGS files (via Evo Data Converters)"
+    assert downhole_collection.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
 
     # Verify CRS was set
     assert downhole_collection.coordinate_reference_system is not None
@@ -141,7 +157,9 @@ def test_convert_ags_with_mixed_projects(evo_metadata, valid_ags_1a_path, valid_
     """Integration: Test mixed PROJ_IDs merge same projects and separates different ones."""
     result = asyncio.run(
         convert_ags(
-            filepaths=[valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path], evo_workspace_metadata=evo_metadata
+            filepaths=[valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path],
+            evo_workspace_metadata=evo_metadata,
+            publish_objects=False,
         )
     )
 
@@ -159,5 +177,5 @@ def test_convert_ags_with_mixed_projects(evo_metadata, valid_ags_1a_path, valid_
 
 def test_convert_ags_with_empty_file_list(evo_metadata):
     """Integration: Test empty file list handled gracefully."""
-    result = asyncio.run(convert_ags(filepaths=[], evo_workspace_metadata=evo_metadata))
+    result = asyncio.run(convert_ags(filepaths=[], evo_workspace_metadata=evo_metadata, publish_objects=False))
     assert result == []

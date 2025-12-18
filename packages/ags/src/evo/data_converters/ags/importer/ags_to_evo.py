@@ -22,7 +22,9 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
 )
+from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError
 from evo.data_converters.common.objects import DownholeCollection, DownholeCollectionToGeoscienceObject
+from evo.data_converters.common.utils import get_object_tags
 from evo.objects.data import ObjectMetadata
 
 from .ags_to_downhole_collection import create_from_parsed_ags
@@ -40,6 +42,7 @@ async def convert_ags(
     service_manager_widget: "ServiceManagerWidget | None" = None,
     tags: dict[str, str] | None = None,
     upload_path: str = "",
+    publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
 ) -> list[DownholeCollection_V1_3_1] | list[ObjectMetadata]:
     """Converts one or more AGS files into a list of Downhole Collection Geoscience Objects.
@@ -56,23 +59,23 @@ async def convert_ags(
     :param service_manager_widget: Service Manager Widget for use in jupyter notebooks (optional).
     :param tags: Dict of tags to add to the Geoscience Object(s) (optional).
     :param upload_path: Path objects will be published under (optional).
+    :param publish_objects: Set False to return rather than publish objects (optional, default True).
     :param overwrite_existing_objects: Whether existing objects will be overwritten with a new version
         (optional, default False).
     :return: The converted Downhole Collection object, or metadata of the published object if published.
     :rtype: DownholeCollection_V1_3_1 | ObjectMetadata
     :raises MissingConnectionDetailsError: If no connection details could be derived.
     :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget
-        were provided.
+        were provided, or if evo_workspace_metadata was provided without hub_url when publishing.
     """
-    publish_objects = True
-
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
         service_manager_widget=service_manager_widget,
     )
-    if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
-        logger.debug("Publishing will be skipped due to missing hub_url.")
-        publish_objects = False
+    if publish_objects and evo_workspace_metadata and not evo_workspace_metadata.hub_url:
+        raise ConflictingConnectionDetailsError(
+            "evo_workspace_metadata provided without hub_url, cannot publish objects."
+        )
 
     try:
         ags_contexts: list[AgsContext] = list(parse_ags_files(filepaths).values())
@@ -80,15 +83,9 @@ async def convert_ags(
         logger.error("Failed to parse AGS file(s): %s", e)
         return []
 
-    default_tags: dict[str, str] = {
-        "Source": "AGS files (via Evo Data Converters)",
-        "Stage": "Experimental",
-        "InputType": "AGS",
-    }
-    merged_tags: dict[str, str] = {**default_tags, **(tags or {})}
-
     downhole_collections: list[DownholeCollection] = [
-        create_from_parsed_ags(context, merged_tags) for context in ags_contexts
+        create_from_parsed_ags(context, get_object_tags(path=context.filename, input_type="AGS", extra_tags=tags or {}))
+        for context in ags_contexts
     ]
 
     object_metadata: None | list[ObjectMetadata] = None
