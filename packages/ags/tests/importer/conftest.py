@@ -128,6 +128,18 @@ def test_timedelta_ags_path():
     return str((Path(__file__).parent / "data" / "test_timedelta.ags").resolve())
 
 
+@pytest.fixture(scope="session")
+def test_coordinate_columns_ags_path():
+    """Path to an AGS file for testing coordinate column handling."""
+    return str((Path(__file__).parent / "data" / "test_coordinate_columns.ags").resolve())
+
+
+@pytest.fixture(scope="session")
+def test_no_coordinates_ags_path():
+    """Path to an AGS file with no coordinate values."""
+    return str((Path(__file__).parent / "data" / "test_no_coordinates.ags").resolve())
+
+
 @pytest.fixture
 def mock_ags_context():
     """Create a mock AgsContext with sample data."""
@@ -185,15 +197,6 @@ def mock_ags_context():
         }
     )
 
-    scdg_df = pd.DataFrame(
-        {
-            "LOCA_ID": ["BH01", "BH03"],
-            "SCPG_TESN": ["T01", "T01"],
-            "SCDG_DPTH": [7.5, 11.0],
-            "SCDG_T": [100, 150],
-        }
-    )
-
     def get_table_side_effect(table_name):
         if table_name == "LOCA":
             return loca_df.copy()
@@ -205,8 +208,6 @@ def mock_ags_context():
             return scpp_df.copy()
         elif table_name == "GEOL":
             return geol_df.copy()
-        elif table_name == "SCDG":
-            return scdg_df.copy()
         return pd.DataFrame()
 
     def get_tables_side_effect(groups=None):
@@ -218,8 +219,6 @@ def mock_ags_context():
                 tables.append(scpp_df.copy())
             if "GEOL" in groups:
                 tables.append(geol_df.copy())
-            if "SCDG" in groups:
-                tables.append(scdg_df.copy())
         return tables
 
     context.get_table.side_effect = get_table_side_effect

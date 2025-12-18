@@ -29,7 +29,7 @@ def create_from_parsed_ags(
     For hole collars, we need information from the SCPG table as well as the LOCA details of the SCPG row.
     Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
 
-    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL, SCDG) and assigns hole_index.
+    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL) and assigns hole_index.
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param tags: Optional dict of tags to add to the DownholeCollection.
@@ -91,9 +91,6 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
 
     Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
 
-    .. todo::
-       Use Z when possible (from CRS?)
-
     :param ags_context: The context containing the AGS file as dataframes.
     :return: A HoleCollars object
     """
@@ -117,9 +114,23 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
     collars_df["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
 
-    # Rename coordinates and set z
-    collars_df = collars_df.rename(columns={"LOCA_NATE": "x", "LOCA_NATN": "y"})
-    collars_df["z"] = 0.0
+    # Find coordinate columns with valid data
+    for target_col, source_cols in AgsContext.COORDINATE_COLUMN_PRIORITY:
+        assigned = False
+        for source_col in source_cols:
+            if source_col in collars_df.columns:
+                temp_col = pd.to_numeric(collars_df[source_col], errors="coerce")
+                # Check if we have any non-null values to select this column
+                if temp_col.notna().any():
+                    collars_df[target_col] = temp_col
+                    assigned = True
+                    break
+
+        if not assigned:
+            logger.warning(f"No valid {target_col} coordinate data found in LOCA table, defaulting to 0.0")
+            collars_df[target_col] = 0.0
+        else:
+            collars_df[target_col] = collars_df[target_col].fillna(0.0)
 
     # Ensure final_depth is float dtype even if NaN
     collars_df["final_depth"] = pd.to_numeric(collars_df["final_depth"], errors="coerce").astype(float)

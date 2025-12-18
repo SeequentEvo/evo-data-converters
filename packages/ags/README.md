@@ -59,8 +59,8 @@ This converter currently supports **Cone Penetration Test (CPT) data** and conve
 **Optional Groups (imported if present):**
 - `SCPP` - Static Cone Penetration Tests - Derived Parameters
 - `GEOL` - Field Geological Descriptions
-- `SCDG` - Static Cone Dissipation Tests - General
-  - NOTE: SCDT (Static Cone Dissipation Tests - Data) is not imported, as this is time-series data. General dissipation information is present in SCDG.
+
+Any additional groups will be discarded.
 
 ## Usage
 
