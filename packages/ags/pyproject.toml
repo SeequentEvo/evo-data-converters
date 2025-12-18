@@ -9,7 +9,7 @@ authors = [
     { name = "Seequent", email = "support@seequent.com" }
 ]
 dependencies = [
-    "evo-data-converters-common",
+    "evo-data-converters-common>=0.3.1",
     "python-ags4==1.1.0",
 ]
 classifiers = [
