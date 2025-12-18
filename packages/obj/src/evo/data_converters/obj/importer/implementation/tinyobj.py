@@ -71,9 +71,9 @@ class TinyobjObjImporter(ObjImporterBase):
         indices_tables = []
         parts_tables = []
         for shape in shapes:
-            # This is gross because of struct packing, see index_t
+            # This is a workaround for a struct packing issue, see index_t for details
             # index_t is vertex_index, normal_index, texcoord_index
-            # we extract only vertex_index, then we group them back into triangles of 3
+            # we extract only vertex_index, then we group them back into triples of vertices
             faces_array = shape.mesh.numpy_indices().reshape(-1, 3)[:, 0].reshape(-1, 3)
             index_table = pa.Table.from_pydict(
                 {"n0": faces_array[:, 0], "n1": faces_array[:, 1], "n2": faces_array[:, 2]}, schema=INDICES_SCHEMA
