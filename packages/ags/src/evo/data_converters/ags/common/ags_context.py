@@ -9,15 +9,19 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from functools import cached_property
 from io import StringIO
 from pathlib import Path
-import evo.logging
+
 import pandas as pd
-from .pandas_utils import coerce_to_object_int
 from pyproj import CRS
 from pyproj.exceptions import CRSError
 from python_ags4 import AGS4
-from functools import cached_property
+
+import evo.logging
+from evo.data_converters.common.objects.downhole_collection.column_mapping import ColumnMapping
+
+from .pandas_utils import coerce_to_object_int
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -162,6 +166,15 @@ class AgsContext:
             if parts:
                 return " - ".join(parts)
         raise ValueError("Filename not available and PROJ_NAME/PROJ_ID not found in PROJ table")
+
+    @property
+    def column_mapping(self) -> ColumnMapping:
+        """Gets the default column mapping for downhole collections."""
+        return ColumnMapping(
+            DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
+            FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
+            TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
+        )
 
     def parse_ags(self, filepath: Path | str | StringIO) -> None:
         """Parses an AGS file to dataframes for each table.

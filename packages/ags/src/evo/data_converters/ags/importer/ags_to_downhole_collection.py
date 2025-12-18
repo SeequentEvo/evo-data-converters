@@ -14,11 +14,7 @@ import pandas as pd
 
 import evo.logging
 from evo.data_converters.ags.common import AgsContext
-from evo.data_converters.common.objects.downhole_collection import (
-    ColumnMapping,
-    DownholeCollection,
-    HoleCollars,
-)
+from evo.data_converters.common.objects.downhole_collection import DownholeCollection, HoleCollars
 from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
 
 logger = evo.logging.getLogger("data_converters")
@@ -72,11 +68,7 @@ def create_from_parsed_ags(
         measurements=measurements,
         coordinate_reference_system=ags_context.coordinate_reference_system or "unspecified",
         tags=tags,
-        column_mapping=ColumnMapping(
-            DEPTH_COLUMNS=["SCPT_DPTH"],
-            FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
-            TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
-        ),
+        column_mapping=ags_context.column_mapping,
     )
 
     # If HORN data present, calculate dip and azimuth for the first distance table.
