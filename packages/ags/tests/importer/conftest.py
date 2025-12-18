@@ -17,6 +17,7 @@ import pandas as pd
 import pytest
 
 from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common.ags_context import GEOL, LOCA, SCPG, SCPP, SCPT
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.common.objects.downhole_collection.column_mapping import ColumnMapping
 
@@ -198,26 +199,26 @@ def mock_ags_context():
     )
 
     def get_table_side_effect(table_name):
-        if table_name == "LOCA":
+        if table_name == LOCA:
             return loca_df.copy()
-        elif table_name == "SCPT":
+        elif table_name == SCPT:
             return scpt_df.copy()
-        elif table_name == "SCPG":
+        elif table_name == SCPG:
             return scpg_df.copy()
-        elif table_name == "SCPP":
+        elif table_name == SCPP:
             return scpp_df.copy()
-        elif table_name == "GEOL":
+        elif table_name == GEOL:
             return geol_df.copy()
         return pd.DataFrame()
 
     def get_tables_side_effect(groups=None):
         tables = []
         if groups:
-            if "SCPT" in groups:
+            if SCPT in groups:
                 tables.append(scpt_df.copy())
-            if "SCPP" in groups:
+            if SCPP in groups:
                 tables.append(scpp_df.copy())
-            if "GEOL" in groups:
+            if GEOL in groups:
                 tables.append(geol_df.copy())
         return tables
 

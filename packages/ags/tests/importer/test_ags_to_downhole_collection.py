@@ -12,6 +12,7 @@
 import pandas as pd
 
 from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common.ags_context import HORN, SCPT
 from evo.data_converters.ags.importer.ags_to_downhole_collection import (
     calculate_dip_and_azimuth,
     create_from_parsed_ags,
@@ -224,7 +225,7 @@ class TestCreateFromParsedAgsMeasurements:
         original_get_table = mock_ags_context.get_table.side_effect
 
         def empty_scpt_get_table(table_name):
-            if table_name == "SCPT":
+            if table_name == SCPT:
                 return pd.DataFrame(columns=["LOCA_ID", "SCPG_TESN", "SCPT_DPTH"])
             return original_get_table(table_name)
 
@@ -354,7 +355,7 @@ class TestCreateDownholeCollectionWithHornTable:
         original_get_table = mock_ags_context.get_table.side_effect
 
         def with_horn_get_table(table_name):
-            if table_name == "HORN":
+            if table_name == HORN:
                 return horn_df
             return original_get_table(table_name)
 

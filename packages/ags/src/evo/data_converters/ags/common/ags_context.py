@@ -25,6 +25,16 @@ from .pandas_utils import coerce_to_object_int
 
 logger = evo.logging.getLogger("data_converters")
 
+# AGS group name constants
+LOCA = "LOCA"
+SCPG = "SCPG"
+SCPT = "SCPT"
+SCPP = "SCPP"
+GEOL = "GEOL"
+PROJ = "PROJ"
+UNIT = "UNIT"
+HORN = "HORN"
+
 
 class AgsFileInvalidException(Exception):
     """Raised when an AGS file is invalid.
@@ -82,9 +92,9 @@ class AgsContext:
     _headings: dict[str, list[str]]
     _filename: str | None
 
-    REQUIRED_GROUPS: tuple[str, ...] = ("LOCA", "SCPG", "SCPT")
-    RETAINED_GROUPS: tuple[str, ...] = ("PROJ", "UNIT", "HORN")
-    MEASUREMENT_GROUPS: tuple[str, ...] = ("SCPT", "SCPP", "GEOL")
+    REQUIRED_GROUPS: tuple[str, ...] = (LOCA, SCPG, SCPT)
+    RETAINED_GROUPS: tuple[str, ...] = (PROJ, UNIT, HORN)
+    MEASUREMENT_GROUPS: tuple[str, ...] = (SCPT, SCPP, GEOL)
 
     IGNORED_RULES: tuple[str, ...] = (
         # 2a: Each line should be terminated by CR and LF characters
@@ -158,8 +168,8 @@ class AgsContext:
         """
         if self._filename is not None:
             return self._filename
-        elif "PROJ" in self._tables:
-            row = self._tables["PROJ"].iloc[0]
+        elif PROJ in self._tables:
+            row = self._tables[PROJ].iloc[0]
             name = row.get("PROJ_NAME")
             proj_id = row.get("PROJ_ID")
             parts = [str(p).strip() for p in (name, proj_id) if isinstance(p, str) and p.strip()]
@@ -365,7 +375,7 @@ class AgsContext:
         :raises ValueError: if PROJ_ID is not found
         """
         try:
-            proj_id = self.get_table("PROJ").at[0, "PROJ_ID"]
+            proj_id = self.get_table(PROJ).at[0, "PROJ_ID"]
             return str(proj_id)
         except (KeyError, ValueError):
             raise ValueError("PROJ_ID not found in PROJ table")
@@ -439,7 +449,7 @@ class AgsContext:
             CRS is locally defined, an integer if we found the projected CRS.
         """
         try:
-            gref = self.get_table("LOCA").at[0, "LOCA_GREF"]
+            gref = self.get_table(LOCA).at[0, "LOCA_GREF"]
             gref = str(gref).upper().strip()
         except (KeyError, ValueError):
             return None
@@ -466,7 +476,7 @@ class AgsContext:
         :returns: None if we can't determine a CRS, or the epsg code if we found the geographic CRS.
         """
         try:
-            llz = self.get_table("LOCA").at[0, "LOCA_LLZ"]
+            llz = self.get_table(LOCA).at[0, "LOCA_LLZ"]
             llz = str(llz).upper().strip()
         except (KeyError, ValueError):
             return None
@@ -566,8 +576,8 @@ class AgsContext:
 
         :param other: The AgsContext to merge LOCA table from
         """
-        self_loca = self.get_table("LOCA")
-        other_loca = other.get_table("LOCA").copy()
+        self_loca = self.get_table(LOCA)
+        other_loca = other.get_table(LOCA).copy()
 
         # Concatenate and remove duplicates, keeping first occurrence (from self)
         merged_loca = pd.concat([self_loca, other_loca], ignore_index=True)
@@ -583,11 +593,11 @@ class AgsContext:
             )
 
         merged_loca = merged_loca.drop_duplicates(subset=["LOCA_ID"], keep="first", ignore_index=True)
-        self.set_table("LOCA", merged_loca)
+        self.set_table(LOCA, merged_loca)
 
         # Merge headings (union of both)
-        merged_headings = list(dict.fromkeys(self.get_headings("LOCA") + other.get_headings("LOCA")))
-        self.set_heading("LOCA", merged_headings)
+        merged_headings = list(dict.fromkeys(self.get_headings(LOCA) + other.get_headings(LOCA)))
+        self.set_heading(LOCA, merged_headings)
 
     def _merge_scpg(self, other: "AgsContext") -> None:
         """Merge SCPG tables from another AgsContext into this one.
@@ -597,8 +607,8 @@ class AgsContext:
 
         :param other: The AgsContext to merge SCPG table from
         """
-        self_scpg = self.get_table("SCPG")
-        other_scpg = other.get_table("SCPG").copy()
+        self_scpg = self.get_table(SCPG)
+        other_scpg = other.get_table(SCPG).copy()
 
         # Concatenate and remove duplicates, keeping first occurrence (from self)
         merged_scpg = pd.concat([self_scpg, other_scpg], ignore_index=True)
@@ -612,11 +622,11 @@ class AgsContext:
             )
 
         merged_scpg = merged_scpg.drop_duplicates(subset=["LOCA_ID", "SCPG_TESN"], keep="first", ignore_index=True)
-        self.set_table("SCPG", merged_scpg)
+        self.set_table(SCPG, merged_scpg)
 
         # Merge headings
-        merged_headings = list(dict.fromkeys(self.get_headings("SCPG") + other.get_headings("SCPG")))
-        self.set_heading("SCPG", merged_headings)
+        merged_headings = list(dict.fromkeys(self.get_headings(SCPG) + other.get_headings(SCPG)))
+        self.set_heading(SCPG, merged_headings)
 
     def _merge_measurement_table(self, group: str, other: "AgsContext") -> None:
         """Merge a measurement table from another AgsContext into this one.

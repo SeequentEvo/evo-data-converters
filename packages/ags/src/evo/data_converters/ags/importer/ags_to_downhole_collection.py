@@ -14,6 +14,7 @@ import pandas as pd
 
 import evo.logging
 from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common.ags_context import HORN, LOCA, SCPG, SCPT
 from evo.data_converters.common.objects.downhole_collection import DownholeCollection, HoleCollars
 from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
 
@@ -73,7 +74,7 @@ def create_from_parsed_ags(
 
     # If HORN data present, calculate dip and azimuth for the first distance table.
     # Only the first distance table is used when building the hole path geometry.
-    horn_df = ags_context.get_table("HORN")
+    horn_df = ags_context.get_table(HORN)
     if horn_df is not None and not horn_df.empty:
         for mt in downhole_collection.measurements:
             if isinstance(mt, DistanceTable):
@@ -94,9 +95,9 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
     :param ags_context: The context containing the AGS file as dataframes.
     :return: A HoleCollars object
     """
-    loca_df: pd.DataFrame = ags_context.get_table("LOCA").copy()
-    scpg_df: pd.DataFrame = ags_context.get_table("SCPG").copy()
-    scpt_df: pd.DataFrame = ags_context.get_table("SCPT").copy()
+    loca_df: pd.DataFrame = ags_context.get_table(LOCA).copy()
+    scpg_df: pd.DataFrame = ags_context.get_table(SCPG).copy()
+    scpt_df: pd.DataFrame = ags_context.get_table(SCPT).copy()
 
     # One row per (LOCA_ID, SCPG_TESN): take SCPG (which carries both keys) and add entire LOCA
     collars_df: pd.DataFrame = scpg_df.merge(loca_df, on="LOCA_ID", how="left")
