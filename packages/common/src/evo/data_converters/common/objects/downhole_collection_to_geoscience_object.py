@@ -76,7 +76,7 @@ from pint_pandas import PintType
 
 import evo.logging
 from evo.data_converters.common.crs import crs_from_any
-from evo.data_converters.common.objects.attributes import AttributeFactory
+from evo.data_converters.common.objects.attributes import create_attribute
 from evo.data_converters.common.objects.downhole_collection.tables import MeasurementTable
 from evo.data_converters.common.objects.units import UnitMapper
 from evo.objects.utils.data import ObjectDataClient
@@ -208,7 +208,7 @@ class DownholeCollectionToGeoscienceObject:
         """
         attributes: OneOfAttribute = []
         for attribute_name in self.dhc.collars.get_attribute_column_names():
-            attribute = AttributeFactory.create(
+            attribute = create_attribute(
                 name=attribute_name,
                 series=self.dhc.collars.df[attribute_name],
                 client=self.data_client,
@@ -365,7 +365,7 @@ class DownholeCollectionToGeoscienceObject:
             series = mt.df[attribute_name]
             if mt.get_nan_values(attribute_name):
                 series.attrs["nan_values"] = mt.get_nan_values(attribute_name)
-            attribute = AttributeFactory.create(
+            attribute = create_attribute(
                 name=attribute_name,
                 series=series,
                 client=self.data_client,

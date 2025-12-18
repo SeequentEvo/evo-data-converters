@@ -40,6 +40,7 @@ def convert_gef(
     name: str | None = None,
     tags: dict[str, str] | None = None,
     upload_path: str = "",
+    publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
 ) -> DownholeCollection | list[ObjectMetadata] | None:
     """Converts a collection of GEF-CPT files into a Downhole Collection Geoscience Object.
@@ -57,6 +58,7 @@ def convert_gef(
     :param name (Optional) Name for DownholeCollection, auto-generated from hole IDs if not provided.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object.
     :param upload_path: (Optional) Path object will be published under.
+    :publish_objects: (Optional) Set False to return rather than publish objects.
     :param overwrite_existing_objects: (Optional) Whether existing objects will be overwritten with a new version.
 
     :return: Geoscience Object or ObjectMetadata if published.
@@ -64,14 +66,13 @@ def convert_gef(
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
-    publish_object = True
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing will be skipped due to missing hub_url.")
-        publish_object = False
+        publish_objects = False
 
     gef_cpt_data = parse_gef_files(filepaths)
     downhole_collection = create_from_parsed_gef_cpts(gef_cpt_data, name=name)
@@ -92,7 +93,7 @@ def convert_gef(
             geoscience_object.tags.update(tags)
 
     object_metadata = None
-    if publish_object:
+    if publish_objects:
         logger.debug("Publishing Geoscience Object")
         object_metadata = publish_geoscience_objects_sync(
             [geoscience_object], object_service_client, data_client, upload_path, overwrite_existing_objects
