@@ -97,16 +97,15 @@ Then call `convert_duf`, passing it the DUF file path, EPSG code, the workspace 
 tags, optionally the flag `combine_objects_in_layers`, and finally a path you want the published objects to appear under
 in your workspace.
 
-See [the convert-duf sample notebook](https://github.com/seequentevo/evo-data-converters/blob/main/packages/duf/samples/convert-duf/convert-duf.ipynb)
+See [the convert-duf sample notebook](https://github.com/seequentevo/evo-data-converters/blob/main/packages/duf/code-samples/convert-duf/convert-duf.ipynb)
 for a complete example.
 
 **Note:** Some geometry types are not yet supported. A warning will be shown for each element that could not be
-converted. Currently, for publishing we support polyface objects and polylines, and all attribute types except for colour
-attributes.
+converted. Currently, for publishing we support polyface objects and polylines, and all attribute types except for colour attributes.
 
 ### Export objects to DUF
 
-To do.
+To do. Please check back later.
 
 ## Code of conduct
 
