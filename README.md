@@ -84,20 +84,20 @@ uv run jupyter notebook
 
 It should open a browser where you can open the notebooks for the current directory.
 
-## Getting started with Evo data converters samples
+## Getting started with Evo data converters code samples
 
-For examples of how to use Evo data converters, please refer to the samples in each convertor of the `packages` directory.
+For examples of how to use Evo data converters, please refer to the code samples in each convertor of the `packages` directory.
 
-   * [DUF](packages/duf/samples)
-   * [GOCAD](packages/gocad/samples)
-   * [OMF](packages/omf/samples)
-   * [RESQML](packages/resqml/samples)
-   * [UBC](packages/ubc/samples)
-   * [VTK](packages/vtk/samples)
+   * [DUF](packages/duf/code-samples)
+   * [GOCAD](packages/gocad/code-samples)
+   * [OMF](packages/omf/code-samples)
+   * [RESQML](packages/resqml/code-samples)
+   * [UBC](packages/ubc/code-samples)
+   * [VTK](packages/vtk/code-samples)
 
 ## Code samples
 
-The `code-samples` folder contains two DUF conversion examples:
+The `code-samples` folder contains more advanced examples of what can be built using Evo data converters:
 
 - **code-samples/duf-automated-conversion**: Automated, script-driven DUF conversion and publishing workflow. Includes a Windows batch launcher (convert_duf.bat), a Python publisher (publish_to_evo.py), setup notes (docs/SETUP.md), and sample DUF files under example-data. See the sample’s README for details.
 - **code-samples/duf-jupyter-conversion**: Jupyter notebook–based DUF conversion walkthrough. Includes the notebook (convert_duf.ipynb), helper modules (helpers/), a getting-started launcher (start-here.bat), and sample DUF files under example-data.
