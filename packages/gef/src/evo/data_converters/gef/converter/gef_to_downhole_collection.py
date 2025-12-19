@@ -55,6 +55,46 @@ class DownholeCollectionBuilder:
         "final_depth": "float64",
     }
 
+    #
+    COLLAR_ATTRIBUTES: list[str] = [
+        "research_report_date",
+        "cpt_standard",
+        "standardized_location",
+        "dissipationtest_performed",
+        "quality_class",
+        "predrilled_depth",
+        "groundwater_level",
+        "cpt_description",
+        "cpt_type",
+        "cone_surface_area",
+        "cone_diameter",
+        "cone_surface_quotient",
+        "cone_to_friction_sleeve_distance",
+        "cone_to_friction_sleeve_surface_area",
+        "cone_to_friction_sleeve_surface_quotient",
+        "zlm_cone_resistance_before",
+        "zlm_cone_resistance_after",
+        "zlm_inclination_ew_before",
+        "zlm_inclination_ew_after",
+        "zlm_inclination_ns_before",
+        "zlm_inclination_ns_after",
+        "zlm_inclination_resultant_before",
+        "zlm_inclination_resultant_after",
+        "zlm_local_friction_before",
+        "zlm_local_friction_after",
+        "zlm_pore_pressure_u1_before",
+        "zlm_pore_pressure_u2_before",
+        "zlm_pore_pressure_u3_before",
+        "zlm_pore_pressure_u1_after",
+        "zlm_pore_pressure_u2_after",
+        "zlm_pore_pressure_u3_after",
+        "delivered_vertical_position_offset",
+        "delivered_vertical_position_reference_point",
+        "groundwater_level_offset",
+        "predrilled_depth_offset",
+        "final_depth_offset",
+    ]
+
     def __init__(self) -> None:
         self.epsg_code: int | str | None = None
         self.collar_rows: list[dict[str, typing.Any]] = []
@@ -210,7 +250,7 @@ class DownholeCollectionBuilder:
         filtered_hash: dict[str, typing.Any] = {
             k: v
             for k, v in vars(cpt_data).items()
-            if k not in self.COLLAR_EXCLUDE_KEYS and not k.startswith("_") and not (v is None or v == [] or v == {})
+            if k in self.COLLAR_ATTRIBUTES and not (v is None or v == [] or v == {})
         }
         return filtered_hash
 

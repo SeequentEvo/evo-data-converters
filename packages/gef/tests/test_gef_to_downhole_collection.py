@@ -47,11 +47,12 @@ def mock_cpt_data() -> Mock:
             "final_depth",
             "data",
             "column_void_mapping",
-            "report_date",
             "engineer",
             "wind_speed",
-            "signed_off",
             "raw_headers",
+            "groundwater_level_offset",
+            "predrilled_depth_offset",
+            "final_depth_offset",
         ]
     )
 
@@ -88,10 +89,10 @@ def mock_cpt_data() -> Mock:
         ],
     }
 
-    mock.report_date = datetime(year=2020, month=10, day=20)
     mock.engineer = "Bob"
     mock.wind_speed = 12.2
-    mock.signed_off = False
+    mock.predrilled_depth_offset = 1500
+    mock.final_depth_offset = 4596
 
     return mock
 
@@ -106,11 +107,12 @@ def mock_cpt_data_2() -> Mock:
             "final_depth",
             "data",
             "column_void_mapping",
-            "report_date",
             "engineer",
             "wind_speed",
-            "signed_off",
             "raw_headers",
+            "groundwater_level_offset",
+            "predrilled_depth_offset",
+            "final_depth_offset",
         ]
     )
 
@@ -145,10 +147,10 @@ def mock_cpt_data_2() -> Mock:
         ],
     }
 
-    mock.report_date = datetime(year=2020, month=10, day=20)
     mock.engineer = "Bob"
     mock.wind_speed = 17.0
-    mock.signed_off = True
+    mock.predrilled_depth_offset = 1700
+    mock.final_depth_offset = 7596
 
     return mock
 
@@ -163,11 +165,10 @@ def mock_cpt_data_3() -> Mock:
             "final_depth",
             "data",
             "column_void_mapping",
-            "report_date",
-            "engineer",
             "wind_speed",
-            "cone_size",
             "raw_headers",
+            "groundwater_level_offset",
+            "predrilled_depth_offset",
         ]
     )
 
@@ -195,10 +196,10 @@ def mock_cpt_data_3() -> Mock:
 
     mock.raw_headers = {}
 
-    mock.report_date = datetime(year=2020, month=10, day=21)
     mock.engineer = "Sally"
     mock.wind_speed = 15.0
-    mock.cone_size = 3.14
+    mock.predrilled_depth_offset = 1245
+    mock.groundwater_level_offset = 400
 
     return mock
 
@@ -213,11 +214,10 @@ def mock_cpt_data_4() -> Mock:
             "final_depth",
             "data",
             "column_void_mapping",
-            "report_date",
             "engineer",
             "wind_speed",
-            "signed_off",
             "raw_headers",
+            "predrilled_depth_offset",
         ]
     )
 
@@ -261,7 +261,7 @@ def mock_cpt_data_4() -> Mock:
     mock.report_date = datetime(year=2020, month=10, day=20)
     mock.engineer = "Bob"
     mock.wind_speed = 12.2
-    mock.signed_off = False
+    mock.predrilled_depth_offset = 2452
 
     return mock
 
@@ -430,13 +430,19 @@ class TestGetCollarAttributes:
         assert "column_void_mapping" not in attributes
         assert "raw_headers" not in attributes
 
+    def test_filters_unknown_attributes(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
+        attributes = builder._get_collar_attributes(mock_cpt_data)
+
+        assert "engineer" not in attributes
+        assert "wind_speed" not in attributes
+
     def test_returns_valid_attributes(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
         attributes = builder._get_collar_attributes(mock_cpt_data)
 
-        assert attributes["engineer"] == "Bob"
-        assert attributes["wind_speed"] == 12.2
-        assert attributes["signed_off"] is False
-        assert attributes["report_date"] == datetime(2020, 10, 20)
+        assert "engineer" not in attributes
+        assert "wind_speed" not in attributes
+        assert attributes["predrilled_depth_offset"] == 1500
+        assert attributes["final_depth_offset"] == 4596
 
     def test_filters_none_and_empty_values(self, builder: DownholeCollectionBuilder) -> None:
         mock_cpt = Mock()
@@ -445,14 +451,17 @@ class TestGetCollarAttributes:
         mock_cpt.empty_list = []
         mock_cpt.empty_dict = {}
         mock_cpt.none_value = None
-        mock_cpt.valid_value = "test"
+        mock_cpt.cpt_standard = []
+        mock_cpt.standardized_location = {}
+        mock_cpt.dissipationtest_performed = None
+        mock_cpt.predrilled_depth = 23254
 
         attributes = builder._get_collar_attributes(mock_cpt)
 
-        assert "empty_list" not in attributes
-        assert "empty_dict" not in attributes
-        assert "none_value" not in attributes
-        assert attributes["valid_value"] == "test"
+        assert "cpt_standard" not in attributes
+        assert "standardizied_location" not in attributes
+        assert "dissapationtest_performed" not in attributes
+        assert attributes["predrilled_depth"] == 23254
 
 
 class TestCreateCollarRow:
@@ -471,8 +480,8 @@ class TestCreateCollarRow:
     def test_includes_collar_attributes(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
         collar_row = builder._create_collar_row(1, "CPT-001", mock_cpt_data)
 
-        assert collar_row["engineer"] == "Bob"
-        assert collar_row["wind_speed"] == 12.2
+        assert collar_row["predrilled_depth_offset"] == 1500
+        assert collar_row["final_depth_offset"] == 4596
 
     def test_includes_raw_headers(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
         collar_row = builder._create_collar_row(1, "CPT-001", mock_cpt_data)
@@ -762,15 +771,15 @@ class TestCreateCollarsDataframe:
 
         collars_df = builder._create_collars_dataframe()
 
-        # cone_size only exists in the 3rd cpt file
-        assert pd.isna(collars_df.iloc[0]["cone_size"])
-        assert pd.isna(collars_df.iloc[1]["cone_size"])
-        assert collars_df.iloc[2]["cone_size"] == 3.14
+        # groundwater_level_offset only exists in the 3rd cpt file
+        assert pd.isna(collars_df.iloc[0]["groundwater_level_offset"])
+        assert pd.isna(collars_df.iloc[1]["groundwater_level_offset"])
+        assert collars_df.iloc[2]["groundwater_level_offset"] == 400
 
-        # signed_off appears in the first two cpt files
-        assert not collars_df.iloc[0]["signed_off"]
-        assert collars_df.iloc[1]["signed_off"]
-        assert pd.isna(collars_df.iloc[2]["signed_off"])
+        # final_depth_offset appears in the first two cpt files
+        assert collars_df.iloc[0]["final_depth_offset"]
+        assert collars_df.iloc[1]["final_depth_offset"]
+        assert pd.isna(collars_df.iloc[2]["final_depth_offset"])
 
 
 class TestCreateMeasurementsDataframe:
