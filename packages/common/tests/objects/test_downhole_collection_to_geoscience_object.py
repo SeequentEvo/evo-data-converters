@@ -532,14 +532,14 @@ class TestCollectionDistancesTable:
 
 class TestCollectionStartEndTable:
     def test_creates_table_with_from_to_columns(self, converter_interval, interval_table_mock) -> None:
-        table = converter_interval.collection_start_end_table(interval_table_mock)
+        table = converter_interval.collection_interval_table(interval_table_mock)
 
         assert isinstance(table, pa.Table)
         assert set(table.column_names) == {"from", "to"}
         assert table.num_rows == 5
 
     def test_contains_correct_interval_values(self, converter_interval, interval_table_mock) -> None:
-        table = converter_interval.collection_start_end_table(interval_table_mock)
+        table = converter_interval.collection_interval_table(interval_table_mock)
 
         from_values = table.column("from").to_pylist()
         to_values = table.column("to").to_pylist()
