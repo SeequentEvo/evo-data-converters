@@ -56,12 +56,9 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
         else:
             raise ValueError(f"File '{filepath}' has extension '{ext}', expected .xml or .gef.")
 
-    except FileNotFoundError:
-        raise
-    except ValueError:
-        raise
     except Exception as e:
-        raise RuntimeError(f"Error processing file '{filepath}': {e}") from e
+        logger.error(f"Error processing file '{filepath}': {e}")
+        raise
 
 
 def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, (str, CPTData)]:
@@ -90,12 +87,9 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
                         f"Duplicate ID '{cpt_id}' encountered. Each ID (from CPT 'alias' or 'bro_id') must be unique across all input files."
                     )
                 data[cpt_id] = (filepath, cpt_data)
-        except FileNotFoundError:
-            raise
-        except ValueError:
-            raise
         except Exception as e:
-            raise RuntimeError(f"Error processing file '{filepath}': {e}") from e
+            logger.error(f"Error processing file '{filepath}': {e}")
+            raise
 
     logger.info(f"Parsed {len(data)} CPT files from {len(filepaths)} input files.")
     return data
