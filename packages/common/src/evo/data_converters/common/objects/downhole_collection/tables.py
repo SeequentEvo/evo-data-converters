@@ -155,7 +155,7 @@ class MeasurementTable(ABC):
         dip_column: str | None = self._find_column(self.mapping.DIP_COLUMNS)
 
         if not dip_column:
-            logger.info("Dip information missing, assuming vertical downhole")
+            logger.debug("Dip information missing, assuming vertical downhole")
             return pd.Series(DEFAULT_DIP, index=range(len(self.df)), dtype="float64")
 
         return self.df[dip_column]
@@ -164,7 +164,7 @@ class MeasurementTable(ABC):
         azimuth_column = self._find_column(self.mapping.AZIMUTH_COLUMNS)
 
         if not azimuth_column:
-            logger.info("Azimuth information missing, assuming no bearing")
+            logger.debug("Azimuth information missing, assuming no bearing")
             return pd.Series(DEFAULT_AZIMUTH, index=range(len(self.df)), dtype="float64")
 
         return self.df[azimuth_column]
