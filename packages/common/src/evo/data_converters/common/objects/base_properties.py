@@ -13,7 +13,7 @@ import typing
 from abc import ABC
 
 
-class BaseObjectProperties(ABC):
+class BaseGeologicalDataProperties(ABC):
     """Abstract base class for common object properties"""
 
     def __init__(
@@ -41,11 +41,11 @@ class BaseObjectProperties(ABC):
         self.tags: dict[str, str] | None = tags
 
 
-class BaseSpatialDataProperties(BaseObjectProperties):
+class BaseSpatialDataProperties(BaseGeologicalDataProperties):
     """
     Abstract base class for spatial data properties.
 
-    Extends BaseObjectProperties with spatial data capabilities, including
+    Extends BaseGeologicalDataProperties with spatial data capabilities, including
     coordinate reference system support and bounding box functionality.
     """
 
