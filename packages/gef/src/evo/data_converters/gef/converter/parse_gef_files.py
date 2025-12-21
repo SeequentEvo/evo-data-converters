@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import sys
 from pathlib import Path
 
 from pygef import read_cpt
@@ -74,6 +75,9 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
     :return: Dictionary mapping each CPT file's filename to its CPTData object.
     """
     data: dict[str, CPTData] = {}
+
+    if sys.version_info[:2] == (3, 10):
+        logger.warning("Python 3.10 detected. Additional GEF header information will not be parsed.")
 
     for filepath in filepaths:
         try:
