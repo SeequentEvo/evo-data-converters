@@ -99,9 +99,9 @@ class AttributeConfig:
     """
 
     data_type: AttributeType
-    array_class: type
-    attribute_class: type
-    nan_class: type | None = None
+    array_class: FloatArray1 | StringArray | IntegerArray1 | DateTimeArray | BoolArray1
+    attribute_class: OneOfAttribute_Item
+    nan_class: NanContinuous | NanCategorical | None = None
 
 
 CONTINUOUS_CONFIG: AttributeConfig = AttributeConfig(
