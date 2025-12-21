@@ -106,10 +106,9 @@ def check_for_required_columns(cpt_data: CPTData, filepath: str) -> None:
     :raises ValueError: If any required columns are missing.
     """
     required_columns = ["penetrationLength", "coneResistance"]
-    if hasattr(cpt_data, "data"):
-        missing = [col for col in required_columns if col not in cpt_data.data.columns]
-        if missing:
-            raise ValueError(f"File '{filepath}' is missing required columns: {missing}")
+    missing = [col for col in required_columns if col not in cpt_data.data.columns]
+    if missing:
+        raise ValueError(f"File '{filepath}' is missing required columns: {missing}")
 
 
 def get_gef_cpt_id(gef: CPTData) -> str:
