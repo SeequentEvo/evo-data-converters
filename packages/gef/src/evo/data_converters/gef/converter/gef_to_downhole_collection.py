@@ -111,7 +111,6 @@ class DownholeCollectionBuilder:
         :param filepath: Path of the file that was parsed
         """
         self._validate_and_set_epsg(cpt_data, hole_id, filepath)
-        self._validate_location_attributes(cpt_data, hole_id)
 
         collar_row = self._create_collar_row(hole_index, hole_id, cpt_data)
         self.collar_rows.append(collar_row)
@@ -154,11 +153,7 @@ class DownholeCollectionBuilder:
 
         :raises ValueError: If EPSG code is missing or malformed
         """
-        try:
-            srs_name = cpt_data.delivered_location.srs_name
-        except AttributeError:
-            raise ValueError(f"CPT file '{hole_id}' is missing delivered_location.srs_name attribute")
-
+        srs_name = cpt_data.delivered_location.srs_name
         if ":" not in srs_name:
             raise ValueError(f"CPT file '{hole_id}' has malformed SRS name: '{srs_name}'. Expected format: 'urn:123'")
 
@@ -198,20 +193,6 @@ class DownholeCollectionBuilder:
         """
         if self.epsg_code is None:
             raise ValueError("Could not find valid epsg code in CPT files")
-
-    def _validate_location_attributes(self, cpt_data: CPTData, hole_id: str) -> None:
-        """Validate that required x, y location attributes exist.
-
-        :param cpt_data: CPT data object
-        :param hole_id: Hole identifier for error messages
-
-        :raises ValueError: If x or y location attributes are missing
-        """
-        try:
-            _ = cpt_data.delivered_location.x
-            _ = cpt_data.delivered_location.y
-        except AttributeError as e:
-            raise ValueError(f"CPT file '{hole_id}' is missing required location attribute (x or y): {e}")
 
     def _calculate_final_depth(self, cpt_data: CPTData, hole_id: str) -> float:
         """Calculate final depth from CPTData.
