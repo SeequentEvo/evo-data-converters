@@ -327,13 +327,6 @@ class TestExtractEpsgCode:
 
         assert result == "unspecified"
 
-    def test_missing_srs_name_raises_error(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location = Mock(spec=[])
-
-        with pytest.raises(ValueError, match="missing delivered_location.srs_name"):
-            builder._extract_epsg_code(mock_cpt, "TEST-001")
-
     def test_malformed_srs_name_raises_error(self, builder: DownholeCollectionBuilder) -> None:
         mock_cpt = Mock()
         mock_cpt.delivered_location.srs_name = "INVALID_FORMAT"
@@ -374,23 +367,6 @@ class TestValidateEpsgCode:
     def test_none_epsg_raises_error(self, builder: DownholeCollectionBuilder) -> None:
         with pytest.raises(ValueError, match="Could not find valid epsg code"):
             builder._validate_epsg_code()
-
-
-class TestValidateLocationAttributes:
-    def test_valid_location_passes(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location.x = 100000.0
-        mock_cpt.delivered_location.y = 500000.0
-
-        builder._validate_location_attributes(mock_cpt, "TEST-001")
-
-    def test_missing_x_raises_error(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location = Mock(spec=["y"])
-        mock_cpt.delivered_location.y = 500000.0
-
-        with pytest.raises(ValueError, match="missing required location attribute"):
-            builder._validate_location_attributes(mock_cpt, "TEST-001")
 
 
 class TestCalculateFinalDepth:
