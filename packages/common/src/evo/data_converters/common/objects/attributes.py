@@ -300,8 +300,14 @@ def create_table(series: pd.Series, attribute_type: AttributeType) -> pa.Table:
 
     :return: PyArrow table with a single 'data' column of the specified type
     """
-
     data_type = get_data_type(attribute_type)
+
+    try:
+        # Trial conversion: fails if values can't be represented in data_type
+        pa.array(series.to_numpy(), type=data_type, from_pandas=True)
+    except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError, ValueError) as e:
+        raise TypeError(f"Series cannot be converted to Arrow type {data_type} for Series dtype={series.dtype}") from e
+
     schema = pa.schema([("data", data_type)])
     return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
 
