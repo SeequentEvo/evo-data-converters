@@ -252,7 +252,7 @@ class TestGetMeasurementTables:
             ),
         )
 
-        distance_tables = dc.get_measurement_tables(filter=[DistanceTable])
+        distance_tables = dc.get_measurement_tables(filter_to_table_type=[DistanceTable])
 
         assert len(distance_tables) == 1
         assert isinstance(distance_tables[0], DistanceTable)
@@ -270,7 +270,7 @@ class TestGetMeasurementTables:
             ),
         )
 
-        interval_tables = dc.get_measurement_tables(filter=[IntervalTable])
+        interval_tables = dc.get_measurement_tables(filter_to_table_type=[IntervalTable])
 
         assert len(interval_tables) == 1
         assert isinstance(interval_tables[0], IntervalTable)
@@ -288,7 +288,7 @@ class TestGetMeasurementTables:
             ),
         )
 
-        tables = dc.get_measurement_tables(filter=[DistanceTable, IntervalTable])
+        tables = dc.get_measurement_tables(filter_to_table_type=[DistanceTable, IntervalTable])
 
         assert len(tables) == 2
 
@@ -301,7 +301,7 @@ class TestGetMeasurementTables:
             column_mapping=ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]),
         )
 
-        interval_tables = dc.get_measurement_tables(filter=[IntervalTable])
+        interval_tables = dc.get_measurement_tables(filter_to_table_type=[IntervalTable])
 
         assert len(interval_tables) == 0
 
@@ -396,7 +396,7 @@ class TestIntegration:
         )
 
         # Verify measurements
-        tables = dc.get_measurement_tables(filter=[DistanceTable])
+        tables = dc.get_measurement_tables(filter_to_table_type=[DistanceTable])
         assert len(tables) == 1
 
         # Verify bounding box
@@ -418,7 +418,7 @@ class TestIntegration:
         )
 
         # Verify measurements
-        tables = dc.get_measurement_tables(filter=[IntervalTable])
+        tables = dc.get_measurement_tables(filter_to_table_type=[IntervalTable])
         assert len(tables) == 1
 
         # Verify bounding box
@@ -446,8 +446,8 @@ class TestIntegration:
         assert len(all_tables) == 2
 
         # Verify filtered measurements
-        distance_tables = dc.get_measurement_tables(filter=[DistanceTable])
-        interval_tables = dc.get_measurement_tables(filter=[IntervalTable])
+        distance_tables = dc.get_measurement_tables(filter_to_table_type=[DistanceTable])
+        interval_tables = dc.get_measurement_tables(filter_to_table_type=[IntervalTable])
         assert len(distance_tables) == 1
         assert len(interval_tables) == 1
 

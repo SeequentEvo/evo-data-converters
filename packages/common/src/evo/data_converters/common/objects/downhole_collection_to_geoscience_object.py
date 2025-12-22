@@ -201,11 +201,11 @@ class DownholeCollectionToGeoscienceObject:
             path=self.create_dhc_location_path(dt),
         )
 
-    def create_dhc_location_attributes(self) -> OneOfAttribute | None:
+    def create_dhc_location_attributes(self) -> OneOfAttribute:
         """
         Create attribute objects from collar attribute columns.
 
-        :return: List of attribute objects, or None if no attributes exist
+        :return: List of attribute objects, or [] if no attributes exist
         """
         attributes: OneOfAttribute = []
         for attribute_name in self.dhc.collars.get_attribute_column_names():
@@ -216,7 +216,7 @@ class DownholeCollectionToGeoscienceObject:
             )
             if attribute:
                 attributes.append(attribute)
-        return attributes or None
+        return attributes
 
     def create_dhc_location_coordinates(self) -> FloatArray3:
         """
@@ -351,7 +351,7 @@ class DownholeCollectionToGeoscienceObject:
 
         return interval_table_go
 
-    def create_collection_attributes(self, mt: MeasurementTable) -> OneOfAttribute | None:
+    def create_collection_attributes(self, mt: MeasurementTable) -> OneOfAttribute:
         """
         Create attribute objects from measurement table attribute columns.
 
@@ -359,7 +359,7 @@ class DownholeCollectionToGeoscienceObject:
 
         :param mt: Measurement table containing attribute columns
 
-        :return: List of attribute objects, or None if no attributes exist
+        :return: List of attribute objects, or [] if no attributes exist
         """
         attributes: OneOfAttribute = []
         for attribute_name in mt.get_attribute_columns():
@@ -373,7 +373,7 @@ class DownholeCollectionToGeoscienceObject:
             )
             if attribute:
                 attributes.append(attribute)
-        return attributes or None
+        return attributes
 
     def coordinates_table(self) -> pa.Table:
         """
@@ -464,7 +464,7 @@ class DownholeCollectionToGeoscienceObject:
         """
         Create directional path table for downholes.
 
-        Currently assumes all holes are vertical (azimuth=0.0°, dip=90.0°).
+        Holes may deviate along their path. Vertical holes have azimuth=0.0°, dip=90.0°.
         Positive dip indicates downward direction.
         Distance values are taken from the first distance measurement table.
 
@@ -521,7 +521,7 @@ class DownholeCollectionToGeoscienceObject:
 
         :raises ValueError: If no distance measurement tables are found
         """
-        distance_tables = self.dhc.get_measurement_tables(filter=[DistanceMeasurementTable])
+        distance_tables = self.dhc.get_measurement_tables(filter_to_table_type=[DistanceMeasurementTable])
         if len(distance_tables) >= 1 and isinstance(distance_tables[0], DistanceMeasurementTable):
             return distance_tables[0]
         raise ValueError("No distance measurement tables found.")

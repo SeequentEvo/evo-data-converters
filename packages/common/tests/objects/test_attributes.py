@@ -74,7 +74,7 @@ class TestPyArrowTableFactory:
         assert table.field("data").type == pa.string()
 
 
-class TestAttributeCration:
+class TestAttributeCreation:
     """Test evo attribute creation from pandas Series."""
 
     def test_create_continuous_attribute(self, mock_data_client) -> None:
