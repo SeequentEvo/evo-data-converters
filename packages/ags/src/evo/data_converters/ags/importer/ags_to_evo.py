@@ -44,6 +44,7 @@ async def convert_ags(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    merge_files: bool = True,
 ) -> list[DownholeCollection_V1_3_1] | list[ObjectMetadata]:
     """Converts one or more AGS files into a list of Downhole Collection Geoscience Objects.
 
@@ -62,6 +63,8 @@ async def convert_ags(
     :param publish_objects: Set False to return rather than publish objects (optional, default True).
     :param overwrite_existing_objects: Whether existing objects will be overwritten with a new version
         (optional, default False).
+    :param merge_files: Whether to merge files with the same PROJ_ID into a single DownholeCollection
+        (optional, default True). If False, each file will produce a separate DownholeCollection.
     :return: The converted Downhole Collection object, or metadata of the published object if published.
     :rtype: DownholeCollection_V1_3_1 | ObjectMetadata
     :raises MissingConnectionDetailsError: If no connection details could be derived.
@@ -78,7 +81,7 @@ async def convert_ags(
         )
 
     try:
-        ags_contexts: list[AgsContext] = list(parse_ags_files(filepaths).values())
+        ags_contexts: list[AgsContext] = parse_ags_files(filepaths, merge_files=merge_files)
     except (AGS4Error, AgsFileInvalidException) as e:
         logger.error("Failed to parse AGS file(s): %s", e)
         return []

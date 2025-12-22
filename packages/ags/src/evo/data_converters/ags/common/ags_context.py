@@ -181,7 +181,7 @@ class AgsContext:
     def column_mapping(self) -> ColumnMapping:
         """Gets the default column mapping for downhole collections."""
         return ColumnMapping(
-            DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
+            DEPTH_COLUMNS=["SCPT_DPTH"],
             FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
             TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
         )

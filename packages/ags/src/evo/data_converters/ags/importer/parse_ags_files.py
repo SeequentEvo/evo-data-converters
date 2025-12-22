@@ -15,7 +15,7 @@ from evo.data_converters.ags.common.ags_context import AgsContext, AgsFileInvali
 logger = evo.logging.getLogger("data_converters")
 
 
-def parse_ags_files(filepaths: list[str]) -> dict[str, AgsContext]:
+def parse_ags_files(filepaths: list[str], merge_files: bool = True) -> list[AgsContext]:
     """Parse one or more AGS files and group results by PROJ_ID.
 
     Major errors will fail to create a downhole collection,
@@ -26,7 +26,9 @@ def parse_ags_files(filepaths: list[str]) -> dict[str, AgsContext]:
     .. todo:: Parallelise parsing of multiple files if necessary.
 
     :param filepaths: List of paths to AGS files.
-    :return: Mapping of ``PROJ_ID`` to an ``AgsContext`` containing parsed tables.
+    :param merge_files: Whether to merge files with the same PROJ_ID into a single AgsContext
+        (optional, default True).
+    :return: List of ``AgsContext`` objects containing parsed tables.
     """
     ags_contexts: dict[str, AgsContext] = {}
     parse_failed_files: list[str] = []
@@ -37,7 +39,7 @@ def parse_ags_files(filepaths: list[str]) -> dict[str, AgsContext]:
             parse_failed_files.append(filepath)
             continue
 
-        if ags_context.proj_id in ags_contexts:
+        if merge_files and ags_context.proj_id in ags_contexts:
             logger.info(f"Merging AGS file '{filepath}' into existing PROJ_ID '{ags_context.proj_id}'.")
             try:
                 ags_contexts[ags_context.proj_id].merge(ags_context)
@@ -46,14 +48,14 @@ def parse_ags_files(filepaths: list[str]) -> dict[str, AgsContext]:
                 parse_failed_files.append(filepath)
                 continue
         else:
-            ags_contexts[ags_context.proj_id] = ags_context
-
-        del ags_context
+            # When merge_files=False, use filepath as key to ensure uniqueness
+            key = ags_context.proj_id if merge_files else filepath
+            ags_contexts[key] = ags_context
 
     if parse_failed_files:
         logger.error(f"Failed to parse the following AGS files: {', '.join(parse_failed_files)}")
 
-    return ags_contexts
+    return list(ags_contexts.values())
 
 
 def parse_ags_file(filepath: str) -> AgsContext:

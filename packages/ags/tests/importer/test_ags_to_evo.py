@@ -109,9 +109,7 @@ def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2
         assert warning_message in caplog.text
 
 
-def test_convert_ags_with_multiple_files_from_different_projects(
-    evo_metadata, valid_ags_1a_path, valid_ags_2a_path, caplog
-):
+def test_convert_ags_with_multiple_files_from_different_projects(evo_metadata, valid_ags_1a_path, valid_ags_2a_path):
     """Integration: Test multiple AGS files from different PROJ_IDs creates separate DownholeCollections."""
     result = asyncio.run(
         convert_ags(
@@ -151,6 +149,27 @@ def test_convert_ags_with_multiple_files_same_project(evo_metadata, valid_ags_1a
     # Verify CRS was set
     assert downhole_collection.coordinate_reference_system is not None
     assert downhole_collection.coordinate_reference_system.epsg_code == 27700
+
+
+def test_convert_ags_with_multiple_files_same_project_no_merge(evo_metadata, valid_ags_1a_path, valid_ags_1b_path):
+    """Integration: Test multiple files from same PROJ_ID with merge_files=False creates separate DownholeCollections."""
+    result = asyncio.run(
+        convert_ags(
+            filepaths=[valid_ags_1a_path, valid_ags_1b_path],
+            evo_workspace_metadata=evo_metadata,
+            publish_objects=False,
+            merge_files=False,
+        )
+    )
+
+    # Should create two separate DownholeCollection objects
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert all(isinstance(obj, DownholeCollection_V1_3_1) for obj in result)
+
+    assert set(obj.name for obj in result) == {"valid_ags_1a", "valid_ags_1b"}
+    assert all(obj.tags is not None for obj in result)
+    assert all(obj.tags["InputType"] == "AGS" for obj in result)
 
 
 def test_convert_ags_with_mixed_projects(evo_metadata, valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path):
