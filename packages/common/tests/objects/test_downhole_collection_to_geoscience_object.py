@@ -131,8 +131,8 @@ def dhc_interval(collars_df, interval_table_mock, distance_table_mock):
     dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
 
     # Mock to return interval for main loop but distance for path calculation
-    def get_tables_side_effect(filter=None):
-        if filter and DistanceMeasurementTable in filter:
+    def get_tables_side_effect(filter_to_table_type=None):
+        if filter_to_table_type and DistanceMeasurementTable in filter_to_table_type:
             return [distance_table_mock]
         return [interval_table_mock]
 
@@ -361,12 +361,12 @@ class TestCreateDhcCollectionDistance:
 
 
 class TestCreateCollectionAttributes:
-    def test_returns_none_when_no_attributes(self, converter_distance, distance_table_mock) -> None:
+    def test_returns_empty_list_when_no_attributes(self, converter_distance, distance_table_mock) -> None:
         distance_table_mock.get_attribute_columns.return_value = []
 
         result = converter_distance.create_collection_attributes(distance_table_mock)
 
-        assert result is None or result == []
+        assert result == []
 
     def test_creates_attributes_for_measurements(self, converter_distance, distance_table_mock) -> None:
         result = converter_distance.create_collection_attributes(distance_table_mock)

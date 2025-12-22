@@ -102,22 +102,24 @@ class DownholeCollection(BaseSpatialDataProperties):
             table = input
         self.measurements.append(table)
 
-    def get_measurement_tables(self, filter: list[type[MeasurementTable]] | None = None) -> list[MeasurementTable]:
+    def get_measurement_tables(
+        self, filter_to_table_type: list[type[MeasurementTable]] | None = None
+    ) -> list[MeasurementTable]:
         """
         Get all or a filtered subset of measurement table adapters.
 
         Returns measurement tables from the collection. Optionally filters to return
         only tables of specific types (e.g., only DistanceTable or only IntervalTable).
 
-        :param filter: Optional list of MeasurementTable subclass types to filter by.
+        :param filter_to_table_type: Optional list of MeasurementTable subclass types to filter to.
                         If None, returns all measurement tables.
 
         :return: List of measurement table adapters matching the filter (or all if no filter)
         """
-        if filter is None:
+        if filter_to_table_type is None:
             return self.measurements.copy()
 
-        results = [m for m in self.measurements if isinstance(m, tuple(filter))]
+        results = [m for m in self.measurements if isinstance(m, tuple(filter_to_table_type))]
         return results
 
     @override
