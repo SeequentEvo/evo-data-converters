@@ -10,7 +10,7 @@
 #  limitations under the License.
 
 import typing
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class BaseGeologicalDataProperties(ABC):
@@ -72,13 +72,11 @@ class BaseSpatialDataProperties(BaseGeologicalDataProperties):
         super().__init__(name=name, uuid=uuid, description=description, extensions=extensions, tags=tags)
         self.coordinate_reference_system: int | str | None = coordinate_reference_system
 
+    @abstractmethod
     def get_bounding_box(self) -> list[float]:
         """
         Get the bounding box for the spatial data.
 
-        Default implementation returns a zero-initialised bounding box.
-        Subclasses should override this method to provide actual spatial extent.
-
         :return: List of 6 floats [min_x, max_x, min_y, max_y, min_z, max_z]
         """
-        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        raise NotImplementedError
