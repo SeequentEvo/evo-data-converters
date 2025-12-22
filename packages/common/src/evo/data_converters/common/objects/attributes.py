@@ -183,6 +183,8 @@ def create_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> 
 
     # If series has a Pint Data Type, then we will need to create an AttributeDescription
     # to pass the type info to EVO.
+    # If there is not Evo Unit corresponding to the Pint Type, the attribute will be passed
+    # to EVO without an attribute_description
     if isinstance(series.dtype, PintType):
         unit = UnitMapper.lookup(series.dtype)
         if unit is not None:

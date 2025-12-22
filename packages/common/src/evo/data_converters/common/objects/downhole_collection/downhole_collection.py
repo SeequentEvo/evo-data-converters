@@ -117,10 +117,7 @@ class DownholeCollection(BaseSpatialDataProperties):
         if filter is None:
             return self.measurements.copy()
 
-        results: list[MeasurementTable] = []
-        for m in self.measurements:
-            if any(isinstance(m, cls) for cls in filter):
-                results.append(m)
+        results = [m for m in self.measurements if isinstance(m, tuple(filter))]
         return results
 
     @override

@@ -22,20 +22,54 @@ logger = evo.logging.getLogger("data_converters")
 
 
 class UnitMapper:
-    """Map units between Pint and EVO"""
+    """
+    Map units between Pint and EVO
+
+    To attach type information to pandas data frames the Pint unit framework has been used.
+    Directly adding attributes to pandas proved to be fragile, and the type information
+    tended to get lost during column operations, using Pint resolved these issues.
+
+    """
 
     @staticmethod
     def lookup(pt: PintType) -> Unit | None:
-        """Map a PintType to its corresponding Evo Unit"""
+        """
+        Map a PintType to its corresponding Evo Unit
+
+        :param pt: Pint type information
+
+        :returns: The corresponding Evo unit enumeration value
+                  or None
+        """
         key = str(pt.units)
         return _pint_lookup.get(key, None)
 
 
 # table mapping Evo Unit_V1_0_1 values to the
-# corresponding Pint Unit string value:
+# corresponding Pint string value.
+#
+# This table is used to generate the mapping between the canonical
+# Pint representation and corresponding Evo Unit enumeration value.
+#
+# We can't map directly from the Pint unit to the Evo Unit enumeration
+# value as:
+#  -  Pint converts units to a canonical representation, that differs
+#       from the Evo representation.
+#       - it can also pose issues as the Pint canonical form
+#         simplifies units i.e. "m^3/m^2" gets simplified to "m"
+#       - we don't use the canonical representation directly to
+#         make it easier to check table entries
+#  -  Evo and Pint use differing conventions to represent units:
+#       - Pint does not allow units that start with a number
+#       - The conventions for exponentiation are different
+#       - i.e. m2 versus m^2 or m**2
+#  -  Some of the Evo units do not have a corresponding representation in Pint
+#
+#  Definitions for units that are not defined in Pint, and canonical forms
+#  to prevent simplification, are defined in the file evo_units.txt
 #
 # NOTE: This table is incomplete, any entry with a value of None needs to have a pint value
-#       assigned.  New pint types can be defines in evo_units.txt if required
+#       assigned.  New pint types can be defined in evo_units.txt if required
 #
 #       See: https://github.com/geosoft-as/osdu-uom
 #            https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
@@ -812,11 +846,15 @@ _translation_table: dict[str, str | None] = {
 _registry = pint.get_application_registry()
 RESOURCE_PATH = Path(__file__).parent
 EVO_UNITS = RESOURCE_PATH / "evo_units.txt"
+# Load the custom definitions required for EVO
 _registry.load_definitions(EVO_UNITS)
 
 # build the look up table mapping Pint units
 # to the corresponding Unit_V1_0_1 enumeration value
 _pint_lookup: dict[str, Unit] = dict()
+
+# Unit is a union type composed of multiple enumerations
+# typing.get_args allows us to iterate over all the enumeration values
 for e in typing.get_args(Unit):
     for p in e:
         try:
@@ -828,4 +866,5 @@ for e in typing.get_args(Unit):
             pn = str(_registry.Quantity(1, name).units)
             _pint_lookup[pn] = p
         except Exception as e:
+            # This indicates that a new entry should be added to _translation_table
             logger.warning(f"Unable to map {p.value} to pint type {e}")

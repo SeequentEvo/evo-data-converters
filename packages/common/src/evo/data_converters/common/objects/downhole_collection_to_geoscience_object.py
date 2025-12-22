@@ -333,9 +333,9 @@ class DownholeCollectionToGeoscienceObject:
 
         :return: Interval table attribute collection with from/to depths and associated attributes
         """
-        start_end_table = self.collection_start_end_table(mt)
-        start_end_args = self.data_client.save_table(start_end_table)
-        start_end_go = FloatArray2.from_dict(start_end_args)
+        interval_table = self.collection_interval_table(mt)
+        interval_args = self.data_client.save_table(interval_table)
+        start_end_go = FloatArray2.from_dict(interval_args)
 
         intervals_go = Intervals(start_and_end=start_end_go)
 
@@ -499,7 +499,7 @@ class DownholeCollectionToGeoscienceObject:
         distances_df["values"] = self.unwrap_pint(distances_df["values"])
         return pa.Table.from_pandas(distances_df, schema=distances_schema)
 
-    def collection_start_end_table(self, mt: IntervalMeasurementTable) -> pa.Table:
+    def collection_interval_table(self, mt: IntervalMeasurementTable) -> pa.Table:
         """
         Create a PyArrow table of interval start and end depths.
 
