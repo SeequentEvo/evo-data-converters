@@ -83,23 +83,26 @@ class DownholeCollection(BaseSpatialDataProperties):
                 self.add_measurement_table(m, column_mapping)
 
     def add_measurement_table(
-        self, input: pd.DataFrame | MeasurementTable, column_mapping: ColumnMapping | None = None
+        self, measurements: pd.DataFrame | MeasurementTable, column_mapping: ColumnMapping | None = None
     ) -> None:
         """
         Add a measurement table to the collection.
 
-        Accepts either a pre-constructed MeasurementTable or a pandas DataFrame.
+        Accepts measurements as either a pre-constructed MeasurementTable or a pandas DataFrame.
         If a DataFrame is provided, it will be automatically converted to the appropriate
         type (DistanceTable or IntervalTable) based on the column mapping and
         available columns.
 
-        :param input: Either a MeasurementTable or DataFrame to add
+        :param measurements: Either a MeasurementTable or DataFrame to add
         :param column_mapping: Column mapping configuration (required if input is a DataFrame)
         """
-        if isinstance(input, pd.DataFrame):
-            table: MeasurementTable = create_measurement_table(input, column_mapping or ColumnMapping())
+        if isinstance(measurements, pd.DataFrame):
+            table: MeasurementTable = create_measurement_table(measurements, column_mapping or ColumnMapping())
+        elif isinstance(measurements, MeasurementTable):
+            table = measurements
         else:
-            table = input
+            raise ValueError("measurements must be a pandas DataFrame or MeasurementTable")
+
         self.measurements.append(table)
 
     def get_measurement_tables(
