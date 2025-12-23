@@ -163,7 +163,7 @@ class DownholeCollectionBuilder:
             raise ValueError(f"CPT file '{hole_id}' has invalid EPSG code in SRS name: '{srs_name}'. Error: {e}")
 
         if epsg_code == 404000:
-            epsg_code = "unspecified"
+            epsg_code = None
 
         return epsg_code
 

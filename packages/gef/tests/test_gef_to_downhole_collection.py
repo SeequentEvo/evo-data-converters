@@ -319,13 +319,13 @@ class TestExtractEpsgCode:
 
         assert result == 4326
 
-    def test_epsg_404000_returns_unspecified(self, builder: DownholeCollectionBuilder) -> None:
+    def test_epsg_404000_returns_none(self, builder: DownholeCollectionBuilder) -> None:
         mock_cpt = Mock()
         mock_cpt.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::404000"
 
         result = builder._extract_epsg_code(mock_cpt, "TEST-001")
 
-        assert result == "unspecified"
+        assert result is None
 
     def test_malformed_srs_name_raises_error(self, builder: DownholeCollectionBuilder) -> None:
         mock_cpt = Mock()
