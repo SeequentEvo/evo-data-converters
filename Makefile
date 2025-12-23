@@ -11,6 +11,9 @@ test:
 test-common:
 	uv run --package evo-data-converters-common pytest packages/common/tests
 
+test-ags:
+	uv run --package evo-data-converters-ags pytest packages/ags/tests
+
 test-gocad:
 	uv run --package evo-data-converters-gocad pytest packages/gocad/tests
 

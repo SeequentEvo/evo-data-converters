@@ -1,0 +1,278 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+import numpy as np
+import pandas as pd
+
+import evo.logging
+from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT
+from evo.data_converters.common.objects.downhole_collection import DownholeCollection, HoleCollars
+from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
+
+logger = evo.logging.getLogger("data_converters")
+
+
+def create_from_parsed_ags(
+    ags_context: AgsContext,
+    tags: dict[str, str] | None = None,
+) -> DownholeCollection:
+    """Converts the in-memory dataframes of AgsContext to an Evo Downhole Collection.
+
+    Collars are built from both SCPG and GEOL tables:
+    - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
+    - GEOL collars are uniquely identified by LOCA_ID only
+
+    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL) and assigns hole_index.
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :param tags: Optional dict of tags to add to the DownholeCollection.
+    :return: A DownholeCollection object
+    """
+
+    # Build collars from LOCA and SCPG, and SCPT for final depth
+    hole_collars: HoleCollars = build_collars(ags_context)
+    collars_df = hole_collars.df
+
+    # Prepare lookup tables for merging hole_index into measurements
+    lookup_with_tesn = collars_df[["LOCA_ID", "SCPG_TESN", "hole_index"]]
+    lookup_without_tesn = collars_df[["LOCA_ID", "hole_index"]].drop_duplicates(subset=["LOCA_ID"], keep="first")
+
+    measurements: list[pd.DataFrame] = ags_context.get_tables(groups=AgsContext.MEASUREMENT_GROUPS)
+    for table in measurements:
+        if "SCPG_TESN" in table.columns:
+            # CPT-specific data: merge on both LOCA_ID and SCPG_TESN
+            table_with_index = table.merge(lookup_with_tesn, on=["LOCA_ID", "SCPG_TESN"], how="left")
+        else:
+            # Location-level data (e.g., GEOL): merge on LOCA_ID only
+            table_with_index = table.merge(lookup_without_tesn, on=["LOCA_ID"], how="left")
+
+        # Drop rows with unmatched LOCA_ID and ensure integer dtype
+        table["hole_index"] = table_with_index["hole_index"]
+        unmatched_count = table["hole_index"].isna().sum()
+        if unmatched_count > 0:
+            table_name = getattr(table, "name", "")
+            logger.warning(f"Dropping {unmatched_count} rows with unmatched LOCA_ID in measurement table {table_name}")
+            table.dropna(subset=["hole_index"], inplace=True)
+        table["hole_index"] = table["hole_index"].astype(int)
+
+    downhole_collection: DownholeCollection = DownholeCollection(
+        collars=hole_collars,
+        name=ags_context.filename,
+        measurements=measurements,
+        coordinate_reference_system=ags_context.coordinate_reference_system or "unspecified",
+        tags=tags,
+        column_mapping=ags_context.column_mapping,
+    )
+
+    # If HORN data present, calculate dip and azimuth for the first distance table.
+    # Only the first distance table is used when building the hole path geometry.
+    horn_df = ags_context.get_table(HORN)
+    if horn_df is not None and not horn_df.empty:
+        for mt in downhole_collection.measurements:
+            if isinstance(mt, DistanceTable):
+                depth_col = mt.get_primary_column()
+                calculate_dip_and_azimuth(horn_df, mt.df, depth_col)
+                mt.mapping.DIP_COLUMNS.append("dip")
+                mt.mapping.AZIMUTH_COLUMNS.append("azimuth")
+                break
+
+    return downhole_collection
+
+
+def build_scpg_collars(ags_context: AgsContext) -> pd.DataFrame:
+    """Builds collars from SCPG data.
+
+    SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN).
+    Final depth is calculated from SCPT_DPTH.
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :return: DataFrame of SCPG collars, or empty DataFrame if no SCPG data
+    """
+    loca_df: pd.DataFrame = ags_context.get_table(LOCA)
+    scpg_df: pd.DataFrame = ags_context.get_table(SCPG)
+    scpt_df: pd.DataFrame = ags_context.get_table(SCPT)
+
+    if scpg_df.empty:
+        return pd.DataFrame()
+
+    scpg_collars = scpg_df.copy().merge(loca_df, on="LOCA_ID", how="left")
+
+    # Compute final depth per (LOCA_ID, SCPG_TESN) from SCPT
+    if not scpt_df.empty:
+        final_depths = scpt_df.groupby(["LOCA_ID", "SCPG_TESN"], dropna=False)["SCPT_DPTH"].max().reset_index()
+        final_depths = final_depths.rename(columns={"SCPT_DPTH": "final_depth"})
+        scpg_collars = scpg_collars.merge(final_depths, on=["LOCA_ID", "SCPG_TESN"], how="left")
+
+    # Create hole_id as composite of LOCA_ID and SCPG_TESN
+    loca_str = scpg_collars["LOCA_ID"].astype(str)
+    tesn_str = scpg_collars["SCPG_TESN"].fillna("").astype(str)
+    scpg_collars["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
+
+    return scpg_collars
+
+
+def build_geol_collars(ags_context: AgsContext) -> pd.DataFrame:
+    """Builds collars from GEOL data.
+
+    GEOL collars are uniquely identified by LOCA_ID only.
+    Final depth is calculated from GEOL_BASE.
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :return: DataFrame of GEOL collars, or empty DataFrame if no GEOL data
+    """
+    loca_df: pd.DataFrame = ags_context.get_table(LOCA)
+    geol_df: pd.DataFrame = ags_context.get_table(GEOL)
+
+    if geol_df.empty:
+        return pd.DataFrame()
+
+    # Get unique LOCA_IDs from GEOL
+    geol_loca_ids = geol_df["LOCA_ID"].unique()
+    geol_collars = loca_df[loca_df["LOCA_ID"].isin(geol_loca_ids)].copy()
+
+    # Compute final depth per LOCA_ID from GEOL_BASE
+    if "GEOL_BASE" in geol_df.columns:
+        final_depths = geol_df.groupby("LOCA_ID", dropna=False)["GEOL_BASE"].max().reset_index()
+        final_depths = final_depths.rename(columns={"GEOL_BASE": "final_depth"})
+        geol_collars = geol_collars.merge(final_depths, on="LOCA_ID", how="left")
+
+    # Create hole_id from LOCA_ID only (no SCPG_TESN for GEOL)
+    geol_collars["hole_id"] = geol_collars["LOCA_ID"].astype(str)
+    geol_collars["SCPG_TESN"] = pd.NA
+
+    return geol_collars
+
+
+def build_collars(ags_context: AgsContext) -> HoleCollars:
+    """Builds the HoleCollars object from the AGS context.
+
+    Collars are built from both SCPG and GEOL tables:
+    - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
+    - GEOL collars are uniquely identified by LOCA_ID only
+
+    If a LOCA_ID appears in both SCPG and GEOL, both collar types are created,
+    but a warning is logged.
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :return: A HoleCollars object
+    """
+    scpg_collars = build_scpg_collars(ags_context)
+    geol_collars = build_geol_collars(ags_context)
+
+    # Check for duplicate LOCA_IDs between SCPG and GEOL
+    if not scpg_collars.empty and not geol_collars.empty:
+        scpg_loca_ids = set(scpg_collars["LOCA_ID"].unique())
+        geol_loca_ids = set(geol_collars["LOCA_ID"].unique())
+        duplicates = scpg_loca_ids & geol_loca_ids
+        if duplicates:
+            logger.warning(
+                f"Found {len(duplicates)} LOCA_IDs present in both SCPG and GEOL tables. "
+                f"Creating collars for both types. LOCA_IDs: {list(duplicates)}"
+            )
+
+    # Combine dataframes and set hole_index
+    collars_df = pd.concat([scpg_collars, geol_collars], ignore_index=True)
+    collars_df["hole_index"] = range(1, len(collars_df) + 1)
+
+    # Find coordinate columns with valid data
+    for target_col, source_cols in AgsContext.COORDINATE_COLUMN_PRIORITY:
+        assigned = False
+        for source_col in source_cols:
+            if source_col in collars_df.columns:
+                temp_col = pd.to_numeric(collars_df[source_col], errors="coerce")
+                # Check if we have any non-null values to select this column
+                if temp_col.notna().any():
+                    collars_df[target_col] = temp_col
+                    assigned = True
+                    break
+
+        if not assigned:
+            logger.warning(f"No valid {target_col} coordinate data found in LOCA table, defaulting to 0.0")
+            collars_df[target_col] = 0.0
+        else:
+            collars_df[target_col] = collars_df[target_col].fillna(0.0)
+
+    # Ensure final_depth is float dtype even if NaN
+    collars_df["final_depth"] = pd.to_numeric(collars_df["final_depth"], errors="coerce").astype(float)
+
+    # Reorder columns to standard first but retain useful keys
+    standard_cols = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
+    key_cols = ["LOCA_ID", "SCPG_TESN"]
+    other_cols = [c for c in collars_df.columns if c not in standard_cols + key_cols]
+    collars_df = collars_df[standard_cols + key_cols + other_cols]
+
+    duplicates_count = len(collars_df) - collars_df["hole_id"].nunique()
+    if duplicates_count > 0:
+        logger.error(
+            f"Dropping {duplicates_count} duplicate collar entries with the same hole_id, keeping first occurrence"
+        )
+        collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
+
+    return HoleCollars(df=collars_df)
+
+
+def calculate_dip_and_azimuth(
+    horn_df: pd.DataFrame,
+    measurements_df: pd.DataFrame,
+    depth_column: str,
+) -> None:
+    """Add dip and azimuth columns from HORN table (vectorized).
+
+    Matches each measurement to a HORN interval where HORN_TOP <= depth < HORN_BASE.
+    Measurements outside all intervals for their LOCA_ID get vertical defaults (90°/0°).
+    """
+    n_rows = len(measurements_df)
+
+    # Initialize results with defaults
+    dip_result = np.full(n_rows, DEFAULT_DIP, dtype="float64")
+    azimuth_result = np.full(n_rows, DEFAULT_AZIMUTH, dtype="float64")
+
+    # Create working copy with original index tracking
+    work_df = measurements_df[["LOCA_ID", depth_column]].copy()
+    work_df["_orig_idx"] = np.arange(n_rows)
+
+    # Pre-sort HORN intervals by LOCA_ID
+    horn_by_loca = {loca_id: group.sort_values("HORN_TOP") for loca_id, group in horn_df.groupby("LOCA_ID")}
+
+    unmatched_count = 0
+
+    for loca_id, m_group in work_df.groupby("LOCA_ID"):
+        horn_group = horn_by_loca.get(loca_id)
+
+        if horn_group is None:
+            unmatched_count += len(m_group)
+            continue
+
+        m_sorted = m_group.sort_values(depth_column)
+
+        merged = pd.merge_asof(
+            m_sorted[[depth_column, "_orig_idx"]],
+            horn_group[["HORN_TOP", "HORN_BASE", "HORN_INCL", "HORN_ORNT"]],
+            left_on=depth_column,
+            right_on="HORN_TOP",
+            direction="backward",
+        )
+
+        # Match is valid only if depth falls within the interval
+        in_interval = (merged["HORN_BASE"].notna()) & (merged[depth_column] < merged["HORN_BASE"])
+
+        orig_idx = merged["_orig_idx"].values
+        dip_result[orig_idx] = np.where(in_interval, merged["HORN_INCL"], DEFAULT_DIP)
+        azimuth_result[orig_idx] = np.where(in_interval, merged["HORN_ORNT"], DEFAULT_AZIMUTH)
+
+        unmatched_count += (~in_interval).sum()
+
+    if unmatched_count > 0:
+        logger.info(f"{unmatched_count} depth measurements outside HORN intervals, assuming vertical")
+
+    measurements_df["dip"] = pd.Series(dip_result, dtype="float64")
+    measurements_df["azimuth"] = pd.Series(azimuth_result, dtype="float64")
