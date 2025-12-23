@@ -428,9 +428,9 @@ class DownholeCollectionBuilder:
         if not self.collar_rows:
             return ""
         elif len(self.collar_rows) == 1:
-            return self.collar_rows[0]["hole_id"]
+            return f"GEF CPT {self.collar_rows[0]['hole_id']}"
         else:
-            return f"{self.collar_rows[0]['hole_id']}...{self.collar_rows[-1]['hole_id']}"
+            return f"GEF CPT {len(self.collar_rows)} holes {self.collar_rows[0]['hole_id']}...{self.collar_rows[-1]['hole_id']}"
 
     def _create_collection(
         self, collection_name: str, collars_df: pd.DataFrame, measurements_df: pd.DataFrame

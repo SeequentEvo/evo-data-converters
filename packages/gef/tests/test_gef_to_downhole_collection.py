@@ -294,7 +294,7 @@ class TestBuild:
         result = builder.build()
 
         assert isinstance(result, DownholeCollection)
-        assert result.name == "CPT-001"
+        assert result.name == "GEF CPT CPT-001"
         assert result.coordinate_reference_system == 28992
 
     def test_build_without_epsg_raises_error(self, builder: DownholeCollectionBuilder) -> None:
@@ -787,7 +787,7 @@ class TestGenerateCollectionName:
 
     def test_single_collar_returns_hole_id(self, builder: DownholeCollectionBuilder) -> None:
         builder.collar_rows = [{"hole_id": "CPT-001"}]
-        assert builder._generate_collection_name() == "CPT-001"
+        assert builder._generate_collection_name() == "GEF CPT CPT-001"
 
     def test_multiple_collars_returns_range_format(self, builder: DownholeCollectionBuilder) -> None:
         builder.collar_rows = [
@@ -795,7 +795,7 @@ class TestGenerateCollectionName:
             {"hole_id": "CPT-002"},
             {"hole_id": "CPT-003"},
         ]
-        assert builder._generate_collection_name() == "CPT-001...CPT-003"
+        assert builder._generate_collection_name() == "GEF CPT 3 holes CPT-001...CPT-003"
 
 
 class TestCreateCollection:
@@ -812,7 +812,7 @@ class TestCreateCollection:
         result = builder._create_collection(collection_name, collars_df, measurements_df)
 
         assert isinstance(result, DownholeCollection)
-        assert result.name == "CPT-001"
+        assert result.name == "GEF CPT CPT-001"
         assert result.coordinate_reference_system == 28992
         assert len(result.measurements) == 1
         assert result.measurements[0].nan_values_by_column["penetrationLength"] == [9999.00]
@@ -829,7 +829,7 @@ class TestCreateFromParsedGefCpts:
         result = create_from_parsed_gef_cpts(parsed_files)
 
         assert isinstance(result, DownholeCollection)
-        assert result.name == "CPT-001"
+        assert result.name == "GEF CPT CPT-001"
         assert result.coordinate_reference_system == 28992
         assert len(result.collars.df) == 1
         assert result.collars.df.iloc[0]["hole_id"] == "CPT-001"
@@ -839,7 +839,7 @@ class TestCreateFromParsedGefCpts:
 
         result = create_from_parsed_gef_cpts(parsed_files)
 
-        assert result.name == "CPT-001...CPT-002"
+        assert result.name == "GEF CPT 2 holes CPT-001...CPT-002"
         assert len(result.collars.df) == 2
         assert len(result.measurements[0].df) == 8  # 4 measurements each
         assert result.measurements[0].df["hole_index"].nunique() == 2
@@ -883,7 +883,7 @@ class TestCreateFromParsedGefCpts:
 
         result = create_from_parsed_gef_cpts(cpts)
 
-        assert result.name == "CPT-001...CPT-005"
+        assert result.name == "GEF CPT 5 holes CPT-001...CPT-005"
         assert len(result.collars.df) == 5
         assert len(result.measurements[0].df) == 100  # 5 CPTs * 20 measurements
         assert set(result.measurements[0].df["hole_index"].unique()) == {1, 2, 3, 4, 5}
