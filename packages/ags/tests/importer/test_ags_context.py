@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
-from evo.data_converters.ags.common.ags_context import LOCA, PROJ, SCPG, SCPT
+from evo.data_converters.ags.common.ags_context import LOCA, SCPG, SCPT
 
 
 def test_not_ags_file(not_ags_path):
@@ -288,26 +288,6 @@ def test_duplicate_loca_ids_during_merge(valid_ags_2a_path, invalid_ags_2b_path,
     assert loca_table.iloc[0]["LOCA_NATE"] == 575800.00
 
 
-def test_non_identical_proj_table_warning(valid_ags_2a_path, valid_ags_2c_path, caplog):
-    """Test that non-identical PROJ table entries trigger a warning but still allow merge"""
-    context_2a = AgsContext()
-    context_2a.parse_ags(valid_ags_2a_path)
-
-    context_2c = AgsContext()
-    context_2c.parse_ags(valid_ags_2c_path)
-
-    # Merge should succeed despite different PROJ table (same PROJ_ID)
-    context_2a.merge(other=context_2c)
-
-    assert f"Table '{PROJ}' differs between files" in caplog.text
-    assert "Keeping values from first context" in caplog.text
-
-    # LOCA table should have both locations
-    loca_table = context_2a.get_table(LOCA)
-    assert len(loca_table) == 2
-    assert set(loca_table["LOCA_ID"]) == {"EXAMPLE-2-CPT1", "EXAMPLE-2-CPT2"}
-
-
 def test_merge_idempotent(valid_ags_1a_path):
     """Test that merging the same AgsContext multiple times is idempotent"""
     context1 = AgsContext()
@@ -419,10 +399,10 @@ def test_merge_with_invalid_file_skipped(valid_ags_1a_path, not_ags_path):
 
     # Should only return one context (invalid file skipped)
     assert len(contexts) == 1
-    assert "EXAMPLE-1" in contexts
+    assert contexts[0].proj_id == "EXAMPLE-1"
 
     # Verify the valid context has correct data
-    context = contexts["EXAMPLE-1"]
+    context = contexts[0]
     assert len(context.get_table(LOCA)) == 1
     assert context.get_table(LOCA)["LOCA_ID"].iloc[0] == "EXAMPLE-1-CPT1"
 

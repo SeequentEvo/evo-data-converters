@@ -99,7 +99,6 @@ def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2
     assert len(result) == 1
 
     expected_warnings = [
-        "Table 'PROJ' differs between files. Keeping values from first context.",
         "Found 1 duplicate LOCA_ID values when merging contexts.",
         "Duplicate IDs: ['EXAMPLE-2-CPT1']",
         "Found 1 duplicate (LOCA_ID, SCPG_TESN) pairs when merging contexts.",

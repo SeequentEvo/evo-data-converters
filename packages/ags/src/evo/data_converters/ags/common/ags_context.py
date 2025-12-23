@@ -543,17 +543,16 @@ class AgsContext:
         :param other: The AgsContext to merge LOCA table from
         """
         self_loca = self.get_table(LOCA)
-        other_loca = other.get_table(LOCA).copy()
+        other_loca = other.get_table(LOCA)
 
         # Concatenate and remove duplicates, keeping first occurrence (from self)
         merged_loca = pd.concat([self_loca, other_loca], ignore_index=True)
 
         # Check for duplicates before dropping them
-        duplicate_count = merged_loca.duplicated(subset=["LOCA_ID"], keep="first").sum()
-        if duplicate_count > 0:
-            duplicate_ids = merged_loca[merged_loca.duplicated(subset=["LOCA_ID"], keep="first")]["LOCA_ID"].tolist()
+        duplicate_ids = merged_loca[merged_loca.duplicated(subset=["LOCA_ID"], keep="first")]["LOCA_ID"].tolist()
+        if duplicate_ids:
             logger.warning(
-                f"Found {duplicate_count} duplicate LOCA_ID values "
+                f"Found {len(duplicate_ids)} duplicate LOCA_ID values "
                 f"when merging contexts. Keeping rows from first context. "
                 f"Duplicate IDs: {duplicate_ids}"
             )
@@ -574,7 +573,7 @@ class AgsContext:
         :param other: The AgsContext to merge SCPG table from
         """
         self_scpg = self.get_table(SCPG)
-        other_scpg = other.get_table(SCPG).copy()
+        other_scpg = other.get_table(SCPG)
 
         # Concatenate and remove duplicates, keeping first occurrence (from self)
         merged_scpg = pd.concat([self_scpg, other_scpg], ignore_index=True)

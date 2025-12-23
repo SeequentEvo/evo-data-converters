@@ -142,8 +142,12 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
     other_cols = [c for c in collars_df.columns if c not in standard_cols + key_cols]
     collars_df = collars_df[standard_cols + key_cols + other_cols]
 
-    # Drop duplicate collars if present (defensive)
-    collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
+    duplicates_count = len(collars_df) - collars_df["hole_id"].nunique()
+    if duplicates_count > 0:
+        logger.error(
+            f"Dropping {duplicates_count} duplicate collar entries with the same hole_id, keeping first occurrence"
+        )
+        collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
 
     return HoleCollars(df=collars_df)
 
