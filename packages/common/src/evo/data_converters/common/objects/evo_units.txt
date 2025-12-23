@@ -1,0 +1,100 @@
+#  Copyright © 2025 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+# Pint definitions to aid the conversion of Pint units to Evo Units
+
+evo_units = 1
+
+# Prefixes
+hundred_thousand_- = 1e5
+thirty_- = 30
+
+# Force
+ten_kilonewton = 10 * kN
+
+# Mass
+deca_mega_gram = 10 * Mg
+sack = 94 * lb
+lbmol = 453.59237 * mol
+
+# Distance
+sixteenth_of_inch = in/16
+thirtysecond_of_inch = in/32
+sixtyfourth_of_inch = in/64
+deca_in = 10 * in 
+
+half_foot = ft/2
+deca_ft = 10 * ft
+hecto_ft = 100 * ft
+thirty_ft = 30 * ft
+kilo_ft = 1000 * ft
+
+us_survey_ft = 1200/3937 * m
+us_survey_in = us_survey_ft / 12
+us_survey_yard = 3 *  us_survey_ft
+us_survey_chain = 66 * us_survey_ft
+us_survey_link = us_survey_ft / 100
+us_survey_rod = 16.5 * us_survey_ft
+us_survey_furlong = 660 * us_survey_ft
+us_survey_mile = 5280 * us_survey_ft
+
+thirty_m = 30 * m
+
+deca_km = 10 * km
+hecto_km = 100 * km
+deca_kg = 10 * kg
+hecto_kg = 100 * kg
+
+# Volume
+cubic_metre = m ** 3
+
+# Time
+half_millisecond = 0.5 * ms
+
+# Euc A dimensionless quantity the ratio of two alike dimensional quantities
+Euc = 1
+
+# Currency
+dollar = 1
+
+# Percentages
+percentage_mass = 0.01
+percentage_area = 0.01
+percentage_vol = 0.01
+percentage_molar = 0.01
+
+# ppm/ppb
+ppm_mass = 1e6
+ppb_mass = 1e9
+ppm_vol = 1e6
+
+
+# Angle
+centisimal_minute = 0.01 * grade
+centisimal_second = 0.01 * centisimal_minute
+
+
+
+# Units
+
+m3_per_m2 = m ** 3 / m ** 2
+metre_to_power_four = m **4
+cubic_foot_per_acre_foot = cubic_foot/(acre_foot)
+cubic_foot_per_barrel = cubic_foot/bbl
+barrel_per_day= bbl/d
+cubic_foot_per_day = cubic_foot/d
+cubic_metre_per_day = cubic_metre/d
+btu_per_hour = Btu_it/h
+barrel_per_acre =  bbl/acre
+acre_foot_per_barrel = acre_foot/bbl
+barrel_per_acre_foot = bbl/acre_foot
+cubic_foot_per_day_per_barrel_per_day = cubic_foot_per_day/barrel_per_day
+

@@ -15,7 +15,7 @@ from evo_schemas.components import Crs_V1_0_1 as Crs
 from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from evo_schemas.components import Crs_V1_0_1_OgcWkt as Crs_OgcWkt
 
-from evo.data_converters.common import crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified, crs_from_any
+from evo.data_converters.common import crs_from_any, crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified
 
 
 class TestCrs(TestCase):
