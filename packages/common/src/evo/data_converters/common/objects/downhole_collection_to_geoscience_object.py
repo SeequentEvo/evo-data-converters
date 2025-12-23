@@ -523,6 +523,7 @@ class DownholeCollectionToGeoscienceObject:
         """
         distance_tables = self.dhc.get_measurement_tables(filter_to_table_type=[DistanceMeasurementTable])
         if len(distance_tables) >= 1 and isinstance(distance_tables[0], DistanceMeasurementTable):
+            logger.warning("Multiple distance measurement tables found. Only the first will be used.")
             return distance_tables[0]
         raise ValueError("No distance measurement tables found.")
 
