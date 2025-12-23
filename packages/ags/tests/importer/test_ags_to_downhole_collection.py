@@ -12,7 +12,7 @@
 import pandas as pd
 
 from evo.data_converters.ags.common import AgsContext
-from evo.data_converters.ags.common.ags_context import HORN, SCPT
+from evo.data_converters.ags.common.ags_context import HORN, SCPG, SCPT
 from evo.data_converters.ags.importer.ags_to_downhole_collection import (
     calculate_dip_and_azimuth,
     create_from_parsed_ags,
@@ -58,7 +58,8 @@ class TestCreateFromParsedAgsCollars:
         assert "final_depth" in collars_df.columns
 
         # Check number of holes and hole indexes
-        assert list(collars_df["hole_index"]) == [1, 2, 3, 4]
+        # 4 SCPG collars + 2 GEOL collars = 6 total
+        assert list(collars_df["hole_index"]) == [1, 2, 3, 4, 5, 6]
 
         # Check z is set to 0.0
         assert all(collars_df["z"] == 0.0)
@@ -107,8 +108,32 @@ class TestCreateFromParsedAgsCollars:
         # Check LOCA_ID is retained as a key column
         assert "LOCA_ID" in collars_df.columns
 
-        # check number of rows matches expected holes (3 LOCA but 4 unique holes due to SCPG_TESN)
-        assert len(collars_df) == 4
+        # 4 SCPG collars + 2 GEOL collars = 6 total
+        assert len(collars_df) == 6
+
+        # Check SCPG collars have SCPG_TYPE populated
+        scpg_collars = collars_df[collars_df["SCPG_TYPE"].notna()]
+        assert len(scpg_collars) == 4
+
+        # Check GEOL collars have SCPG_TESN as NA
+        geol_collars = collars_df[collars_df["SCPG_TESN"].isna()]
+        assert len(geol_collars) == 2
+
+    def test_collars_duplicate_loca_warning(self, mock_ags_context, caplog):
+        """Test that a warning is logged when LOCA_IDs appear in both SCPG and GEOL."""
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            result = create_from_parsed_ags(mock_ags_context)
+
+        # Should have warning about duplicate LOCA_IDs
+        warning_messages = [record.message for record in caplog.records if record.levelname == "WARNING"]
+        duplicate_warnings = [msg for msg in warning_messages if "LOCA_IDs present in both SCPG and GEOL" in msg]
+        assert len(duplicate_warnings) == 1
+        assert "BH01" in duplicate_warnings[0] or "BH02" in duplicate_warnings[0]
+
+        # Should still create all collars
+        assert len(result.collars.df) == 6
 
     def test_collars_column_ordering(self, mock_ags_context):
         """Test that standard columns appear first in collars."""
@@ -121,6 +146,32 @@ class TestCreateFromParsedAgsCollars:
         actual_first_cols = list(collars_df.columns[:6])
         assert actual_first_cols == standard_cols
 
+    def test_collars_geol_only(self, mock_ags_context):
+        """Test that collars are created from GEOL when SCPG is empty."""
+        # Override to return empty SCPG
+        original_get_table = mock_ags_context.get_table.side_effect
+
+        def no_scpg_get_table(table_name):
+            if table_name == SCPG:
+                return pd.DataFrame(columns=["LOCA_ID", "SCPG_TESN", "SCPG_TYPE"])
+            return original_get_table(table_name)
+
+        mock_ags_context.get_table.side_effect = no_scpg_get_table
+
+        result = create_from_parsed_ags(mock_ags_context)
+
+        # Should create only GEOL collars (2: BH01, BH02)
+        collars_df = result.collars.df
+        assert len(collars_df) == 2
+        assert set(collars_df["LOCA_ID"].unique()) == {"BH01", "BH02"}
+
+        # All should be GEOL collars (no SCPG_TESN)
+        assert collars_df["SCPG_TESN"].isna().all()
+
+        # Should have final_depth from GEOL_BASE
+        assert collars_df["final_depth"].notna().all()
+        assert list(collars_df["final_depth"]) == [5.0, 10.0]
+
 
 class TestCreateFromParsedAgsMeasurements:
     """Tests for measurement tables creation from AGS context."""
@@ -130,9 +181,10 @@ class TestCreateFromParsedAgsMeasurements:
         result = create_from_parsed_ags(mock_ags_context)
 
         # Check all measurement adapters have hole_index in underlying dataframe
+        # Now have 6 collars (4 SCPG + 2 GEOL)
         for adapter in result.measurements:
             assert "hole_index" in adapter.df.columns
-            assert adapter.df["hole_index"].isin([1, 2, 3, 4]).all()
+            assert adapter.df["hole_index"].isin([1, 2, 3, 4, 5, 6]).all()
 
     def test_measurements_hole_index_is_integer(self, valid_ags_with_geol_path):
         """Test that hole_index column has integer dtype, not float.
@@ -234,31 +286,58 @@ class TestCreateFromParsedAgsMeasurements:
 
         result = create_from_parsed_ags(mock_ags_context)
 
-        # Should still create collars, but final_depth should be NaN
-        assert len(result.collars.df) == 4
-        assert result.collars.df["final_depth"].isna().all()
+        # Should still create collars (4 SCPG + 2 GEOL)
+        assert len(result.collars.df) == 6
+
+        # SCPG collars should have NaN final_depth (no SCPT data)
+        scpg_collars = result.collars.df[result.collars.df["SCPG_TESN"].notna()]
+        assert len(scpg_collars) == 4
+        assert scpg_collars["final_depth"].isna().all()
+
+        # GEOL collars should have final_depth from GEOL_BASE
+        geol_collars = result.collars.df[result.collars.df["SCPG_TESN"].isna()]
+        assert len(geol_collars) == 2
+        assert geol_collars["final_depth"].notna().all()
 
     def test_geol_with_unmatched_loca_drops_rows(self, valid_ags_with_geol_path):
-        """Test that GEOL rows with unmatched LOCA_ID are dropped.
+        """Test that GEOL data creates collars and measurements for all LOCA_IDs.
 
         The test file valid_ags_with_geol.ags contains:
         - BH01, BH02, BH03 in LOCA (three physical locations)
-        - BH01, BH02 in SCPG (only two have CPT tests - these become collars)
+        - BH01, BH02 in SCPG (two CPT tests - create SCPG collars)
         - GEOL entries for BH01 (4 intervals), BH02 (3 intervals), and BH03 (1 interval)
-        - BH03's GEOL row should be dropped because BH03 has no collar (not in SCPG)
+
+        Now creates:
+        - 2 SCPG collars (BH01, BH02)
+        - 3 GEOL collars (BH01, BH02, BH03)
+        - Total: 5 collars
+        - All 8 GEOL rows retained (4+3+1)
         """
         ags_context = AgsContext()
         ags_context.parse_ags(valid_ags_with_geol_path)
 
         result = create_from_parsed_ags(ags_context)
 
+        # Check that we have both SCPG and GEOL collars
+        collars_df = result.collars.df
+        assert len(collars_df) == 5  # 2 SCPG + 3 GEOL
+
+        # Check for SCPG collars
+        scpg_collars = collars_df[collars_df["SCPG_TESN"].notna()]
+        assert len(scpg_collars) == 2
+        assert set(scpg_collars["LOCA_ID"].unique()) == {"BH01", "BH02"}
+
+        # Check for GEOL collars
+        geol_collars = collars_df[collars_df["SCPG_TESN"].isna()]
+        assert len(geol_collars) == 3
+        assert set(geol_collars["LOCA_ID"].unique()) == {"BH01", "BH02", "BH03"}
+
         geol_adapter = next((a for a in result.measurements if "GEOL_TOP" in a.df.columns), None)
         assert geol_adapter is not None
 
-        # Should have 7 rows (4 for BH01 + 3 for BH02), BH03's 1 row dropped
-        assert len(geol_adapter.df) == 7
-        assert "BH03" not in geol_adapter.df["LOCA_ID"].values
-        assert set(geol_adapter.df["LOCA_ID"].unique()) == {"BH01", "BH02"}
+        # Should have all 8 rows (4 for BH01 + 3 for BH02 + 1 for BH03)
+        assert len(geol_adapter.df) == 8
+        assert set(geol_adapter.df["LOCA_ID"].unique()) == {"BH01", "BH02", "BH03"}
         # hole_index should be integer
         assert pd.api.types.is_integer_dtype(geol_adapter.df["hole_index"])
 

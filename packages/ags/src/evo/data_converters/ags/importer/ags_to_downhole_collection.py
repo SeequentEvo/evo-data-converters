@@ -14,7 +14,7 @@ import pandas as pd
 
 import evo.logging
 from evo.data_converters.ags.common import AgsContext
-from evo.data_converters.ags.common.ags_context import HORN, LOCA, SCPG, SCPT
+from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT
 from evo.data_converters.common.objects.downhole_collection import DownholeCollection, HoleCollars
 from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
 
@@ -27,8 +27,9 @@ def create_from_parsed_ags(
 ) -> DownholeCollection:
     """Converts the in-memory dataframes of AgsContext to an Evo Downhole Collection.
 
-    For hole collars, we need information from the SCPG table as well as the LOCA details of the SCPG row.
-    Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
+    Collars are built from both SCPG and GEOL tables:
+    - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
+    - GEOL collars are uniquely identified by LOCA_ID only
 
     Fetches measurements from all relevant tables (SCPT, SCPP, GEOL) and assigns hole_index.
 
@@ -87,32 +88,99 @@ def create_from_parsed_ags(
     return downhole_collection
 
 
+def build_scpg_collars(ags_context: AgsContext) -> pd.DataFrame:
+    """Builds collars from SCPG data.
+
+    SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN).
+    Final depth is calculated from SCPT_DPTH.
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :return: DataFrame of SCPG collars, or empty DataFrame if no SCPG data
+    """
+    loca_df: pd.DataFrame = ags_context.get_table(LOCA)
+    scpg_df: pd.DataFrame = ags_context.get_table(SCPG)
+    scpt_df: pd.DataFrame = ags_context.get_table(SCPT)
+
+    if scpg_df.empty:
+        return pd.DataFrame()
+
+    scpg_collars = scpg_df.copy().merge(loca_df, on="LOCA_ID", how="left")
+
+    # Compute final depth per (LOCA_ID, SCPG_TESN) from SCPT
+    if not scpt_df.empty:
+        final_depths = scpt_df.groupby(["LOCA_ID", "SCPG_TESN"], dropna=False)["SCPT_DPTH"].max().reset_index()
+        final_depths = final_depths.rename(columns={"SCPT_DPTH": "final_depth"})
+        scpg_collars = scpg_collars.merge(final_depths, on=["LOCA_ID", "SCPG_TESN"], how="left")
+
+    # Create hole_id as composite of LOCA_ID and SCPG_TESN
+    loca_str = scpg_collars["LOCA_ID"].astype(str)
+    tesn_str = scpg_collars["SCPG_TESN"].fillna("").astype(str)
+    scpg_collars["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
+
+    return scpg_collars
+
+
+def build_geol_collars(ags_context: AgsContext) -> pd.DataFrame:
+    """Builds collars from GEOL data.
+
+    GEOL collars are uniquely identified by LOCA_ID only.
+    Final depth is calculated from GEOL_BASE.
+
+    :param ags_context: The context containing the AGS file as dataframes.
+    :return: DataFrame of GEOL collars, or empty DataFrame if no GEOL data
+    """
+    loca_df: pd.DataFrame = ags_context.get_table(LOCA)
+    geol_df: pd.DataFrame = ags_context.get_table(GEOL)
+
+    if geol_df.empty:
+        return pd.DataFrame()
+
+    # Get unique LOCA_IDs from GEOL
+    geol_loca_ids = geol_df["LOCA_ID"].unique()
+    geol_collars = loca_df[loca_df["LOCA_ID"].isin(geol_loca_ids)].copy()
+
+    # Compute final depth per LOCA_ID from GEOL_BASE
+    if "GEOL_BASE" in geol_df.columns:
+        final_depths = geol_df.groupby("LOCA_ID", dropna=False)["GEOL_BASE"].max().reset_index()
+        final_depths = final_depths.rename(columns={"GEOL_BASE": "final_depth"})
+        geol_collars = geol_collars.merge(final_depths, on="LOCA_ID", how="left")
+
+    # Create hole_id from LOCA_ID only (no SCPG_TESN for GEOL)
+    geol_collars["hole_id"] = geol_collars["LOCA_ID"].astype(str)
+    geol_collars["SCPG_TESN"] = pd.NA
+
+    return geol_collars
+
+
 def build_collars(ags_context: AgsContext) -> HoleCollars:
     """Builds the HoleCollars object from the AGS context.
 
-    Collars are uniquely identified by LOCA_ID and SCPG_TESN together.
+    Collars are built from both SCPG and GEOL tables:
+    - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
+    - GEOL collars are uniquely identified by LOCA_ID only
+
+    If a LOCA_ID appears in both SCPG and GEOL, both collar types are created,
+    but a warning is logged.
 
     :param ags_context: The context containing the AGS file as dataframes.
     :return: A HoleCollars object
     """
-    loca_df: pd.DataFrame = ags_context.get_table(LOCA).copy()
-    scpg_df: pd.DataFrame = ags_context.get_table(SCPG).copy()
-    scpt_df: pd.DataFrame = ags_context.get_table(SCPT).copy()
+    scpg_collars = build_scpg_collars(ags_context)
+    geol_collars = build_geol_collars(ags_context)
 
-    # One row per (LOCA_ID, SCPG_TESN): take SCPG (which carries both keys) and add entire LOCA
-    collars_df: pd.DataFrame = scpg_df.merge(loca_df, on="LOCA_ID", how="left")
+    # Check for duplicate LOCA_IDs between SCPG and GEOL
+    if not scpg_collars.empty and not geol_collars.empty:
+        scpg_loca_ids = set(scpg_collars["LOCA_ID"].unique())
+        geol_loca_ids = set(geol_collars["LOCA_ID"].unique())
+        duplicates = scpg_loca_ids & geol_loca_ids
+        if duplicates:
+            logger.warning(
+                f"Found {len(duplicates)} LOCA_IDs present in both SCPG and GEOL tables. "
+                f"Creating collars for both types. LOCA_IDs: {list(duplicates)}"
+            )
 
-    # Compute final depth per (LOCA_ID, SCPG_TESN)
-    final_depths = scpt_df.groupby(["LOCA_ID", "SCPG_TESN"], dropna=False)["SCPT_DPTH"].max().reset_index()
-    final_depths = final_depths.rename(columns={"SCPT_DPTH": "final_depth"})
-
-    # Merge final depths into collars
-    collars_df = collars_df.merge(final_depths, on=["LOCA_ID", "SCPG_TESN"], how="left")
-
-    # Create hole_id as composite of LOCA_ID and SCPG_TESN and assign hole_index
-    loca_str = collars_df["LOCA_ID"].astype(str)
-    tesn_str = collars_df["SCPG_TESN"].fillna("").astype(str)
-    collars_df["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
+    # Combine dataframes and set hole_index
+    collars_df = pd.concat([scpg_collars, geol_collars], ignore_index=True)
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
 
     # Find coordinate columns with valid data
