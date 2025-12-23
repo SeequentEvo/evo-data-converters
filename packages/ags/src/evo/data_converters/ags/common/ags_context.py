@@ -47,55 +47,24 @@ class AgsFileInvalidException(Exception):
 
 
 class AgsContext:
-    """
-    In-memory context for working with AGS data. Provides parsing, validation,
-    table access, and serialization utilities for AGS4 files.
+    """In-memory context for working with AGS data.
 
-    :cvar tuple[str, ...] REQUIRED_GROUPS: Groups required for import operations (e.g., ``LOCA``, ``SCPG``, ``SCPT``).
-    :cvar tuple[str, ...] MEASUREMENT_GROUPS: Groups that contain measurement data
-        (e.g., ``SCPT``, ``SCPP``, ``GEOL``).
-    :cvar tuple[str, ...] RETAINED_GROUPS: Other groups retained from an AGS file (e.g., ``PROJ``, ``UNIT``).
-    :cvar tuple[str, ...] IGNORED_RULES: AGS validation rules that are ignored during file checks.
-    :cvar dict[str, str] TYPE_CATEGORY: Mapping of AGS ``TYPE`` codes to conversion categories used during
-        dataframe coercion. Known categories are ``"int"``, ``"float"``, ``"datetime"``, ``timedelta``, and ``"bool"``.
-    :cvar tuple[tuple[str, tuple[str, ...]], ...] COORDINATE_COLUMN_PRIORITY: Column priority for coordinates as
-        (target_col, (source_col1, source_col2, ...)) pairs for x, y, z coordinates.
-
-    :ivar dict[str, pandas.DataFrame] tables: Processed tables keyed by group
-        name. Only relevant downhole collection groups are retained.
-    :ivar dict[str, list[str]] headings: Original AGS headings per group.
-    :ivar str filename: The file name if parsed from a path; otherwise derived
-        from ``PROJ.PROJ_NAME`` and ``PROJ.PROJ_ID``. Raises ``ValueError`` if
-        neither is available.
-    :ivar int | None coordinate_reference_system: The CRS identifier if
-        available (e.g., from ``LOCA_GREF``), otherwise ``None``.
-
-    :meth:`parse_ags(filepath)`: Parse an AGS file (path or buffer) into
-        DataFrames, apply type conversions based on AGS TYPE rows, and validate
-        the result for import suitability.
-    :meth:`write_ags(filepath)`: Write the current tables and headings to an AGS4 file.
-    :meth:`check_ags_file(filepath)`: Validate an AGS file against the AGS specification, ignoring configured rules.
-    :meth:`set_tables_and_headings(tables, headings)`: Store processed tables
-        and their headings. Applies dtype conversions from the AGS TYPE row,
-        strips UNIT/TYPE rows, standardizes missing values to ``pandas.NA``,
-        and indexes on ``LOCA_ID`` where present. Only relevant groups are
-        retained.
-    :meth:`validate_ags()`: Validate the in-memory AGS data for import requirements.
-    :meth:`get_table(group)`: Get a table by group name.
-    :meth:`get_tables(groups)`: Get all present tables whose names appear in the provided list.
-    :meth:`get_headings(group)`: Get the headings for a group.
-    :meth:`set_table(group, df)`: Add or overwrite a table for a group.
-    :meth:`set_heading(group, headings)`: Add or overwrite the headings for a group.
+    Provides parsing, validation, table access, and serialization utilities for AGS4 files.
+    Handles type conversions, metadata extraction, and merging of multiple AGS contexts.
     """
 
     _tables: dict[str, pd.DataFrame]
     _headings: dict[str, list[str]]
     _filename: str | None
 
+    # Groups required to import an AGS file as a DownholeCollection
     REQUIRED_GROUPS: tuple[str, ...] = (LOCA, SCPG, SCPT)
+    # Non-measurement groups to retain for metadata/geometry
     RETAINED_GROUPS: tuple[str, ...] = (PROJ, UNIT, HORN)
+    # Groups that contain measurement data
     MEASUREMENT_GROUPS: tuple[str, ...] = (SCPT, SCPP, GEOL)
 
+    # AGS validation rules that are ignored during file checks
     IGNORED_RULES: tuple[str, ...] = (
         # 2a: Each line should be terminated by CR and LF characters
         # Files from various sources use Unix line endings (LF only)
@@ -116,6 +85,7 @@ class AgsContext:
     )
 
     # TODO: Implement proper handling for DMS (degrees/minutes/seconds)
+    # AGS type codes mapped to categories for conversion
     TYPE_CATEGORY: dict[str, str] = {
         # integers
         "0DP": "int",
@@ -146,6 +116,7 @@ class AgsContext:
         # Note: ID, PA, PT, PU, RL, U, X, XN types fall back to string (default)
     }
 
+    # Priority order for selecting coordinate columns
     COORDINATE_COLUMN_PRIORITY: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("x", ("LOCA_NATE", "LOCA_LOCX", "LOCA_LON")),
         ("y", ("LOCA_NATN", "LOCA_LOCY", "LOCA_LAT")),

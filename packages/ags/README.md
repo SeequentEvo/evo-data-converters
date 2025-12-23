@@ -47,20 +47,12 @@ pip install evo-data-converters-ags
 
 AGS (Association of Geotechnical and Geoenvironmental Specialists) is a standard data format widely used in the geotechnical and geoenvironmental industry for exchanging data. AGS files contain structured data in a tabular format, typically including borehole information, laboratory test results, and field observations.
 
-This converter currently supports **Cone Penetration Test (CPT) data** and converts AGS files into Evo Downhole Collection objects.
+This converter currently supports **Cone Penetration Test (CPT) data** and converts AGS files into Evo Downhole Collection objects. The converter uses the [python-ags4](https://gitlab.com/ags-data-format-wg/ags-python-library) library for parsing and validating AGS files.
 
-### Supported AGS Groups
-
-**Required Groups:**
-- `LOCA` - Location Details (downhole/test locations)
-- `SCPG` - Static Cone Penetration Tests - General
-- `SCPT` - Seismic Cone Penetration Test results
-
-**Optional Groups (imported if present):**
-- `SCPP` - Static Cone Penetration Tests - Derived Parameters
-- `GEOL` - Field Geological Descriptions
-
-Any additional groups will be discarded.
+**Related Resources:**
+- [AGS Data Format Specification](https://www.ags.org.uk/data-format/)
+- [AGS4.1.1 Specification PDF](https://www.ags.org.uk/content/uploads/2022/02/AGS4-v-4.1.1-2022.pdf)
+- [Evo Downhole Collection Schema](https://developer.seequent.com/docs/data-structures/geoscience-objects/schemas/downhole-collection)
 
 ## Usage
 
@@ -91,6 +83,62 @@ For a complete working example, see the [convert-ags notebook](./samples/convert
 ### Export objects to AGS
 
 Export functionality is not yet implemented.
+
+## Importing AGS - details
+
+### Supported AGS Groups
+
+**Required Groups:**
+- `LOCA` - Location Details (hole/test locations with coordinates)
+- `SCPG` - Static Cone Penetration Tests - General (test metadata)
+- `SCPT` - Seismic Cone Penetration Test results (distance-based measurements)
+
+**Optional Groups (imported if present):**
+- `SCPP` - Static Cone Penetration Tests - Derived Parameters (interval data)
+- `GEOL` - Field Geological Descriptions (interval data)
+  - **Note:** GEOL rows without corresponding CPT data (LOCA_ID not in SCPG/LOCA tables) are dropped with a warning
+
+**Other Groups Used (if present):**
+- `PROJ` - Project metadata (used for naming and grouping files)
+- `HORN` - Hole orientation data (for non-vertical downholes)
+- `TYPE` - Data type definitions for columns
+
+Any additional groups will be discarded.
+
+### AGS Types
+
+AGS TYPE codes are mapped to appropriate pandas/Python types:
+
+- Integer types: 0DP
+- Float types: 1DP, 2DP, 3DP, 4DP, 5DP, MC (moisture content), scientific notation (nSCI), significant figures (nSF)
+- Datetime: DT (supports multiple formats including ISO, dd/mm/yyyy, etc.)
+- Timedelta: T (elapsed time with unit conversion)
+- Boolean: YN (Y/N values)
+- String: ID, PA, PT, PU, RL, U, X, XN and others default to string
+
+### CRS (Coordinate Reference System) Handling
+
+- Supports standard AGS abbreviations: OSGB (EPSG:27700), OSI (EPSG:29902), ITM (EPSG:2157)
+- Falls back to LOCA_LLZ field for geographic CRS when available
+- Handles LOCAL as "unspecified" CRS
+
+### Importing multiple files
+
+- Multiple AGS files can be processed together
+- Files with the same PROJ_ID are automatically merged into a single DownholeCollection
+- Files can be imported into separate downhole collections by using the `merge_files` parameter
+
+### Non-Vertical Downholes and Geometry
+
+- HORN table data is used to calculate dip and azimuth for measurement depths
+- Measurements unspecified or outside HORN intervals default to vertical (90°/0°)
+
+### Assumptions & Limitations
+
+- **Z coordinate / Elevation:** Currently uses `LOCA_GL` (ground level) or `LOCA_LLZ` when available, otherwise defaults to 0.0.
+- **Hole identification:** Holes are uniquely identified by the combination of `LOCA_ID` and `SCPG_TESN`. The display `hole_id` is formatted as `"LOCA_ID:SCPG_TESN"` or just `"LOCA_ID"` if no TESN (e.g., geological descriptions from GEOL).
+- **CRS preference:** When both `LOCA_GREF` and `LOCA_LLZ` provide CRS information, `LOCA_GREF` is preferred.
+- **AGS validation rules:** Some AGS format rules are ignored during validation to accommodate real-world files (see `IGNORED_RULES` in [ags_context.py](./src/evo/data_converters/ags/common/ags_context.py)).
 
 ## Code of conduct
 
