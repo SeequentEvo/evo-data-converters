@@ -68,6 +68,7 @@ class MeasurementTable(ABC):
         if not self._find_column(self.mapping.HOLE_INDEX_COLUMNS):
             raise ValueError(f"No hole index column found. Expected one of: {self.mapping.HOLE_INDEX_COLUMNS}")
 
+    @abstractmethod
     def _prepare_dataframe(self) -> None:
         """
         Prepare the DataFrame for use (e.g. sorting columns).
