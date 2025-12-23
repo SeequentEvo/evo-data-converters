@@ -84,7 +84,6 @@ class AgsContext:
         "AGS Format Rule 16",
     )
 
-    # TODO: Implement proper handling for DMS (degrees/minutes/seconds)
     # AGS type codes mapped to categories for conversion
     TYPE_CATEGORY: dict[str, str] = {
         # integers
@@ -113,7 +112,7 @@ class AgsContext:
         "T": "timedelta",
         # boolean
         "YN": "bool",
-        # Note: ID, PA, PT, PU, RL, U, X, XN types fall back to string (default)
+        # Note: ID, DMS, PA, PT, PU, RL, U, X, XN types fall back to string (default)
     }
 
     # Priority order for selecting coordinate columns
@@ -505,9 +504,10 @@ class AgsContext:
         If no longer needed, consider freeing memory by deleting other.
 
         Merging strategy:
-        - Metadata-like tables (e.g., PROJ, UNIT): Keep from self, warn if different
+        - Metadata-like tables (e.g., PROJ, UNIT): Keep from self
         - LOCA: Concatenate, check for duplicate LOCA_ID
         - SCPG: Concatenate, check for duplicate (LOCA_ID, SCPG_TESN) pairs
+        - HORN: Concatenate all rows for dip/azimuth measurements
         - Measurement tables (SCPT, SCPP, GEOL): Concatenate all rows
 
         :param other: The AgsContext to merge into this one
@@ -521,19 +521,14 @@ class AgsContext:
         for issue in issues:
             logger.warning(f"Merging AgsContext instances: {issue}")
 
-        # Metadata tables: keep from self, warn if different
-        for group in self.RETAINED_GROUPS:
-            if group in other.tables and group in self.tables:
-                # Check if tables are identical
-                # TODO: This may not be necessary for most tables - consider removing or limiting to PROJ only
-                if not self.get_table(group).equals(other.get_table(group)):
-                    logger.warning(f"Table '{group}' differs between files. Keeping values from first context.")
-
         # LOCA table: concatenate and check for duplicates
         self._merge_loca(other)
 
         # SCPG table: concatenate and check for duplicate (LOCA_ID, SCPG_TESN) pairs
         self._merge_scpg(other)
+
+        # HORN table: contains dip/azimuth measurements, concatenate all rows
+        self._merge_measurement_table(HORN, other)
 
         # Measurement tables: concatenate all rows
         for group in self.MEASUREMENT_GROUPS:

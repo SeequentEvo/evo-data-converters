@@ -23,8 +23,6 @@ def parse_ags_files(filepaths: list[str], merge_files: bool = True) -> list[AgsC
     early if a failure occurs, and a list of failed files is
     logged.
 
-    .. todo:: Parallelise parsing of multiple files if necessary.
-
     :param filepaths: List of paths to AGS files.
     :param merge_files: Whether to merge files with the same PROJ_ID into a single AgsContext
         (optional, default True).
