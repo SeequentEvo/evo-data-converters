@@ -776,7 +776,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-common"
-version = "0.3.2"
+version = "0.3.1"
 source = { editable = "packages/common" }
 dependencies = [
     { name = "aiohttp" },
