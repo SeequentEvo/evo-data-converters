@@ -14,6 +14,7 @@ members = [
     "evo-data-converters-common",
     "evo-data-converters-duf",
     "evo-data-converters-gocad",
+    "evo-data-converters-obj",
     "evo-data-converters-omf",
     "evo-data-converters-resqml",
     "evo-data-converters-ubc",
@@ -298,6 +299,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7d/6b/d52e42361e1aa00709585ecc30b3f9684b3ab62530771402248b1b1d6240/babel-2.17.0.tar.gz", hash = "sha256:0c54cffb19f690cdcc52a3b50bcbf71e07a808d1c80d549f2459b9d2cf0afb9d", size = 9951852, upload-time = "2025-02-01T15:17:41.026Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/b8/3fe70c75fe32afc4bb507f75563d39bc5642255d1d94f1f23604725780bf/babel-2.17.0-py3-none-any.whl", hash = "sha256:4d0b53093fdfb4b21c92b5213dba5a1b23885afa8383709427046b21c366e5f2", size = 10182537, upload-time = "2025-02-01T15:17:37.39Z" },
+]
+
+[[package]]
+name = "backports-asyncio-runner"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8e/ff/70dca7d7cb1cbc0edb2c6cc0c38b65cba36cccc491eca64cabd5fe7f8670/backports_asyncio_runner-1.2.0.tar.gz", hash = "sha256:a5aa7b2b7d8f8bfcaa2b57313f70792df84e32a2a746f585213373f900b42162", size = 69893, upload-time = "2025-07-02T02:27:15.685Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/59/76ab57e3fe74484f48a53f8e337171b4a2349e506eabe136d7e01d059086/backports_asyncio_runner-1.2.0-py3-none-any.whl", hash = "sha256:0da0a936a8aeb554eccb426dc55af3ba63bcdc69fa1a600b5bb305413a4477b5", size = 12313, upload-time = "2025-07-02T02:27:14.263Z" },
 ]
 
 [[package]]
@@ -722,6 +732,7 @@ dependencies = [
     { name = "evo-data-converters-common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'" },
     { name = "evo-data-converters-gocad" },
+    { name = "evo-data-converters-obj" },
     { name = "evo-data-converters-omf" },
     { name = "evo-data-converters-resqml" },
     { name = "evo-data-converters-ubc" },
@@ -746,6 +757,7 @@ requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'", editable = "packages/duf" },
     { name = "evo-data-converters-gocad", editable = "packages/gocad" },
+    { name = "evo-data-converters-obj", editable = "packages/obj" },
     { name = "evo-data-converters-omf", editable = "packages/omf" },
     { name = "evo-data-converters-resqml", editable = "packages/resqml" },
     { name = "evo-data-converters-ubc", editable = "packages/ubc" },
@@ -856,6 +868,42 @@ requires-dist = [{ name = "evo-data-converters-common", editable = "packages/com
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
+
+[[package]]
+name = "evo-data-converters-obj"
+version = "0.0.1"
+source = { editable = "packages/obj" }
+dependencies = [
+    { name = "evo-data-converters-common" },
+    { name = "trimesh" },
+]
+
+[package.optional-dependencies]
+optional-parsers = [
+    { name = "tinyobjloader" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pandas" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "evo-data-converters-common", editable = "packages/common" },
+    { name = "tinyobjloader", marker = "extra == 'optional-parsers'", git = "https://github.com/tinyobjloader/tinyobjloader.git" },
+    { name = "trimesh", specifier = ">=4.9.0" },
+]
+provides-extras = ["optional-parsers"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pandas" },
+    { name = "pytest" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+]
 
 [[package]]
 name = "evo-data-converters-omf"
@@ -3101,6 +3149,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-asyncio"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "backports-asyncio-runner", marker = "python_full_version < '3.11'" },
+    { name = "pytest" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/90/2c/8af215c0f776415f3590cac4f9086ccefd6fd463befeae41cd4d3f193e5a/pytest_asyncio-1.3.0.tar.gz", hash = "sha256:d7f52f36d231b80ee124cd216ffb19369aa168fc10095013c6b014a34d3ee9e5", size = 50087, upload-time = "2025-11-10T16:07:47.256Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/35/f8b19922b6a25bc0880171a2f1a003eaeb93657475193ab516fd87cac9da/pytest_asyncio-1.3.0-py3-none-any.whl", hash = "sha256:611e26147c7f77640e6d0a92a38ed17c3e9848063698d5c93d5aa7aa11cebff5", size = 15075, upload-time = "2025-11-10T16:07:45.537Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -3772,6 +3834,11 @@ wheels = [
 ]
 
 [[package]]
+name = "tinyobjloader"
+version = "2.0.0rc14.dev9+ga4e519b"
+source = { git = "https://github.com/tinyobjloader/tinyobjloader.git#a4e519b0a0f29c790464fcfeadfe25a7f9fa15ff" }
+
+[[package]]
 name = "tomli"
 version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3836,6 +3903,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621, upload-time = "2024-04-19T11:11:49.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359, upload-time = "2024-04-19T11:11:46.763Z" },
+]
+
+[[package]]
+name = "trimesh"
+version = "4.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/69/eedfeb084460d429368e03db83ed41b18d6de4fd4945de7eb8874b9fae36/trimesh-4.10.1.tar.gz", hash = "sha256:2067ebb8dcde0d7f00c2a85bfcae4aa891c40898e5f14232592429025ee2c593", size = 831998, upload-time = "2025-12-07T00:39:05.838Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/0c/f08f0d16b4f97ec2ea6d542b9a70472a344384382fa3543a12ec417cc063/trimesh-4.10.1-py3-none-any.whl", hash = "sha256:4e81fae696683dfe912ef54ce124869487d35d267b87e10fe07fc05ab62aaadb", size = 737037, upload-time = "2025-12-07T00:39:04.086Z" },
 ]
 
 [[package]]
