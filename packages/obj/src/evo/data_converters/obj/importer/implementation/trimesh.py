@@ -33,6 +33,12 @@ class TrimeshObjImporter(ObjImporterBase):
     though Evo doesn't currently support textures. Due to the re-sorting of vertices and
     general in-memory manipulation, Trimesh can be inefficient/slow on very large
     meshes over 2 million triangles.
+
+    Notes on performance:
+
+    Trimesh does a pretty good job, but at scale it performs worse than some other libraries.
+    - A lot of time is spent during the initial file parsing, particularly if textures are enabled
+    - Memory use is generally peaky and high
     """
 
     scene: trimesh.Scene
