@@ -101,7 +101,8 @@ class ObjImporterBase:
         """
         pass
 
-    def _check_tables(self, vertices_table: pa.Table, indices_table: pa.Table, faces_table: pa.Table) -> None:
+    @staticmethod
+    def _check_tables(vertices_table: pa.Table, indices_table: pa.Table, faces_table: pa.Table) -> None:
         """
         Validates that the passed tables are valid and raises exceptions if they aren't.
 
