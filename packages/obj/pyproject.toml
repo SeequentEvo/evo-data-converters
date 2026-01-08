@@ -13,12 +13,6 @@ dependencies = [
     "trimesh>=4.9.0",
 ]
 
-[project.optional-dependencies]
-optional_parsers = [
-    # v2 is not yet stable, the current release (2.0.0rc13) doesn't work
-    "tinyobjloader@git+https://github.com/tinyobjloader/tinyobjloader.git#a4e519b0a0f29c790464fcfeadfe25a7f9fa15ff",
-]
-
 [dependency-groups]
 dev = [
     "pandas",

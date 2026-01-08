@@ -31,7 +31,26 @@ optionally with texture data (stored in a separate MTL file).
 
 ### Implementations
 
-The Python [Trimesh](https://trimesh.org/index.html) package is used to work with OBJ files by default, for import and export. There is a second importer implementation that uses [TinyOBJ](https://github.com/tinyobjloader/tinyobjloader). To use TinyOBJ, the `--extra optional_parsers` dependencies need to be installed then pass "tinyobj" as the `implementation` string to `convert_obj()`. TinyOBJ might be more suitable for larger meshes.
+The Python [Trimesh](https://trimesh.org/index.html) package is used to work with OBJ files by default, for import and export. There is a second importer implementation that uses [TinyOBJ](https://github.com/tinyobjloader/tinyobjloader). TinyOBJ might be more suitable for very large meshes.
+
+To use TinyOBJ, it will have to be installed. Once it is installed, you can specify the TinyOBJ backend via a parameter to `convert_obj()`: `convert_obj(..., implementation="tinyobj")`.
+
+#### Installing tinyobjloader
+
+The TinyOBJ library is good, but the PyPI release has unstable Python bindings. This version was found to work. You will have to do it after every `uv sync`:
+```commandline
+uv pip install tinyobjloader@git+https://github.com/tinyobjloader/tinyobjloader.git#a4e519b0a0f29c790464fcfeadfe25a7f9fa15ff
+```
+
+Alternatively, you can edit `packages/obj/pyproject.toml`:
+```
+[project.optional-dependencies]
+optional_parsers = [
+    # v2 is not yet stable, the current release (2.0.0rc13) doesn't work
+    "tinyobjloader@git+https://github.com/tinyobjloader/tinyobjloader.git#a4e519b0a0f29c790464fcfeadfe25a7f9fa15ff",
+]
+```
+Then do `uv sync --extra optional_parsers`.
 
 ### Publish geoscience objects from an OBJ file
 
