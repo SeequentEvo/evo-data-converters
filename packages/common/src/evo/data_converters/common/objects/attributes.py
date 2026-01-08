@@ -140,7 +140,7 @@ BOOL_CONFIG: AttributeConfig = AttributeConfig(
 )
 
 # Mapping from inferred pandas dtype to attribute configuration
-INFERRED_TYPE_MAP: dict[str, AttributeConfig] = {
+PD_INFERRED_TYPE_MAP: dict[str, AttributeConfig] = {
     # Continuous/Float types
     "floating": CONTINUOUS_CONFIG,
     "mixed-integer-float": CONTINUOUS_CONFIG,
@@ -160,7 +160,7 @@ INFERRED_TYPE_MAP: dict[str, AttributeConfig] = {
 }
 
 
-def create_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> OneOfAttribute_Item | None:
+def attribute_from_pd_series(name: str, series: pd.Series, client: ObjectDataClient) -> OneOfAttribute_Item | None:
     """
     Create an Evo attribute from a pandas Series based on inferred type.
 
@@ -200,10 +200,10 @@ def create_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> 
     inferred_type: str = pd.api.types.infer_dtype(series, skipna=True)
 
     if inferred_type == "categorical":
-        return create_categorical_attribute(name, series, client)
+        return category_attribute_from_pd_series(name, series, client)
 
     # Get attribute configuration for inferred type
-    config: AttributeConfig | None = INFERRED_TYPE_MAP.get(inferred_type)
+    config: AttributeConfig | None = PD_INFERRED_TYPE_MAP.get(inferred_type)
     if config is None:
         logger.warning(
             f"Encountered unsupported attribute type, inferred {inferred_type} with no matching AttributeConfig."
@@ -215,7 +215,7 @@ def create_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> 
         series = pd.to_datetime(series)
 
     # Create and save the pyarrow table
-    table: pa.Table = create_table(series, config.data_type)
+    table: pa.Table = table_from_pd_series(series, config.data_type)
     table_info = client.save_table(table)
 
     # Create the evo array element from saved table information
@@ -242,7 +242,7 @@ def create_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> 
     return config.attribute_class(**attribute_kwargs)
 
 
-def create_categorical_attribute(name: str, series: pd.Series, client: ObjectDataClient) -> CategoryAttribute:
+def category_attribute_from_pd_series(name: str, series: pd.Series, client: ObjectDataClient) -> CategoryAttribute:
     """
     Create a CategoryAttribute from a categorical pandas Series.
 
@@ -291,7 +291,7 @@ def create_categorical_attribute(name: str, series: pd.Series, client: ObjectDat
     )
 
 
-def create_table(series: pd.Series, attribute_type: AttributeType) -> pa.Table:
+def table_from_pd_series(series: pd.Series, attribute_type: AttributeType) -> pa.Table:
     """
     Create a PyArrow table from a pandas Series with the specified data type.
 
@@ -300,7 +300,7 @@ def create_table(series: pd.Series, attribute_type: AttributeType) -> pa.Table:
 
     :return: PyArrow table with a single 'data' column of the specified type
     """
-    data_type = get_data_type(attribute_type)
+    data_type = get_pd_data_type(attribute_type)
 
     try:
         # Trial conversion: fails if values can't be represented in data_type
@@ -312,7 +312,7 @@ def create_table(series: pd.Series, attribute_type: AttributeType) -> pa.Table:
     return pa.Table.from_pandas(series.rename("data").to_frame(), schema=schema)
 
 
-def get_data_type(type: AttributeType) -> pa.DataType:
+def get_pd_data_type(type: AttributeType) -> pa.DataType:
     return _type_map[type]
 
 
