@@ -405,6 +405,8 @@ class DownholeCollectionBuilder:
 
         :return: Pandas DataFrame with typed collar data
         """
+        # There can be more columns for optional attributes that aren't defined in COLLAR_DTYPES, but we don't know
+        # their types in advance. So we just enforce the types for the known columns.
         return pd.DataFrame(self.collar_rows).astype(dtype=self.COLLAR_DTYPES)
 
     def _create_measurements_dataframe(self) -> pd.DataFrame:
