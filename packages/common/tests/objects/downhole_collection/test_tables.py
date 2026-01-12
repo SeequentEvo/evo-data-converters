@@ -51,14 +51,7 @@ class TestDistanceTable:
         df = pd.DataFrame({"hole_index": [1], "penetrationLength": [1.0], "value": [10]})
 
         table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
-        assert table.get_primary_column() == "penetrationLength"
-
-    def test_get_primary_columns(self):
-        """Test that primary columns list contains only the depth column"""
-        df = pd.DataFrame({"hole_index": [1], "penetrationLength": [1.0], "value": [10]})
-
-        table = DistanceTable(df, ColumnMapping(DEPTH_COLUMNS=["penetrationLength"]))
-        assert table.get_primary_columns() == ["penetrationLength"]
+        assert table.get_depth_column() == "penetrationLength"
 
     def test_get_depth_values(self):
         """Test getting depth values as a Series"""
@@ -158,24 +151,6 @@ class TestIntervalTable:
 
         table = IntervalTable(df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"]))
         assert table.get_to_column() == "SCPP_BASE"
-
-    def test_get_primary_column(self):
-        """Test that primary column returns the 'from' column"""
-        df = pd.DataFrame({"hole_index": [1], "SCPP_TOP": [0.0], "SCPP_BASE": [1.0], "value": [10]})
-
-        table = IntervalTable(df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"]))
-        assert table.get_primary_column() == "SCPP_TOP"
-
-    def test_get_primary_columns(self):
-        """Test that primary columns list contains both interval columns"""
-        df = pd.DataFrame({"hole_index": [1], "SCPP_TOP": [0.0], "SCPP_BASE": [1.0], "value": [10]})
-
-        table = IntervalTable(df, ColumnMapping(FROM_COLUMNS=["SCPP_TOP"], TO_COLUMNS=["SCPP_BASE"]))
-        primary = table.get_primary_columns()
-
-        assert len(primary) == 2
-        assert "SCPP_TOP" in primary
-        assert "SCPP_BASE" in primary
 
     def test_get_intervals(self):
         """Test getting intervals as a DataFrame"""

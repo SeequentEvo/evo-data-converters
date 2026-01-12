@@ -16,14 +16,11 @@ import pyarrow as pa
 import pytest
 
 from evo.data_converters.common.objects.downhole_collection import (
-    DistanceTable as DistanceMeasurementTable,
-)
-from evo.data_converters.common.objects.downhole_collection import (
+    DistanceTable,
     DownholeCollection,
+    IntervalTable,
 )
-from evo.data_converters.common.objects.downhole_collection import (
-    IntervalTable as IntervalMeasurementTable,
-)
+
 from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
     DownholeCollectionToGeoscienceObject,
 )
@@ -76,7 +73,7 @@ def interval_measurements_df():
 @pytest.fixture
 def distance_table_mock(distance_measurements_df):
     """Mock distance measurement table."""
-    mock = Mock(spec=DistanceMeasurementTable)
+    mock = Mock(spec=DistanceTable)
     mock.df = distance_measurements_df
     mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
     mock.get_dip_values.return_value = distance_measurements_df["dip"].tolist()
@@ -90,7 +87,7 @@ def distance_table_mock(distance_measurements_df):
 @pytest.fixture
 def interval_table_mock(interval_measurements_df):
     """Mock interval measurement table."""
-    mock = Mock(spec=IntervalMeasurementTable)
+    mock = Mock(spec=IntervalTable)
     mock.df = interval_measurements_df
     mock.get_from_column.return_value = "SCPP_TOP"
     mock.get_to_column.return_value = "SCPP_BASE"
@@ -132,7 +129,7 @@ def dhc_interval(collars_df, interval_table_mock, distance_table_mock):
 
     # Mock to return interval for main loop but distance for path calculation
     def get_tables_side_effect(filter_to_table_type=None):
-        if filter_to_table_type and DistanceMeasurementTable in filter_to_table_type:
+        if filter_to_table_type and DistanceTable in filter_to_table_type:
             return [distance_table_mock]
         return [interval_table_mock]
 
@@ -453,7 +450,7 @@ class TestHolesTable:
             ignore_index=True,
         )
 
-        mock_table = Mock(spec=DistanceMeasurementTable)
+        mock_table = Mock(spec=DistanceTable)
         mock_table.df = extended_df
 
         table = converter_distance.holes_table(mock_table)
@@ -548,7 +545,7 @@ class TestCollectionStartEndTable:
         assert to_values == [10.0, 20.0, 30.0, 15.0, 25.0]
 
 
-class TestGetFirstDistanceMeasurementTable:
+class TestGetFirstDistanceTable:
     def test_returns_first_distance_table(self, converter_distance, distance_table_mock) -> None:
         result = converter_distance.get_first_distance_measurement_table()
 
@@ -591,7 +588,7 @@ class TestEdgeCases:
         collars_mock.df = collars_df
         collars_mock.get_attribute_column_names.return_value = []
 
-        distance_mock = Mock(spec=DistanceMeasurementTable)
+        distance_mock = Mock(spec=DistanceTable)
         distance_mock.df = distance_df
         distance_mock.get_azimuth_values.return_value = [0.0]
         distance_mock.get_depth_values.return_value = [10.0]
@@ -638,7 +635,7 @@ class TestEdgeCases:
         collars_mock.df = collars_df
         collars_mock.get_attribute_column_names.return_value = []
 
-        distance_mock = Mock(spec=DistanceMeasurementTable)
+        distance_mock = Mock(spec=DistanceTable)
         distance_mock.df = distance_df
         distance_mock.get_depth_values.return_value = distance_df["penetrationLength"].tolist()
         distance_mock.get_primary_column.return_value = "penetrationLength"

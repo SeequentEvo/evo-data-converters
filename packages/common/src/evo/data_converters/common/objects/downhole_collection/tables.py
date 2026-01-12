@@ -108,15 +108,6 @@ class MeasurementTable(ABC):
 
         return self.nan_values_by_column.get(column, [])
 
-    @abstractmethod
-    def get_primary_column(self) -> str:
-        """
-        Return the name of the primary measurement column.
-
-        :return: Name of the primary column (depth for distance tables, from for interval tables)
-        """
-        pass
-
     def _find_column(self, possible_names: list[str]) -> str | None:
         """
         Find the first matching column name in the DataFrame (case-insensitive).
@@ -140,15 +131,13 @@ class MeasurementTable(ABC):
 
         :return: List of attribute column names
         """
-        primary: list[str] = [self.get_hole_index_column()] + self.get_primary_columns()
+        primary: list[str] = [self.get_hole_index_column()] + self.get_essential_columns()
         return [col for col in self.df.columns if col not in primary]
 
     @abstractmethod
-    def get_primary_columns(self) -> list[str]:
+    def get_essential_columns(self) -> list[str]:
         """
-        Return list of all primary measurement columns.
-
-        :return: List of primary column names that define the measurement structure
+        :return: List of all essential, non-attribute columns.
         """
         pass
 
@@ -211,16 +200,7 @@ class DistanceTable(MeasurementTable):
         return col
 
     @override
-    def get_primary_column(self) -> str:
-        """
-        Return the name of the primary measurement column (depth).
-
-        :return: Name of the depth column
-        """
-        return self.get_depth_column()
-
-    @override
-    def get_primary_columns(self) -> list[str]:
+    def get_essential_columns(self) -> list[str]:
         """
         Return list of primary measurement columns (depth only for distance tables).
 
@@ -295,16 +275,7 @@ class IntervalTable(MeasurementTable):
         return col
 
     @override
-    def get_primary_column(self) -> str:
-        """
-        Return the name of the primary measurement column (from depth).
-
-        :return: Name of the from column
-        """
-        return self.get_from_column()
-
-    @override
-    def get_primary_columns(self) -> list[str]:
+    def get_essential_columns(self) -> list[str]:
         """
         Return list of primary measurement columns (from and to depths).
 
