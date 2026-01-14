@@ -23,6 +23,14 @@ if !ERRORLEVEL! neq 0 (
 REM Get the directory where the batch file is located
 set "SCRIPT_DIR=%~dp0"
 
+REM Change to the script directory to ensure consistent file operations
+cd /d "%SCRIPT_DIR%"
+if errorlevel 1 (
+    echo ERROR: Failed to change to script directory
+    pause
+    exit /b 1
+)
+
 REM Ensure uv is installed (install or upgrade if needed)
 set "UV_WAS_INSTALLED=0"
 where uv >nul 2>&1
