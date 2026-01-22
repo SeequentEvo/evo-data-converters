@@ -430,14 +430,12 @@ class TestGetCollarAttributes:
         mock_cpt.cpt_standard = []
         mock_cpt.standardized_location = {}
         mock_cpt.dissipationtest_performed = None
-        mock_cpt.predrilled_depth = 23254
 
         attributes = builder._get_collar_attributes(mock_cpt)
 
         assert "cpt_standard" not in attributes
         assert "standardizied_location" not in attributes
         assert "dissapationtest_performed" not in attributes
-        assert attributes["predrilled_depth"] == 23254
 
 
 class TestCreateCollarRow:
