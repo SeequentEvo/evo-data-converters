@@ -10,6 +10,26 @@
 #  limitations under the License.
 
 
+COLLAR_ATTRIBUTES: list[str] = [
+    # GEF
+    "delivered_vertical_position_offset",  # ZID
+    "research_report_date",  # FILEDATE
+    # TODO Understand these
+    # NOT GEF
+    "cpt_description",
+    "standardized_location",
+    "cone_diameter",
+    "cone_to_friction_sleeve_surface_area",
+    "zlm_inclination_resultant_before",
+    "zlm_inclination_resultant_after",
+]
+
+COMPUTED = [
+    "groundwater_level_offset",
+    "predrilled_depth_offset",
+    "final_depth_offset",
+]
+
 MEASUREMENT_TEXT_NAMES: dict[int, str] = {
     1: "client",
     2: "project_name",
@@ -102,6 +122,35 @@ MEASUREMENT_VAR_NAMES: dict[int, str] = {
     42: "x_axis_north_orientation",
 }
 
+# Note on reserved fields:
+# CPT files have been observed to contain reserved fields, which apparently require some tribal knowledge to understand.
+# In the "cpt.gef" file that is a test file in this repository, reserved TEXT fields 24 and 25 are used.
+# The following is a list of potentially used reserved fields, that are documented here for insight but will not be
+# handled during import. The "CPT" fields are are the ones that are relevant to the files currently being imported.
+# This knowledge was generated using Github Copilot with Claude Opus 4.5.
+# RESERVED MEASUREMENTTEXT USAGE:
+#   12: Location determination method (GEF-BORE)
+#   13: Drilling company (GEF-BORE)
+#   14: Public (yes/no) (GEF-BORE)
+#   15 Date of groundwater level measurement for piezometer 1 (Piezometer files)
+#   16: Drilling date (GEF-BORE)
+#   16: Filter inflow for pizemeter 1 (Piezometer files)
+#   18: Piezometer present/absent (GEF-BORE)
+#   19: End date of drilling (GEF-BORE)
+#   24: CPTest software version (GEF-CPT)
+#   25: CPTask software version (GEF-CPT)
+#
+# RESERVED MEASUREMENTVAR USAGE:
+#   18: Groundwater level (GEF-BORE)
+#   19: Number of piezometers (GEF-BORE)
+#   36: Electrical conductivity before penetration (BRO CPT)
+#   37: Electrical conductivity after penetration (BRO CPT)
+#   37: Top of piezometer 2 (Piezometer files)
+#   38: Diameter of piezometer 2 (Piezometer files)
+#   39: Length of standpipe piezometer 2 (Piezometer files)
+#   40: Length of sand trap piezometer 2 (Piezometer files)
+
+
 # It should be noted here that the following column names are those provided
 # by PyGef. If a column name maps to an empty string then this implies a
 # dimensionless unit. Examples of dimensionless columns would be percentage
@@ -141,3 +190,35 @@ MEASUREMENT_UNITS: dict[str, str] = {
 MEASUREMENT_UNIT_CONVERSIONS: dict[str, str] = {
     "kN/m**3": "N/m**3",
 }
+
+# For reference, this is the specification for COLUMNINFO:
+# 1: Penetration length
+# 2: Cone resistance (qc)
+# 3: Local friction (fs)
+# 4: Friction ratio (Rf)
+# 5: Pore pressure (u1)
+# 6: Pore pressure (u2)
+# 7: Pore pressure (u3)
+# 8: Inclination resultant
+# 9: Inclination N-S
+# 10: Inclination E-W
+# 11: Corrected depth
+# 12: Elapsed time
+# 13: Corrected cone resistance (qt)
+# 14: Net cone resistance (qn)
+# 15: Pore ratio (Bq)
+# 16: Cone resistance ratio (Nm)
+# 17: Weight per unit volume
+# 18: In-situ initial pore pressure
+# 19: Total vertical pore pressure
+# 20: Effective vertical soil pressure
+# 21: Inclination in X direction
+# 22: Inclination in Y direction
+# 23: Electric conductivity
+# 24-30: Reserved for future use
+# 31: Magnetic field strength in X direction
+# 32: Magnetic field strength in Y direction
+# 33: Magnetic field strength in Z direction
+# 34: Total magnetic field strength
+# 35: Magnetic inclination
+# 36: Magnetic declination
