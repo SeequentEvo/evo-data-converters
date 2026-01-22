@@ -898,3 +898,16 @@ class TestCreateFromParsedGefCpts:
         assert len(result.collars.df) == 2
         assert len(result.measurements[0].df) == 8  # 4 measurements each
         assert result.measurements[0].df["hole_index"].nunique() == 2
+
+    def test_multiple_cpts_with_different_attributes(self, mock_cpt_data, mock_cpt_data_4) -> None:
+        parsed_files = {"CPT-001": ("file_0001", mock_cpt_data), "CPT-004": ("file_004", mock_cpt_data_4)}
+
+        result = create_from_parsed_gef_cpts(parsed_files, name="Custom name")
+
+        df = result.measurements[0].df
+
+        # The first 4 rows come from a table without frictionRatio or soilDensity
+        df.iloc[:4]["frictionRatio"].isnull().all()
+        df.iloc[:4]["soilDensity"].isnull().all()
+        df.iloc[4:]["frictionRatio"].notnull().all()
+        df.iloc[4:]["soilDensity"].notnull().all()
