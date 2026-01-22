@@ -20,7 +20,6 @@ from evo.data_converters.common.objects.downhole_collection import (
     DownholeCollection,
     IntervalTable,
 )
-
 from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
     DownholeCollectionToGeoscienceObject,
 )
