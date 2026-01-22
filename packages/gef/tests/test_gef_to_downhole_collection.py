@@ -813,7 +813,9 @@ class TestCreateCollection:
         assert result.name == "GEF CPT CPT-001"
         assert result.coordinate_reference_system == 28992
         assert len(result.measurements) == 1
-        assert result.measurements[0].nan_values_by_column["penetrationLength"] == [9999.00]
+        # penetrationLength did start with a NaN sentinel of 9999.0, but by this point the sentinal values have been
+        # replaced by NaNs
+        assert result.measurements[0].nan_values_by_column["penetrationLength"] == []
 
 
 class TestCreateFromParsedGefCpts:

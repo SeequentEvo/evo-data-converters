@@ -416,8 +416,10 @@ class DownholeCollectionBuilder:
         column_mapping = ColumnMapping(
             DEPTH_COLUMNS=["penetrationLength"], DIP_COLUMNS=["dip"], AZIMUTH_COLUMNS=["azimuth"]
         )
+        # NaN's have already replaced the sentinel values in the DFs, so there's no need to track them further.
+        nan_values = {}
         distance_measurements = create_measurement_table(
-            df=measurements_df, column_mapping=column_mapping, nan_values_by_column=self.nan_values_by_attribute
+            df=measurements_df, column_mapping=column_mapping, nan_values_by_column=nan_values
         )
         collars = HoleCollars(df=collars_df)
 
