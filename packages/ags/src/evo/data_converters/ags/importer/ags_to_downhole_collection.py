@@ -117,6 +117,9 @@ def build_scpg_collars(ags_context: AgsContext) -> pd.DataFrame:
     tesn_str = scpg_collars["SCPG_TESN"].fillna("").astype(str)
     scpg_collars["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
 
+    if not scpg_collars["hole_id"].is_unique:
+        logger.warning("Duplicate hold IDs found, based on on LOCA_ID and SCPG_TESN")
+
     return scpg_collars
 
 
