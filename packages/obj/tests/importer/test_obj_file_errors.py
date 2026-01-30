@@ -66,6 +66,22 @@ class TestObjFileErrors(IsolatedAsyncioTestCase):
                 implementation=self.implementation,
             )
 
+    async def test_vertices_only_no_faces(self) -> None:
+        """
+        Attempts to load an OBJ file with vertices but no faces.
+        Should raise InvalidOBJError instead of AttributeError.
+        """
+        obj_file = Path(__file__).parent.parent / "data" / "vertices_only.obj"
+
+        with self.assertRaises(InvalidOBJError):
+            (triangle_mesh,) = await convert_obj(
+                filepath=obj_file,
+                evo_workspace_metadata=self.metadata,
+                epsg_code=4326,
+                publish_objects=False,
+                implementation=self.implementation,
+            )
+
 
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
 class TestObjFileErrorsTinyObj(TestObjFileErrors):
