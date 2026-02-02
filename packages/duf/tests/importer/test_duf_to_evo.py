@@ -216,7 +216,6 @@ def test_import_polyface_missing_vertex_list(evo_metadata, polyface_missing_vert
     assert len(go_objects) == 0
 
 
-
 def test_import_polyface_missing_face_list(evo_metadata, polyface_missing_face_list_path):
     go_objects = convert_duf(
         filepath=polyface_missing_face_list_path,

@@ -87,8 +87,8 @@ def reflect_nested_type(csharp_type, nested: str):
 def call_private(obj, method_name, *args):
     current_type = obj.GetType()
 
-    # Find the first class in the hierarchy which declares the method. For whatever reason, it's not possible to
-    # get the private method of the base class indirectly.
+    # Find the first class in the hierarchy which declares the method. It's not possible to get the private method of
+    # the base class indirectly.
     while current_type is not None:
         method_info = current_type.GetMethod(
             method_name,
@@ -115,9 +115,7 @@ def get_private_field(obj, field_name: str):
     while current_type is not None:
         field_info = current_type.GetField(
             field_name,
-            dw.BindingFlags.NonPublic
-            | dw.BindingFlags.Instance
-            | dw.BindingFlags.DeclaredOnly,
+            dw.BindingFlags.NonPublic | dw.BindingFlags.Instance | dw.BindingFlags.DeclaredOnly,
         )
         if field_info is not None:
             return field_info.GetValue(obj)
