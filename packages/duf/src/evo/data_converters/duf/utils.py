@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -82,3 +82,46 @@ def reflect_constructors(csharp_type):
 
 def reflect_nested_type(csharp_type, nested: str):
     clr.GetClrType(csharp_type).GetNestedType(nested)
+
+
+def call_private(obj, method_name, *args):
+    current_type = obj.GetType()
+
+    # Find the first class in the hierarchy which declares the method. For whatever reason, it's not possible to
+    # get the private method of the base class indirectly.
+    while current_type is not None:
+        method_info = current_type.GetMethod(
+            method_name,
+            dw.BindingFlags.NonPublic
+            | dw.BindingFlags.Instance
+            | dw.BindingFlags.DeclaredOnly,  # Only look at methods declared at this level
+        )
+
+        if method_info is not None:
+            return method_info.Invoke(obj, args)
+
+        current_type = current_type.BaseType
+
+    raise ValueError(f"Method '{method_name}' not found in class hierarchy")
+
+
+def get_private_field(obj, field_name: str):
+    """
+    Read a private instance field (member attribute) from a C# object.
+    Walks base types because private members are not found via inheritance lookup.
+    """
+    current_type = obj.GetType()
+
+    while current_type is not None:
+        field_info = current_type.GetField(
+            field_name,
+            dw.BindingFlags.NonPublic
+            | dw.BindingFlags.Instance
+            | dw.BindingFlags.DeclaredOnly,
+        )
+        if field_info is not None:
+            return field_info.GetValue(obj)
+
+        current_type = current_type.BaseType
+
+    raise ValueError(f"Field '{field_name}' not found in class hierarchy")

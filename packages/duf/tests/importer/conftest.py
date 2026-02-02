@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -137,3 +137,18 @@ def mismatching_type_desc_and_values_path():
 def mismatching_type_desc_and_values(mismatching_type_desc_and_values_path):
     with DUFCollectorContext(mismatching_type_desc_and_values_path) as context:
         yield context.collector
+
+
+@pytest.fixture(scope="session")
+def polyline_missing_vertex_list_path():
+    return str((Path(__file__).parent.parent / "data" / "polyline_missing_VertexList.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def polyface_missing_vertex_list_path():
+    return str((Path(__file__).parent.parent / "data" / "pit_mesh_attrs_missing_VertexList.duf").resolve())
+
+
+@pytest.fixture(scope="session")
+def polyface_missing_face_list_path():
+    return str((Path(__file__).parent.parent / "data" / "pit_mesh_attrs_missing_FaceList.duf").resolve())
