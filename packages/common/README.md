@@ -95,7 +95,7 @@ any other utility modules specific to this converter type:
 │   └── publish.py
 │   └── utils.py
 │   └── (and more common modules)
-├── omf/samples/
+├── omf/code-samples/
 ├── omf/src/evo/data_converters/omf/
 │   ├── exporter/
 │   │   └── __init__.py
@@ -108,7 +108,7 @@ any other utility modules specific to this converter type:
 │   ├── __init__.py
 │   ├── utils.py
 │   └── (and more common modules for omf)
-├── resqml/samples/
+├── resqml/code-samples/
 ├── resqml/src/evo/data_converters/resqml/
 │   ├── importer/
 │   │   └── __init__.py
@@ -137,7 +137,7 @@ the needs of specific data sources.
 An importer takes geoscience data from a specific file type, converts it to Evo geoscience objects and uploads these
 objects to Evo.
 
-As observable in the example Jupyter notebook for [converting an OMF file](../omf/samples/convert-omf/convert-omf.ipynb) the main interface to a convertor
+As observable in the example Jupyter notebook for [converting an OMF file](../omf/code-samples/convert-omf/convert-omf.ipynb) the main interface to a convertor
 is the `convert_*` function.  This function will be in a module in the root directory of the
 named `yourfiletype_to_evo.py`.
 

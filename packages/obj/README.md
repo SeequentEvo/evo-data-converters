@@ -56,9 +56,9 @@ Then do `uv sync --extra optional_parsers`.
 
 [The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-common`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) to convert your file.
 
-Have a look at the `samples/publish-obj.ipynb` Notebook for an example of how to publish an OBJ (and related) files.
+Have a look at the `code-samples/publish-obj.ipynb` Notebook for an example of how to publish an OBJ (and related) files.
 
-Also see the `samples/publish-obj-script.py` example of using `convert_obj()` inside a python script.
+Also see the `code-samples/publish-obj-script.py` example of using `convert_obj()` inside a python script.
 
 ### Exporting Triangle Mesh objects to OBJ
 
@@ -70,9 +70,9 @@ See documentation on the `ObjectAPIClient` for listing objects and getting their
 
 You will need the same selection of organisation, Evo hub, and workspace that is needed for importing objects.
 
-See the `samples/export-obj.ipynb` Notebook for an example of how to download a Evo Geoscience object to an OBJ.
+See the `code-samples/export-obj.ipynb` Notebook for an example of how to download a Evo Geoscience object to an OBJ.
 
-Also see the `samples/export-obj-script.py` example of using `export_obj()` inside a python script.
+Also see the `code-samples/export-obj-script.py` example of using `export_obj()` inside a python script.
 
 ## Code of conduct
 
