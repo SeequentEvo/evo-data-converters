@@ -3,25 +3,16 @@ setlocal EnableDelayedExpansion
 echo Launching JupyterLab...
 echo.
 
-REM Check if long file paths are enabled
-reg query "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled 2>nul | find "0x1" >nul
-if !ERRORLEVEL! neq 0 (
-    echo WARNING: Long file paths are not enabled on this system.
-    echo This may cause issues with the Jupyter notebook.
-    echo.
-    echo To enable, run PowerShell as Administrator and execute:
-    echo   New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
-    echo.
-    echo Press any key to continue anyway...
-    pause >nul
-    echo.
-) else (
-    echo Long file paths are enabled.
-    echo.
-)
-
 REM Get the directory where the batch file is located
 set "SCRIPT_DIR=%~dp0"
+
+REM Change to the script directory to ensure consistent file operations
+cd /d "%SCRIPT_DIR%"
+if errorlevel 1 (
+    echo ERROR: Failed to change to script directory
+    pause
+    exit /b 1
+)
 
 REM Ensure uv is installed (install or upgrade if needed)
 set "UV_WAS_INSTALLED=0"

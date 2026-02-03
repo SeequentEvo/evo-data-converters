@@ -5,6 +5,7 @@ description = "Jupyter notebook for DUF file conversion to an Evo workspace"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "numpy<=1.26.4",
+    "jupyterlab-widgets==3.0.15",
     "evo-data-converters-common>=0.3.1",
     "evo-data-converters-duf>=0.2.1",
     "evo-sdk>=0.1.17",

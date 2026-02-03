@@ -27,6 +27,7 @@ The existing data converters can be used without modification or used as a templ
 | [evo-data-converters-common](packages/common/README.md) | <a href="https://pypi.org/project/evo-data-converters-common/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-common" /></a> |
 | [evo-data-converters-duf](packages/duf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-duf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" /></a>       |
 | [evo-data-converters-gocad](packages/gocad/README.md)   | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a>   |
+| [evo-data-converters-obj](packages/obj/README.md)       | <a href="https://pypi.org/project/evo-data-converters-obj/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>       |
 | [evo-data-converters-omf](packages/omf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-omf" /></a>       |
 | [evo-data-converters-resqml](packages/resqml/README.md) | <a href="https://pypi.org/project/evo-data-converters-resqml/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-resqml" /></a> |
 | [evo-data-converters-ubc](packages/ubc/README.md)       | <a href="https://pypi.org/project/evo-data-converters-ubc/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ubc" /></a>       |
@@ -52,6 +53,7 @@ Currently supported converters are:
  * [UBC](packages/ubc/README.md)
  * [GOCAD](packages/gocad/README.md)
  * [DUF](packages/duf/README.md)
+ * [OBJ](packages/obj/README.md)
 
  To use any of the data converters, you will need a few things:
   * An *access token* for your user
@@ -84,25 +86,17 @@ uv run jupyter notebook
 
 It should open a browser where you can open the notebooks for the current directory.
 
-## Getting started with Evo data converters code samples
+## Getting started with Evo data converters samples
 
-For examples of how to use Evo data converters, please refer to the code samples in each convertor of the `packages` directory.
+For examples of how to use Evo data converters, please refer to the samples in each convertor of the `packages` directory.
 
-   * [DUF](packages/duf/code-samples)
-   * [GOCAD](packages/gocad/code-samples)
-   * [OMF](packages/omf/code-samples)
-   * [RESQML](packages/resqml/code-samples)
-   * [UBC](packages/ubc/code-samples)
-   * [VTK](packages/vtk/code-samples)
-
-## Code samples
-
-The `code-samples` folder contains more advanced examples of what can be built using Evo data converters:
-
-- **code-samples/duf-automated-conversion**: Automated, script-driven DUF conversion and publishing workflow. Includes a Windows batch launcher (convert_duf.bat), a Python publisher (publish_to_evo.py), setup notes (docs/SETUP.md), and sample DUF files under example-data. See the sample’s README for details.
-- **code-samples/duf-jupyter-conversion**: Jupyter notebook–based DUF conversion walkthrough. Includes the notebook (convert_duf.ipynb), helper modules (helpers/), a getting-started launcher (start-here.bat), and sample DUF files under example-data.
-
-Each sample is self-contained with its own `pyproject.toml` and `requirements.txt` for isolated runs. Refer to the files within each sample for step-by-step usage.
+   * [OMF](packages/omf/samples)
+   * [RESQML](packages/resqml/samples)
+   * [VTK](packages/vtk/samples)
+   * [UBC](packages/ubc/samples)
+   * [GOCAD](packages/gocad/samples)
+   * [DUF](packages/duf/samples)
+   * [OBJ](packages/obj/samples)
 
 ## Contributing
 

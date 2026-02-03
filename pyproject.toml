@@ -9,6 +9,7 @@ dependencies = [
   "evo-data-converters-common",
   "evo-data-converters-duf ; platform_system == \"Windows\"",
   "evo-data-converters-gocad",
+  "evo-data-converters-obj",
   "evo-data-converters-omf",
   "evo-data-converters-resqml",
   "evo-data-converters-ubc",
@@ -22,8 +23,8 @@ dependencies = [
 ]
 
 [project.urls]
-Source = "https://github.com/SeequentEvo/evo-python-sdk"
-Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
+Source = "https://github.com/SeequentEvo/evo-data-converters"
+Tracker = "https://github.com/SeequentEvo/evo-data-converters/issues"
 Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
@@ -38,6 +39,7 @@ dev = [
 evo-data-converters-common = { workspace = true }
 evo-data-converters-duf = { workspace = true }
 evo-data-converters-gocad = { workspace = true }
+evo-data-converters-obj = { workspace = true }
 evo-data-converters-omf = { workspace = true }
 evo-data-converters-resqml = { workspace = true }
 evo-data-converters-ubc = { workspace = true }
