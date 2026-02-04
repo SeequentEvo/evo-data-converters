@@ -1,5 +1,12 @@
 # Changelog
 
+## evo-data-converters-duf@v0.2.2
+### What's Changed
+#### evo-data-converters-duf
+* Guard against missing Polyline and Polyface data by @daniel-kinney-seequent in https://github.com/SeequentEvo/evo-data-converters/pull/169
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-duf@v0.2.1...evo-data-converters-duf@v0.2.2
+
 ## evo-data-converters-vtk@v0.1.3
 ### What's Changed
 #### evo-data-converters-vtk
