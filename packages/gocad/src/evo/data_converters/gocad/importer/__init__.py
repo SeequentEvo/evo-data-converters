@@ -10,6 +10,6 @@
 #  limitations under the License.
 
 from evo.data_converters.gocad.importer.gocad_reader import GocadDataFileIOError, GocadInvalidDataError
-from evo.data_converters.gocad.importer.gocad_to_evo import convert_gocad
+from evo.data_converters.gocad.importer.gocad_to_evo import convert_gocad, get_gocad_grids
 
-__all__ = ["GocadDataFileIOError", "GocadInvalidDataError", "convert_gocad"]
+__all__ = ["GocadDataFileIOError", "GocadInvalidDataError", "convert_gocad", "get_gocad_grids"]
