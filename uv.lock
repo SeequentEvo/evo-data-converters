@@ -14,6 +14,7 @@ members = [
     "evo-data-converters-common",
     "evo-data-converters-duf",
     "evo-data-converters-gocad",
+    "evo-data-converters-grd",
     "evo-data-converters-obj",
     "evo-data-converters-omf",
     "evo-data-converters-resqml",
@@ -766,8 +767,8 @@ dependencies = [
     { name = "evo-data-converters-common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'" },
     { name = "evo-data-converters-gocad" },
+    { name = "evo-data-converters-grd" },
     { name = "evo-data-converters-obj" },
-    { name = "evo-data-converters-omf" },
     { name = "evo-data-converters-resqml" },
     { name = "evo-data-converters-ubc" },
     { name = "evo-data-converters-vtk" },
@@ -791,8 +792,8 @@ requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'", editable = "packages/duf" },
     { name = "evo-data-converters-gocad", editable = "packages/gocad" },
+    { name = "evo-data-converters-grd", editable = "packages/geosoft-grd" },
     { name = "evo-data-converters-obj", editable = "packages/obj" },
-    { name = "evo-data-converters-omf", editable = "packages/omf" },
     { name = "evo-data-converters-resqml", editable = "packages/resqml" },
     { name = "evo-data-converters-ubc", editable = "packages/ubc" },
     { name = "evo-data-converters-vtk", editable = "packages/vtk" },
@@ -899,6 +900,33 @@ dev = [
 
 [package.metadata]
 requires-dist = [{ name = "evo-data-converters-common", editable = "packages/common" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
+name = "evo-data-converters-grd"
+version = "0.0.1"
+source = { editable = "packages/geosoft-grd" }
+dependencies = [
+    { name = "evo-data-converters-common" },
+    { name = "numpy" },
+    { name = "olefile" },
+    { name = "pyarrow" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "evo-data-converters-common", editable = "packages/common" },
+    { name = "numpy", specifier = ">=1.19.0" },
+    { name = "olefile", specifier = ">=0.46" },
+    { name = "pyarrow" },
+]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -2454,6 +2482,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/17/196d1b92de1bd3ca1519586845c2607e4e1a8a60f442fa084b15794b449a/numpy-1.26.3-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:8ed07a90f5450d99dad60d3799f9c03c6566709bd53b497eb9ccad9a55867f36", size = 17786475, upload-time = "2024-01-02T22:30:14.286Z" },
     { url = "https://files.pythonhosted.org/packages/3f/55/cd123e8d88a98d0bcc69a707f3dae8bfde64206040a826a030c241850014/numpy-1.26.3-cp312-cp312-win32.whl", hash = "sha256:f73497e8c38295aaa4741bdfa4fda1a5aedda5473074369eca10626835445511", size = 19999988, upload-time = "2024-01-02T22:30:47.32Z" },
     { url = "https://files.pythonhosted.org/packages/ad/11/52fbe97fd84c91105b651d25a122f8deed6d3519afb14f9771fac1c9b7de/numpy-1.26.3-cp312-cp312-win_amd64.whl", hash = "sha256:da4b0c6c699a0ad73c810736303f7fbae483bcb012e38d7eb06a5e3b432c981b", size = 15517532, upload-time = "2024-01-02T22:31:13.404Z" },
+]
+
+[[package]]
+name = "olefile"
+version = "0.47"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/1b/077b508e3e500e1629d366249c3ccb32f95e50258b231705c09e3c7a4366/olefile-0.47.zip", hash = "sha256:599383381a0bf3dfbd932ca0ca6515acd174ed48870cbf7fee123d698c192c1c", size = 112240, upload-time = "2023-12-01T16:22:53.025Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/d3/b64c356a907242d719fc668b71befd73324e47ab46c8ebbbede252c154b2/olefile-0.47-py2.py3-none-any.whl", hash = "sha256:543c7da2a7adadf21214938bb79c83ea12b473a4b6ee4ad4bf854e7715e13d1f", size = 114565, upload-time = "2023-12-01T16:22:51.518Z" },
 ]
 
 [[package]]

@@ -1,11 +1,9 @@
 import os
-
 from evo.data_converters.common.publish import publish_geoscience_objects
-from lark import logger
 from .grid_to_json_parser import GRID_PARSER
 
 from evo_schemas.objects.regular_2d_grid import Regular2DGrid_V1_2_0
-from typing import TYPE_CHECKING, Callable, Generator, Optional, TypeAlias
+from typing import TYPE_CHECKING, Optional
 
 from evo.data_converters.common import (
     BaseGridData,
@@ -46,9 +44,9 @@ def convert_grd(
 
         objects_metadata = None
         if publish_objects:
-            logger.debug("Publishing Geosoft Grid")
-        objects_metadata = publish_geoscience_objects_sync(
-            geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
-        )
+            print("Publishing Geosoft Grid")
+            objects_metadata = publish_geoscience_objects_sync(
+                geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
+            )
 
         return objects_metadata if objects_metadata else geoscience_objects
