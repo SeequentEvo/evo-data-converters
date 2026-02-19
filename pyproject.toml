@@ -9,6 +9,7 @@ dependencies = [
   "evo-data-converters-common",
   "evo-data-converters-duf ; platform_system == \"Windows\"",
   "evo-data-converters-gocad",
+  "evo-data-converters-grd",
   "evo-data-converters-obj",
   "evo-data-converters-omf",
   "evo-data-converters-resqml",
@@ -39,6 +40,7 @@ dev = [
 evo-data-converters-common = { workspace = true }
 evo-data-converters-duf = { workspace = true }
 evo-data-converters-gocad = { workspace = true }
+evo-data-converters-grd = { workspace = true }
 evo-data-converters-obj = { workspace = true }
 evo-data-converters-omf = { workspace = true }
 evo-data-converters-resqml = { workspace = true }
