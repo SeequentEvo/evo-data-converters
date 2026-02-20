@@ -14,7 +14,6 @@ from . import core_commons as commons
 from .ipj_header_parser import IPJ_Header_Parser
 from .ipj_def_x_parser import IPJ_DEF_X_Parser
 from .ipj_def_x3_parser import IPJ_DEF_X3_Parser
-from .orientation_parser import Orientation_Parser
 from .wkt_manager import Wkt_Manager
 
 class Projection:
