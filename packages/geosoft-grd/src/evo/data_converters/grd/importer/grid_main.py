@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 import os
-from evo.data_converters.common.publish import publish_geoscience_objects
 from .grid_to_json_parser import GRID_PARSER
 
 from evo_schemas.objects.regular_2d_grid import Regular2DGrid_V1_2_0

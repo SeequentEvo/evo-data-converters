@@ -9,8 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .header_data import HEADER_DATA
-from .dat_grid_header import DAT_GRID_HEADER
 from .data_reader import DATA_PARSER
 from . import geosoft_commons as commons
 import numpy as np
