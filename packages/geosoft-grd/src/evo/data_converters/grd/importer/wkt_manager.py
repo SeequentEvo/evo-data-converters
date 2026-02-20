@@ -1,10 +1,20 @@
+#  Copyright © 2026 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 from .ipj_def_x import IPJ_DEF_X
 from .ipj_def_x3 import IPJ_DEF_X3
 from .wktfactory import WktFactory
 from . import core_commons as commons
 import math
 from .ipj_type import PROJ_TYPE
-
 
 class Wkt_Manager:
     @staticmethod 
