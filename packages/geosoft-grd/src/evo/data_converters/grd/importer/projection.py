@@ -41,7 +41,8 @@ class Projection:
         offset += commons.IPJ_ORIENT_SIZE + commons.IPJ_INNER_HEADER_SIZE
 
         # Parse IPJ_DEF_X2
-        def_x2 = IPJ_DEF_X2_Parser.parse(data, offset)
+        # No clear usage of def_x2 for now, let's just comment
+        #def_x2 = IPJ_DEF_X2_Parser.parse(data, offset)
         #Lot's of different combination can happen between those two, let jump right before x3
         offset = len(data) - commons.IPJ_DEF_X4_SIZE - commons.IPJ_DEF_X3_SIZE - commons.IPJ_INNER_HEADER_SIZE
 
@@ -51,26 +52,11 @@ class Projection:
         offset += len(data) - commons.IPJ_DEF_X4_SIZE
         
         # Parse IPJ_DEF_X4
-        def_x4 = IPJ_DEF_X4_Parser.parse(data, offset)
+        # No clear usage of def_x4 for now, let's just comment
+        # def_x4 = IPJ_DEF_X4_Parser.parse(data, offset)
 
         self.wkt = Wkt_Manager.get_wkt(def_x, def_x3)
         self.authority_struc = def_x3
-
-    def read_metadata(self, data: bytes):
-        metadata_offset = self.__get_metadata_initial_offset(data)
-        reg_offset = self.__get_reg_initial_offset(data)
-
-        offset = max(metadata_offset, reg_offset)
-
-        def_x2 = IPJ_DEF_X2_Parser.parse(data, offset)
-        def_x3 = IPJ_DEF_X3_Parser.parse(data, offset)
-        def_x4 = IPJ_DEF_X4_Parser.parse(data, offset)
-
-        # Parse IPJ_ORIENT
-        orient = Orientation_Parser.parse(data, metadata_offset)
-        print("Metadata orientation type:", orient.eType)
-    
-    
     
     def __validate_header(self, header: IPJ_Header) -> bool:
         # Validate the header fields
@@ -95,27 +81,5 @@ class Projection:
             offset = 0
         else:
             # The signature is lID, which is the second field (offset -4 from signature)
-            offset = sig_offset - 4
-        return offset
-    
-    def __get_metadata_initial_offset(self, data) -> int: 
-        META_signature = b'\x4D\x45\x54\x41'
-        sig_offset = data.find(META_signature)
-        
-        if sig_offset == -1:
-            print("META signature not found, trying to parse from offset 0")
-            offset = 0
-        else:
-            offset = sig_offset + 4
-        return offset
-    
-    def __get_reg_initial_offset(self, data) -> int: 
-        REG_signature = b'\x52\x45\x47'
-        sig_offset = data.find(REG_signature)
-        
-        if sig_offset == -1:
-            print("REG signature not found, trying to parse from offset 0")
-            offset = 0
-        else:
             offset = sig_offset - 4
         return offset
