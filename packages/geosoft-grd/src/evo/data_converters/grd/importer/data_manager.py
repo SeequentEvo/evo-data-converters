@@ -61,9 +61,9 @@ class DATA_MANAGER:
         
         data = data_parser.get_uncompressed_data(self.header.ne * self.header.nv)
         
-        #array2D = data.reshape(self.header.nv, self.header.ne)
+        array2D = data.reshape(self.header.nv, self.header.ne)
 
         # Subtract base from all values of array2D and then multiply by mult
         array2D = (array2D - self.header.base) * self.header.mult
-        return data
+        return array2D
                 

@@ -48,7 +48,7 @@ class Img:
 
         # Determine type based on size and sign
         self.__set_type(header.size, header.sign)
-        self.__set_element_size();
+        self.__set_element_size()
 
         if (header.mult == 0):
             header.mult = 1.0
