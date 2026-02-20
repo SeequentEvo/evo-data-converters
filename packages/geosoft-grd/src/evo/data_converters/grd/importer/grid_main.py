@@ -16,7 +16,6 @@ from evo_schemas.objects.regular_2d_grid import Regular2DGrid_V1_2_0
 from typing import TYPE_CHECKING, Optional
 
 from evo.data_converters.common import (
-    BaseGridData,
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,

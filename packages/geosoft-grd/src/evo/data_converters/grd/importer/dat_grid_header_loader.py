@@ -74,9 +74,6 @@ def read_from_file(file):
     file.seek(0)
     header_bytes = file.read(commons.GRID_HEADER_SIZE)
     
-    # Check the size field (first int32) to determine if order is correct
-    size = struct.unpack_from('<i', header_bytes, 0)[0]
-    
     # Try parsing from beginning (normal format)
     try:
         header = __parse_header(header_bytes)

@@ -13,9 +13,7 @@ from .ipj_header import IPJ_Header
 from . import core_commons as commons
 from .ipj_header_parser import IPJ_Header_Parser
 from .ipj_def_x_parser import IPJ_DEF_X_Parser
-from .ipj_def_x2_parser import IPJ_DEF_X2_Parser
 from .ipj_def_x3_parser import IPJ_DEF_X3_Parser
-from .ipj_def_x4_parser import IPJ_DEF_X4_Parser
 from .orientation_parser import Orientation_Parser
 from .wkt_manager import Wkt_Manager
 
@@ -37,7 +35,8 @@ class Projection:
         offset += commons.IPJ_DEF_X_SIZE + commons.IPJ_INNER_HEADER_SIZE
 
         # Parse IPJ_ORIENT
-        orient = Orientation_Parser.parse(data, offset)
+        # No clear usage of orient for now, let's just comment
+        #orient = Orientation_Parser.parse(data, offset)
         offset += commons.IPJ_ORIENT_SIZE + commons.IPJ_INNER_HEADER_SIZE
 
         # Parse IPJ_DEF_X2

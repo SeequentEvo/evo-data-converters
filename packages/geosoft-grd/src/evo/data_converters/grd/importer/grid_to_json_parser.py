@@ -103,14 +103,14 @@ class GRID_PARSER:
         x_elements = []
         y_elements = []
         y_elements.append(grid.y_origin);
-        y_elements.append(grid.y_origin + (dx * sin));
-        y_elements.append(y_elements[1] + (dy * cos));
-        y_elements.append(grid.y_origin + (dy * cos));
+        y_elements.append(grid.y_origin + (dx * sin))
+        y_elements.append(y_elements[1] + (dy * cos))
+        y_elements.append(grid.y_origin + (dy * cos))
 
         x_elements.append(grid.x_origin);
-        x_elements.append(grid.x_origin + (dx * cos));
-        x_elements.append(x_elements[1] - (dy * sin));
-        x_elements.append(grid.x_origin - (dy * sin));
+        x_elements.append(grid.x_origin + (dx * cos))
+        x_elements.append(x_elements[1] - (dy * sin))
+        x_elements.append(grid.x_origin - (dy * sin))
 
         for i in range(4):
             if(x_elements[i] < boundary_min_x):
