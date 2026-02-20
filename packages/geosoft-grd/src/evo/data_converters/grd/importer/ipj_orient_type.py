@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 class IPJ_ORIENT_TYPE:
     IPJ_ORIENT_DEFAULT = 0
     IPJ_ORIENT_PLAN = 1

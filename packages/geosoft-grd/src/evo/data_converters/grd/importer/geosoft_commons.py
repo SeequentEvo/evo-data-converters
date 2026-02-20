@@ -49,8 +49,8 @@ def get_array(type, size):
         GS_FLOAT: np.float32,
         GS_DOUBLE: np.float64,
     }
-    
+
     if type not in type_map:
         raise ValueError(f"Invalid type code: {type}. Must be one of GS_BYTE to GS_ULONG64")
-    
+
     return np.empty(size, dtype=type_map[type])

@@ -11,6 +11,7 @@
 
 from .ipj_units_x import IPJ_UNITS_X
 
+
 class IPJ_DEF_X:
     def __init__(self):
         self.szIPJ = ""

@@ -16,11 +16,12 @@ from .ipj_def_x_parser import IPJ_DEF_X_Parser
 from .ipj_def_x3_parser import IPJ_DEF_X3_Parser
 from .wkt_manager import Wkt_Manager
 
+
 class Projection:
-    def __init__(self):    
+    def __init__(self):
         self.wkt = ""
         self.authority_struc = None
-    
+
     def parse(self, data: bytes):
         offset = self.__get_ipj_initial_offset(data)
         # Parse the header
@@ -35,27 +36,27 @@ class Projection:
 
         # Parse IPJ_ORIENT
         # No clear usage of orient for now, let's just comment
-        #orient = Orientation_Parser.parse(data, offset)
+        # orient = Orientation_Parser.parse(data, offset)
         offset += commons.IPJ_ORIENT_SIZE + commons.IPJ_INNER_HEADER_SIZE
 
         # Parse IPJ_DEF_X2
         # No clear usage of def_x2 for now, let's just comment
-        #def_x2 = IPJ_DEF_X2_Parser.parse(data, offset)
-        #Lot's of different combination can happen between those two, let jump right before x3
+        # def_x2 = IPJ_DEF_X2_Parser.parse(data, offset)
+        # Lot's of different combination can happen between those two, let jump right before x3
         offset = len(data) - commons.IPJ_DEF_X4_SIZE - commons.IPJ_DEF_X3_SIZE - commons.IPJ_INNER_HEADER_SIZE
 
         # Parse IPJ_DEF_X3
         def_x3 = IPJ_DEF_X3_Parser.parse(data, offset)
         # Move offset to IPJ_DEF_X4 (after x3 and inner header)
         offset += len(data) - commons.IPJ_DEF_X4_SIZE
-        
+
         # Parse IPJ_DEF_X4
         # No clear usage of def_x4 for now, let's just comment
         # def_x4 = IPJ_DEF_X4_Parser.parse(data, offset)
 
         self.wkt = Wkt_Manager.get_wkt(def_x, def_x3)
         self.authority_struc = def_x3
-    
+
     def __validate_header(self, header: IPJ_Header) -> bool:
         # Validate the header fields
         if header.lSerialID != -3401216:
@@ -68,12 +69,12 @@ class Projection:
             print(f"Unsupported version (got {header.lVersion})")
             return False
         return True
-    
-    def __get_ipj_initial_offset(self, data) -> int:        
+
+    def __get_ipj_initial_offset(self, data) -> int:
         # Search for the IPJ signature (0x49504A20 = "IPJ " in little-endian: 20 4a 50 49)
-        signature = b'\x20\x4a\x50\x49'
+        signature = b"\x20\x4a\x50\x49"
         sig_offset = data.find(signature)
-        
+
         if sig_offset == -1:
             print("IPJ signature not found, trying to parse from offset 0")
             offset = 0
