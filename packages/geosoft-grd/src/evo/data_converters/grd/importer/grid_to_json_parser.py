@@ -20,7 +20,7 @@ from . import load_projection as ProjectionReader
 from . import array_to_parquet_parser as ParquetParser
 
 class GRID_PARSER:
-    def __init__(self, gridPath, client_data: ObjectDataClient):
+    def __init__(self, gridPath : str, client_data: ObjectDataClient):
         self.gridPath = gridPath
         self.client_data = client_data
 
