@@ -11,6 +11,7 @@
 
 from enum import Enum
 
+
 # Define proj_type class with IPJ_CS enum
 class PROJ_TYPE_ENUM(Enum):
     IPJ_CS_UNKNOWN = 0
@@ -45,7 +46,8 @@ class PROJ_TYPE_ENUM(Enum):
     IPJ_CS_POLAR_STEREOGRAPHIC_B = 29
     IPJ_CS_TRANSVERSE_MERCATOR_COMPLEX = 30
     IPJ_CS_MOLLWEIDE = 31
-    IPJ_CS_MAX = 32   
+    IPJ_CS_MAX = 32
+
 
 class PROJ_TYPE:
     @staticmethod

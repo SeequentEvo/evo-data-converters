@@ -86,15 +86,16 @@ EMPTYWKT = (
     '        PARAMETER["False northing",0,\n'
     '            LENGTHUNIT["metre",1],\n'
     '            ID["EPSG",8807]]],\n'
-    '    CS[Cartesian,2],\n'
+    "    CS[Cartesian,2],\n"
     '        AXIS["(E)",east,\n'
-    '            ORDER[1],\n'
+    "            ORDER[1],\n"
     '            LENGTHUNIT["metre",1]],\n'
     '        AXIS["(N)",north,\n'
-    '            ORDER[2],\n'
+    "            ORDER[2],\n"
     '            LENGTHUNIT["metre",1]],\n'
     '   ID["",0]]]'
 )
+
 
 class WktFactory:
     """Produces WKT strings from projection data"""
@@ -103,44 +104,60 @@ class WktFactory:
     def get_wkt(proj_data: dict) -> str:
         """
         Produces a WKT string from projection data.
-        
+
         Args:
             proj_data: Dictionary containing projection parameters
-        
+
         Returns:
             WKT string
         """
         wkt = EMPTYWKT
 
-        wkt = WktFactory.update_property_name(wkt, PROJCRS, proj_data.get('projectName', ''))
-        wkt = WktFactory.update_property_name(wkt, GEOGCRS, proj_data.get('crsName', ''))
-        wkt = WktFactory.update_property_name(wkt, GEODCRS, proj_data.get('crsName', ''))
-        wkt = WktFactory.update_property_name(wkt, BASEGEODCRS, proj_data.get('crsName', ''))
-        wkt = WktFactory.update_property_name(wkt, DATUM, proj_data.get('datumName', ''))
-        wkt = WktFactory.update_property_name(wkt, ENSEMBLE, proj_data.get('datumName', ''))
+        wkt = WktFactory.update_property_name(wkt, PROJCRS, proj_data.get("projectName", ""))
+        wkt = WktFactory.update_property_name(wkt, GEOGCRS, proj_data.get("crsName", ""))
+        wkt = WktFactory.update_property_name(wkt, GEODCRS, proj_data.get("crsName", ""))
+        wkt = WktFactory.update_property_name(wkt, BASEGEODCRS, proj_data.get("crsName", ""))
+        wkt = WktFactory.update_property_name(wkt, DATUM, proj_data.get("datumName", ""))
+        wkt = WktFactory.update_property_name(wkt, ENSEMBLE, proj_data.get("datumName", ""))
         wkt = WktFactory.update_ellipsoid(
             wkt,
-            proj_data.get('ellipsoidName', ''),
-            proj_data.get('ellipsoidRadius', 0),
-            proj_data.get('ellipsoidInvFlatenning', 0)
+            proj_data.get("ellipsoidName", ""),
+            proj_data.get("ellipsoidRadius", 0),
+            proj_data.get("ellipsoidInvFlatenning", 0),
         )
-        wkt = WktFactory.update_property_name(wkt, METHOD, proj_data.get('conversionName', ''))
-        wkt = WktFactory.update_axis_units(wkt, proj_data.get('axisUnit', 'metre'), proj_data.get('axisScale', 1))
-        wkt = WktFactory.update_id(wkt, proj_data.get('authorityName', ''), proj_data.get('authorityIdChar', ''))
-        wkt = WktFactory.update_prime_meridian(wkt, proj_data.get('primeMeridian', 0))
-        wkt = WktFactory.update_parameter(wkt, LONGITUDE_OF_NATURAL_ORIGIN, proj_data.get('longitudeOfNaturalOrigin', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, LATITUDE_OF_NATURAL_ORIGIN, proj_data.get('latitudeOfNaturalOrigin', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, SCALE_FACTOR_AT_NATURAL_ORIGIN, proj_data.get('scaleFactorAtNaturalOrigin', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, FALSE_EASTING, proj_data.get('falseEasting', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, FALSE_NORTHING, proj_data.get('falseNorthing', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, AZIMUTH_OF_INITIAL_LINE, proj_data.get('azimuthOfInitialLine', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, LATITUDE_OF_FALSE_ORIGIN, proj_data.get('latitudeOfFalseOrigin', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, LONGITUDE_OF_FALSE_ORIGIN, proj_data.get('longitudeOfFalseOrigin', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, LATITUDE_OF_FIRST_STD_PARALLEL, proj_data.get('latitudeOfFirstStdParallel', commons.D_DUMMY))
-        wkt = WktFactory.update_parameter(wkt, LATITUDE_OF_SECOND_STD_PARALLEL, proj_data.get('latitudeOfSecondStdParallel', commons.D_DUMMY))
+        wkt = WktFactory.update_property_name(wkt, METHOD, proj_data.get("conversionName", ""))
+        wkt = WktFactory.update_axis_units(wkt, proj_data.get("axisUnit", "metre"), proj_data.get("axisScale", 1))
+        wkt = WktFactory.update_id(wkt, proj_data.get("authorityName", ""), proj_data.get("authorityIdChar", ""))
+        wkt = WktFactory.update_prime_meridian(wkt, proj_data.get("primeMeridian", 0))
+        wkt = WktFactory.update_parameter(
+            wkt, LONGITUDE_OF_NATURAL_ORIGIN, proj_data.get("longitudeOfNaturalOrigin", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(
+            wkt, LATITUDE_OF_NATURAL_ORIGIN, proj_data.get("latitudeOfNaturalOrigin", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(
+            wkt, SCALE_FACTOR_AT_NATURAL_ORIGIN, proj_data.get("scaleFactorAtNaturalOrigin", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(wkt, FALSE_EASTING, proj_data.get("falseEasting", commons.D_DUMMY))
+        wkt = WktFactory.update_parameter(wkt, FALSE_NORTHING, proj_data.get("falseNorthing", commons.D_DUMMY))
+        wkt = WktFactory.update_parameter(
+            wkt, AZIMUTH_OF_INITIAL_LINE, proj_data.get("azimuthOfInitialLine", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(
+            wkt, LATITUDE_OF_FALSE_ORIGIN, proj_data.get("latitudeOfFalseOrigin", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(
+            wkt, LONGITUDE_OF_FALSE_ORIGIN, proj_data.get("longitudeOfFalseOrigin", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(
+            wkt, LATITUDE_OF_FIRST_STD_PARALLEL, proj_data.get("latitudeOfFirstStdParallel", commons.D_DUMMY)
+        )
+        wkt = WktFactory.update_parameter(
+            wkt, LATITUDE_OF_SECOND_STD_PARALLEL, proj_data.get("latitudeOfSecondStdParallel", commons.D_DUMMY)
+        )
 
         # Handle transformation if it exists
-        if proj_data.get('transformation_name'):
+        if proj_data.get("transformation_name"):
             wkt = WktFactory.create_derived_proj_wkt(wkt, proj_data)
 
         return WktFactory.copy_compressed_wkt(wkt)
@@ -245,9 +262,9 @@ class WktFactory:
 
         wkt = (
             f'{DERIVEDPROJCRS}["{proj_data.get("transformation_name", "")}",'
-            f'{BASESTR}{wkt},'
-            f'{WktFactory.get_derived_conversion_string(proj_data)},'
-            f'{WktFactory.get_transformation_cs_axis_parameter(proj_data.get("axisUnit", "metre"), proj_data.get("axisScale", 1))}]'
+            f"{BASESTR}{wkt},"
+            f"{WktFactory.get_derived_conversion_string(proj_data)},"
+            f"{WktFactory.get_transformation_cs_axis_parameter(proj_data.get('axisUnit', 'metre'), proj_data.get('axisScale', 1))}]"
         )
 
         return wkt
@@ -264,14 +281,14 @@ class WktFactory:
         if begin_it != -1:
             end_it = wkt.find(single_bracket, begin_it)
             if end_it != -1:
-                wkt = wkt[:begin_it] + wkt[end_it + len(single_bracket):]
+                wkt = wkt[:begin_it] + wkt[end_it + len(single_bracket) :]
 
         # Remove AXIS
         begin_it = wkt.find(AXIS)
         while begin_it != -1:
             end_it = wkt.find(double_bracket, begin_it)
             if end_it != -1:
-                wkt = wkt[:begin_it] + wkt[end_it + len(double_bracket):]
+                wkt = wkt[:begin_it] + wkt[end_it + len(double_bracket) :]
             begin_it = wkt.find(AXIS)
 
         # Remove USAGE
@@ -279,7 +296,7 @@ class WktFactory:
         if begin_it != -1:
             end_it = wkt.find(double_bracket, begin_it)
             if end_it != -1:
-                wkt = wkt[:begin_it] + wkt[end_it + len(double_bracket):]
+                wkt = wkt[:begin_it] + wkt[end_it + len(double_bracket) :]
 
         # Remove closing bracket from the last parameter
         last_parameter_pos = wkt.rfind(PARAMETER)
@@ -288,7 +305,7 @@ class WktFactory:
         if last_parameter_pos != -1 and last_id_pos != -1 and last_id_pos > last_parameter_pos:
             begin_it = wkt.rfind(triple_bracket, 0, last_id_pos)
             if begin_it != -1:
-                wkt = wkt[:begin_it] + wkt[begin_it + 1:]
+                wkt = wkt[:begin_it] + wkt[begin_it + 1 :]
 
         return wkt
 
@@ -299,16 +316,16 @@ class WktFactory:
         code = "1032"
 
         return (
-            f'{DERIVINGCONVERSION}['
+            f"{DERIVINGCONVERSION}["
             f'"{proj_data.get("datumName", "")} applying {transformation}",'
-            f'{WktFactory.get_rotation_method_string(transformation, code)},'
-            f'{WktFactory.get_transformation_linear_parameter("X-axis translation", proj_data.get("transformation_x", 0))},'
-            f'{WktFactory.get_transformation_linear_parameter("Y-axis translation", proj_data.get("transformation_y", 0))},'
-            f'{WktFactory.get_transformation_linear_parameter("Z-axis translation", proj_data.get("transformation_z", 0))},'
-            f'{WktFactory.get_transformation_angular_parameter("X-axis rotation", proj_data.get("transformation_rx", 0))},'
-            f'{WktFactory.get_transformation_angular_parameter("Y-axis rotation", proj_data.get("transformation_ry", 0))},'
-            f'{WktFactory.get_transformation_angular_parameter("Z-axis rotation", proj_data.get("transformation_rz", 0))},'
-            f'{WktFactory.get_transformation_scalar_parameter("Scale difference", proj_data.get("transformation_scale", 0))}]'
+            f"{WktFactory.get_rotation_method_string(transformation, code)},"
+            f"{WktFactory.get_transformation_linear_parameter('X-axis translation', proj_data.get('transformation_x', 0))},"
+            f"{WktFactory.get_transformation_linear_parameter('Y-axis translation', proj_data.get('transformation_y', 0))},"
+            f"{WktFactory.get_transformation_linear_parameter('Z-axis translation', proj_data.get('transformation_z', 0))},"
+            f"{WktFactory.get_transformation_angular_parameter('X-axis rotation', proj_data.get('transformation_rx', 0))},"
+            f"{WktFactory.get_transformation_angular_parameter('Y-axis rotation', proj_data.get('transformation_ry', 0))},"
+            f"{WktFactory.get_transformation_angular_parameter('Z-axis rotation', proj_data.get('transformation_rz', 0))},"
+            f"{WktFactory.get_transformation_scalar_parameter('Scale difference', proj_data.get('transformation_scale', 0))}]"
         )
 
     @staticmethod
@@ -335,20 +352,16 @@ class WktFactory:
     def get_transformation_cs_axis_parameter(unit: str, scale: float) -> str:
         """Gets the CS axis parameter string for transformation"""
         return (
-            f'{CS}[Cartesian,2],'
-            f'{WktFactory.get_transformation_axis_parameter("E", "1", unit, scale)},'
-            f'{WktFactory.get_transformation_axis_parameter("N", "2", unit, scale)}'
+            f"{CS}[Cartesian,2],"
+            f"{WktFactory.get_transformation_axis_parameter('E', '1', unit, scale)},"
+            f"{WktFactory.get_transformation_axis_parameter('N', '2', unit, scale)}"
         )
 
     @staticmethod
     def get_transformation_axis_parameter(direction: str, order_index: str, unit: str, scale: float) -> str:
         """Gets a transformation axis parameter string"""
         direction_full = "east" if direction == "E" else "north"
-        return (
-            f'{AXIS}["({direction})",{direction_full},'
-            f'ORDER[{order_index}],'
-            f'{LENGTHUNIT}["{unit}",{scale}]]'
-        )
+        return f'{AXIS}["({direction})",{direction_full},ORDER[{order_index}],{LENGTHUNIT}["{unit}",{scale}]]'
 
     @staticmethod
     def copy_compressed_wkt(wkt_str: str) -> str:
@@ -360,12 +373,12 @@ class WktFactory:
         is_between_quotes = False
 
         for c in wkt_str:
-            if c == '\n':
+            if c == "\n":
                 continue
             if c == '"':
                 is_between_quotes = not is_between_quotes
-            if not is_between_quotes and c == ' ':
+            if not is_between_quotes and c == " ":
                 continue
             result.append(c)
 
-        return ''.join(result)
+        return "".join(result)

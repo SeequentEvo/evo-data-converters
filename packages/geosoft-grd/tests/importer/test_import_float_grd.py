@@ -16,23 +16,30 @@ from evo.data_converters.common import EvoWorkspaceMetadata
 
 this_dir = Path(__file__).parent
 
+
 def test_convert_grd_parser() -> None:
     grd_file = this_dir / "data" / "mixcat.grd"
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
     tags = {"tagtest": "testvalue"}
     upload_path = "upload/path"
 
-    with (patch("evo.data_converters.grd.importer.grid_main.create_evo_object_service_and_data_client") as mock_create_client,
-          patch("evo.data_converters.grd.importer.array_to_parquet_parser.save_array_to_parquet") as mock_save_parquet_file):
+    with (
+        patch(
+            "evo.data_converters.grd.importer.grid_main.create_evo_object_service_and_data_client"
+        ) as mock_create_client,
+        patch(
+            "evo.data_converters.grd.importer.array_to_parquet_parser.save_array_to_parquet"
+        ) as mock_save_parquet_file,
+    ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
         mock_save_parquet_file.return_value = None
-        
+
         result = convert_grd(
-            filepath=str(grd_file), 
-            evo_workspace_metadata=evo_workspace_metadata, 
-            tags=tags, 
-            upload_path=upload_path, 
-            publish_objects=False
+            filepath=str(grd_file),
+            evo_workspace_metadata=evo_workspace_metadata,
+            tags=tags,
+            upload_path=upload_path,
+            publish_objects=False,
         )
 
         assert len(result) == 1
@@ -47,6 +54,3 @@ def test_convert_grd_parser() -> None:
         assert result[0].cell_attributes[0].values.length == 127238
         assert result[0].cell_attributes[0].values.width == 1
         assert result[0].cell_attributes[0].values.data_type == "float64"
-
-
-
