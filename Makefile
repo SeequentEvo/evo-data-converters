@@ -26,3 +26,6 @@ test-ubc:
 test-vtk:
 	uv run --package evo-data-converters-vtk pytest packages/vtk/tests
 
+test-grd:
+	uv run --package evo-data-converters-grd pytest packages/geosoft-grd/tests
+

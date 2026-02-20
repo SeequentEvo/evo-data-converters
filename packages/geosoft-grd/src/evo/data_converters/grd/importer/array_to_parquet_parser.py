@@ -2,7 +2,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-def save_array_to_parquet(data_2d, output_path):
+def save_array_to_parquet(data_2d, output_path)->None:
 
     flattened = data_2d.flatten()
     
