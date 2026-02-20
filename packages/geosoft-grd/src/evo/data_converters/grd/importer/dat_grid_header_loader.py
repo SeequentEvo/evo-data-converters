@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 import struct
-import os
 from . import geosoft_commons as commons
 from .dat_grid_header import DAT_GRID_HEADER
 
