@@ -39,7 +39,7 @@ leads to an "unspecified" coordinate reference system.
 
 ### Implementations
 
-The GRD converter currently supports importing the geosoft grids (.grd) and associated geosoft grid gi files (.grd.gi) and importing them as a regular-2D-schema on Evo
+The GRD converter currently supports importing the Geosoft grids (.grd) and associated Geosoft grid gi files (.grd.gi) and importing them as a regular-2D-schema into an Evo workspace.
 
 
 ### Publish geoscience objects from an GRD/GI file(s)
