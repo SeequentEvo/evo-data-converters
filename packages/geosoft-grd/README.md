@@ -33,9 +33,7 @@ Refer to this page for more information: https://help.seequent.com/TargetforArcG
 
 ## Associated GI
 
-A GI file (.grd.gi) is a grid associated metadata file, that among other properties, contains the projection data. It's an optional file that without it
-
-leads to an "unspecified" coordinate reference system.
+A GI file (.grd.gi) is a grid associated metadata file, that among other properties, contains the projection data. It's an optional file that without it leads to an "unspecified" coordinate reference system.
 
 ### Implementations
 
@@ -44,7 +42,7 @@ The GRD converter currently supports importing the Geosoft grids (.grd) and asso
 
 ### Publish geoscience objects from an GRD/GI file(s)
 
-[The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-common`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) to convert your file.
+[The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-grd`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/geosoft-grd) to convert your file.
 
 Have a look at the `code-samples/convert-grd.ipynb` notebook for an example of how to publish GRD files.
 
