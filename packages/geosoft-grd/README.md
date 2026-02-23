@@ -46,7 +46,7 @@ The GRD converter currently supports importing the Geosoft grids (.grd) and asso
 
 [The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-common`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) to convert your file.
 
-Have a look at the `code-samples/convert-grd.ipynb` Notebook for an example of how to publish an GRD files.
+Have a look at the `code-samples/convert-grd.ipynb` notebook for an example of how to publish GRD files.
 
 ## Code of conduct
 
