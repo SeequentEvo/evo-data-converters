@@ -28,7 +28,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 A grid (.grd) is a data product created from a point dataset that has been 'gridded' (interpolated) to create a raster. 
 
-Refer here for more information: https://help.seequent.com/TargetforArcGISPro/2.3/Content/target_pro/import_data/about_geosoft_grids.htm
+Refer to this page for more information: https://help.seequent.com/TargetforArcGISPro/2.3/Content/target_pro/import_data/about_geosoft_grids.htm
 
 
 ## Associated GI
