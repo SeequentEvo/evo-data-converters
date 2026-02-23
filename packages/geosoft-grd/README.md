@@ -35,7 +35,7 @@ Refer here for more information: https://help.seequent.com/TargetforArcGISPro/2.
 
 A GI file (.grd.gi) is a grid associated metadata file, that among other properties, contains the projection data. It's an optional file that without it
 
-leds to an "unspecified" coordate system scenario.
+leads to an "unspecified" coordinate reference system.
 
 ### Implementations
 
