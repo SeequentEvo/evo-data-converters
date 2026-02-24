@@ -27,6 +27,7 @@ The existing data converters can be used without modification or used as a templ
 | [evo-data-converters-common](packages/common/README.md) | <a href="https://pypi.org/project/evo-data-converters-common/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-common" /></a> |
 | [evo-data-converters-duf](packages/duf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-duf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" /></a>       |
 | [evo-data-converters-gocad](packages/gocad/README.md)   | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a>   |
+| [evo-data-converters-image-grid](packages/image_to_2dgrid/README.md) | <a href="https://pypi.org/project/evo-data-converters-image-grid/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-image-grid" /></a> |
 | [evo-data-converters-obj](packages/obj/README.md)       | <a href="https://pypi.org/project/evo-data-converters-obj/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>       |
 | [evo-data-converters-omf](packages/omf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-omf" /></a>       |
 | [evo-data-converters-resqml](packages/resqml/README.md) | <a href="https://pypi.org/project/evo-data-converters-resqml/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-resqml" /></a> |
@@ -53,6 +54,7 @@ Currently supported converters are:
  * [UBC](packages/ubc/README.md)
  * [GOCAD](packages/gocad/README.md)
  * [DUF](packages/duf/README.md)
+ * [Image Grid](packages/image_to_2dgrid/README.md)
  * [OBJ](packages/obj/README.md)
 
  To use any of the data converters, you will need a few things:
@@ -96,6 +98,7 @@ For examples of how to use Evo data converters, please refer to the samples in e
    * [UBC](packages/ubc/samples)
    * [GOCAD](packages/gocad/samples)
    * [DUF](packages/duf/samples)
+    * [Image Grid](packages/image_to_2dgrid/code-samples/convert-image-grid)
    * [OBJ](packages/obj/samples)
 
 ## Contributing

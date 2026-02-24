@@ -14,6 +14,7 @@ members = [
     "evo-data-converters-common",
     "evo-data-converters-duf",
     "evo-data-converters-gocad",
+    "evo-data-converters-image-grid",
     "evo-data-converters-obj",
     "evo-data-converters-omf",
     "evo-data-converters-resqml",
@@ -766,6 +767,7 @@ dependencies = [
     { name = "evo-data-converters-common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'" },
     { name = "evo-data-converters-gocad" },
+    { name = "evo-data-converters-image-grid" },
     { name = "evo-data-converters-obj" },
     { name = "evo-data-converters-omf" },
     { name = "evo-data-converters-resqml" },
@@ -791,6 +793,7 @@ requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'", editable = "packages/duf" },
     { name = "evo-data-converters-gocad", editable = "packages/gocad" },
+    { name = "evo-data-converters-image-grid", editable = "packages/image_to_2dgrid" },
     { name = "evo-data-converters-obj", editable = "packages/obj" },
     { name = "evo-data-converters-omf", editable = "packages/omf" },
     { name = "evo-data-converters-resqml", editable = "packages/resqml" },
@@ -902,6 +905,45 @@ requires-dist = [{ name = "evo-data-converters-common", editable = "packages/com
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
+
+[[package]]
+name = "evo-data-converters-image-grid"
+version = "0.1.0"
+source = { editable = "packages/image_to_2dgrid" }
+dependencies = [
+    { name = "evo-data-converters-common" },
+    { name = "evo-objects" },
+    { name = "evo-schemas" },
+    { name = "evo-sdk-common" },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "pyarrow" },
+    { name = "pydantic" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "requests-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "evo-data-converters-common", editable = "packages/common" },
+    { name = "evo-objects", specifier = "==0.3.3" },
+    { name = "evo-schemas", specifier = "==2025.12.15" },
+    { name = "evo-sdk-common", specifier = "==0.5.12" },
+    { name = "numpy", specifier = "<=1.26.4" },
+    { name = "pillow" },
+    { name = "pyarrow" },
+    { name = "pydantic" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "requests-mock" },
+]
 
 [[package]]
 name = "evo-data-converters-obj"
@@ -1047,14 +1089,14 @@ wheels = [
 
 [[package]]
 name = "evo-schemas"
-version = "2025.9.12"
+version = "2025.12.15"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonpointer" },
     { name = "rfc3986-validator" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/a1/c63b098e8e20a0572dfc7971fa26ced78567b1c5f708a5ba7c0f91c07d63/evo_schemas-2025.9.12-py3-none-any.whl", hash = "sha256:e183c0c2efb772c8b7e645557c9eabedb4747082f06c3342842d5dc4515cafbf", size = 490710, upload-time = "2025-09-11T22:22:35.818Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/47/76ed5353dc433a4d0e263a3df32b804a2b7418461f1f297733d16670181c/evo_schemas-2025.12.15-py3-none-any.whl", hash = "sha256:1eac7a784a54f9d1584302468baf6e537163c13665b26f14b30a183daae59e44", size = 534117, upload-time = "2025-12-15T22:00:30.808Z" },
 ]
 
 [[package]]
