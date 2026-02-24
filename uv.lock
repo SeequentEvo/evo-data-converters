@@ -841,7 +841,7 @@ requires-dist = [
     { name = "evo-schemas", specifier = ">=2025.9.12" },
     { name = "evo-sdk-common", specifier = ">=0.4.2" },
     { name = "nest-asyncio" },
-    { name = "numpy", specifier = "==1.26.3" },
+    { name = "numpy" },
     { name = "pyarrow" },
     { name = "pyproj", specifier = ">=3.7.1" },
     { name = "requests" },

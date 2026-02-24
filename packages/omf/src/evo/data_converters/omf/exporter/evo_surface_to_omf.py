@@ -54,7 +54,7 @@ def export_omf_surface(
             triangle_indices_table = asyncio.run(
                 data_client.download_table(object_id, version_id, parts.triangle_indices.as_dict())
             )
-            triangle_indices = np.asarray(triangle_indices_table)
+            triangle_indices = np.asarray(triangle_indices_table).flatten()
 
             # preprocess triangles and their attributes before chunking
             indexed_data = IndexedData(data=triangles, indices=triangle_indices, attributes=triangles_attribute_data)

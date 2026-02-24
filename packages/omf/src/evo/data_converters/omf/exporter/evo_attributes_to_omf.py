@@ -143,6 +143,7 @@ def export_category_attribute_to_omf(
 
     # Convert nan_description values to -1
     if attribute_go.nan_description.values:
+        values = values.copy()
         nan_indices = np.isin(values, attribute_go.nan_description.values)
         values[nan_indices] = -1
 
