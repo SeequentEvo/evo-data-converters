@@ -24,7 +24,7 @@ from evo_schemas.components import (
     NanContinuous_V1_0_1,
     Rotation_V1_1_0,
 )
-from evo_schemas.elements import (FloatArray1_V1_0_1, ColorArray_V1_0_1)
+from evo_schemas.elements import FloatArray1_V1_0_1, ColorArray_V1_0_1
 
 from . import loadgrid as GridLoader
 from . import load_projection as ProjectionReader
@@ -81,7 +81,7 @@ class GRID_PARSER:
 
         return grid_schema
 
-    def __get_cell_attibute(self, grid : GridLoader.Img, filename_hash: str):
+    def __get_cell_attibute(self, grid: GridLoader.Img, filename_hash: str):
         cell_attribute_float = ContinuousAttribute_V1_1_0(
             name="2d-grid-data-continuous",
             key=filename_hash,
@@ -92,7 +92,6 @@ class GRID_PARSER:
         cell_attribute_color = ColorAttribute_V1_1_0(
             name="2d-grid-data-color",
             key=filename_hash,
-            #nan_description=NanCategorical_V1_0_1(values=[4294967295]),
             values=ColorArray_V1_0_1(data=filename_hash, length=grid.nx * grid.ny),
         )
 
@@ -100,7 +99,7 @@ class GRID_PARSER:
             return cell_attribute_color
         elif grid.type == commons.GS_FLOAT:
             return cell_attribute_float
-        else: 
+        else:
             raise ValueError(f"Unsupported grid data type: {grid.type}")
 
     def __get_bounding_box(self, grid: GridLoader.Img) -> BoundingBox_V1_0_1:

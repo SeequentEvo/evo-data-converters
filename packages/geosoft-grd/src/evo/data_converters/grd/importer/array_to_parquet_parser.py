@@ -13,6 +13,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from . import geosoft_commons as commons
 
+
 def save_array_to_parquet(data_2d, output_path, data_type) -> None:
     flattened = data_2d.flatten()
 
@@ -29,6 +30,7 @@ def save_array_to_parquet(data_2d, output_path, data_type) -> None:
         data_page_size=None,
         encryption_properties=None,
     )
+
 
 def __get_parquet_type(grid_type):
     if grid_type == commons.GS_LONG:

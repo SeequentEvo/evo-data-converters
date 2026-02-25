@@ -55,6 +55,7 @@ def test_convert_grd_parser() -> None:
         assert result[0].cell_attributes[0].values.width == 1
         assert result[0].cell_attributes[0].values.data_type == "float64"
 
+
 def test_convert_color_grd_parser() -> None:
     grd_file = this_dir / "data" / "javali.grd"
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
