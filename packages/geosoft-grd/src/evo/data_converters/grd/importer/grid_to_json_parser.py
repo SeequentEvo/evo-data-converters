@@ -18,17 +18,18 @@ from evo_schemas.objects.regular_2d_grid import Regular2DGrid_V1_2_0
 from evo_schemas.components import (
     BoundingBox_V1_0_1,
     ContinuousAttribute_V1_1_0,
+    ColorAttribute_V1_1_0,
     Crs_V1_0_1_EpsgCode,
     Crs_V1_0_1_OgcWkt,
     NanContinuous_V1_0_1,
     Rotation_V1_1_0,
 )
-from evo_schemas.elements import FloatArray1_V1_0_1
+from evo_schemas.elements import (FloatArray1_V1_0_1, ColorArray_V1_0_1)
 
 from . import loadgrid as GridLoader
 from . import load_projection as ProjectionReader
-
 from . import array_to_parquet_parser as ParquetParser
+from . import geosoft_commons as commons
 
 
 class GRID_PARSER:
@@ -44,7 +45,7 @@ class GRID_PARSER:
         # Save grid data to parquet (flattened row-major order)
         filename_hash = hashlib.sha256(os.path.basename(self.gridPath).encode()).hexdigest().lower()
         parquet_path = os.path.join(str(self.client_data.cache_location), filename_hash)
-        ParquetParser.save_array_to_parquet(grid.data, parquet_path)
+        ParquetParser.save_array_to_parquet(grid.data, parquet_path, grid.type)
 
         # Save the schema JSON file
         bounding_box = self.__get_bounding_box(grid)
@@ -55,7 +56,7 @@ class GRID_PARSER:
             else:
                 coordinate_reference_system = Crs_V1_0_1_OgcWkt(ogc_wkt=projection.wkt)
         else:
-            coordinate_reference_system = None
+            coordinate_reference_system = "unspecified"
 
         rot_value = grid.rotation if grid.rotation == 0 else 360 - grid.rotation
         rotation = Rotation_V1_1_0(dip=0.0, dip_azimuth=rot_value, pitch=0.0)
@@ -63,12 +64,7 @@ class GRID_PARSER:
         name, extension = os.path.splitext(os.path.basename(self.gridPath))
 
         # Create the cell attribute for the grid data
-        cell_attribute = ContinuousAttribute_V1_1_0(
-            name="2d-grid-data-continuous",
-            key=filename_hash,
-            nan_description=NanContinuous_V1_0_1(values=[-1.0000000331813535e32, -1e32]),
-            values=FloatArray1_V1_0_1(data=filename_hash, data_type="float64", length=grid.nx * grid.ny, width=1),
-        )
+        cell_attribute = self.__get_cell_attibute(grid, filename_hash)
 
         grid_schema = Regular2DGrid_V1_2_0(
             name=name,
@@ -84,6 +80,28 @@ class GRID_PARSER:
         )
 
         return grid_schema
+
+    def __get_cell_attibute(self, grid : GridLoader.Img, filename_hash: str):
+        cell_attribute_float = ContinuousAttribute_V1_1_0(
+            name="2d-grid-data-continuous",
+            key=filename_hash,
+            nan_description=NanContinuous_V1_0_1(values=[-1.0000000331813535e32, -1e32]),
+            values=FloatArray1_V1_0_1(data=filename_hash, data_type="float64", length=grid.nx * grid.ny, width=1),
+        )
+
+        cell_attribute_color = ColorAttribute_V1_1_0(
+            name="2d-grid-data-color",
+            key=filename_hash,
+            #nan_description=NanCategorical_V1_0_1(values=[4294967295]),
+            values=ColorArray_V1_0_1(data=filename_hash, length=grid.nx * grid.ny),
+        )
+
+        if grid.type == commons.GS_LONG:
+            return cell_attribute_color
+        elif grid.type == commons.GS_FLOAT:
+            return cell_attribute_float
+        else: 
+            raise ValueError(f"Unsupported grid data type: {grid.type}")
 
     def __get_bounding_box(self, grid: GridLoader.Img) -> BoundingBox_V1_0_1:
         cos = math.cos(grid.rotation * math.pi / 180)

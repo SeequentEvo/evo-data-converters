@@ -11,13 +11,14 @@
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from . import geosoft_commons as commons
 
-
-def save_array_to_parquet(data_2d, output_path) -> None:
+def save_array_to_parquet(data_2d, output_path, data_type) -> None:
     flattened = data_2d.flatten()
 
     # Create a table with N rows, one double value per row
-    table = pa.table({"data": pa.array(flattened, type=pa.float64())})
+    parquet_type = __get_parquet_type(data_type)
+    table = pa.table({"data": pa.array(flattened, type=parquet_type)})
 
     pq.write_table(
         table,
@@ -28,3 +29,11 @@ def save_array_to_parquet(data_2d, output_path) -> None:
         data_page_size=None,
         encryption_properties=None,
     )
+
+def __get_parquet_type(grid_type):
+    if grid_type == commons.GS_LONG:
+        return pa.int32()
+    elif grid_type == commons.GS_FLOAT:
+        return pa.float64()
+    else:
+        raise ValueError(f"Unsupported grid data type: {grid_type}")

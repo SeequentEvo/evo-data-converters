@@ -65,5 +65,7 @@ class DATA_MANAGER:
         array2D = data.reshape(self.header.nv, self.header.ne)
 
         # Subtract base from all values of array2D and then multiply by mult
+        original_dtype = array2D.dtype
         array2D = (array2D - self.header.base) * self.header.mult
+        array2D = array2D.astype(original_dtype)
         return array2D
