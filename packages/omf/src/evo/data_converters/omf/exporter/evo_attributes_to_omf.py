@@ -143,6 +143,10 @@ def export_category_attribute_to_omf(
 
     # Convert nan_description values to -1
     if attribute_go.nan_description.values:
+        # Due to a PyArrow issue(https://github.com/apache/arrow/issues/49384), the array returned from the table may be read-only.
+        # So copy it, in that case.
+        if not values.flags.writeable:
+            values = values.copy()
         nan_indices = np.isin(values, attribute_go.nan_description.values)
         values[nan_indices] = -1
 

@@ -810,7 +810,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-common"
-version = "0.3.1"
+version = "0.3.2"
 source = { editable = "packages/common" }
 dependencies = [
     { name = "aiohttp" },
@@ -841,7 +841,7 @@ requires-dist = [
     { name = "evo-schemas", specifier = ">=2025.9.12" },
     { name = "evo-sdk-common", specifier = ">=0.4.2" },
     { name = "nest-asyncio" },
-    { name = "numpy", specifier = "==1.26.3" },
+    { name = "numpy", specifier = ">=1.26.3" },
     { name = "pyarrow" },
     { name = "pyproj", specifier = ">=3.7.1" },
     { name = "requests" },
