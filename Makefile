@@ -26,3 +26,6 @@ test-ubc:
 test-vtk:
 	uv run --package evo-data-converters-vtk pytest packages/vtk/tests
 
+test-xyz:
+	uv run --package evo-data-converters-xyz pytest packages/xyz/tests
+

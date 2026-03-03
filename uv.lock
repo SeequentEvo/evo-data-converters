@@ -19,6 +19,7 @@ members = [
     "evo-data-converters-resqml",
     "evo-data-converters-ubc",
     "evo-data-converters-vtk",
+    "evo-data-converters-xyz",
 ]
 
 [[package]]
@@ -771,6 +772,7 @@ dependencies = [
     { name = "evo-data-converters-resqml" },
     { name = "evo-data-converters-ubc" },
     { name = "evo-data-converters-vtk" },
+    { name = "evo-data-converters-xyz" },
 ]
 
 [package.optional-dependencies]
@@ -796,6 +798,7 @@ requires-dist = [
     { name = "evo-data-converters-resqml", editable = "packages/resqml" },
     { name = "evo-data-converters-ubc", editable = "packages/ubc" },
     { name = "evo-data-converters-vtk", editable = "packages/vtk" },
+    { name = "evo-data-converters-xyz", editable = "packages/xyz" },
     { name = "evo-sdk-common", extras = ["notebooks"], marker = "extra == 'notebooks'", specifier = ">=0.4.2" },
     { name = "notebook", marker = "extra == 'notebooks'", specifier = ">=7.4.3" },
 ]
@@ -1027,6 +1030,31 @@ dev = [
 requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
     { name = "vtk" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
+name = "evo-data-converters-xyz"
+version = "0.0.1"
+source = { editable = "packages/xyz" }
+dependencies = [
+    { name = "evo-data-converters-common" },
+    { name = "numpy" },
+    { name = "pyarrow" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "evo-data-converters-common", editable = "packages/common" },
+    { name = "numpy", specifier = ">=1.19.0" },
+    { name = "pyarrow" },
 ]
 
 [package.metadata.requires-dev]
