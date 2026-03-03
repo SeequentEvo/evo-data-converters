@@ -28,7 +28,7 @@ def read_xyz(file_path: str) -> npt.NDArray[np.float64]:
 
     xyz_type = __get_type(file_path)
     if xyz_type == XYZ_Type.UNKNOWN:
-        raise ValueError(f"Unsupported XYZ file type")
+        raise ValueError("Unsupported XYZ file type")
 
     with open(file_path, "r", encoding="utf-8") as file:
         for line_number, line in enumerate(file, start=1):
