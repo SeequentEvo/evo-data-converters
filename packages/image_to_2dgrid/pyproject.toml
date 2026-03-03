@@ -1,5 +1,5 @@
 [project]
-name = "evo-data-converters-image-grid"
+name = "evo-data-converters-image"
 version = "0.1.0"
 description = "Image Grid data converter for EVO (supports JPEG, PNG, TIFF, etc.)"
 license-files = ["LICENSE.md"]

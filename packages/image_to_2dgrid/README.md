@@ -1,6 +1,6 @@
 <p align="center"><a href="https://seequent.com" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="https://developer.seequent.com/img/seequent-logo-dark.svg" alt="Seequent logo" width="400" /><img src="https://developer.seequent.com/img/seequent-logo.svg" alt="Seequent logo" width="400" /></picture></a></p>
 <p align="center">
-    <a href="https://pypi.org/project/evo-data-converters-image-grid/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-image-grid" /></a>
+    <a href="https://pypi.org/project/evo-data-converters-image/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-image" /></a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml"><img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt="" /></a>
 </p>
 <p align="center">
@@ -22,7 +22,7 @@ Evo is powered by Seequent, a Bentley organisation.
 ## Installation
 
 ```shell
-pip install evo-data-converters-image-grid
+pip install evo-data-converters-image
 ```
 
 ## Image Grid Converter

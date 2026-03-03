@@ -14,7 +14,7 @@ members = [
     "evo-data-converters-common",
     "evo-data-converters-duf",
     "evo-data-converters-gocad",
-    "evo-data-converters-image-grid",
+    "evo-data-converters-image",
     "evo-data-converters-obj",
     "evo-data-converters-omf",
     "evo-data-converters-resqml",
@@ -767,7 +767,7 @@ dependencies = [
     { name = "evo-data-converters-common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'" },
     { name = "evo-data-converters-gocad" },
-    { name = "evo-data-converters-image-grid" },
+    { name = "evo-data-converters-image" },
     { name = "evo-data-converters-obj" },
     { name = "evo-data-converters-omf" },
     { name = "evo-data-converters-resqml" },
@@ -793,7 +793,7 @@ requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
     { name = "evo-data-converters-duf", marker = "sys_platform == 'win32'", editable = "packages/duf" },
     { name = "evo-data-converters-gocad", editable = "packages/gocad" },
-    { name = "evo-data-converters-image-grid", editable = "packages/image_to_2dgrid" },
+    { name = "evo-data-converters-image", editable = "packages/image_to_2dgrid" },
     { name = "evo-data-converters-obj", editable = "packages/obj" },
     { name = "evo-data-converters-omf", editable = "packages/omf" },
     { name = "evo-data-converters-resqml", editable = "packages/resqml" },
@@ -907,7 +907,7 @@ requires-dist = [{ name = "evo-data-converters-common", editable = "packages/com
 dev = [{ name = "pytest" }]
 
 [[package]]
-name = "evo-data-converters-image-grid"
+name = "evo-data-converters-image"
 version = "0.1.0"
 source = { editable = "packages/image_to_2dgrid" }
 dependencies = [

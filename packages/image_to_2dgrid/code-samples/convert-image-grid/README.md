@@ -263,5 +263,6 @@ converter = ImageGridConverter(
 
 ## See Also
 
-- [Regular 2D Grid Schema](https://github.com/seequent/geoscience-object-schemas)
+- [Regular 2D Grid Schema](https://github.com/seequentevo/evo-schemas)
 - [Evo Documentation](https://evo.seequent.com)
+- [Seequent Developer Portal](https://developer.seequent.com/)
