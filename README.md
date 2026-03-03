@@ -54,7 +54,7 @@ Currently supported converters are:
  * [UBC](packages/ubc/README.md)
  * [GOCAD](packages/gocad/README.md)
  * [DUF](packages/duf/README.md)
- * [Image Grid](packages/image/README.md)
+ * [Image](packages/image/README.md)
  * [OBJ](packages/obj/README.md)
 
  To use any of the data converters, you will need a few things:
@@ -98,7 +98,7 @@ For examples of how to use Evo data converters, please refer to the samples in e
    * [UBC](packages/ubc/samples)
    * [GOCAD](packages/gocad/samples)
    * [DUF](packages/duf/samples)
-    * [Image Grid](packages/image/code-samples/convert-image)
+    * [Image](packages/image/code-samples/convert-image)
    * [OBJ](packages/obj/samples)
 
 ## Contributing

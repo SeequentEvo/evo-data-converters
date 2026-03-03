@@ -930,9 +930,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
-    { name = "evo-objects", specifier = "==0.3.3" },
-    { name = "evo-schemas", specifier = "==2025.12.15" },
-    { name = "evo-sdk-common", specifier = "==0.5.12" },
+    { name = "evo-objects", specifier = ">=0.3.3" },
+    { name = "evo-schemas", specifier = ">=2025.12.15" },
+    { name = "evo-sdk-common", specifier = ">=0.5.12" },
     { name = "numpy", specifier = "<=1.26.4" },
     { name = "pillow" },
     { name = "pyarrow" },

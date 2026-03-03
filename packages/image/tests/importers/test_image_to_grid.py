@@ -176,7 +176,7 @@ def test_tags_and_crs(sample_image: Tuple[Path, int, int], mock_data_client: _Mo
     from evo_schemas.components import Crs_V1_0_1_EpsgCode
 
     image_path, _, _ = sample_image
-    tags = {"Source": "Test", "Type": "Image Grid"}
+    tags = {"Source": "Test", "Type": "Image"}
     crs_dict = {"epsg_code": 32618}
 
     converter = ImageGridConverter(mock_data_client, output_parquet=False)

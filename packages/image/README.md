@@ -25,7 +25,7 @@ Evo is powered by Seequent, a Bentley organisation.
 pip install evo-data-converters-image
 ```
 
-## Image Grid Converter
+## Image Converter
 
 This package provides a converter for image files (JPEG, PNG, TIFF, BMP, GIF, etc.) to Regular 2D Grid geoscience objects.
 
