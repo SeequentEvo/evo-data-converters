@@ -57,4 +57,4 @@ path = "README.md"
 # Literal TOML strings (single quotes) need no escaping of backslashes.
 # Converts relative links to absolute links in PyPI
 pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
-replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/image_to_2dgrid/\g<2>)'
+replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/image/\g<2>)'

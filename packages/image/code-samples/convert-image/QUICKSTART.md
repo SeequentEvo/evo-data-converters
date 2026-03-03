@@ -7,14 +7,14 @@ A complete Python implementation to convert images (JPEG, PNG, TIFF, etc.) to Re
 ## Files Created
 
 ### Core Implementation
-- `src/evo/data_converters/image_to_2dgrid/__init__.py` - Package exports
-- `src/evo/data_converters/image_to_2dgrid/image_to_grid.py` - Main converter implementation
+- `src/evo/data_converters/image/__init__.py` - Package exports
+- `src/evo/data_converters/image/image_to_grid.py` - Main converter implementation
 
 ### Examples & Documentation
-- `code-samples/convert-image-grid/convert-image-grid.ipynb` - Jupyter notebook example
-- `code-samples/convert-image-grid/example_image_to_json.py` - Standalone script (no Evo required)
-- `code-samples/convert-image-grid/create_sample_image.py` - Generate test images
-- `code-samples/convert-image-grid/README.md` - Complete documentation
+- `code-samples/convert-image/convert-image.ipynb` - Jupyter notebook example
+- `code-samples/convert-image/example_image_to_json.py` - Standalone script (no Evo required)
+- `code-samples/convert-image/create_sample_image.py` - Generate test images
+- `code-samples/convert-image/README.md` - Complete documentation
 
 ### Tests
 - `tests/importers/test_image_to_grid.py` - Unit tests
@@ -27,7 +27,7 @@ A complete Python implementation to convert images (JPEG, PNG, TIFF, etc.) to Re
 ### Option 1: Use in Jupyter Notebook (with Evo)
 
 ```python
-from evo.data_converters.image_to_2dgrid import convert_image_to_grid
+from evo.data_converters.image import convert_image_to_grid
 from evo.notebooks import ServiceManagerWidget
 
 # Authenticate
@@ -48,7 +48,7 @@ results = convert_image_to_grid(
 ### Option 2: Standalone Script (no Evo)
 
 ```bash
-cd code-samples/convert-image-grid
+cd code-samples/convert-image
 
 # Create sample image
 python create_sample_image.py
@@ -132,12 +132,12 @@ pytest tests/importers/test_image_to_grid.py -v
 
 1. **Try the standalone example**:
    ```bash
-  cd code-samples/convert-image-grid
+  cd code-samples/convert-image
    python create_sample_image.py
    python example_image_to_json.py data/input/sample_gradient.jpg test_output.json
    ```
 
-2. **Use in notebook**: Open `convert-image-grid.ipynb` and follow the examples
+2. **Use in notebook**: Open `convert-image.ipynb` and follow the examples
 
 3. **Customize**: Modify origin, cell_size, and CRS to match your coordinate system
 

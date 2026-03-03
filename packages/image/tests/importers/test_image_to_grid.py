@@ -28,7 +28,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from PIL import Image
 
-from evo.data_converters.image_to_2dgrid.image_to_grid import (
+from evo.data_converters.image.image_to_grid import (
     ImageGridConverter,
     geoscience_object_data_options,
 )

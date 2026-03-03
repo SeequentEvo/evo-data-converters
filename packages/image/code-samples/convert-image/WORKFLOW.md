@@ -123,13 +123,13 @@ Example Parameters:
 
 mdos/
 ├── src/evo/data_converters/
-│   └── image_to_2dgrid/             ← Image converter
+│   └── image/                       ← Image converter
 │       ├── __init__.py              ← Package exports
 │       └── image_to_grid.py         ← Main implementation (350+ lines)
 │
 ├── code-samples/
-│   └── convert-image-grid/          ← Image samples
-│       ├── convert-image-grid.ipynb ← Jupyter notebook tutorial
+│   └── convert-image/          ← Image samples
+│       ├── convert-image.ipynb ← Jupyter notebook tutorial
 │       ├── example_image_to_json.py ← Standalone converter script
 │       ├── create_sample_image.py   ← Generate test images
 │       ├── README.md                ← Full documentation
@@ -148,12 +148,12 @@ mdos/
    pip install pillow pyarrow evo-schemas
 
 2. Try standalone example (no Evo needed):
-  cd code-samples/convert-image-grid
+  cd code-samples/convert-image
    python create_sample_image.py
    python example_image_to_json.py data/input/sample_gradient.jpg test.json
 
 3. Use in Jupyter notebook:
-  - Open convert-image-grid.ipynb
+  - Open convert-image.ipynb
    - Add your client_id
    - Follow the examples
 

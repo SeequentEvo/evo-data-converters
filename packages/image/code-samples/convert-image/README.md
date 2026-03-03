@@ -44,12 +44,12 @@ The scripts in this folder are examples, not automated tests:
 - `create_sample_image.py` generates sample input images for demos.
 - `example_image_to_json.py` shows a standalone conversion flow.
 
-Automated tests belong under `packages/image_to_2dgrid/tests/`.
+Automated tests belong under `packages/image/tests/`.
 
 ### Basic Example (Jupyter Notebook)
 
 ```python
-from evo.data_converters.image_to_2dgrid import convert_image_to_grid
+from evo.data_converters.image import convert_image_to_grid
 from evo.notebooks import ServiceManagerWidget
 
 # Authenticate
@@ -91,7 +91,7 @@ results = convert_image_to_grid(
 ### Programmatic Use (Without Publishing)
 
 ```python
-from evo.data_converters.image_to_2dgrid.image_to_grid import ImageGridConverter
+from evo.data_converters.image.image_to_grid import ImageGridConverter
 from evo.objects.utils.data import ObjectDataClient
 
 # Create converter
@@ -229,7 +229,7 @@ A successfully converted grid will have this structure:
 Authentication and workspace-selection cells can produce local traceback output in notebook cells.
 This output is runtime-only and should not be committed.
 
-Before committing, clear notebook outputs in `convert-image-grid.ipynb` and keep generated files local
+Before committing, clear notebook outputs in `convert-image.ipynb` and keep generated files local
 (`notebook-data/`, `parquet_arrays/`, `output_data/`, and temporary output JSON files).
 
 ### Common Issues
@@ -252,7 +252,7 @@ Before committing, clear notebook outputs in `convert-image-grid.ipynb` and keep
 Enable parquet file output for debugging:
 
 ```python
-from evo.data_converters.image_to_2dgrid.image_to_grid import ImageGridConverter
+from evo.data_converters.image.image_to_grid import ImageGridConverter
 
 converter = ImageGridConverter(
     data_client, 
