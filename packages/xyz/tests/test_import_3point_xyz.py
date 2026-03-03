@@ -16,6 +16,7 @@ from evo.data_converters.common import EvoWorkspaceMetadata
 
 this_dir = Path(__file__).parent
 
+
 def test_convert_xyz_parser() -> None:
     xyz_file = this_dir / "data" / "ThreePointTable.xyz"
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
@@ -26,9 +27,7 @@ def test_convert_xyz_parser() -> None:
         patch(
             "evo.data_converters.xyz.importer.xyz_main.create_evo_object_service_and_data_client"
         ) as mock_create_client,
-        patch(
-            "evo.data_converters.xyz.importer.xyz_parser.save_array_to_parquet"
-        ) as mock_save_parquet_file,
+        patch("evo.data_converters.xyz.importer.xyz_parser.save_array_to_parquet") as mock_save_parquet_file,
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
         mock_save_parquet_file.return_value = None

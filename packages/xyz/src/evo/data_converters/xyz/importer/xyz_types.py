@@ -18,4 +18,3 @@ class XYZ_Type(Enum):
     POINTS = 1
     GEOCHEMISTRY = 2
     BINARY = 3
-    

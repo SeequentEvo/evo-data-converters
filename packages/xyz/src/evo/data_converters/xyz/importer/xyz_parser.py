@@ -20,6 +20,7 @@ from evo_schemas.components import BoundingBox_V1_0_1
 from .xyz_reader import read_xyz
 from .xyz_parquet_manager import save_array_to_parquet
 
+
 def parse_xyz_file(filepath: str, data_client: ObjectDataClient) -> Pointset_V1_3_0:
     name = os.path.basename(filepath)
     filename_hash = hashlib.sha256(os.path.basename(filepath).encode()).hexdigest().lower()
@@ -35,19 +36,18 @@ def parse_xyz_file(filepath: str, data_client: ObjectDataClient) -> Pointset_V1_
     min_z_val = float(np.min(points[:, 2]))
     max_z_val = float(np.max(points[:, 2]))
 
-    bb = BoundingBox_V1_0_1(min_x=min_x_val, 
-                            min_y=min_y_val, 
-                            min_z=min_z_val, 
-                            max_x=max_x_val, 
-                            max_y=max_y_val, 
-                            max_z=max_z_val)
+    bb = BoundingBox_V1_0_1(
+        min_x=min_x_val, min_y=min_y_val, min_z=min_z_val, max_x=max_x_val, max_y=max_y_val, max_z=max_z_val
+    )
     floatArr = FloatArray3_V1_0_1(data=filename_hash, length=points.shape[0])
-    location  = Pointset_V1_3_0_Locations(coordinates=floatArr)
-    pointset = Pointset_V1_3_0(name=name, 
-                               uuid=None, 
-                               description=None, 
-                               bounding_box=bb, 
-                               coordinate_reference_system="unspecified",
-                               locations=location)
+    location = Pointset_V1_3_0_Locations(coordinates=floatArr)
+    pointset = Pointset_V1_3_0(
+        name=name,
+        uuid=None,
+        description=None,
+        bounding_box=bb,
+        coordinate_reference_system="unspecified",
+        locations=location,
+    )
 
     return pointset

@@ -13,20 +13,21 @@ import numpy as np
 import numpy.typing as npt
 from .xyz_types import XYZ_Type
 
+
 def _is_header_line(line: str) -> bool:
     """Return True if the line is a header and should be skipped.
 
     A header line is any line whose first character is not a digit,
     a decimal point, a plus sign, or a minus sign (i.e. not numeric data).
     """
-    return not line[0].isdigit() and line[0] not in ('.', '+', '-')
+    return not line[0].isdigit() and line[0] not in (".", "+", "-")
 
 
 def read_xyz(file_path: str) -> npt.NDArray[np.float64]:
     rows: list[list[float]] = []
 
     xyz_type = __get_type(file_path)
-    if(xyz_type == XYZ_Type.UNKNOWN):
+    if xyz_type == XYZ_Type.UNKNOWN:
         raise ValueError(f"Unsupported XYZ file type")
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -37,24 +38,18 @@ def read_xyz(file_path: str) -> npt.NDArray[np.float64]:
 
             values = __get_list_of_string_values(stripped, xyz_type)
             if len(values) != 3:
-                raise ValueError(
-                    f"Invalid XYZ format at line {line_number}: "
-                    f"expected 3 values, got {len(values)}"
-                )
+                raise ValueError(f"Invalid XYZ format at line {line_number}: expected 3 values, got {len(values)}")
 
             try:
                 row = [float(v) for v in values]
             except ValueError as exc:
-                raise ValueError(
-                    f"Invalid numeric value at line {line_number}: '{stripped}'"
-                ) from exc
+                raise ValueError(f"Invalid numeric value at line {line_number}: '{stripped}'") from exc
 
             rows.append(row)
 
     # Build a float64 array of shape (N, 3)
     points = np.array(rows, dtype=np.float64)
     return points
-
 
 
 def __get_type(file_path: str) -> XYZ_Type:
@@ -70,7 +65,7 @@ def __get_type(file_path: str) -> XYZ_Type:
             if not stripped or _is_header_line(stripped):
                 continue
 
-            values = [v.strip() for v in stripped.split(',')]
+            values = [v.strip() for v in stripped.split(",")]
             num_values = len(values)
 
             if num_values == 2:
@@ -86,6 +81,7 @@ def __get_type(file_path: str) -> XYZ_Type:
 
     return XYZ_Type.UNKNOWN
 
+
 def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
     """Extract numeric string values from a line based on the XYZ type.
 
@@ -95,10 +91,10 @@ def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
     - GEOCHEMISTRY: splits on whitespace, drops the leading label → ["10.1", "10.2", "10.3"]
     """
     if type == XYZ_Type.POINTS:
-        return [v.strip() for v in line.split(',')]
+        return [v.strip() for v in line.split(",")]
 
     if type == XYZ_Type.BINARY:
-        values = [v.strip() for v in line.split(',')]
+        values = [v.strip() for v in line.split(",")]
         values.append("0.0")
         return values
 
@@ -107,4 +103,3 @@ def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
         return line.split()[1:]
 
     raise ValueError(f"Unsupported XYZ type: {type}")
-    

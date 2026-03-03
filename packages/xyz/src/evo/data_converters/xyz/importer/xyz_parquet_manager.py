@@ -15,14 +15,15 @@ import numpy.typing as npt
 import numpy as np
 
 
-def save_array_to_parquet(data_2d: npt.NDArray[np.float64] , output_path) -> None:
-
+def save_array_to_parquet(data_2d: npt.NDArray[np.float64], output_path) -> None:
     # Create a table with 3 columns (x, y, z), each float64
-    table = pa.table({
-        "x": pa.array(data_2d[:, 0], type=pa.float64()),
-        "y": pa.array(data_2d[:, 1], type=pa.float64()),
-        "z": pa.array(data_2d[:, 2], type=pa.float64()),
-    })
+    table = pa.table(
+        {
+            "x": pa.array(data_2d[:, 0], type=pa.float64()),
+            "y": pa.array(data_2d[:, 1], type=pa.float64()),
+            "z": pa.array(data_2d[:, 2], type=pa.float64()),
+        }
+    )
 
     pq.write_table(
         table,
