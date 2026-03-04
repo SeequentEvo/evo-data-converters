@@ -8,9 +8,15 @@ changelog:
     - title: evo-data-converters-common
       labels:
         - common
+    - title: evo-data-converters-duf
+      labels:
+        - duf
     - title: evo-data-converters-gocad
       labels:
         - gocad
+    - title: evo-data-converters-image
+      labels:
+        - image
     - title: evo-data-converters-obj
       labels:
         - obj

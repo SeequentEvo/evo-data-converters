@@ -25,7 +25,9 @@ jobs:
           - "3.12"
         package:
           - common
+          - duf
           - gocad
+          - image
           - obj
           - omf
           - resqml
