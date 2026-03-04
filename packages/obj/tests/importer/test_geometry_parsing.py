@@ -240,6 +240,24 @@ class TestObjGeometryParsing(EvoDataConvertersTestCase):
         assert len(intersection) == len(vertices)
         assert len(correct_vertices) == len(vertices)
 
+    async def test_mesh_with_texture_coordinates(self) -> None:
+        """
+        Tests loading a OBJ file with texture coordinates works without error, even though we ignore the texture coordinates for now.
+        """
+        triangle_mesh = await self._make_geoobject(filename="simple_shapes_texture_coordinates.obj")
+        faces = self._get_dataframe_for_table(triangle_mesh.triangles.indices)
+        vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices)
+        assert len(faces) == len(simple_shape_faces), "Check number of faces is correct"
+
+        face_vertex_sets = self._make_face_vertices_sets(vertices, faces)
+
+        # Produce an equivalent set of the correct faces
+        correct_face_vertex_sets = simple_shape_faces[["n0", "n1", "n2"]].apply(lambda r: tuple(r), axis=1)
+
+        assert self._compare_face_sets(face_vertex_sets, correct_face_vertex_sets), (
+            "Check all faces have the right triple of vertices"
+        )
+
 
 @pytest.mark.skipif(find_spec("tinyobjloader") is None, reason="tinyobj not installed")
 class TestObjGeometryParsingTinyObj(TestObjGeometryParsing):
