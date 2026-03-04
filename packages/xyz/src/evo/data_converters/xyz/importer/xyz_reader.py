@@ -55,10 +55,11 @@ def read_xyz(file_path: str) -> npt.NDArray[np.float64]:
 def __get_type(file_path: str) -> XYZ_Type:
     """Determine the XYZ file type by inspecting the first non-empty line.
 
-    - 2 numeric values                   → BINARY        (e.g. "12.2,12.3")
-    - 3 numeric values                   → POINTS        (e.g. "10.2,10.2,10.3")
-    - 3 numeric values + space delimiter → GEOSOFT_XYZ   (e.g. "10.2 10.2 10.3")
-    - letter + 3 numeric vals            → GEOCHEMISTRY  (e.g. "C,10.1,10.2,10.2")
+    - 2 numeric values                          → BINARY        (e.g. "12.2,12.3")
+    - 3 numeric values                          → POINTS        (e.g. "10.2,10.2,10.3")
+    - 3 numeric values + space delimiter        → GEOSOFT_XYZ   (e.g. "10.2 10.2 10.3")
+    - letter + 3 numeric vals                   → GEOCHEMISTRY_COMMA  (e.g. "C,10.1,10.2,10.2")
+    - letter + 3 numeric vals + space delimiter → GEOCHEMISTRY_SPACE (e.g. "C 10.1 10.2 10.2")
     """
     with open(file_path, "r", encoding="utf-8") as file:
         for line in file:
@@ -66,23 +67,25 @@ def __get_type(file_path: str) -> XYZ_Type:
             if not stripped or _is_header_line(stripped):
                 continue
 
-            values = [v.strip() for v in stripped.split(",")]
-            num_values = len(values)
+            values_comma = [v.strip() for v in stripped.split(",")]
+            num_values_comma = len(values_comma)
+            values_space = [v.strip() for v in stripped.split()]
+            num_values_space = len(values_space)
 
-            if num_values == 2:
+            if num_values_comma == 2:
                 return XYZ_Type.BINARY
 
-            if num_values == 3:
+            if num_values_comma == 3:
                 return XYZ_Type.POINTS
 
-            if num_values == 4 and not values[0].replace(".", "", 1).lstrip("-").isdigit():
-                return XYZ_Type.GEOCHEMISTRY
+            if num_values_comma == 4 and not values_comma[0].replace(".", "", 1).lstrip("-").isdigit():
+                return XYZ_Type.GEOCHEMISTRY_COMMA
 
-            # No commas found – try whitespace-delimited
-            if num_values == 1:
-                ws_values = stripped.split()
-                if len(ws_values) == 3:
-                    return XYZ_Type.GEOSOFT_XYZ
+            if num_values_space == 4 and not values_space[0].replace(".", "", 1).lstrip("-").isdigit():
+                return XYZ_Type.GEOCHEMISTRY_SPACE
+
+            if num_values_space == 3:
+                return XYZ_Type.GEOSOFT_XYZ
 
             return XYZ_Type.UNKNOWN
 
@@ -93,10 +96,11 @@ def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
     """Extract numeric string values from a line based on the XYZ type.
 
     Returns a list of 3 string values:
-    - POINTS:       splits on comma → ["10.1", "10.2", "10.3"]
-    - GEOSOFT_XYZ:  splits on whitespace → ["10.1" "10.2" "10.3"]
-    - BINARY:       splits on comma, appends "0.0" → ["10.1", "10.2", "0.0"]
-    - GEOCHEMISTRY: splits on whitespace, drops the leading label → ["10.1", "10.2", "10.3"]
+    - POINTS:             splits on comma → ["10.1", "10.2", "10.3"]
+    - GEOSOFT_XYZ:        splits on whitespace → ["10.1" "10.2" "10.3"]
+    - BINARY:             splits on comma, appends "0.0" → ["10.1", "10.2", "0.0"]
+    - GEOCHEMISTRY_COMMA: splits on comma, drops the leading label → ["10.1", "10.2", "10.3"]
+    - GEOCHEMISTRY_SPACE: splits on whitespace, drops the leading label → ["10.1" "10.2" "10.3"]
     """
     if type == XYZ_Type.POINTS:
         return [v.strip() for v in line.split(",")]
@@ -109,7 +113,11 @@ def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
         values.append("0.0")
         return values
 
-    if type == XYZ_Type.GEOCHEMISTRY:
+    if type == XYZ_Type.GEOCHEMISTRY_COMMA:
+        # First token is the label (e.g. "C"), remaining 3 are coordinates
+        return line.split(",")[1:]
+    
+    if type == XYZ_Type.GEOCHEMISTRY_SPACE:
         # First token is the label (e.g. "C"), remaining 3 are coordinates
         return line.split()[1:]
 
