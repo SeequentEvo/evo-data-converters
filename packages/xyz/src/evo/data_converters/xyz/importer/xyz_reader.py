@@ -55,9 +55,10 @@ def read_xyz(file_path: str) -> npt.NDArray[np.float64]:
 def __get_type(file_path: str) -> XYZ_Type:
     """Determine the XYZ file type by inspecting the first non-empty line.
 
-    - 2 numeric values        → BINARY        (e.g. "12.2,12.3")
-    - 3 numeric values        → POINTS        (e.g. "10.2,10.2,10.3")
-    - letter + 3 numeric vals → GEOCHEMISTRY  (e.g. "C,10.1,10.2,10.2")
+    - 2 numeric values                   → BINARY        (e.g. "12.2,12.3")
+    - 3 numeric values                   → POINTS        (e.g. "10.2,10.2,10.3")
+    - 3 numeric values + space delimiter → GEOSOFT_XYZ   (e.g. "10.2 10.2 10.3")
+    - letter + 3 numeric vals            → GEOCHEMISTRY  (e.g. "C,10.1,10.2,10.2")
     """
     with open(file_path, "r", encoding="utf-8") as file:
         for line in file:
@@ -77,6 +78,12 @@ def __get_type(file_path: str) -> XYZ_Type:
             if num_values == 4 and not values[0].replace(".", "", 1).lstrip("-").isdigit():
                 return XYZ_Type.GEOCHEMISTRY
 
+            # No commas found – try whitespace-delimited
+            if num_values == 1:
+                ws_values = stripped.split()
+                if len(ws_values) == 3:
+                    return XYZ_Type.GEOSOFT_XYZ
+
             return XYZ_Type.UNKNOWN
 
     return XYZ_Type.UNKNOWN
@@ -87,11 +94,15 @@ def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
 
     Returns a list of 3 string values:
     - POINTS:       splits on comma → ["10.1", "10.2", "10.3"]
+    - GEOSOFT_XYZ:  splits on whitespace → ["10.1" "10.2" "10.3"]
     - BINARY:       splits on comma, appends "0.0" → ["10.1", "10.2", "0.0"]
     - GEOCHEMISTRY: splits on whitespace, drops the leading label → ["10.1", "10.2", "10.3"]
     """
     if type == XYZ_Type.POINTS:
         return [v.strip() for v in line.split(",")]
+
+    if type == XYZ_Type.GEOSOFT_XYZ:
+        return line.split()
 
     if type == XYZ_Type.BINARY:
         values = [v.strip() for v in line.split(",")]
