@@ -83,11 +83,16 @@ class TrimeshObjImporter(ObjImporterBase):
         for node_name in self.scene.graph.nodes_geometry:
             # Shift the mesh into world frame
             transform, geom_name = self.scene.graph.get(node_name)
-            mesh = self.scene.geometry[geom_name].copy()
+            mesh = self.scene.geometry[geom_name]
             if not isinstance(mesh, trimesh.Trimesh):
                 raise InvalidOBJError(
                     "Input file contains non-mesh geometry (e.g., point clouds), which is unsupported"
                 )
+
+            # Copy to avoid modifying the original mesh in the scene with the transform.
+            # As we aren't using textures/materials at all, we can skip copying those, as otherwise it tries to import PIL.
+            mesh = mesh.copy(include_visual=False)
+            # mesh = mesh.copy()  # we need to copy the mesh to avoid modifying the original with the transform
             mesh.apply_transform(transform)
 
             vertices_array = np.asarray(mesh.vertices)
