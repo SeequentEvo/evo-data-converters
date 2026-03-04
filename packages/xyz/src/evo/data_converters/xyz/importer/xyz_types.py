@@ -17,6 +17,6 @@ class XYZ_Type(Enum):
     UNKNOWN = 0
     POINTS = 1
     GEOCHEMISTRY_COMMA = 2
-    BINARY = 3,
-    GEOSOFT_XYZ = 4,
+    BINARY = 3
+    GEOSOFT_XYZ = 4
     GEOCHEMISTRY_SPACE = 5

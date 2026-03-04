@@ -116,7 +116,7 @@ def __get_list_of_string_values(line: str, type: XYZ_Type) -> list[str]:
     if type == XYZ_Type.GEOCHEMISTRY_COMMA:
         # First token is the label (e.g. "C"), remaining 3 are coordinates
         return line.split(",")[1:]
-    
+
     if type == XYZ_Type.GEOCHEMISTRY_SPACE:
         # First token is the label (e.g. "C"), remaining 3 are coordinates
         return line.split()[1:]
