@@ -98,7 +98,7 @@ For examples of how to use Evo data converters, please refer to the samples in e
    * [UBC](packages/ubc/samples)
    * [GOCAD](packages/gocad/samples)
    * [DUF](packages/duf/samples)
-    * [Image](packages/image/code-samples/convert-image)
+   * [Image](packages/image/code-samples/convert-image)
    * [OBJ](packages/obj/samples)
 
 ## Contributing
