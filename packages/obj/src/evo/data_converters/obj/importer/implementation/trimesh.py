@@ -92,7 +92,6 @@ class TrimeshObjImporter(ObjImporterBase):
             # Copy to avoid modifying the original mesh in the scene with the transform.
             # As we aren't using textures/materials at all, we can skip copying those, as otherwise it tries to import PIL.
             mesh = mesh.copy(include_visual=False)
-            # mesh = mesh.copy()  # we need to copy the mesh to avoid modifying the original with the transform
             mesh.apply_transform(transform)
 
             vertices_array = np.asarray(mesh.vertices)
