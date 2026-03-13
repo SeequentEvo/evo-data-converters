@@ -1,13 +1,14 @@
 [project]
 name = "evo-data-converters-image"
 version = "0.1.0"
-description = "Image data converter for EVO (supports JPEG, PNG, TIFF, etc.)"
+description = "Image data converter for Evo (supports JPEG, PNG, TIFF, etc.)"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 requires-python = ">=3.10"
 authors = [
   { name = "Seequent", email = "support@seequent.com" }
 ]
+
 
 
 dependencies = [
