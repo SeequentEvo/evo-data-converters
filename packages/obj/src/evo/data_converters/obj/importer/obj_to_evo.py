@@ -62,6 +62,8 @@ async def convert_obj(
 
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
+    :raise InvalidOBJError: If the input OBJ file is invalid or cannot be parsed.
+    :raise InvalidCRSError: If the input CRS information is invalid.
     """
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,

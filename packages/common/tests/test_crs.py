@@ -16,6 +16,7 @@ from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from evo_schemas.components import Crs_V1_0_1_OgcWkt as Crs_OgcWkt
 
 from evo.data_converters.common import crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified, crs_from_any
+from evo.data_converters.common.crs import InvalidCRSError
 
 
 class TestCrs(TestCase):
@@ -68,7 +69,7 @@ PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",
 
     def test_raise_expected_exception_when_epsg_code_is_invalid(self) -> None:
         exception_msg = "Invalid or unrecognized EPSG code"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidCRSError) as context:
             crs_from_epsg_code(0)
         self.assertIn(exception_msg, str(context.exception))
 
@@ -79,13 +80,13 @@ PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",
 
     def test_raise_expected_exception_when_ogc_wkt_is_invalid(self) -> None:
         exception_msg = "Invalid or unrecognized WKT string: Invalid WKT string: invalid wkt"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidCRSError) as context:
             crs_from_ogc_wkt("invalid wkt")
         self.assertIn(exception_msg, str(context.exception))
 
     def test_raise_expected_exception_when_esri_wkt_is_found(self) -> None:
         exception_msg = "Invalid or unrecognized WKT string: Invalid WKT string: ESRI wkt string"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidCRSError) as context:
             crs_from_ogc_wkt("ESRI wkt string")
         self.assertIn(exception_msg, str(context.exception))
 
@@ -116,7 +117,7 @@ PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",
 
     def test_any_raise_expected_exception_when_epsg_code_is_invalid(self) -> None:
         exception_msg = "Invalid or unrecognized EPSG code"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidCRSError) as context:
             crs_from_any(0)
         self.assertIn(exception_msg, str(context.exception))
 
@@ -127,13 +128,13 @@ PROJCS["NZGD2000 / New Zealand Transverse Mercator 2000",
 
     def test_any_raise_expected_exception_when_ogc_wkt_is_invalid(self) -> None:
         exception_msg = "Invalid or unrecognized CRS definition: invalid wkt"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidCRSError) as context:
             crs_from_any("invalid wkt")
         self.assertIn(exception_msg, str(context.exception))
 
     def test_any_raise_expected_exception_when_esri_wkt_is_found(self) -> None:
         exception_msg = "Invalid or unrecognized CRS definition: ESRI wkt string"
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidCRSError) as context:
             crs_from_any("ESRI wkt string")
         self.assertIn(exception_msg, str(context.exception))
 

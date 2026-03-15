@@ -25,7 +25,6 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
 )
 from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
-from evo.data_converters.obj.importer.implementation.base import UnsupportedOBJError
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 from evo.objects.utils.tables import KnownTableFormat
 
@@ -218,10 +217,7 @@ class TestObjGeometryParsing(EvoDataConvertersTestCase):
         """
         It's difficult to correctly assert the conversion to triangles from quads, but we'll do some rudimentary tests.
         """
-        try:
-            triangle_mesh = await self._make_geoobject(filename="simple_shapes_quad.obj")
-        except UnsupportedOBJError:
-            pytest.skip(f"{self.implementation} doesn't support triangulation")
+        triangle_mesh = await self._make_geoobject(filename="simple_shapes_quad.obj")
 
         # Perform the same vertices check as test_correct_vertices() as at least the vertices shouldn't have moved
         vertices = self._get_dataframe_for_table(triangle_mesh.triangles.vertices).drop_duplicates()

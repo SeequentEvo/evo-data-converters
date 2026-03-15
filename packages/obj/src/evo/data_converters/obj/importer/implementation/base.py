@@ -26,6 +26,8 @@ from evo_schemas.objects import TriangleMesh_V2_2_0
 
 from evo.objects.utils.data import ObjectDataClient
 
+from ..exceptions import InvalidOBJError
+
 VERTICES_SCHEMA = pa.schema([pa.field("x", pa.float64()), pa.field("y", pa.float64()), pa.field("z", pa.float64())])
 INDICES_SCHEMA = pa.schema([pa.field("n0", pa.uint64()), pa.field("n1", pa.uint64()), pa.field("n2", pa.uint64())])
 PARTS_SCHEMA = pa.schema([pa.field("offset", pa.uint64()), pa.field("count", pa.uint64())])
@@ -114,11 +116,3 @@ class ObjImporterBase:
             min_max = pc.min_max(indices_table[col])
             if min_max["min"].as_py() < 0 or min_max["max"].as_py() >= len(vertices_table):
                 raise InvalidOBJError(f"Invalid OBJ file: {col} face index is out of range")
-
-
-class UnsupportedOBJError(Exception):
-    pass
-
-
-class InvalidOBJError(Exception):
-    pass

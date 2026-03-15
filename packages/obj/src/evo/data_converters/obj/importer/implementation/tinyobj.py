@@ -23,7 +23,8 @@ from evo_schemas.components import (
 from evo_schemas.elements import IndexArray2_V1_0_1
 from typing_extensions import override
 
-from .base import INDICES_SCHEMA, PARTS_SCHEMA, VERTICES_SCHEMA, InvalidOBJError, ObjImporterBase
+from ..exceptions import InvalidOBJError
+from .base import INDICES_SCHEMA, PARTS_SCHEMA, VERTICES_SCHEMA, ObjImporterBase
 
 
 class TinyobjObjImporter(ObjImporterBase):

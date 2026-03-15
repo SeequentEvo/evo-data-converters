@@ -18,6 +18,10 @@ from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from evo_schemas.components import Crs_V1_0_1_OgcWkt as Crs_OgcWkt
 
 
+class InvalidCRSError(ValueError):
+    """Raised when a CRS definition cannot be parsed or validated."""
+
+
 def _is_epsg_code(auth_code: int | str) -> bool:
     if isinstance(auth_code, int):
         return True
@@ -29,41 +33,42 @@ def _is_epsg_code(auth_code: int | str) -> bool:
 
 
 def crs_from_epsg_code(epsg_code: int | str) -> Crs_EpsgCode:
+    """Parse and validate an EPSG code.
+
+    If valid, return the Crs geoscience object with the integer EPSG code.
+
+    :raises InvalidCRSError: If the EPSG code is invalid, unrecognized,
+        or does not resolve to an EPSG authority.
     """
-    Parse and validate an EPSG code. If valid, return the Crs geoscience
-    object with the integer EPSG code.
-    """
+    if not _is_epsg_code(epsg_code):
+        raise InvalidCRSError(f"Invalid or unrecognized EPSG code '{epsg_code}'")
+
     try:
-        if _is_epsg_code(epsg_code):
-            crs = CRS.from_user_input(epsg_code)
+        crs = CRS.from_user_input(epsg_code)
+    except CRSError as e:
+        raise InvalidCRSError(f"Invalid or unrecognized EPSG code '{epsg_code}'") from e
 
-            # Extract authority and code to validate
-            authority = crs.to_authority()
-            if not authority or authority[0] != "EPSG":
-                raise ValueError(f"Input '{epsg_code}' is not a valid EPSG CRS")
+    authority = crs.to_authority()
+    if not authority or authority[0] != "EPSG":
+        raise InvalidCRSError(f"Input '{epsg_code}' resolved to authority '{authority}', not EPSG")
 
-            epsg_code = int(authority[1])
-            return Crs_EpsgCode(epsg_code=epsg_code)
-        else:
-            raise ValueError(f"Invalid or unrecognized EPSG code '{epsg_code}'")
-
-    except (CRSError, ValueError, TypeError) as e:
-        raise ValueError(f"Invalid or unrecognized EPSG code '{epsg_code}': {e}")
+    return Crs_EpsgCode(epsg_code=int(authority[1]))
 
 
 def crs_from_ogc_wkt(wkt_string: str) -> Crs_OgcWkt:
-    """
-    Parse an OGC WKT string. If valid, return the Crs geoscience
-    object with normalized WKT2 string.
+    """Parse an OGC WKT string.
+
+    If valid, return the Crs geoscience object with normalized WKT2 string.
+
+    :raises InvalidCRSError: If the WKT string is invalid or cannot be parsed.
     """
     try:
         crs = CRS.from_wkt(wkt_string)
 
         # Return Crs with canonical WKT2 format
         return Crs_OgcWkt(ogc_wkt=crs.to_wkt(version="WKT2_2019"))
-
-    except (CRSError, ValueError, TypeError) as e:
-        raise ValueError(f"Invalid or unrecognized WKT string: {e}")
+    except CRSError as e:
+        raise InvalidCRSError(f"Invalid or unrecognized WKT string: {e}") from e
 
 
 def crs_unspecified() -> Crs:
@@ -75,9 +80,10 @@ def crs_unspecified() -> Crs:
 
 
 def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_OgcWkt:
-    """
-    Using the crs_def input, select the applicable function to create a Crs geoscience object.
-    If the input is not a valid CRS, raise a ValueError.
+    """Select the applicable function to create a Crs geoscience object from *crs_def*.
+
+    :raises InvalidCRSError: If the input is not a valid CRS definition.
+
     Usage:
         crs = crs_from_any()
         crs = crs_from_any(None)
@@ -93,4 +99,4 @@ def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_O
     elif is_wkt(crs_def):
         return crs_from_ogc_wkt(crs_def)
     else:
-        raise ValueError(f"Invalid or unrecognized CRS definition: {crs_def}")
+        raise InvalidCRSError(f"Invalid or unrecognized CRS definition: {crs_def}")
