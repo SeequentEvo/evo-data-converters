@@ -13,10 +13,11 @@ from datetime import date, datetime, timedelta
 
 _EPOCH = datetime(1970, 1, 1)
 
+
 def datetime_to_evo_timestamp(dt: datetime) -> int | None:
     if dt is None:
         return None
-    
+
     try:
         ts = dt.timestamp() * 1_000_000
     except OSError:
@@ -25,8 +26,9 @@ def datetime_to_evo_timestamp(dt: datetime) -> int | None:
         ts = td / timedelta(microseconds=1)
     return int(ts)
 
+
 def date_to_evo_timestamp(d: date) -> int | None:
     if d is None:
         return None
-    
+
     return datetime_to_evo_timestamp(datetime(d.year, d.month, d.day))

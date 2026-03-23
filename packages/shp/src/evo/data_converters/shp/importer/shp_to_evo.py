@@ -25,6 +25,7 @@ from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
+
 def convert_shp(
     filepath: str,
     epsg_code: str,
@@ -33,7 +34,7 @@ def convert_shp(
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
     publish_objects: bool = True,
-    overwrite_existing_objects: bool = False
+    overwrite_existing_objects: bool = False,
 ) -> list[TriangleMesh_V2_2_0] | list[ObjectMetadata]:
     """
     Convert an ESRI shapefile (.shp, .shx, and .dbf) to a triangle-mesh geoscience object.
@@ -84,5 +85,5 @@ def convert_shp(
         objects_metadata = publish_geoscience_objects_sync(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
-    
+
     return objects_metadata if objects_metadata else geoscience_objects

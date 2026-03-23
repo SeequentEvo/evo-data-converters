@@ -17,6 +17,7 @@ class LocalDataClient:
     """
     A data client which saves to a local folder.
     """
+
     def __init__(self, save_dir: str):
         """
         Initalizes the local data client.
@@ -26,7 +27,7 @@ class LocalDataClient:
         path = pathlib.Path(save_dir)
         path.mkdir(parents=True, exist_ok=True)
         self.save_dir = path if path.is_dir() else pathlib.Path(pathlib.Path.cwd(), "local_data")
-    
+
     def save_table(self, table: pa.Table) -> dict:
         """Save a pyarrow table to a file, returning the table info as a dictionary.
 

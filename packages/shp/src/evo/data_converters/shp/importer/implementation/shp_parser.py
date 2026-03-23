@@ -50,7 +50,9 @@ class ShpParser:
         """
         with shapefile.Reader(self.path) as sf:
             if sf.shapeType != shapefile.MULTIPATCH:
-                raise InvalidSHPError("Provided shapefile is not multipatch. Only multipatch shapefiles without rings are supported.")
+                raise InvalidSHPError(
+                    "Provided shapefile is not multipatch. Only multipatch shapefiles without rings are supported."
+                )
 
             mesh_builder = MeshBuilder(self.data_client, sf.fields[1:])
 
@@ -60,20 +62,20 @@ class ShpParser:
                 min_z=sf.zbox[0] or 0.0,
                 max_x=sf.bbox[2],
                 max_y=sf.bbox[3],
-                max_z=sf.zbox[1] or 0.0
+                max_z=sf.zbox[1] or 0.0,
             )
 
             for shape_record in sf.iterShapeRecords():
                 mesh_builder.add_shape_record(shape_record)
-            
+
             embedded_mesh = mesh_builder.build()
 
             return TriangleMesh_V2_2_0(
-                triangles=embedded_mesh.triangles, 
+                triangles=embedded_mesh.triangles,
                 parts=embedded_mesh.parts,
                 name=Path(self.path).stem,
                 uuid=None,
                 tags=self.tags,
                 bounding_box=bounding_box,
-                coordinate_reference_system=self.crs
+                coordinate_reference_system=self.crs,
             )

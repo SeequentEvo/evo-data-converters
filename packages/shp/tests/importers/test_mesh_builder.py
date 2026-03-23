@@ -23,9 +23,11 @@ from utils import shapefile_field_to_evo_type
 def parquet_path(tmp_path: Path) -> Path:
     return tmp_path / "parquet"
 
+
 @pytest.fixture
 def data_client(parquet_path: Path) -> LocalDataClient:
     return LocalDataClient(parquet_path)
+
 
 @pytest.fixture
 def triangle_strip(tmp_path: Path) -> tuple[shapefile.Reader, int, int, int]:
@@ -45,13 +47,32 @@ def triangle_strip(tmp_path: Path) -> tuple[shapefile.Reader, int, int, int]:
         w.field("NUM", shapefile.FieldType.N)
         w.field("MEMO", shapefile.FieldType.M)
 
-        w.multipatch([
-            [[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 2, 0], [1, 2, 1], [2, 2, 0], [2, 2, 1], [3, 1, 0], [3, 1, 1], [3, 0, 0], [3, 0, 1], [0, 0, 0], [0, 0, 1]], # Triangle Strip
-        ], [shapefile.TRIANGLE_STRIP])
+        w.multipatch(
+            [
+                [
+                    [0, 0, 0],
+                    [0, 0, 1],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [1, 2, 0],
+                    [1, 2, 1],
+                    [2, 2, 0],
+                    [2, 2, 1],
+                    [3, 1, 0],
+                    [3, 1, 1],
+                    [3, 0, 0],
+                    [3, 0, 1],
+                    [0, 0, 0],
+                    [0, 0, 1],
+                ],  # Triangle Strip
+            ],
+            [shapefile.TRIANGLE_STRIP],
+        )
 
         w.record(TEXT="Shape1", BOOL=True, DATE=date(2012, 4, 1), FLOAT=27.6712498273, NUM=8, MEMO="a")
-    
+
     return (shapefile.Reader(shp_path), 6, 12, 12)
+
 
 @pytest.fixture
 def triangle_fan(tmp_path: Path) -> tuple[shapefile.Reader, int, int, int]:
@@ -71,13 +92,24 @@ def triangle_fan(tmp_path: Path) -> tuple[shapefile.Reader, int, int, int]:
         w.field("NUM", shapefile.FieldType.N)
         w.field("MEMO", shapefile.FieldType.M)
 
-        w.multipatch([
-            [[-5, -5, -2], [-4.5, -4.5, 0], [-6.5, -4.5, 0], [-6.5, -6.5, 0], [-4.5, -6.5, 0], [-4.5, -4.5, 0]] # Triangle Fan
-        ], [shapefile.TRIANGLE_FAN])
+        w.multipatch(
+            [
+                [
+                    [-5, -5, -2],
+                    [-4.5, -4.5, 0],
+                    [-6.5, -4.5, 0],
+                    [-6.5, -6.5, 0],
+                    [-4.5, -6.5, 0],
+                    [-4.5, -4.5, 0],
+                ]  # Triangle Fan
+            ],
+            [shapefile.TRIANGLE_FAN],
+        )
 
         w.record(TEXT="Shape1", BOOL=True, DATE=date(2012, 4, 1), FLOAT=27.6712498273, NUM=8, MEMO="a")
-    
+
     return (shapefile.Reader(shp_path), 6, 4, 5)
+
 
 @pytest.fixture
 def shapefile_with_point_data(tmp_path: Path) -> shapefile.Reader:
@@ -92,13 +124,24 @@ def shapefile_with_point_data(tmp_path: Path) -> shapefile.Reader:
     with shapefile.Writer(shp_path, shapeType=31) as w:
         w.field("TEXT", shapefile.FieldType.C)
 
-        w.multipatch([
-            [[-5, -5, -2, 1], [-4.5, -4.5, 0, 2], [-6.5, -4.5, 0, 3], [-6.5, -6.5, 0, 4], [-4.5, -6.5, 0, 5], [-4.5, -4.5, 0, 6]] # Triangle Fan
-        ], [shapefile.TRIANGLE_FAN])
+        w.multipatch(
+            [
+                [
+                    [-5, -5, -2, 1],
+                    [-4.5, -4.5, 0, 2],
+                    [-6.5, -4.5, 0, 3],
+                    [-6.5, -6.5, 0, 4],
+                    [-4.5, -6.5, 0, 5],
+                    [-4.5, -4.5, 0, 6],
+                ]  # Triangle Fan
+            ],
+            [shapefile.TRIANGLE_FAN],
+        )
 
         w.record(TEXT="Shape1")
-    
+
     return shapefile.Reader(shp_path)
+
 
 def test_add_triangle_strip(triangle_strip: tuple[shapefile.Reader, int, int, int], data_client: LocalDataClient):
     reader, expected_field_num, expected_triangle_num, expected_vertex_num = triangle_strip
@@ -123,6 +166,7 @@ def test_add_triangle_strip(triangle_strip: tuple[shapefile.Reader, int, int, in
         attr = attrs[0]
 
         assert attr.attribute_type == shapefile_field_to_evo_type(field.field_type)
+
 
 def test_add_triangle_fan(triangle_fan: tuple[shapefile.Reader, int, int, int], data_client: LocalDataClient):
     reader, expected_field_num, expected_triangle_num, expected_vertex_num = triangle_fan
@@ -149,6 +193,7 @@ def test_add_triangle_fan(triangle_fan: tuple[shapefile.Reader, int, int, int], 
 
         assert attr.attribute_type == shapefile_field_to_evo_type(field.field_type)
 
+
 def test_vertex_data(shapefile_with_point_data: shapefile.Reader, data_client: LocalDataClient):
     reader = shapefile_with_point_data
     fields = reader.fields[1:]
@@ -161,6 +206,7 @@ def test_vertex_data(shapefile_with_point_data: shapefile.Reader, data_client: L
 
     assert len(mesh.triangles.vertices.attributes) == 1
     assert mesh.triangles.vertices.attributes[0].attribute_type == "scalar"
+
 
 def test_parquet_output(triangle_strip: Path, data_client: LocalDataClient, parquet_path: Path):
     reader, _, _, _ = triangle_strip

@@ -55,7 +55,7 @@ class MeshBuilder:
             self.nan_def = nan_def
             self.data_type = data_type
             self.data = []
-    
+
     data_client: ObjectDataClient
     triangles_builder: TrianglesBuilder
     mesh_parts: list[tuple[int, int]]
@@ -74,7 +74,9 @@ class MeshBuilder:
         self.mesh_part_attributes = {}
 
         for field in fields:
-            self.mesh_part_attributes[field.name] = self._Mesh_Part_Data(self._get_nan_def(field.field_type), field.field_type)
+            self.mesh_part_attributes[field.name] = self._Mesh_Part_Data(
+                self._get_nan_def(field.field_type), field.field_type
+            )
 
     def add_shape_record(self, shape_record: shapefile.ShapeRecord):
         """
@@ -109,18 +111,20 @@ class MeshBuilder:
                 case shapefile.TRIANGLE_FAN:
                     shape_length += self.add_triangle_fan(partXYZ, partM)
                 case _:
-                    raise InvalidSHPError("Provided shapefile contains rings. Only multipatch shapefiles without rings are supported.")
-        
+                    raise InvalidSHPError(
+                        "Provided shapefile contains rings. Only multipatch shapefiles without rings are supported."
+                    )
+
         record_dict = record.as_dict()
         for key in self.mesh_part_attributes.keys():
             value = record_dict.get(key)
             # Convert dates to a microsecond timestamp.
-            if (self.mesh_part_attributes[key].data_type == shapefile.FieldType.D):
+            if self.mesh_part_attributes[key].data_type == shapefile.FieldType.D:
                 value = date_to_evo_timestamp(value)
 
             default = self.mesh_part_attributes[key].nan_def
             self.mesh_part_attributes[key].data += [value if value is not None else default]
-        
+
         self.mesh_parts.append((shape_start, shape_length))
 
     def add_triangle_strip(self, partXYZ: list[tuple[float, float, float]], partM: list[float | None]) -> int:
@@ -136,7 +140,7 @@ class MeshBuilder:
         """
         triangles_added = 0
         for i in range(len(partXYZ) - 2):
-            self.triangles_builder.add_triangle(partXYZ[i:i+3], partM[i:i+3])
+            self.triangles_builder.add_triangle(partXYZ[i : i + 3], partM[i : i + 3])
             triangles_added += 1
 
         return triangles_added
@@ -144,7 +148,7 @@ class MeshBuilder:
     def add_triangle_fan(self, partXYZ: list[tuple[float, float, float]], partM: list[float | None]) -> int:
         """
         Adds a list of points stored in triangle fan format and associated point data to the mesh. Triangle fans
-        are a set of points where every consecutive double of points forms a triangle with the first point, so 
+        are a set of points where every consecutive double of points forms a triangle with the first point, so
         given points [a, b, c, d, e], the triangles are a-b-c, a-c-d, and a-d-e.
 
         :param partXYZ: Points stored in the triangle mesh format.
@@ -152,48 +156,46 @@ class MeshBuilder:
 
         :return: The number of triangles added.
         """
-        assert len(partM) == len(partXYZ), "Not every point has a value (if a point has no value, an explicit None should be provided.)."
+        assert len(partM) == len(partXYZ), (
+            "Not every point has a value (if a point has no value, an explicit None should be provided.)."
+        )
 
         triangles_added = 0
         center_vertex = partXYZ[0]
         center_data = partM[0]
         for i in range(1, len(partXYZ) - 1):
-            triangle = [center_vertex] + partXYZ[i:i+2]
-            triangle_data = [center_data] + partM[i:i+2]
+            triangle = [center_vertex] + partXYZ[i : i + 2]
+            triangle_data = [center_data] + partM[i : i + 2]
             self.triangles_builder.add_triangle(triangle, triangle_data)
             triangles_added += 1
-        
+
         return triangles_added
-    
+
     def build(self) -> EmbeddedTriangulatedMesh_V2_1_0:
         """
-        Builds an EmbeddedTriangleMesh from the ShapeRecords added so far. 
+        Builds an EmbeddedTriangleMesh from the ShapeRecords added so far.
         """
         attributes = []
         for name, part in self.mesh_part_attributes.items():
             attribute = self._attribute_from_mesh_part(name, part)
             attributes.append(attribute)
-        
+
         # Mesh parts here do not correspond to shapefile 'parts' but instead shapefile 'shapes'. This is because records are per-shape.
         offset, count = zip(*self.mesh_parts)
         schema = pa.schema([("offset", pa.uint64()), ("count", pa.uint64())])
         table = pa.table({"offset": offset, "count": count}, schema=schema)
         chunk_hash = self._create_parquet_file(table)
         chunks = IndexArray2_V1_0_1(data=chunk_hash, length=len(self.mesh_parts))
-        
-        parts = EmbeddedTriangulatedMesh_V2_1_0_Parts(
-            attributes=attributes,
-            chunks=chunks
-        )
+
+        parts = EmbeddedTriangulatedMesh_V2_1_0_Parts(attributes=attributes, chunks=chunks)
 
         triangles = self.triangles_builder.build()
 
-        return EmbeddedTriangulatedMesh_V2_1_0(
-            triangles=triangles,
-            parts=parts
-        )
-        
-    def _shppoint_to_XYZ(self, points: Iterable[tuple[float, float]], z: Iterable[float]) -> list[tuple[float, float, float]]:
+        return EmbeddedTriangulatedMesh_V2_1_0(triangles=triangles, parts=parts)
+
+    def _shppoint_to_XYZ(
+        self, points: Iterable[tuple[float, float]], z: Iterable[float]
+    ) -> list[tuple[float, float, float]]:
         """
         Converts points stored in the (x, y), z format of pyshp to (x, y, z) format for ease of use.
 
@@ -202,7 +204,7 @@ class MeshBuilder:
         """
         assert len(points) == len(z), "Mismatched number of x, y, and z coordinates for shapefile points."
         return [points[i] + (z[i],) for i in range(len(points))]
-    
+
     def _get_nan_def(self, field_type: shapefile.FieldType):
         """
         Get an appropriate default NaN definition for the given pyshp FieldType.
@@ -213,14 +215,14 @@ class MeshBuilder:
         """
         match field_type:
             case shapefile.FieldType.N:
-                return int.from_bytes(b'\x80\x00\x00\x00\x00\x00\x00\x00', byteorder='big', signed=True)
+                return int.from_bytes(b"\x80\x00\x00\x00\x00\x00\x00\x00", byteorder="big", signed=True)
             case shapefile.FieldType.F:
-                return float('nan')
+                return float("nan")
             case shapefile.FieldType.D:
-                return int.from_bytes(b'\x80\x00\x00\x00\x00\x00\x00\x00', byteorder='big', signed=True)
+                return int.from_bytes(b"\x80\x00\x00\x00\x00\x00\x00\x00", byteorder="big", signed=True)
             case _:
                 return None
-    
+
     def _attribute_from_mesh_part(self, field_name: str, part: _Mesh_Part_Data) -> OneOfAttribute_V1_2_0_Item:
         """
         Takes a mesh part and returns an appropriate geoscience object based on the field type.
@@ -237,14 +239,26 @@ class MeshBuilder:
                 table = pa.table({"values": part.data}, schema=schema)
                 data_hash = self._create_parquet_file(table)
                 values = IntegerArray1_V1_0_1(data=data_hash, length=len(part.data), data_type="int64")
-                return IntegerAttribute_V1_1_0(name=field_name, key=data_hash, attribute_description=None, nan_description=nan_description, values=values)
+                return IntegerAttribute_V1_1_0(
+                    name=field_name,
+                    key=data_hash,
+                    attribute_description=None,
+                    nan_description=nan_description,
+                    values=values,
+                )
             case shapefile.FieldType.F:
                 nan_description = NanContinuous_V1_0_1(values=[part.nan_def])
                 schema = pa.schema([("values", pa.float64())])
                 table = pa.table({"values": part.data}, schema=schema)
                 data_hash = self._create_parquet_file(table)
                 values = FloatArray1_V1_0_1(data=data_hash, length=len(part.data), data_type="float64")
-                return ContinuousAttribute_V1_1_0(name=field_name, key=data_hash, attribute_description=None, nan_description=nan_description, values=values)
+                return ContinuousAttribute_V1_1_0(
+                    name=field_name,
+                    key=data_hash,
+                    attribute_description=None,
+                    nan_description=nan_description,
+                    values=values,
+                )
             case shapefile.FieldType.C | shapefile.FieldType.M:
                 schema = pa.schema([("values", pa.string())])
                 table = pa.table({"values": part.data}, schema=schema)
@@ -264,10 +278,16 @@ class MeshBuilder:
                 nan_description = NanCategorical_V1_0_1(values=[part.nan_def])
                 data_hash = self._create_parquet_file(table)
                 values = DateTimeArray_V1_0_1(data=data_hash, length=len(part.data))
-                return DateTimeAttribute_V1_1_0(name=field_name, key=data_hash, attribute_description=None, nan_description=nan_description, values=values)
+                return DateTimeAttribute_V1_1_0(
+                    name=field_name,
+                    key=data_hash,
+                    attribute_description=None,
+                    nan_description=nan_description,
+                    values=values,
+                )
             case _:
                 return None
-    
+
     def _create_parquet_file(self, table: pa.table) -> str:
         """
         Writes a parquet file from the given table using the data client.

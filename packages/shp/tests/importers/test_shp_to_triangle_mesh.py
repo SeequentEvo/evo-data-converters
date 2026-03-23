@@ -27,33 +27,72 @@ def sample_shp(tmp_path: Path) -> tuple[Path, list[tuple[str, shapefile.FieldTyp
     :return: (filepath, expected_fields, num_shapes, num_triangles, num_unique_vertices)
     """
     shp_path = tmp_path / "test_shapefile"
-    fields = [("TEXT", shapefile.FieldType.C), ("BOOL", shapefile.FieldType.L), ("DATE", shapefile.FieldType.D), ("FLOAT", shapefile.FieldType.F), ("NUM", shapefile.FieldType.N), ("MEMO", shapefile.FieldType.M)]
+    fields = [
+        ("TEXT", shapefile.FieldType.C),
+        ("BOOL", shapefile.FieldType.L),
+        ("DATE", shapefile.FieldType.D),
+        ("FLOAT", shapefile.FieldType.F),
+        ("NUM", shapefile.FieldType.N),
+        ("MEMO", shapefile.FieldType.M),
+    ]
     with shapefile.Writer(shp_path, shapeType=31) as w:
         for name, type in fields:
             w.field(name, type)
 
-        w.multipatch([
-            [[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 2, 0], [1, 2, 1], [2, 2, 0], [2, 2, 1], [3, 1, 0], [3, 1, 1], [3, 0, 0], [3, 0, 1], [0, 0, 0], [0, 0, 1]], # Triangle Strip
-            [[-5, -5, -2], [-4.5, -4.5, 0], [-6.5, -4.5, 0], [-6.5, -6.5, 0], [-4.5, -6.5, 0], [-4.5, -4.5, 0]] # Triangle Fan
-        ], [shapefile.TRIANGLE_STRIP, shapefile.TRIANGLE_FAN])
+        w.multipatch(
+            [
+                [
+                    [0, 0, 0],
+                    [0, 0, 1],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [1, 2, 0],
+                    [1, 2, 1],
+                    [2, 2, 0],
+                    [2, 2, 1],
+                    [3, 1, 0],
+                    [3, 1, 1],
+                    [3, 0, 0],
+                    [3, 0, 1],
+                    [0, 0, 0],
+                    [0, 0, 1],
+                ],  # Triangle Strip
+                [
+                    [-5, -5, -2],
+                    [-4.5, -4.5, 0],
+                    [-6.5, -4.5, 0],
+                    [-6.5, -6.5, 0],
+                    [-4.5, -6.5, 0],
+                    [-4.5, -4.5, 0],
+                ],  # Triangle Fan
+            ],
+            [shapefile.TRIANGLE_STRIP, shapefile.TRIANGLE_FAN],
+        )
 
         w.record(TEXT="Shape1", BOOL=True, DATE=date(2012, 4, 1), FLOAT=27.6712498273, NUM=8, MEMO="a")
 
-        w.multipatch([
-            [[10, 9, 8, 3.6], [10, 8, 8, 4.7], [10, 9, 7, 5.8]] # Simple Triangle Strip with data.
-        ], [shapefile.TRIANGLE_STRIP])
+        w.multipatch(
+            [
+                [[10, 9, 8, 3.6], [10, 8, 8, 4.7], [10, 9, 7, 5.8]]  # Simple Triangle Strip with data.
+            ],
+            [shapefile.TRIANGLE_STRIP],
+        )
 
         w.record(TEXT="Shape2", BOOL=False, DATE=date(1970, 1, 1), FLOAT=27.6712498273, NUM=104, MEMO="b")
-    
+
     return (shp_path, fields, 2, 17, 20)
+
 
 @pytest.fixture
 def parquet_path(tmp_path: Path) -> Path:
     return tmp_path / "parquet"
 
+
 def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_path: Path):
     path, expected_fields, expected_shape_num, expected_triangle_num, expected_vertex_num = sample_shp
-    triangle_meshes = convert_shp(path, "EPSG:4326", upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True)
+    triangle_meshes = convert_shp(
+        path, "EPSG:4326", upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+    )
 
     assert len(triangle_meshes) == 1
 
@@ -86,17 +125,16 @@ def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_
     assert triangle_mesh.bounding_box.max_y == 9
     assert triangle_mesh.bounding_box.max_z == 8
 
+
 def test_custom_tags(sample_shp: Path, parquet_path: Path):
     path, _, _, _, _ = sample_shp
 
     tags = {"Source": "Test", "Type": "Shapefile", "Custom Tag": "Here!"}
-    expected_tags = {
-        "Stage": "Experimental",
-        "InputType": "SHP",
-        **(tags)
-    }
+    expected_tags = {"Stage": "Experimental", "InputType": "SHP", **(tags)}
 
-    triangle_meshes = convert_shp(path, "EPSG:4326", tags=tags, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True)
+    triangle_meshes = convert_shp(
+        path, "EPSG:4326", tags=tags, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+    )
 
     assert len(triangle_meshes) == 1
 
@@ -104,10 +142,13 @@ def test_custom_tags(sample_shp: Path, parquet_path: Path):
 
     assert triangle_mesh.tags == expected_tags
 
+
 def test_parquet_output(sample_shp: Path, parquet_path: Path):
     path, _, _, _, _ = sample_shp
 
-    triangle_meshes = convert_shp(path, "EPSG:4326", upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True)
+    triangle_meshes = convert_shp(
+        path, "EPSG:4326", upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+    )
 
     assert len(triangle_meshes) == 1
 

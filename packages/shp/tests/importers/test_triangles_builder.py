@@ -20,18 +20,21 @@ from evo.data_converters.shp.importer.implementation.triangles_builder import Tr
 def parquet_path(tmp_path: Path) -> Path:
     return tmp_path / "parquet"
 
+
 @pytest.fixture
 def data_client(parquet_path: Path) -> LocalDataClient:
     return LocalDataClient(parquet_path)
+
 
 @pytest.fixture
 def sample_triangles() -> tuple[list[tuple[int, int, int]], int]:
     """
     Get a basic set of triangles with no data.
-    
+
     :return: (points, expected_num_vertices)
     """
     return ([(0, 0, 0), (1, 1, 1), (2, 0, 0), (1, 1, 1), (2, 0, 0), (3, 1, 1)], 4)
+
 
 @pytest.fixture
 def sample_triangles_with_data() -> tuple[list[tuple[int, int, int]], list[float], list[float | None]]:
@@ -44,14 +47,17 @@ def sample_triangles_with_data() -> tuple[list[tuple[int, int, int]], list[float
     data = [1.1, 2.2, None, 4.4, 5.5, 6.6]
     return (triangles, data, 6)
 
-def test_triangles_no_data(sample_triangles: tuple[list[tuple[int, int, int]], list[float]], data_client: LocalDataClient):
+
+def test_triangles_no_data(
+    sample_triangles: tuple[list[tuple[int, int, int]], list[float]], data_client: LocalDataClient
+):
     triangles, expected_num_vertices = sample_triangles
 
     triangles_builder = TrianglesBuilder(data_client)
 
     for i in range(0, len(triangles), 3):
-        triangles_builder.add_triangle(triangles[i:i+3], [None, None, None])
-    
+        triangles_builder.add_triangle(triangles[i : i + 3], [None, None, None])
+
     go_triangles = triangles_builder.build()
 
     assert go_triangles.vertices.length == expected_num_vertices
@@ -59,14 +65,18 @@ def test_triangles_no_data(sample_triangles: tuple[list[tuple[int, int, int]], l
     assert go_triangles.indices.length == 2
     assert go_triangles.indices.attributes is None
 
-def test_triangles_with_data(sample_triangles_with_data: tuple[list[tuple[int, int, int]], list[float], list[float | None]], data_client: LocalDataClient):
+
+def test_triangles_with_data(
+    sample_triangles_with_data: tuple[list[tuple[int, int, int]], list[float], list[float | None]],
+    data_client: LocalDataClient,
+):
     triangles, data, expected_num_vertices = sample_triangles_with_data
 
     triangles_builder = TrianglesBuilder(data_client)
 
     for i in range(0, len(triangles), 3):
-        triangles_builder.add_triangle(triangles[i:i+3], data[i:i+3])
-    
+        triangles_builder.add_triangle(triangles[i : i + 3], data[i : i + 3])
+
     go_triangles = triangles_builder.build()
 
     assert go_triangles.vertices.length == expected_num_vertices
@@ -76,14 +86,19 @@ def test_triangles_with_data(sample_triangles_with_data: tuple[list[tuple[int, i
     assert go_triangles.indices.length == 2
     assert go_triangles.indices.attributes is None
 
-def test_parquet_output(sample_triangles_with_data: tuple[list[tuple[int, int, int]], list[float], list[float | None]], data_client: LocalDataClient, parquet_path: Path):
+
+def test_parquet_output(
+    sample_triangles_with_data: tuple[list[tuple[int, int, int]], list[float], list[float | None]],
+    data_client: LocalDataClient,
+    parquet_path: Path,
+):
     triangles, data, _ = sample_triangles_with_data
 
     triangles_builder = TrianglesBuilder(data_client)
 
     for i in range(0, len(triangles), 3):
-        triangles_builder.add_triangle(triangles[i:i+3], data[i:i+3])
-    
+        triangles_builder.add_triangle(triangles[i : i + 3], data[i : i + 3])
+
     go_triangles = triangles_builder.build()
 
     expected = []
