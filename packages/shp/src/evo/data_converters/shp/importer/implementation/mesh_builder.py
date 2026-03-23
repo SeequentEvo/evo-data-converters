@@ -9,40 +9,35 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import shapefile
-import pyarrow as pa
-
 from collections.abc import Iterable
-from datetime import datetime
 
-from evo_schemas.components import (
-    EmbeddedTriangulatedMesh_V2_1_0,
-    EmbeddedTriangulatedMesh_V2_1_0_Parts,
-    AttributeListProperty_V1_2_0,
-    OneOfAttribute_V1_2_0_Item,
-    IntegerAttribute_V1_1_0,
-    ContinuousAttribute_V1_1_0,
-    StringAttribute_V1_1_0,
-    BoolAttribute_V1_1_0,
-    DateTimeAttribute_V1_1_0,
-    NanCategorical_V1_0_1,
-    NanContinuous_V1_0_1
-)
-
-from evo_schemas.elements import (
-    IndexArray2_V1_0_1,
-    IntegerArray1_V1_0_1,
-    FloatArray1_V1_0_1,
-    StringArray_V1_0_1,
-    BoolArray1_V1_0_1,
-    DateTimeArray_V1_0_1
-)
-
-from evo.objects.utils.data import ObjectDataClient
-
+import pyarrow as pa
+import shapefile
 from evo.data_converters.shp.importer.exceptions import InvalidSHPError
 from evo.data_converters.shp.importer.implementation.triangles_builder import TrianglesBuilder
 from evo.data_converters.shp.importer.implementation.utils import date_to_evo_timestamp
+from evo.objects.utils.data import ObjectDataClient
+from evo_schemas.components import (
+    BoolAttribute_V1_1_0,
+    ContinuousAttribute_V1_1_0,
+    DateTimeAttribute_V1_1_0,
+    EmbeddedTriangulatedMesh_V2_1_0,
+    EmbeddedTriangulatedMesh_V2_1_0_Parts,
+    IntegerAttribute_V1_1_0,
+    NanCategorical_V1_0_1,
+    NanContinuous_V1_0_1,
+    OneOfAttribute_V1_2_0_Item,
+    StringAttribute_V1_1_0,
+)
+from evo_schemas.elements import (
+    BoolArray1_V1_0_1,
+    DateTimeArray_V1_0_1,
+    FloatArray1_V1_0_1,
+    IndexArray2_V1_0_1,
+    IntegerArray1_V1_0_1,
+    StringArray_V1_0_1,
+)
+
 
 class MeshBuilder:
     """Uses pyshp ShapeRecords to build an EmbeddedTriangulatedMesh and associated objects."""

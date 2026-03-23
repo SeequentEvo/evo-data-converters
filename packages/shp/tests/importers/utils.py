@@ -11,6 +11,7 @@
 
 import shapefile
 
+
 def shapefile_field_to_evo_type(type: shapefile.FieldType) -> str:
     match type:
         case shapefile.FieldType.N:

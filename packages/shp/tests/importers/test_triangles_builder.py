@@ -9,12 +9,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pytest
-
 from pathlib import Path
 
+import pytest
 from evo.data_converters.shp.importer.implementation.local_data import LocalDataClient
 from evo.data_converters.shp.importer.implementation.triangles_builder import TrianglesBuilder
+
 
 @pytest.fixture
 def parquet_path(tmp_path: Path) -> Path:
@@ -55,9 +55,9 @@ def test_triangles_no_data(sample_triangles: tuple[list[tuple[int, int, int]], l
     go_triangles = triangles_builder.build()
 
     assert go_triangles.vertices.length == expected_num_vertices
-    assert go_triangles.vertices.attributes == None
+    assert go_triangles.vertices.attributes is None
     assert go_triangles.indices.length == 2
-    assert go_triangles.indices.attributes == None
+    assert go_triangles.indices.attributes is None
 
 def test_triangles_with_data(sample_triangles_with_data: tuple[list[tuple[int, int, int]], list[float], list[float | None]], data_client: LocalDataClient):
     triangles, data, expected_num_vertices = sample_triangles_with_data
@@ -74,7 +74,7 @@ def test_triangles_with_data(sample_triangles_with_data: tuple[list[tuple[int, i
     assert go_triangles.vertices.attributes[0].name == "Measurements"
     assert go_triangles.vertices.attributes[0].values.length == expected_num_vertices
     assert go_triangles.indices.length == 2
-    assert go_triangles.indices.attributes == None
+    assert go_triangles.indices.attributes is None
 
 def test_parquet_output(sample_triangles_with_data: tuple[list[tuple[int, int, int]], list[float], list[float | None]], data_client: LocalDataClient, parquet_path: Path):
     triangles, data, _ = sample_triangles_with_data

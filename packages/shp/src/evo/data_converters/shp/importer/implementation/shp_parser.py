@@ -9,20 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import shapefile
-
 from pathlib import Path
 
-from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
-from evo_schemas.components import (
-    BoundingBox_V1_0_1,
-    Crs_V1_0_1
-)
-
-from evo.objects.utils.data import ObjectDataClient
-
+import shapefile
 from evo.data_converters.shp.importer.exceptions import InvalidSHPError
 from evo.data_converters.shp.importer.implementation.mesh_builder import MeshBuilder
+from evo.objects.utils.data import ObjectDataClient
+from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1
+from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
+
 
 class ShpParser:
     """

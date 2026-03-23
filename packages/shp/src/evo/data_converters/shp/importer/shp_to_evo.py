@@ -9,21 +9,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import os
-
 from typing import TYPE_CHECKING, Optional
-
-from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
 
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
+    crs_from_any,
     publish_geoscience_objects_sync,
-    crs_from_any
 )
-
-from evo.data_converters.shp.importer.implementation.shp_parser import ShpParser
 from evo.data_converters.shp.importer.implementation.local_data import LocalDataClient
+from evo.data_converters.shp.importer.implementation.shp_parser import ShpParser
 from evo.objects.data import ObjectMetadata
+from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget

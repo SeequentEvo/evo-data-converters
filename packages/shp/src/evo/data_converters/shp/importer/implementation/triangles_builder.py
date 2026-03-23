@@ -10,20 +10,18 @@
 #  limitations under the License.
 
 import pyarrow as pa
-
+from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import (
-    Triangles_V1_2_0,
-    Triangles_V1_2_0_Vertices,
-    Triangles_V1_2_0_Indices,
     ContinuousAttribute_V1_1_0,
-    NanContinuous_V1_0_1
+    NanContinuous_V1_0_1,
+    Triangles_V1_2_0,
+    Triangles_V1_2_0_Indices,
+    Triangles_V1_2_0_Vertices,
 )
-
 from evo_schemas.elements import (
     FloatArray1_V1_0_1,
 )
 
-from evo.objects.utils.data import ObjectDataClient
 
 class TrianglesBuilder:
     """

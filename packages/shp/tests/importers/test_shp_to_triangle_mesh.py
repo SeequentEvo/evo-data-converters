@@ -9,17 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pytest
-import shapefile
-
 from datetime import date
 from pathlib import Path
 
+import pytest
+import shapefile
 from evo.data_converters.shp.importer.shp_to_evo import convert_shp
-
 from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
-
 from utils import shapefile_field_to_evo_type
+
 
 @pytest.fixture
 def sample_shp(tmp_path: Path) -> tuple[Path, list[tuple[str, shapefile.FieldType]], int, int, int]:

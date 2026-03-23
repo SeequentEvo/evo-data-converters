@@ -9,16 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pytest
-import shapefile
-
 from datetime import date
 from pathlib import Path
 
+import pytest
+import shapefile
 from evo.data_converters.shp.importer.implementation.local_data import LocalDataClient
 from evo.data_converters.shp.importer.implementation.mesh_builder import MeshBuilder
-
 from utils import shapefile_field_to_evo_type
+
 
 @pytest.fixture
 def parquet_path(tmp_path: Path) -> Path:
