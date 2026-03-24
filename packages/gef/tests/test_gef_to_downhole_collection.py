@@ -815,7 +815,7 @@ class TestCreateCollection:
         assert len(result.measurements) == 1
         # penetrationLength did start with a NaN sentinel of 9999.0, but by this point the sentinal values have been
         # replaced by NaNs
-        assert result.measurements[0].nan_values_by_column["penetrationLength"] == []
+        assert "penetrationLength" not in result.measurements[0].nan_values_by_column
 
 
 class TestCreateFromParsedGefCpts:

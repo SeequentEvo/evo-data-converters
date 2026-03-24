@@ -502,4 +502,3 @@ def test_import_gef_xml_cpt_multiple(evo_metadata, data_client):
     )
 
     cpt_data = _CPTData.from_gef_object(gef_object, data_client)  # noqa
-
