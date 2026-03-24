@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-shp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python data converters for ESRI shapefiles to Evo geoscience objects."
 readme = "README.md"
 authors = [
     { name = "Seequent", email = "support@seequent.com" }
