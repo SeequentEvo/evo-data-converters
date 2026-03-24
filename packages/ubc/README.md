@@ -31,7 +31,7 @@ See https://help.seequent.com/Geo/5.0/en-GB/Content/block-models/ubc-grids.htm.
 
 ## Usage
 
-For examples of using this package, see the [Jupyter notebooks.](samples/convert-ubc)
+For examples of using this package, see the [Jupyter notebooks.](code-samples/convert-ubc)
 
 ## Code of conduct
 

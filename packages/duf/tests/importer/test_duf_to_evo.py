@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -190,3 +190,39 @@ def test_mismatch_of_attribute_type_spec_and_value(
 
     check_attr_values(mesh_go.parts.attributes[0])
     check_attr_values(mesh_go.parts.attributes[1])
+
+
+def test_import_polyline_missing_vertex_list(evo_metadata, polyline_missing_vertex_list_path):
+    go_objects = convert_duf(
+        filepath=polyline_missing_vertex_list_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+    # 1 out of the 4 polylines has a missing VertexList
+    assert go_objects[0].parts.chunks.length == 3
+
+
+def test_import_polyface_missing_vertex_list(evo_metadata, polyface_missing_vertex_list_path):
+    go_objects = convert_duf(
+        filepath=polyface_missing_vertex_list_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+    # The only mesh has a missing VertexList
+    assert len(go_objects) == 0
+
+
+def test_import_polyface_missing_face_list(evo_metadata, polyface_missing_face_list_path):
+    go_objects = convert_duf(
+        filepath=polyface_missing_face_list_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+    # The only mesh has a missing FaceList
+    assert len(go_objects) == 0

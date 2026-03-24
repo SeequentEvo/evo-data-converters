@@ -35,7 +35,7 @@ To work with RESQML files [the `resqpy` Python package](https://pypi.org/project
 
 ## Usage
 
-For examples of using this package, see the [Jupyter notebooks.](samples/convert-resqml)
+For examples of using this package, see the [Jupyter notebooks.](code-samples/convert-resqml)
 
 ### Limitations
 

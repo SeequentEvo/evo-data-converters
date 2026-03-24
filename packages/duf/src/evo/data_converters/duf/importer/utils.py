@@ -62,6 +62,10 @@ class AttributeType(Enum):
     Boolean = auto()
 
 
+def _lookup_pyarrow_type(max_value: int) -> pa.DataType:
+    return pa.int32() if numpy.can_cast(numpy.min_scalar_type(max_value), "int32") else pa.int64()
+
+
 @dataclass(frozen=True)
 class AttributeSpec:
     name: str
@@ -183,7 +187,7 @@ class AttributeSpec:
                 reverse_lookup = defaultdict(int)  # Default to zero
                 reverse_lookup.update({value: idx for idx, value in enumerate(options, start=1)})
 
-                lookup_keys_type = pa.int32() if numpy.can_cast(len(options), "int32", "safe") else pa.int64()
+                lookup_keys_type = _lookup_pyarrow_type(len(options))
                 lookup_table = pa.table(
                     [list(reverse_lookup.values()), list(reverse_lookup.keys())],
                     schema=pa.schema(
@@ -219,7 +223,7 @@ class AttributeSpec:
                     logger.warning(f"Integer column {self.name} has NaNs. Converting to double.")
                     return self._double_to_go(data_client, doubles)
                 nan_values = [max((v for v in values if v is not None), default=-1) + 1]
-                data_type = pa.int32() if numpy.can_cast(nan_values[0], "int32", "safe") else pa.int64()
+                data_type = _lookup_pyarrow_type(nan_values[0])
                 table = pa.table(
                     [values],
                     schema=pa.schema(
