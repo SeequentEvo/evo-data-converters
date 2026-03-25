@@ -39,7 +39,7 @@ The python [pyshp](https://pypi.org/project/pyshp/) package is used to work with
 
 The SHP converter currently only supports importing multipatch shapefiles which do not contain any rings. These are translated to the triangle-mesh schema and published to an Evo workspace. NULL shapes are discarded.
 
-### Publish geoscience objects from an GRD/GI file(s)
+### Publish geoscience objects from ESRI Shapefile files
 
 [The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-shp`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/shp) to convert your file.
 
