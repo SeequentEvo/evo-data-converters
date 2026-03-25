@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -45,6 +45,23 @@ COMBINING_CONVERTERS = {
 }
 
 
+def _validate_entity(entity: dw.Polyface | dw.Polyline) -> bool:
+    if isinstance(entity, dw.Polyline):
+        if entity.VertexList is None:
+            logger.warning(f"Polyline {entity.Label} has no vertices, skipping.")
+            return False
+        else:
+            return True
+    elif isinstance(entity, dw.Polyface):
+        if entity.FaceList is None or entity.VertexList is None:
+            logger.warning(f"Polyface {entity.Label} has no faces or vertices, skipping.")
+            return False
+        else:
+            return True
+
+    return False
+
+
 def _get_converter(klass, options, count=1, warn=True):
     converter = next((conv for conv_klass, conv in options.items() if issubclass(klass, conv_klass)), None)
     if converter is None and warn:
@@ -57,6 +74,8 @@ def _get_converter(klass, options, count=1, warn=True):
 def _convert_object_list(klass, objs, data_client, epsg_code, tags):
     if (converter := _get_converter(klass, CONVERTERS, len(objs))) is None:
         return []
+
+    objs = [obj for obj in objs if _validate_entity(obj)]
 
     logger.info(f"Converting {len(objs)} objects individually using {converter}.")
 
@@ -94,8 +113,10 @@ def _convert_and_combine_duf_objects(
             if converter is None:
                 continue
 
+            valid_objs = [obj for obj in layer_type_objs if _validate_entity(obj)]
+
             objs_so_far = objs_to_convert_as_group.setdefault(converter, [])
-            objs_so_far.extend(layer_type_objs)
+            objs_so_far.extend(valid_objs)
 
         for layer_converter, objs_to_convert in objs_to_convert_as_group.items():
             logger.info(f"Converting and combining {len(objs_to_convert)} objects using {layer_converter}.")

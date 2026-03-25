@@ -32,20 +32,20 @@ class ColumnMapping:
     Each attribute contains a list of possible column names to search for.
     """
 
+    # Column names that identify which hole each measurement belongs to (1-based index).
     HOLE_INDEX_COLUMNS: list[str] = field(default_factory=lambda: ["hole_index"])
-    """Column names that identify which hole each measurement belongs to (1-based index)."""
 
+    # Column names for point measurement depths/distances along the hole.
     DEPTH_COLUMNS: list[str] = field(default_factory=list)
-    """Column names for point measurement depths/distances along the hole."""
 
+    # Column names for interval start depths.
     FROM_COLUMNS: list[str] = field(default_factory=list)
-    """Column names for interval start depths."""
 
+    # Column names for interval end depths.
     TO_COLUMNS: list[str] = field(default_factory=list)
-    """Column names for interval end depths."""
 
+    # Column names for downhole inclinations.
     DIP_COLUMNS: list[str] = field(default_factory=list)
-    """Column names for downhole inclinations."""
 
+    # Column names for azimuth values.
     AZIMUTH_COLUMNS: list[str] = field(default_factory=list)
-    """Column names for azimuth values."""

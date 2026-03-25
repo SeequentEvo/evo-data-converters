@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -79,7 +79,7 @@ if (dotnet_root := os.environ.get("DOTNET_ROOT")) is not None and not os.path.ex
     # installer. It cannot be assumed to be set correctly. Instead of failing, silently ignore it (with a warning).
     del os.environ["DOTNET_ROOT"]
     msg = f"The environment variable DOTNET_ROOT is set to {dotnet_root}, but there is nothing there, so it is being ignored."
-    logger.warn(msg)
+    logger.warning(msg)
 
 if deswik_version >= (2025, 2):
     # Target the newer .NETCoreApp runtime

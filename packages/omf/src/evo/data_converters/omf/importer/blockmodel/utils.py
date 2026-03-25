@@ -81,7 +81,7 @@ class IndexToSidx:
         return result
 
 
-def convert_orient_to_angle(orient_vectors: list[np.ndarray]) -> npt.NDArray[np.float_]:
+def convert_orient_to_angle(orient_vectors: list[np.ndarray]) -> npt.NDArray[np.float64]:
     """Converts an orientation vector to an angle array (in degrees).
     The Euler rotations used are the same as those in LeapFrog, ie. intrinsic zxz.
 
@@ -90,7 +90,7 @@ def convert_orient_to_angle(orient_vectors: list[np.ndarray]) -> npt.NDArray[np.
     :return: An array of angles for each axis in that orientation.
     """
     rot = Rotation.from_matrix(orient_vectors)
-    angles: npt.NDArray[np.float_] = rot.as_euler("zxz", degrees=True)
+    angles: npt.NDArray[np.float64] = rot.as_euler("zxz", degrees=True)
     return angles
 
 

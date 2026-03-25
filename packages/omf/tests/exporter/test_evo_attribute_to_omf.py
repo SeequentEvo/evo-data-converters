@@ -67,10 +67,13 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         table = pq.read_table(parquet_file)
 
-        df = table.to_pandas()
-        df.loc[row_index] = value
+        for col_idx in range(table.num_columns):
+            col = table.column(col_idx)
+            values_list = col.to_pylist()
+            values_list[row_index] = value
+            new_col = pa.array(values_list, type=col.type)
 
-        table = pa.Table.from_pandas(df, table.schema)
+            table = table.set_column(col_idx, table.schema.field(col_idx), new_col)
 
         pq.write_table(table, parquet_file)
 

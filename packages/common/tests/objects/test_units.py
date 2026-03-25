@@ -33,16 +33,6 @@ class TestUnitMapper:
         unit = UnitMapper.lookup(type)
         assert unit is None
 
-    def test_lookup_pint_m3_per_m2_unit(self) -> None:
-        # m^3/m^2 is problematic because pint by default will
-        # reduce the unit to m which is not what we want
-        # so we've defined a custom unit "m3_per_m2" which
-        # prevents the simplification
-        type = PintType("m3_per_m2")
-        unit = UnitMapper.lookup(type)
-        assert unit is not None
-        assert unit == UnitLength.Unit_m3_per_m2, "Pint type is " + str(type)
-
     def test_lookup_pint_m3_per_m2(self) -> None:
         # m^3/m^2 is problematic because pint by default will
         # reduce the unit to m which is not what we want

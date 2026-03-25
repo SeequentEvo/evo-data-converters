@@ -30,7 +30,7 @@ DEFAULT_AZIMUTH: float = 0.0  # Assume vertical, so no bearing
 DEFAULT_DIP: float = 90.0  # Positive dip = down
 
 
-class MeasurementTableAdapter(ABC):
+class MeasurementTable(ABC):
     """
     Abstract base class for different measurement table types.
 
@@ -68,6 +68,7 @@ class MeasurementTableAdapter(ABC):
         if not self._find_column(self.mapping.HOLE_INDEX_COLUMNS):
             raise ValueError(f"No hole index column found. Expected one of: {self.mapping.HOLE_INDEX_COLUMNS}")
 
+    @abstractmethod
     def _prepare_dataframe(self) -> None:
         """
         Prepare the DataFrame for use (e.g. sorting columns).
@@ -107,15 +108,6 @@ class MeasurementTableAdapter(ABC):
 
         return self.nan_values_by_column.get(column, [])
 
-    @abstractmethod
-    def get_primary_column(self) -> str:
-        """
-        Return the name of the primary measurement column.
-
-        :return: Name of the primary column (depth for distance tables, from for interval tables)
-        """
-        pass
-
     def _find_column(self, possible_names: list[str]) -> str | None:
         """
         Find the first matching column name in the DataFrame (case-insensitive).
@@ -139,15 +131,13 @@ class MeasurementTableAdapter(ABC):
 
         :return: List of attribute column names
         """
-        primary: list[str] = [self.get_hole_index_column()] + self.get_primary_columns()
+        primary: list[str] = [self.get_hole_index_column()] + self.get_essential_columns()
         return [col for col in self.df.columns if col not in primary]
 
     @abstractmethod
-    def get_primary_columns(self) -> list[str]:
+    def get_essential_columns(self) -> list[str]:
         """
-        Return list of all primary measurement columns.
-
-        :return: List of primary column names that define the measurement structure
+        :return: List of all essential, non-attribute columns.
         """
         pass
 
@@ -166,7 +156,7 @@ class MeasurementTableAdapter(ABC):
             df = self.df[df[self.get_hole_index_column()] == filter_to_hole_index]
 
         if not dip_column:
-            logger.info("Dip information missing, assuming vertical downhole")
+            logger.debug("Dip information missing, assuming vertical downhole")
             return pd.Series(DEFAULT_DIP, index=range(len(df)), dtype="float64")
 
         return df[dip_column]
@@ -186,13 +176,13 @@ class MeasurementTableAdapter(ABC):
             df = self.df[df[self.get_hole_index_column()] == filter_to_hole_index]
 
         if not azimuth_column:
-            logger.info("Azimuth information missing, assuming no bearing")
-            return pd.Series(DEFAULT_AZIMUTH, index=range(len(df)), dtype="float64")
+            logger.debug("Azimuth information missing, assuming no bearing")
+            return pd.Series(DEFAULT_AZIMUTH, index=range(len(self.df)), dtype="float64")
 
         return df[azimuth_column]
 
 
-class DistanceTable(MeasurementTableAdapter):
+class DistanceTable(MeasurementTable):
     """Measurement table adapter for point measurements at specific depths/distances"""
 
     @override
@@ -232,16 +222,7 @@ class DistanceTable(MeasurementTableAdapter):
         return col
 
     @override
-    def get_primary_column(self) -> str:
-        """
-        Return the name of the primary measurement column (depth).
-
-        :return: Name of the depth column
-        """
-        return self.get_depth_column()
-
-    @override
-    def get_primary_columns(self) -> list[str]:
+    def get_essential_columns(self) -> list[str]:
         """
         Return list of primary measurement columns (depth only for distance tables).
 
@@ -263,7 +244,7 @@ class DistanceTable(MeasurementTableAdapter):
         return df[self.get_depth_column()]
 
 
-class IntervalTable(MeasurementTableAdapter):
+class IntervalTable(MeasurementTable):
     """Measurement table adapter for measurements over depth intervals"""
 
     @override
@@ -321,16 +302,7 @@ class IntervalTable(MeasurementTableAdapter):
         return col
 
     @override
-    def get_primary_column(self) -> str:
-        """
-        Return the name of the primary measurement column (from depth).
-
-        :return: Name of the from column
-        """
-        return self.get_from_column()
-
-    @override
-    def get_primary_columns(self) -> list[str]:
+    def get_essential_columns(self) -> list[str]:
         """
         Return list of primary measurement columns (from and to depths).
 
@@ -353,48 +325,38 @@ class IntervalTable(MeasurementTableAdapter):
         return df[[self.get_from_column(), self.get_to_column()]]
 
 
-class MeasurementTableFactory:
+def create_measurement_table(
+    df: pd.DataFrame, column_mapping: ColumnMapping, nan_values_by_column: dict[str, typing.Any] | None = None
+) -> MeasurementTable:
     """
-    Factory for detecting and creating the appropriate measurement table adapter.
+    Create the appropriate measurement table adapter based on DataFrame columns.
 
-    Automatically determines whether the DataFrame contains distance-based or
-    interval-based measurements based on the presence of specific columns, and
-    creates the corresponding adapter type.
+    Checks for the presence of interval columns (from/to) or depth columns to
+    determine the correct adapter type.
+
+    :param df: DataFrame containing measurement data
+    :param column_mapping: Column mapping configuration for locating required columns
+    :param nan_values_by_column: Optional mapping of column names to lists of NaN sentinel values
+
+    :return: Either an IntervalTable or DistanceTable adapter
+
+    :raises ValueError: If the measurement type cannot be determined from available columns
     """
+    df_columns_lower: set[str] = set(col.lower() for col in df.columns)
 
-    @staticmethod
-    def create(
-        df: pd.DataFrame, column_mapping: ColumnMapping, nan_values_by_column: dict[str, typing.Any] | None = None
-    ) -> MeasurementTableAdapter:
-        """
-        Create the appropriate measurement table adapter based on DataFrame columns.
+    # Check for interval measurement
+    has_from: bool = any(col.lower() in df_columns_lower for col in column_mapping.FROM_COLUMNS)
+    has_to: bool = any(col.lower() in df_columns_lower for col in column_mapping.TO_COLUMNS)
 
-        Checks for the presence of interval columns (from/to) or depth columns to
-        determine the correct adapter type.
+    if has_from and has_to:
+        return IntervalTable(df, column_mapping, nan_values_by_column)
 
-        :param df: DataFrame containing measurement data
-        :param column_mapping: Column mapping configuration for locating required columns
-        :param nan_values_by_column: Optional mapping of column names to lists of NaN sentinel values
+    # Check for distance measurement
+    has_depth = any(col.lower() in df_columns_lower for col in column_mapping.DEPTH_COLUMNS)
 
-        :return: Either an IntervalTable or DistanceTable adapter
+    if has_depth:
+        return DistanceTable(df, column_mapping, nan_values_by_column)
 
-        :raises ValueError: If the measurement type cannot be determined from available columns
-        """
-        df_columns_lower: set[str] = set(col.lower() for col in df.columns)
-
-        # Check for interval measurement
-        has_from: bool = any(col.lower() in df_columns_lower for col in column_mapping.FROM_COLUMNS)
-        has_to: bool = any(col.lower() in df_columns_lower for col in column_mapping.TO_COLUMNS)
-
-        if has_from and has_to:
-            return IntervalTable(df, column_mapping, nan_values_by_column)
-
-        # Check for distance measurement
-        has_depth = any(col.lower() in df_columns_lower for col in column_mapping.DEPTH_COLUMNS)
-
-        if has_depth:
-            return DistanceTable(df, column_mapping, nan_values_by_column)
-
-        raise ValueError(
-            f"Cannot determine measurement type. Expected either depth column {column_mapping.DEPTH_COLUMNS} or interval columns {column_mapping.FROM_COLUMNS}/{column_mapping.TO_COLUMNS}"
-        )
+    raise ValueError(
+        f"Cannot determine measurement type. Expected either depth column {column_mapping.DEPTH_COLUMNS} or interval columns {column_mapping.FROM_COLUMNS}/{column_mapping.TO_COLUMNS}"
+    )

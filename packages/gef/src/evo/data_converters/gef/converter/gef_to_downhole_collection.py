@@ -22,10 +22,17 @@ from evo.data_converters.common.objects.downhole_collection import (
     ColumnMapping,
     DownholeCollection,
     HoleCollars,
-    MeasurementTableFactory,
+    create_measurement_table,
 )
 
-from .gef_spec import MEASUREMENT_TEXT_NAMES, MEASUREMENT_UNIT_CONVERSIONS, MEASUREMENT_UNITS, MEASUREMENT_VAR_NAMES
+from .gef_spec import (
+    COLLAR_ATTRIBUTES,
+    COMPUTED,
+    MEASUREMENT_TEXT_NAMES,
+    MEASUREMENT_UNIT_CONVERSIONS,
+    MEASUREMENT_UNITS,
+    MEASUREMENT_VAR_NAMES,
+)
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -62,15 +69,15 @@ class DownholeCollectionBuilder:
         self.measurement_dfs: list[pd.DataFrame] = []
         self.nan_values_by_attribute: dict[str, list[typing.Any]] = defaultdict(list)
 
-    def process_cpt_file(self, hole_index: int, hole_id: str, cpt_data: CPTData) -> None:
+    def process_cpt_file(self, hole_index: int, hole_id: str, cpt_data: CPTData, filepath: str) -> None:
         """Process a single CPT file and add to the collection.
 
         :param hole_index: Sequential index for this hole
         :param hole_id: Unique identifier for this hole
         :param cpt_data: Parsed CPT data object
+        :param filepath: Path of the file that was parsed
         """
-        self._validate_and_set_epsg(cpt_data, hole_id)
-        self._validate_location_attributes(cpt_data, hole_id)
+        self._validate_and_set_epsg(cpt_data, hole_id, filepath)
 
         collar_row = self._create_collar_row(hole_index, hole_id, cpt_data)
         self.collar_rows.append(collar_row)
@@ -113,11 +120,7 @@ class DownholeCollectionBuilder:
 
         :raises ValueError: If EPSG code is missing or malformed
         """
-        try:
-            srs_name = cpt_data.delivered_location.srs_name
-        except AttributeError:
-            raise ValueError(f"CPT file '{hole_id}' is missing delivered_location.srs_name attribute")
-
+        srs_name = cpt_data.delivered_location.srs_name
         if ":" not in srs_name:
             raise ValueError(f"CPT file '{hole_id}' has malformed SRS name: '{srs_name}'. Expected format: 'urn:123'")
 
@@ -127,15 +130,16 @@ class DownholeCollectionBuilder:
             raise ValueError(f"CPT file '{hole_id}' has invalid EPSG code in SRS name: '{srs_name}'. Error: {e}")
 
         if epsg_code == 404000:
-            epsg_code = "unspecified"
+            epsg_code = None
 
         return epsg_code
 
-    def _validate_and_set_epsg(self, cpt_data: CPTData, hole_id: str) -> None:
+    def _validate_and_set_epsg(self, cpt_data: CPTData, hole_id: str, filepath: str) -> None:
         """Validate and set EPSG code, ensuring consistency across files.
 
         :param cpt_data: CPT data object
         :param hole_id: Hole identifier for error messages
+        :param filepath: Name of the file being processed
 
         :raises ValueError: If EPSG codes are inconsistent across files
         """
@@ -146,7 +150,7 @@ class DownholeCollectionBuilder:
             logger.info(f"Using EPSG code {self.epsg_code} from first CPT file")
         elif self.epsg_code != current_epsg:
             raise ValueError(
-                f"Inconsistent EPSG codes: {hole_id} has EPSG:{current_epsg}, but expected EPSG:{self.epsg_code}"
+                f"Inconsistent EPSG codes: {hole_id} has EPSG:{current_epsg}, but expected EPSG:{self.epsg_code}, in file {filepath}"
             )
 
     def _validate_epsg_code(self) -> None:
@@ -156,20 +160,6 @@ class DownholeCollectionBuilder:
         """
         if self.epsg_code is None:
             raise ValueError("Could not find valid epsg code in CPT files")
-
-    def _validate_location_attributes(self, cpt_data: CPTData, hole_id: str) -> None:
-        """Validate that required x, y location attributes exist.
-
-        :param cpt_data: CPT data object
-        :param hole_id: Hole identifier for error messages
-
-        :raises ValueError: If x or y location attributes are missing
-        """
-        try:
-            _ = cpt_data.delivered_location.x
-            _ = cpt_data.delivered_location.y
-        except AttributeError as e:
-            raise ValueError(f"CPT file '{hole_id}' is missing required location attribute (x or y): {e}")
 
     def _calculate_final_depth(self, cpt_data: CPTData, hole_id: str) -> float:
         """Calculate final depth from CPTData.
@@ -208,7 +198,8 @@ class DownholeCollectionBuilder:
         filtered_hash: dict[str, typing.Any] = {
             k: v
             for k, v in vars(cpt_data).items()
-            if k not in self.COLLAR_EXCLUDE_KEYS and not k.startswith("_") and not (v is None or v == [] or v == {})
+            # TODO Do we want these computed fields to be published?
+            if k in COLLAR_ATTRIBUTES + COMPUTED and not (v is None or v == [] or v == {})
         }
         return filtered_hash
 
@@ -382,6 +373,8 @@ class DownholeCollectionBuilder:
 
         :return: Pandas DataFrame with typed collar data
         """
+        # There can be more columns for optional attributes that aren't defined in COLLAR_DTYPES, but we don't know
+        # their types in advance. So we just enforce the types for the known columns.
         return pd.DataFrame(self.collar_rows).astype(dtype=self.COLLAR_DTYPES)
 
     def _create_measurements_dataframe(self) -> pd.DataFrame:
@@ -405,9 +398,9 @@ class DownholeCollectionBuilder:
         if not self.collar_rows:
             return ""
         elif len(self.collar_rows) == 1:
-            return self.collar_rows[0]["hole_id"]
+            return f"GEF CPT {self.collar_rows[0]['hole_id']}"
         else:
-            return f"{self.collar_rows[0]['hole_id']}...{self.collar_rows[-1]['hole_id']}"
+            return f"GEF CPT {len(self.collar_rows)} holes {self.collar_rows[0]['hole_id']}...{self.collar_rows[-1]['hole_id']}"
 
     def _create_collection(
         self, collection_name: str, collars_df: pd.DataFrame, measurements_df: pd.DataFrame
@@ -423,8 +416,10 @@ class DownholeCollectionBuilder:
         column_mapping = ColumnMapping(
             DEPTH_COLUMNS=["penetrationLength"], DIP_COLUMNS=["dip"], AZIMUTH_COLUMNS=["azimuth"]
         )
-        distance_measurements = MeasurementTableFactory.create(
-            df=measurements_df, column_mapping=column_mapping, nan_values_by_column=self.nan_values_by_attribute
+        # NaN's have already replaced the sentinel values in the DFs, so there's no need to track them further.
+        nan_values = {}
+        distance_measurements = create_measurement_table(
+            df=measurements_df, column_mapping=column_mapping, nan_values_by_column=nan_values
         )
         collars = HoleCollars(df=collars_df)
 
@@ -459,7 +454,7 @@ def create_from_parsed_gef_cpts(
     if name:
         builder.set_name(name)
 
-    for hole_index, (hole_id, cpt_data) in enumerate(parsed_cpt_files.items(), start=1):
-        builder.process_cpt_file(hole_index, hole_id, cpt_data)
+    for hole_index, (hole_id, (filepath, cpt_data)) in enumerate(parsed_cpt_files.items(), start=1):
+        builder.process_cpt_file(hole_index, hole_id, cpt_data, filepath)
 
     return builder.build()

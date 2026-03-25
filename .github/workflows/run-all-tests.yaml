@@ -27,6 +27,8 @@ jobs:
           - common
           - gef
           - gocad
+          - image
+          - obj
           - omf
           - resqml
           - ubc

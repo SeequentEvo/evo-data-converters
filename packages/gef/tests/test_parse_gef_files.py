@@ -28,7 +28,8 @@ class TestParseGefFiles:
         result = parse_gef_files([cpt_file])
         assert isinstance(result, dict)
         assert len(result) == 1
-        for v in result.values():
+        for n, v in result.values():
+            assert n == cpt_file
             assert isinstance(v, CPTData)
 
     def test_parse_multiple_valid_cpt_files(self) -> None:
@@ -41,7 +42,8 @@ class TestParseGefFiles:
         assert isinstance(result, dict)
 
         assert len(result) == 3
-        for v in result.values():
+        for i, (n, v) in enumerate(result.values()):
+            assert n == files[i]
             assert isinstance(v, CPTData)
 
     def test_parse_valid_cpt_xml_file(self) -> None:
@@ -49,7 +51,8 @@ class TestParseGefFiles:
         result = parse_gef_files([cpt_file])
         assert isinstance(result, dict)
         assert len(result) == 1
-        for v in result.values():
+        for n, v in result.values():
+            assert n == cpt_file
             assert isinstance(v, CPTData)
 
     def test_parse_cpt_xml_with_multiple_entries(self) -> None:
@@ -57,7 +60,8 @@ class TestParseGefFiles:
         result = parse_gef_files([cpt_file])
         assert isinstance(result, dict)
         assert len(result) == 2  # Expecting 2 CPT entries in the XML
-        for v in result.values():
+        for n, v in result.values():
+            assert n == cpt_file
             assert isinstance(v, CPTData)
 
     def test_file_not_found(self) -> None:
@@ -91,7 +95,7 @@ class TestParseGefFiles:
         cpt_file = self.test_data_dir / "gef-cpt/cpt_voids.gef"
         result = parse_gef_files([cpt_file], replace_column_voids=True)
         cpt_data = next(iter(result.values()))
-        assert cpt_data.data.shape == (4, 4)
+        assert cpt_data[1].data.shape == (4, 4)
 
         df = pl.DataFrame(
             {
@@ -103,13 +107,13 @@ class TestParseGefFiles:
         )
 
         for column in df.columns:
-            assert cpt_data.data[column].round(4).equals(df[column].round(4), null_equal=True)
+            assert cpt_data[1].data[column].round(4).equals(df[column].round(4), null_equal=True)
 
     def test_parse_cpt_gef_files_with_replace_column_voids_disabled(self) -> None:
         cpt_file = self.test_data_dir / "gef-cpt/cpt_voids.gef"
         result = parse_gef_files([cpt_file], replace_column_voids=False)
         cpt_data = next(iter(result.values()))
-        assert cpt_data.data.shape == (6, 4)
+        assert cpt_data[1].data.shape == (6, 4)
 
         df = pl.DataFrame(
             {
@@ -128,4 +132,4 @@ class TestParseGefFiles:
         )
 
         for column in df.columns:
-            assert cpt_data.data[column].round(4).equals(df[column].round(4), null_equal=True)
+            assert cpt_data[1].data[column].round(4).equals(df[column].round(4), null_equal=True)

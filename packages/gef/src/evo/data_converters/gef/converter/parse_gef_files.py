@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import sys
 from pathlib import Path
 
 from pygef import read_cpt
@@ -55,15 +56,12 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
         else:
             raise ValueError(f"File '{filepath}' has extension '{ext}', expected .xml or .gef.")
 
-    except FileNotFoundError:
-        raise
-    except ValueError:
-        raise
     except Exception as e:
-        raise RuntimeError(f"Error processing file '{filepath}': {e}") from e
+        logger.error(f"Error processing file '{filepath}': {e}")
+        raise
 
 
-def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, CPTData]:
+def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, (str, CPTData)]:
     """Parse a list of GEF-CPT & GEF-XML files and return a dictionary of CPTData objects keyed by filename.
 
     Only files identified as CPT (Cone Penetration Test) are read and included.
@@ -75,6 +73,9 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
     """
     data: dict[str, CPTData] = {}
 
+    if sys.version_info[:2] == (3, 10):
+        logger.warning("Python 3.10 detected. Additional GEF header information will not be parsed.")
+
     for filepath in filepaths:
         try:
             # Get list of CPT in the GEF file, copy to data dict.
@@ -85,13 +86,10 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
                     raise ValueError(
                         f"Duplicate ID '{cpt_id}' encountered. Each ID (from CPT 'alias' or 'bro_id') must be unique across all input files."
                     )
-                data[cpt_id] = cpt_data
-        except FileNotFoundError:
-            raise
-        except ValueError:
-            raise
+                data[cpt_id] = (filepath, cpt_data)
         except Exception as e:
-            raise RuntimeError(f"Error processing file '{filepath}': {e}") from e
+            logger.error(f"Error processing file '{filepath}': {e}")
+            raise
 
     logger.info(f"Parsed {len(data)} CPT files from {len(filepaths)} input files.")
     return data
@@ -108,10 +106,9 @@ def check_for_required_columns(cpt_data: CPTData, filepath: str) -> None:
     :raises ValueError: If any required columns are missing.
     """
     required_columns = ["penetrationLength", "coneResistance"]
-    if hasattr(cpt_data, "data"):
-        missing = [col for col in required_columns if col not in cpt_data.data.columns]
-        if missing:
-            raise ValueError(f"File '{filepath}' is missing required columns: {missing}")
+    missing = [col for col in required_columns if col not in cpt_data.data.columns]
+    if missing:
+        raise ValueError(f"File '{filepath}' is missing required columns: {missing}")
 
 
 def get_gef_cpt_id(gef: CPTData) -> str:

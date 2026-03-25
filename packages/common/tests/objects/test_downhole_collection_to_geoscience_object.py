@@ -16,13 +16,9 @@ import pyarrow as pa
 import pytest
 
 from evo.data_converters.common.objects.downhole_collection import (
-    DistanceTable as DistanceMeasurementTable,
-)
-from evo.data_converters.common.objects.downhole_collection import (
+    DistanceTable,
     DownholeCollection,
-)
-from evo.data_converters.common.objects.downhole_collection import (
-    IntervalTable as IntervalMeasurementTable,
+    IntervalTable,
 )
 from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
     DownholeCollectionToGeoscienceObject,
@@ -76,7 +72,7 @@ def interval_measurements_df():
 @pytest.fixture
 def distance_table_mock(distance_measurements_df):
     """Mock distance measurement table."""
-    mock = Mock(spec=DistanceMeasurementTable)
+    mock = Mock(spec=DistanceTable)
     mock.df = distance_measurements_df
     mock.get_depth_values.return_value = distance_measurements_df["penetrationLength"].tolist()
     mock.get_dip_values.return_value = distance_measurements_df["dip"].tolist()
@@ -90,7 +86,7 @@ def distance_table_mock(distance_measurements_df):
 @pytest.fixture
 def interval_table_mock(interval_measurements_df):
     """Mock interval measurement table."""
-    mock = Mock(spec=IntervalMeasurementTable)
+    mock = Mock(spec=IntervalTable)
     mock.df = interval_measurements_df
     mock.get_from_column.return_value = "SCPP_TOP"
     mock.get_to_column.return_value = "SCPP_BASE"
@@ -108,6 +104,7 @@ def dhc_distance(collars_df, distance_table_mock):
 
     dhc_mock = Mock(spec=DownholeCollection)
     dhc_mock.name = "Test Distance Collection"
+    dhc_mock.tags = {"Test": "DistanceTag"}
     dhc_mock.coordinate_reference_system = 32633
     dhc_mock.collars = collars_mock
     dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
@@ -124,13 +121,14 @@ def dhc_interval(collars_df, interval_table_mock, distance_table_mock):
 
     dhc_mock = Mock(spec=DownholeCollection)
     dhc_mock.name = "Test Interval Collection"
+    dhc_mock.tags = {"Test": "IntervalTag"}
     dhc_mock.coordinate_reference_system = 32633
     dhc_mock.collars = collars_mock
     dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
 
     # Mock to return interval for main loop but distance for path calculation
-    def get_tables_side_effect(filter=None):
-        if filter and DistanceMeasurementTable in filter:
+    def get_tables_side_effect(filter_to_table_type=None):
+        if filter_to_table_type and DistanceTable in filter_to_table_type:
             return [distance_table_mock]
         return [interval_table_mock]
 
@@ -147,6 +145,7 @@ def dhc_mixed(collars_df, distance_table_mock, interval_table_mock):
 
     dhc_mock = Mock(spec=DownholeCollection)
     dhc_mock.name = "Test Mixed Collection"
+    dhc_mock.tags = {"Test": "MixedTag"}
     dhc_mock.coordinate_reference_system = 32633
     dhc_mock.collars = collars_mock
     dhc_mock.get_bounding_box.return_value = [100.0, 200.0, 500.0, 600.0, 50.0, 55.0]
@@ -358,12 +357,12 @@ class TestCreateDhcCollectionDistance:
 
 
 class TestCreateCollectionAttributes:
-    def test_returns_none_when_no_attributes(self, converter_distance, distance_table_mock) -> None:
+    def test_returns_empty_list_when_no_attributes(self, converter_distance, distance_table_mock) -> None:
         distance_table_mock.get_attribute_columns.return_value = []
 
         result = converter_distance.create_collection_attributes(distance_table_mock)
 
-        assert result is None or result == []
+        assert result == []
 
     def test_creates_attributes_for_measurements(self, converter_distance, distance_table_mock) -> None:
         result = converter_distance.create_collection_attributes(distance_table_mock)
@@ -450,7 +449,7 @@ class TestHolesTable:
             ignore_index=True,
         )
 
-        mock_table = Mock(spec=DistanceMeasurementTable)
+        mock_table = Mock(spec=DistanceTable)
         mock_table.df = extended_df
 
         table = converter_distance.holes_table(mock_table)
@@ -529,14 +528,14 @@ class TestCollectionDistancesTable:
 
 class TestCollectionStartEndTable:
     def test_creates_table_with_from_to_columns(self, converter_interval, interval_table_mock) -> None:
-        table = converter_interval.collection_start_end_table(interval_table_mock)
+        table = converter_interval.collection_interval_table(interval_table_mock)
 
         assert isinstance(table, pa.Table)
         assert set(table.column_names) == {"from", "to"}
         assert table.num_rows == 5
 
     def test_contains_correct_interval_values(self, converter_interval, interval_table_mock) -> None:
-        table = converter_interval.collection_start_end_table(interval_table_mock)
+        table = converter_interval.collection_interval_table(interval_table_mock)
 
         from_values = table.column("from").to_pylist()
         to_values = table.column("to").to_pylist()
@@ -545,7 +544,7 @@ class TestCollectionStartEndTable:
         assert to_values == [10.0, 20.0, 30.0, 15.0, 25.0]
 
 
-class TestGetFirstDistanceMeasurementTable:
+class TestGetFirstDistanceTable:
     def test_returns_first_distance_table(self, converter_distance, distance_table_mock) -> None:
         result = converter_distance.get_first_distance_measurement_table()
 
@@ -588,7 +587,7 @@ class TestEdgeCases:
         collars_mock.df = collars_df
         collars_mock.get_attribute_column_names.return_value = []
 
-        distance_mock = Mock(spec=DistanceMeasurementTable)
+        distance_mock = Mock(spec=DistanceTable)
         distance_mock.df = distance_df
         distance_mock.get_azimuth_values.return_value = [0.0]
         distance_mock.get_depth_values.return_value = [10.0]
@@ -599,6 +598,7 @@ class TestEdgeCases:
 
         dhc_mock = Mock(spec=DownholeCollection)
         dhc_mock.name = "Minimal"
+        dhc_mock.tags = {"Tag": "MinimalTag"}
         dhc_mock.coordinate_reference_system = 4326
         dhc_mock.collars = collars_mock
         dhc_mock.get_bounding_box.return_value = [100.0, 100.0, 500.0, 500.0, 50.0, 50.0]
@@ -634,7 +634,7 @@ class TestEdgeCases:
         collars_mock.df = collars_df
         collars_mock.get_attribute_column_names.return_value = []
 
-        distance_mock = Mock(spec=DistanceMeasurementTable)
+        distance_mock = Mock(spec=DistanceTable)
         distance_mock.df = distance_df
         distance_mock.get_depth_values.return_value = distance_df["penetrationLength"].tolist()
         distance_mock.get_primary_column.return_value = "penetrationLength"
@@ -642,6 +642,7 @@ class TestEdgeCases:
 
         dhc_mock = Mock(spec=DownholeCollection)
         dhc_mock.name = "Unequal"
+        dhc_mock.tags = {"Tag": "UnequalTag"}
         dhc_mock.coordinate_reference_system = 4326
         dhc_mock.collars = collars_mock
         dhc_mock.get_bounding_box.return_value = [100.0, 300.0, 500.0, 700.0, 50.0, 60.0]
