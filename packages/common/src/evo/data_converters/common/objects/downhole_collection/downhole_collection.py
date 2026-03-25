@@ -18,7 +18,7 @@ import pandas as pd
 from ..base_properties import BaseSpatialDataProperties
 from .column_mapping import ColumnMapping
 from .hole_collars import HoleCollars
-from .tables import MeasurementTable, create_measurement_table, DistanceTable, MeasurementTableAdapter, MeasurementTableFactory
+from .tables import MeasurementTable, create_measurement_table, DistanceTable
 
 if sys.version_info >= (3, 12):
     from typing import override
@@ -232,7 +232,7 @@ class DownholeCollection(BaseSpatialDataProperties):
         """
 
         collars_df = self.collars.df
-        measurement_tables = self.get_measurement_tables(filter=[DistanceTable])
+        measurement_tables = self.get_measurement_tables(filter_to_table_type=[DistanceTable])
         bboxes = []
 
         for mt in measurement_tables:
