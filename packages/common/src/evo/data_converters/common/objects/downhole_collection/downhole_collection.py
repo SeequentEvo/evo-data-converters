@@ -176,10 +176,10 @@ class DownholeCollection(BaseSpatialDataProperties):
         step = np.diff(depth_vals, prepend=0.0)
 
         # Dip from vertical:
-        #   vertical (down) component = step * cos(dip)
-        #   horizontal component      = step * sin(dip)
-        horiz = step * np.sin(dip_rad)
-        dz_down = step * np.cos(dip_rad)
+        #   vertical (down) component = step * sin(dip)
+        #   horizontal component      = step * cos(dip)
+        dz_down = step * np.sin(dip_rad)
+        horiz = step * np.cos(dip_rad)
 
         # Horizontal into N/E (0° = North, 90° = East)
         dN = horiz * np.cos(az_rad)
