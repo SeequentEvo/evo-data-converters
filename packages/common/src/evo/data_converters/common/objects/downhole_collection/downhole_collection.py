@@ -148,6 +148,14 @@ class DownholeCollection(BaseSpatialDataProperties):
         - Coordinates: X = Easting, Y = Northing, Z = elevation (up).
         """
 
+        # TODO - list of things that need resolving
+        #  - This should be a standalone function
+        #  - The input should be numpy arrays
+        #  - Don't drop rows unless the depth is nan
+        #  - Don't sort. Only accept sorted rows as input.
+        #  - I'm not sure whether prepending 0 to steps is the right thing to do. Also concatenating the collars.
+        #  - We shouldn't be merging a bunch of tables. We only want the main "geometry" depth table
+
         df = pd.DataFrame(
             {
                 "depth": depths,
