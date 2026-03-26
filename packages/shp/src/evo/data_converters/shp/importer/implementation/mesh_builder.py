@@ -37,6 +37,7 @@ from evo_schemas.elements import (
     IntegerArray1_V1_0_1,
     StringArray_V1_0_1,
 )
+from numpy import iinfo
 
 
 class MeshBuilder:
@@ -215,11 +216,11 @@ class MeshBuilder:
         """
         match field_type:
             case shapefile.FieldType.N:
-                return int.from_bytes(b"\x80\x00\x00\x00\x00\x00\x00\x00", byteorder="big", signed=True)
+                return iinfo("int64").min
             case shapefile.FieldType.F:
                 return float("nan")
             case shapefile.FieldType.D:
-                return int.from_bytes(b"\x80\x00\x00\x00\x00\x00\x00\x00", byteorder="big", signed=True)
+                return iinfo("int64").min
             case _:
                 return None
 

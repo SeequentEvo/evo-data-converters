@@ -14,10 +14,10 @@ from typing import TYPE_CHECKING, Optional
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    crs_from_any,
     publish_geoscience_objects_sync,
 )
 from evo.data_converters.shp.importer.implementation.local_data import LocalDataClient
+from evo.data_converters.shp.importer.implementation.prj_parser import prj_to_crs
 from evo.data_converters.shp.importer.implementation.shp_parser import ShpParser
 from evo.objects.data import ObjectMetadata
 from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 def convert_shp(
     filepath: str,
-    epsg_code: str,
+    filepath_prj: Optional[str] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
@@ -74,7 +74,9 @@ def convert_shp(
         **(tags or {}),
     }
 
-    parser = ShpParser(path=filepath, data_client=data_client, crs=crs_from_any(epsg_code), tags=full_tags)
+    crs = prj_to_crs(filepath_prj)
+
+    parser = ShpParser(path=filepath, data_client=data_client, crs=crs, tags=full_tags)
     mesh = parser.parse_shp()
 
     geoscience_objects.append(mesh)

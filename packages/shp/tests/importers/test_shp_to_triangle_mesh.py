@@ -16,6 +16,7 @@ import pytest
 import shapefile
 from evo.data_converters.shp.importer.shp_to_evo import convert_shp
 from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
+from pyproj import CRS
 from utils import shapefile_field_to_evo_type
 
 
@@ -84,6 +85,24 @@ def sample_shp(tmp_path: Path) -> tuple[Path, list[tuple[str, shapefile.FieldTyp
 
 
 @pytest.fixture
+def prj(tmp_path: Path) -> tuple[Path, str]:
+    """
+    Get a prj in non-normalized WKT format, along with the expected result in WKT 2.
+
+    :return: (prj_file_path, expected_prj)
+    """
+    prj_path = tmp_path / "test_shapefile.prj"
+    with open(prj_path, "w") as prj:
+        wkt = 'GEOGCS["WGS 84",'
+        wkt += 'DATUM["WGS_1984",'
+        wkt += 'SPHEROID["WGS 84",6378137,298.257223563]]'
+        wkt += ',PRIMEM["Greenwich",0],'
+        wkt += 'UNIT["degree",0.0174532925199433]]'
+        prj.write(wkt)
+    return (prj_path, CRS.from_wkt(wkt).to_wkt(version="WKT2_2019"))
+
+
+@pytest.fixture
 def parquet_path(tmp_path: Path) -> Path:
     return tmp_path / "parquet"
 
@@ -91,7 +110,7 @@ def parquet_path(tmp_path: Path) -> Path:
 def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_path: Path):
     path, expected_fields, expected_shape_num, expected_triangle_num, expected_vertex_num = sample_shp
     triangle_meshes = convert_shp(
-        path, "EPSG:4326", upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        path, None, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
     )
 
     assert len(triangle_meshes) == 1
@@ -101,7 +120,7 @@ def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_
     # Evo object description
     assert triangle_mesh.name == path.stem
     assert triangle_mesh.schema == "/objects/triangle-mesh/2.2.0/triangle-mesh.schema.json"
-    assert triangle_mesh.coordinate_reference_system.epsg_code == 4326
+    assert triangle_mesh.coordinate_reference_system == "unspecified"
 
     # Check number of parts, triangles, etc. match up
     assert triangle_mesh.parts.chunks.length == expected_shape_num
@@ -133,7 +152,7 @@ def test_custom_tags(sample_shp: Path, parquet_path: Path):
     expected_tags = {"Stage": "Experimental", "InputType": "SHP", **(tags)}
 
     triangle_meshes = convert_shp(
-        path, "EPSG:4326", tags=tags, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        path, None, tags=tags, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
     )
 
     assert len(triangle_meshes) == 1
@@ -143,11 +162,26 @@ def test_custom_tags(sample_shp: Path, parquet_path: Path):
     assert triangle_mesh.tags == expected_tags
 
 
+def test_prj(sample_shp: Path, prj: Path, parquet_path: Path):
+    path, _, _, _, _ = sample_shp
+    prj_file, expected_prj = prj
+
+    triangle_meshes = convert_shp(
+        path, filepath_prj=prj_file, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+    )
+
+    assert len(triangle_meshes) == 1
+
+    triangle_mesh: TriangleMesh_V2_2_0 = triangle_meshes[0]
+
+    assert triangle_mesh.coordinate_reference_system.ogc_wkt == expected_prj
+
+
 def test_parquet_output(sample_shp: Path, parquet_path: Path):
     path, _, _, _, _ = sample_shp
 
     triangle_meshes = convert_shp(
-        path, "EPSG:4326", upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        path, None, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
     )
 
     assert len(triangle_meshes) == 1
