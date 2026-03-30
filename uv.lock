@@ -1042,14 +1042,26 @@ version = "0.1.0"
 source = { editable = "packages/shp" }
 dependencies = [
     { name = "evo-data-converters-common" },
+    { name = "evo-schemas" },
+    { name = "pyarrow" },
     { name = "pyshp" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
+    { name = "evo-schemas", specifier = ">=2025.12.15" },
+    { name = "pyarrow", specifier = ">=21.0.0" },
     { name = "pyshp", specifier = ">=3.0.3" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-ubc"
