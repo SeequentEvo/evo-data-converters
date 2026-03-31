@@ -151,7 +151,6 @@ class DownholeCollection(BaseSpatialDataProperties):
 
         # TODO - list of things that need resolving
         #  - Don't drop rows unless the depth is nan
-        #  - Don't sort. Only accept sorted rows as input.
         #  - I'm not sure whether prepending 0 to steps is the right thing to do. Also concatenating the collars.
         #  - We shouldn't be merging a bunch of tables. We only want the main "geometry" depth table
         #  - Do the units need to be taken into account? The elements of the columns are `pint.Quantity`. It's not
@@ -165,9 +164,6 @@ class DownholeCollection(BaseSpatialDataProperties):
                 "azimuth": azimuths,
             }
         ).dropna(subset=["depth", "dip", "azimuth"])
-
-        # Sort by depth just in case
-        df = df.sort_values("depth").reset_index(drop=True)
 
         box = self.compute_bounding_box(
             df["depth"].astype(float).to_numpy(),
@@ -185,6 +181,10 @@ class DownholeCollection(BaseSpatialDataProperties):
             azimuths: NDArray[np.float64],
             offset: tuple[float, float, float] = (0., 0., 0.),
     ) -> tuple[float, float, float, float, float, float]:  # xmin, xmax, ymin, ymax, zmin, zmax
+
+        if not np.all(depths[:-1] <= depths[1:]):
+            raise ValueError("depths must be sorted")
+
         dips_rad = np.deg2rad(dips)
         azimuths_rad = np.deg2rad(azimuths)
 
