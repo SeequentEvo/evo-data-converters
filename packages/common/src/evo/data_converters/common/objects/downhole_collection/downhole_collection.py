@@ -13,6 +13,7 @@ import sys
 import typing
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 
 from ..base_properties import BaseSpatialDataProperties
@@ -149,12 +150,13 @@ class DownholeCollection(BaseSpatialDataProperties):
         """
 
         # TODO - list of things that need resolving
-        #  - This should be a standalone function
-        #  - The input should be numpy arrays
         #  - Don't drop rows unless the depth is nan
         #  - Don't sort. Only accept sorted rows as input.
         #  - I'm not sure whether prepending 0 to steps is the right thing to do. Also concatenating the collars.
         #  - We shouldn't be merging a bunch of tables. We only want the main "geometry" depth table
+        #  - Do the units need to be taken into account? The elements of the columns are `pint.Quantity`. It's not
+        #     clear how these values correspond to the other units of the published object.
+        #  - Tests for `compute_bounding_box`
 
         df = pd.DataFrame(
             {
@@ -167,47 +169,58 @@ class DownholeCollection(BaseSpatialDataProperties):
         # Sort by depth just in case
         df = df.sort_values("depth").reset_index(drop=True)
 
-        depth_vals = df["depth"].astype(float).to_numpy()
-        dip_rad = np.deg2rad(df["dip"].astype(float).to_numpy())
-        az_rad = np.deg2rad(df["azimuth"].astype(float).to_numpy())
+        box = self.compute_bounding_box(
+            df["depth"].astype(float).to_numpy(),
+            df["dip"].astype(float).to_numpy(),
+            df["azimuth"].astype(float).to_numpy(),
+            offset=(collar_x, collar_y, collar_z)
+        )
+        return dict(zip(["xmin", "xmax", "ymin", "ymax", "zmin", "zmax"], box))
+
+    @staticmethod
+    def compute_bounding_box(
+            # TODO Is there a common place for type hints?
+            depths: NDArray[np.float64],
+            dips: NDArray[np.float64],
+            azimuths: NDArray[np.float64],
+            offset: tuple[float, float, float] = (0., 0., 0.),
+    ) -> tuple[float, float, float, float, float, float]:  # xmin, xmax, ymin, ymax, zmin, zmax
+        dips_rad = np.deg2rad(dips)
+        azimuths_rad = np.deg2rad(azimuths)
 
         # Step lengths along the hole (assume collar at MD = 0,
         # first survey value applies from 0 -> depth[0])
-        step = np.diff(depth_vals, prepend=0.0)
+        # TODO not sure if I need to prepend 0
+        step = np.diff(depths, prepend=0.0)
 
         # Dip from vertical:
         #   vertical (down) component = step * sin(dip)
         #   horizontal component      = step * cos(dip)
-        dz_down = step * np.sin(dip_rad)
-        horiz = step * np.cos(dip_rad)
+        dz_down = step * np.sin(dips_rad)
+        horiz = step * np.cos(dips_rad)
 
         # Horizontal into N/E (0° = North, 90° = East)
-        dN = horiz * np.cos(az_rad)
-        dE = horiz * np.sin(az_rad)
+        dN = horiz * np.cos(azimuths_rad)
+        dE = horiz * np.sin(azimuths_rad)
 
         # Convert to XYZ increments (Z up)
         dX = dE
         dY = dN
         dZ = -dz_down
 
-        # Cumulative coordinates from collar
-        x = collar_x + np.cumsum(dX)
-        y = collar_y + np.cumsum(dY)
-        z = collar_z + np.cumsum(dZ)
+        x = np.cumsum(dX)
+        y = np.cumsum(dY)
+        z = np.cumsum(dZ)
 
-        # Include collar itself
-        xs = np.concatenate([[collar_x], x])
-        ys = np.concatenate([[collar_y], y])
-        zs = np.concatenate([[collar_z], z])
+        def ensure_zero(a, b):
+            return min(a, 0), max(b, 0)
 
-        return {
-            "xmin": xs.min(),
-            "xmax": xs.max(),
-            "ymin": ys.min(),
-            "ymax": ys.max(),
-            "zmin": zs.min(),
-            "zmax": zs.max(),
-        }
+        x0, x1 = ensure_zero(x.min(), x.max())
+        y0, y1 = ensure_zero(y.min(), y.max())
+        z0, z1 = ensure_zero(z.min(), z.max())
+
+        return x0 + offset[0], x1 + offset[0], y0 + offset[1], y1 + offset[1], z0 + offset[2], z1 + offset[2]
+
 
     def _combine_bounding_boxes(self, bboxes: list[dict[str, float]]):
         """
