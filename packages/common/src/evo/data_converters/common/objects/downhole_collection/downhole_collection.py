@@ -129,9 +129,7 @@ class DownholeCollection(BaseSpatialDataProperties):
 
     def _compute_hole_bounding_box(
         self,
-        collar_x: float,
-        collar_y: float,
-        collar_z: float,
+        collar: tuple[float, float, float],
         depths: pd.Series,
         dips: pd.Series,
         azimuths: pd.Series,
@@ -150,12 +148,9 @@ class DownholeCollection(BaseSpatialDataProperties):
         """
 
         # TODO - list of things that need resolving
-        #  - Don't drop rows unless the depth is nan
-        #  - I'm not sure whether prepending 0 to steps is the right thing to do. Also concatenating the collars.
         #  - We shouldn't be merging a bunch of tables. We only want the main "geometry" depth table
         #  - Do the units need to be taken into account? The elements of the columns are `pint.Quantity`. It's not
         #     clear how these values correspond to the other units of the published object.
-        #  - Tests for `compute_bounding_box`
 
         df = pd.DataFrame(
             {
@@ -169,10 +164,11 @@ class DownholeCollection(BaseSpatialDataProperties):
             df["depth"].astype(float).to_numpy(),
             df["dip"].astype(float).to_numpy(),
             df["azimuth"].astype(float).to_numpy(),
-            offset=(collar_x, collar_y, collar_z)
+            offset=collar,
         )
         return dict(zip(["xmin", "xmax", "ymin", "ymax", "zmin", "zmax"], box))
 
+    # TODO - Consider unit tests
     @staticmethod
     def compute_bounding_box(
             # TODO Is there a common place for type hints?
@@ -185,17 +181,23 @@ class DownholeCollection(BaseSpatialDataProperties):
         if not np.all(depths[:-1] <= depths[1:]):
             raise ValueError("depths must be sorted")
 
+        if len(depths) != len(dips) or len(depths) != len(azimuths):
+            raise ValueError("depths, dips, and azimuths must have same length")
+
+        # TODO - Test with NaNs in these values
+        # Process NaNs
+        depths = depths[~np.isnan(depths)]
+        dips[np.isnan(dips)] = 90
+        azimuths[np.isnan(azimuths)] = 0
+
         dips_rad = np.deg2rad(dips)
         azimuths_rad = np.deg2rad(azimuths)
 
-        # Step lengths along the hole (assume collar at MD = 0,
-        # first survey value applies from 0 -> depth[0])
-        # TODO not sure if I need to prepend 0
+        # Prepend 0 so `step` has the same shape as `dips` and `azimuths`, and so the first depth gets treated as the
+        # first step. The depth column might already start with 0, in which case the first step will be length 0, which
+        # is a no-op as far as the following calculation is concerned.
         step = np.diff(depths, prepend=0.0)
 
-        # Dip from vertical:
-        #   vertical (down) component = step * sin(dip)
-        #   horizontal component      = step * cos(dip)
         dz_down = step * np.sin(dips_rad)
         horiz = step * np.cos(dips_rad)
 
@@ -265,9 +267,7 @@ class DownholeCollection(BaseSpatialDataProperties):
                 dips = mt.get_dip_values(filter_to_hole_index=hole_index)
                 azimuths = mt.get_azimuth_values(filter_to_hole_index=hole_index)
                 bbox = self._compute_hole_bounding_box(
-                    collar_x=x,
-                    collar_y=y,
-                    collar_z=z,
+                    collar=(x, y, z),
                     depths=depths,
                     dips=dips,
                     azimuths=azimuths,
