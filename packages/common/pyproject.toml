@@ -11,9 +11,9 @@ authors = [
 
 dependencies = [
     "aiohttp",
-    "evo-sdk-common>=0.4.2",
-    "evo-objects>=0.3.0",
-    "evo-schemas>=2025.9.12",
+    "evo-sdk-common>=0.5.21",
+    "evo-objects>=0.4.2",
+    "evo-schemas>=2026.1.8",
     "nest_asyncio",
     "numpy>=1.26.3",
     "pandas>=2.3.1",
