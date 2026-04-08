@@ -15,6 +15,7 @@ from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
 import evo.logging
 from evo.data_converters.common import (
+    BaseGridData,
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
@@ -26,6 +27,18 @@ logger = evo.logging.getLogger("data_converters")
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
+
+
+def get_gocad_grids(filepath: str) -> tuple[str, BaseGridData]:
+    """Extract grid data from a GOCAD file without converting to Geoscience Objects.
+    :param filepath: Path to the GOCAD file.
+    :return: A tuple of (name, BaseGridData).
+    :raise GocadDataFileIOError: If failed to open GOCAD file
+    :raise GocadInvalidDataError: If an error was detected in the GOCAD file.
+    :raise UnsupportedRotation: If the GOCAD file contains inverted or skew rotation.
+    """
+
+    return utils.get_grids_from_gocad(filepath=filepath)
 
 
 def convert_gocad(
@@ -59,9 +72,9 @@ def convert_gocad(
 
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
-    :raise GocadDataFileIOError: If failed to open Gocad file
-    :raise GocadInvalidDataError: If an error was detected in the Gocad file.
-    :raise UnsupportedRotation: If the Gocan file contains inverted or skew rotation.
+    :raise GocadDataFileIOError: If failed to open GOCAD file
+    :raise GocadInvalidDataError: If an error was detected in the GOCAD file.
+    :raise UnsupportedRotation: If the GOCAD file contains inverted or skew rotation.
     """
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
