@@ -29,6 +29,7 @@ def evo_metadata(tmp_path_factory):
     return EvoWorkspaceMetadata(
         workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae",
         cache_root=cache_root_dir.name,
+        hub_url="https://unittest.localhost/",
     )
 
 
@@ -66,6 +67,8 @@ class TestDataClient:
                 return self.load_table(attr.values).to_pandas()
             case "scalar":
                 # TODO - deal with nan
+                return self.load_table(attr.values).to_pandas()
+            case "integer":
                 return self.load_table(attr.values).to_pandas()
             case "date_time":
                 return self.load_table(attr.values).to_pandas()

@@ -843,6 +843,7 @@ dev = [
     { name = "pandas-stubs" },
     { name = "pyarrow-stubs" },
     { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "requests-mock" },
     { name = "ruff" },
 ]
@@ -869,6 +870,7 @@ dev = [
     { name = "pandas-stubs", specifier = ">=2.3.2.250926" },
     { name = "pyarrow-stubs", specifier = ">=20.0.0.20251104" },
     { name = "pytest", specifier = ">=8.2" },
+    { name = "pytest-asyncio" },
     { name = "requests-mock" },
     { name = "ruff" },
 ]

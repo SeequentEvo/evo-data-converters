@@ -27,6 +27,7 @@ else:
     from typing_extensions import override
 
 
+# TODO delete this if redundant
 class DownholeCollection(BaseSpatialDataProperties):
     """
     Intermediary data structure for a downhole collection.
