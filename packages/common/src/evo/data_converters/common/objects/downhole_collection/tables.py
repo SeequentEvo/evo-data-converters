@@ -141,23 +141,45 @@ class MeasurementTable(ABC):
         """
         pass
 
-    def get_dip_values(self) -> pd.Series:
+    def get_dip_values(self, filter_to_hole_index=None) -> pd.Series:
+        """
+        Get the dip values as a pandas Series.
+
+        :param filter_to_hole_index: Optional hole index to filter values to
+
+        :return: Series containing all dip values from the dip column, or default dips if missing
+        """
         dip_column: str | None = self._find_column(self.mapping.DIP_COLUMNS)
+
+        df = self.df
+        if filter_to_hole_index:
+            df = self.df[df[self.get_hole_index_column()] == filter_to_hole_index]
 
         if not dip_column:
             logger.debug("Dip information missing, assuming vertical downhole")
-            return pd.Series(DEFAULT_DIP, index=range(len(self.df)), dtype="float64")
+            return pd.Series(DEFAULT_DIP, index=range(len(df)), dtype="float64")
 
-        return self.df[dip_column]
+        return df[dip_column]
 
-    def get_azimuth_values(self) -> pd.Series:
+    def get_azimuth_values(self, filter_to_hole_index=None) -> pd.Series:
+        """
+        Get the azimuth values as a pandas Series.
+
+        :param filter_to_hole_index: Optional hole index to filter values to
+
+        :return: Series containing all azimuth values from the azimuth column or default azimuth if missing
+        """
         azimuth_column = self._find_column(self.mapping.AZIMUTH_COLUMNS)
+
+        df = self.df
+        if filter_to_hole_index:
+            df = self.df[df[self.get_hole_index_column()] == filter_to_hole_index]
 
         if not azimuth_column:
             logger.debug("Azimuth information missing, assuming no bearing")
             return pd.Series(DEFAULT_AZIMUTH, index=range(len(self.df)), dtype="float64")
 
-        return self.df[azimuth_column]
+        return df[azimuth_column]
 
 
 class DistanceTable(MeasurementTable):
@@ -208,13 +230,18 @@ class DistanceTable(MeasurementTable):
         """
         return [self.get_depth_column()]
 
-    def get_depth_values(self) -> pd.Series:
+    def get_depth_values(self, filter_to_hole_index=None) -> pd.Series:
         """
         Get the depth values as a pandas Series.
 
+        :param filter_to_hole_index: Optional hole index to filter values to
+
         :return: Series containing all depth values from the depth column
         """
-        return self.df[self.get_depth_column()]
+        df = self.df
+        if filter_to_hole_index:
+            df = self.df[df[self.get_hole_index_column()] == filter_to_hole_index]
+        return df[self.get_depth_column()]
 
 
 class IntervalTable(MeasurementTable):
@@ -283,13 +310,19 @@ class IntervalTable(MeasurementTable):
         """
         return [self.get_from_column(), self.get_to_column()]
 
-    def get_intervals(self) -> pd.DataFrame:
+    def get_intervals(self, filter_to_hole_index=None) -> pd.DataFrame:
         """
         Get a DataFrame containing only the interval columns with standardized names.
 
+        :param filter_to_hole_index: Optional hole index to filter intervals to
+
         :return: DataFrame with from and to columns defining the intervals
         """
-        return self.df[[self.get_from_column(), self.get_to_column()]]
+        df = self.df
+        if filter_to_hole_index:
+            df = self.df[self.get_hole_index_column() == filter_to_hole_index]
+
+        return df[[self.get_from_column(), self.get_to_column()]]
 
 
 def create_measurement_table(

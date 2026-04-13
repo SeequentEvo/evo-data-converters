@@ -12,12 +12,14 @@
 import sys
 import typing
 
+import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 
 from ..base_properties import BaseSpatialDataProperties
 from .column_mapping import ColumnMapping
 from .hole_collars import HoleCollars
-from .tables import MeasurementTable, create_measurement_table
+from .tables import MeasurementTable, create_measurement_table, DistanceTable
 
 if sys.version_info >= (3, 12):
     from typing import override
@@ -125,6 +127,122 @@ class DownholeCollection(BaseSpatialDataProperties):
         results = [m for m in self.measurements if isinstance(m, tuple(filter_to_table_type))]
         return results
 
+    def _compute_hole_bounding_box(
+        self,
+        collar: tuple[float, float, float],
+        depths: pd.Series,
+        dips: pd.Series,
+        azimuths: pd.Series,
+    ):
+        """
+        Compute 3D bounding box for a deviated hole given collar XYZ and
+        depth / dip / azimuth data.
+
+        Conventions
+        -----------
+        - depths: measured depth along the hole (m), positive downward.
+        - dips: inclination FROM VERTICAL (degrees).
+            0° = vertical down, 90° = horizontal.
+        - azimuths: degrees clockwise from North.
+        - Coordinates: X = Easting, Y = Northing, Z = elevation (up).
+        """
+
+        # TODO - list of things that need resolving
+        #  - We shouldn't be merging a bunch of tables. We only want the main "geometry" depth table
+        #  - Do the units need to be taken into account? The elements of the columns are `pint.Quantity`. It's not
+        #     clear how these values correspond to the other units of the published object.
+
+        df = pd.DataFrame(
+            {
+                "depth": depths,
+                "dip": dips,
+                "azimuth": azimuths,
+            }
+        ).dropna(subset=["depth", "dip", "azimuth"])
+
+        box = self.compute_bounding_box(
+            df["depth"].astype(float).to_numpy(),
+            df["dip"].astype(float).to_numpy(),
+            df["azimuth"].astype(float).to_numpy(),
+            offset=collar,
+        )
+        return dict(zip(["xmin", "xmax", "ymin", "ymax", "zmin", "zmax"], box))
+
+    # TODO - Consider unit tests
+    @staticmethod
+    def compute_bounding_box(
+            # TODO Is there a common place for type hints?
+            depths: NDArray[np.float64],
+            dips: NDArray[np.float64],
+            azimuths: NDArray[np.float64],
+            offset: tuple[float, float, float] = (0., 0., 0.),
+    ) -> tuple[float, float, float, float, float, float]:  # xmin, xmax, ymin, ymax, zmin, zmax
+
+        if not np.all(depths[:-1] <= depths[1:]):
+            raise ValueError("depths must be sorted")
+
+        if len(depths) != len(dips) or len(depths) != len(azimuths):
+            raise ValueError("depths, dips, and azimuths must have same length")
+
+        # TODO - Test with NaNs in these values
+        # Process NaNs
+        depths = depths[~np.isnan(depths)]
+        dips[np.isnan(dips)] = 90
+        azimuths[np.isnan(azimuths)] = 0
+
+        dips_rad = np.deg2rad(dips)
+        azimuths_rad = np.deg2rad(azimuths)
+
+        # Prepend 0 so `step` has the same shape as `dips` and `azimuths`, and so the first depth gets treated as the
+        # first step. The depth column might already start with 0, in which case the first step will be length 0, which
+        # is a no-op as far as the following calculation is concerned.
+        step = np.diff(depths, prepend=0.0)
+
+        dz_down = step * np.sin(dips_rad)
+        horiz = step * np.cos(dips_rad)
+
+        # Horizontal into N/E (0° = North, 90° = East)
+        dN = horiz * np.cos(azimuths_rad)
+        dE = horiz * np.sin(azimuths_rad)
+
+        # Convert to XYZ increments (Z up)
+        dX = dE
+        dY = dN
+        dZ = -dz_down
+
+        x = np.cumsum(dX)
+        y = np.cumsum(dY)
+        z = np.cumsum(dZ)
+
+        def ensure_zero(a, b):
+            return min(a, 0), max(b, 0)
+
+        x0, x1 = ensure_zero(x.min(), x.max())
+        y0, y1 = ensure_zero(y.min(), y.max())
+        z0, z1 = ensure_zero(z.min(), z.max())
+
+        return x0 + offset[0], x1 + offset[0], y0 + offset[1], y1 + offset[1], z0 + offset[2], z1 + offset[2]
+
+
+    def _combine_bounding_boxes(self, bboxes: list[dict[str, float]]):
+        """
+        Given a list of bbox dicts like:
+            {"xmin": ..., "xmax": ..., "ymin": ..., "ymax": ..., "zmin": ..., "zmax": ...}
+        return a single bbox of 6 floats that encloses them all.
+        """
+
+        if not bboxes:
+            raise ValueError("bboxes list is empty")
+
+        return [
+            min(b["xmin"] for b in bboxes),
+            max(b["xmax"] for b in bboxes),
+            min(b["ymin"] for b in bboxes),
+            max(b["ymax"] for b in bboxes),
+            min(b["zmin"] for b in bboxes),
+            max(b["zmax"] for b in bboxes),
+        ]
+
     @override
     def get_bounding_box(self) -> list[float]:
         """
@@ -135,11 +253,25 @@ class DownholeCollection(BaseSpatialDataProperties):
 
         :return: List of 6 floats [min_x, max_x, min_y, max_y, min_z, max_z]
         """
-        return [
-            self.collars.df["x"].min(),
-            self.collars.df["x"].max(),
-            self.collars.df["y"].min(),
-            self.collars.df["y"].max(),
-            self.collars.df["z"].min(),
-            self.collars.df["z"].max(),
-        ]
+
+        collars_df = self.collars.df
+        measurement_tables = self.get_measurement_tables(filter_to_table_type=[DistanceTable])
+        bboxes = []
+
+        for mt in measurement_tables:
+            mt._prepare_dataframe()
+            for hole_index, hole_id, x, y, z in zip(
+                collars_df["hole_index"], collars_df["hole_id"], collars_df["x"], collars_df["y"], collars_df["z"]
+            ):
+                depths = mt.get_depth_values(filter_to_hole_index=hole_index)
+                dips = mt.get_dip_values(filter_to_hole_index=hole_index)
+                azimuths = mt.get_azimuth_values(filter_to_hole_index=hole_index)
+                bbox = self._compute_hole_bounding_box(
+                    collar=(x, y, z),
+                    depths=depths,
+                    dips=dips,
+                    azimuths=azimuths,
+                )
+                bboxes.append(bbox)
+
+        return self._combine_bounding_boxes(bboxes=bboxes) if bboxes else []

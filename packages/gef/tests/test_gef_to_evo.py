@@ -126,16 +126,18 @@ class _CPTSpec:
     sum_distances: float
     sum_azimuths: float
     sum_dips: float
+    bbox: tuple[float, float, float, float, float, float]
 
 
 class _CPTData:
-    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, geometries):
+    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, geometries, bbox):
         self.cpt_tables = cpt_tables
         self.collar_attributes = collar_attributes
         self.collar_locations = collar_locations
         self.hole_distances = hole_distances
         self.hole_ids = hole_ids
         self.geometries = geometries
+        self.bbox = bbox
 
     @classmethod
     def from_gef_object(cls, gef_object, data_client):
@@ -146,6 +148,7 @@ class _CPTData:
         hole_ids = data_client.load_category(gef_object.location.hole_id)
         hole_geometries = _load_path_geometries(gef_object, data_client)
         cpt_tables = _load_distance_collection(gef_object, data_client)
+        bbox = _get_bbox(gef_object)
 
         # For GEF imports, the collection is supposed to match up exactly to the geometry definition
         # (gef_object.location).
@@ -160,6 +163,7 @@ class _CPTData:
             hole_distances=hole_distances,
             hole_ids=hole_ids,
             geometries=hole_geometries,
+            bbox=bbox,
         )
 
     @property
@@ -198,7 +202,7 @@ class _CPTData:
         assert expected_attribute_columns == set(self.cpt_tables[index].columns)
         actual_attr_hashes = self.get_table_column_hashes(index)
         for key, value in spec.attributes.items():
-            assert value == actual_attr_hashes[key]
+            assert value == actual_attr_hashes[key], key
 
     def verify_geometries(self, index: int, spec: _CPTSpec):
         geometry = self.geometries[index]
@@ -212,6 +216,9 @@ class _CPTData:
         assert math.isclose(sum_distances, spec.sum_distances, rel_tol=1e-5)
         assert math.isclose(sum_azimuths, spec.sum_azimuths, rel_tol=1e-5)
         assert math.isclose(sum_dips, spec.sum_dips, rel_tol=1e-5)
+
+    def verify_bounding_box(self, index: int, spec: _CPTSpec):
+        assert spec.bbox == self.bbox
 
     def verify(self, specs: list[_CPTSpec]):
         expected_attribute_columns = set().union(*[spec.attributes.keys() for spec in specs])
@@ -227,6 +234,7 @@ class _CPTData:
             self.verify_collar_locations(i, spec)
             self.verify_attributes(i, spec, expected_attribute_columns)
             self.verify_geometries(i, spec)
+            self.verify_bounding_box(i, spec)
 
 
 def _load_distance_collection(gef_object, data_client):
@@ -258,6 +266,11 @@ def _load_path_geometries(gef_object, data_client):
         paths.append(path_table.iloc[offset : offset + count])
 
     return paths
+
+
+def _get_bbox(gef_object):
+    bbox_go = gef_object.bounding_box
+    return bbox_go.min_x, bbox_go.max_x, bbox_go.min_y, bbox_go.max_y, bbox_go.min_z, bbox_go.max_z
 
 
 def _check_path_geometry(hole_geometry, sum_distances: float, sum_azimuths: float, sum_dips: float, num_parts: int):
@@ -341,6 +354,7 @@ _gef_cpt_spec_1 = _CPTSpec(
         "measurementtext_113": ["2019, 01, 30"],
         "measurementtext_114": ["2019, 01, 29"],
     },
+    bbox=(79578.38, 79578.85203297655, 424838.968697291, 424839.9039877552, -20.094087662485098, -0.09),
 )
 
 
@@ -436,6 +450,7 @@ _gef_cpt_spec_2 = _CPTSpec(
         "measurementtext_114": ["2021, 05, 03"],
         "measurementtext_115": ["IMBRO, kwaliteitsregime"],
     },
+    bbox=(116508.93743771227, 116509.0, 469889.95390897675, 469890.0, -12.009629784247299, -1.63),
 )
 
 
