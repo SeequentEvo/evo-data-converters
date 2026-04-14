@@ -12,8 +12,9 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from evo_schemas.objects import DownholeCollection_V1_3_1 as DownholeCollection
+from evo_schemas.objects import DownholeCollection_V1_3_1
 
+from evo.common.context import StaticContext
 import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
@@ -26,13 +27,15 @@ from evo.data_converters.common.objects.downhole_collection_to_geoscience_object
 from evo.data_converters.gef.converter import create_from_parsed_gef_cpts, parse_gef_files
 from evo.objects.data import ObjectMetadata
 
+from evo.data_converters.gef.objects import DownholeCollection
+
 logger = evo.logging.getLogger("data_converters")
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_gef(
+async def convert_gef(
     filepaths: list[str | Path],
     epsg_code: int | None = None,
     evo_workspace_metadata: EvoWorkspaceMetadata | None = None,
@@ -42,7 +45,7 @@ def convert_gef(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
-) -> DownholeCollection | list[ObjectMetadata] | None:
+) -> DownholeCollection | None:
     """Converts a collection of GEF-CPT files into a Downhole Collection Geoscience Object.
 
     One of evo_workspace_metadata or service_manager_widget is required.
@@ -70,33 +73,32 @@ def convert_gef(
     object_service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
+
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing will be skipped due to missing hub_url.")
         publish_objects = False
 
     gef_cpt_data = parse_gef_files(filepaths)
-    downhole_collection = create_from_parsed_gef_cpts(gef_cpt_data, name=name)
-    converter = DownholeCollectionToGeoscienceObject(
-        dhc=downhole_collection, data_client=data_client, epsg_code=epsg_code
+
+    tags = {
+        "Source": "GEF-CPT files (via Evo Data Converters)",
+        "Stage": "Experimental",
+        "InputType": "GEF-CPT",
+        **(tags or {}),
+    }
+
+    downhole_collection_data = create_from_parsed_gef_cpts(gef_cpt_data, name=name, tags=tags)
+
+    # TODO - Need to find a better way to do this
+    context = StaticContext(
+        connector=data_client._connector,
+        cache=data_client._cache,
+        org_id=data_client._environment.org_id,
+        workspace_id=data_client._environment.workspace_id,
     )
-    geoscience_object = converter.convert()
 
-    if geoscience_object:
-        if geoscience_object.tags is None:
-            geoscience_object.tags = {}
-        geoscience_object.tags["Source"] = "GEF-CPT files (via Evo Data Converters)"
-        geoscience_object.tags["Stage"] = "Experimental"
-        geoscience_object.tags["InputType"] = "GEF-CPT"
-
-        # Add custom tags
-        if tags:
-            geoscience_object.tags.update(tags)
-
-    object_metadata = None
+    # TODO - Does this make sense using the "typed" objects? What is expected to happen if publish_objects=False?
     if publish_objects:
         logger.debug("Publishing Geoscience Object")
-        object_metadata = publish_geoscience_objects_sync(
-            [geoscience_object], object_service_client, data_client, upload_path, overwrite_existing_objects
-        )
-
-    return object_metadata if object_metadata else geoscience_object
+        # TODO - Need to update when appropriate
+        return await DownholeCollection.create(context, downhole_collection_data, path=upload_path)

@@ -12,12 +12,16 @@
 import typing
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 import polars as pl
 from pint_pandas import PintType as _  # noqa: F401
 from pygef.cpt import CPTData
 
 import evo.logging
+from evo.objects.typed.types import EpsgCode
+
+
 from evo.data_converters.common.objects.downhole_collection import (
     ColumnMapping,
     DownholeCollection,
@@ -33,6 +37,7 @@ from .gef_spec import (
     MEASUREMENT_UNITS,
     MEASUREMENT_VAR_NAMES,
 )
+from ..objects import DownholeCollectionData
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -54,20 +59,22 @@ class DownholeCollectionBuilder:
 
     # Data types we expect for required hole collar information
     COLLAR_DTYPES: dict[str, str] = {
-        "hole_index": "int32",
         "hole_id": "string",
         "x": "float64",
         "y": "float64",
         "z": "float64",
-        "final_depth": "float64",
+        "final": "float64",
+        "current": "float64",
+        "target": "float64",
     }
 
-    def __init__(self) -> None:
+    def __init__(self, tags: dict[str, typing.Any] | None) -> None:
         self.epsg_code: int | str | None = None
         self.collar_rows: list[dict[str, typing.Any]] = []
         self.collection_name: str | None = None
         self.measurement_dfs: list[pd.DataFrame] = []
         self.nan_values_by_attribute: dict[str, list[typing.Any]] = defaultdict(list)
+        self.tags = tags
 
     def process_cpt_file(self, hole_index: int, hole_id: str, cpt_data: CPTData, filepath: str) -> None:
         """Process a single CPT file and add to the collection.
@@ -83,7 +90,7 @@ class DownholeCollectionBuilder:
         self.collar_rows.append(collar_row)
 
         measurements = self._prepare_measurements(hole_index, cpt_data)
-        measurements = self._apply_measurement_units(measurements, cpt_data)
+
 
         self.measurement_dfs.append(measurements)
 
@@ -91,7 +98,7 @@ class DownholeCollectionBuilder:
 
         logger.debug(f"Processed {hole_id}: {len(measurements)} measurements")
 
-    def build(self) -> DownholeCollection:
+    def build(self) -> DownholeCollectionData:
         """Build the final DownholeCollection.
 
         :return: Completed DownholeCollection object
@@ -101,11 +108,9 @@ class DownholeCollectionBuilder:
         self._validate_epsg_code()
 
         collars_df = self._create_collars_dataframe()
-        measurements_df = self._create_measurements_dataframe()
-        measurements_df = self._apply_nan_values_to_measurements(measurements_df)
         collection_name = self.collection_name or self._generate_collection_name()
 
-        return self._create_collection(collection_name, collars_df, measurements_df)
+        return self._create_collection(collection_name, collars_df)
 
     def set_name(self, name: str) -> None:
         self.collection_name = name
@@ -252,7 +257,7 @@ class DownholeCollectionBuilder:
         final_depth = self._calculate_final_depth(cpt_data, hole_id)
 
         collar_data = {
-            "hole_index": hole_index,
+            # "hole_index": hole_index,
             "hole_id": hole_id,
             "x": cpt_data.delivered_location.x,
             "y": cpt_data.delivered_location.y,
@@ -271,16 +276,17 @@ class DownholeCollectionBuilder:
 
         :return: Pandas DataFrame with measurements
         """
-        df = cpt_data.data.with_columns(pl.lit(hole_index).cast(pl.Int32).alias("hole_index"))
+        df = cpt_data.data
 
         df = self.calculate_dip(df)
         df = self.calculate_azimuth(df)
 
-        # Reorder columns to put hole_index first
-        other_cols = [col for col in df.columns if col != "hole_index"]
-        df = df.select(["hole_index"] + other_cols).to_pandas()
+        # polars.DataFrame -> pandas.DataFrame
+        df_pd = df.to_pandas()
 
-        return df
+        df_pd = self._apply_measurement_units(df_pd, cpt_data)
+
+        return df_pd.rename(columns={"depth": "depth_vertical", "penetrationLength": "depth"})
 
     def calculate_dip(self, df: pl.DataFrame) -> pl.DataFrame:
         """Create dip column from inclinationResultant.
@@ -292,7 +298,7 @@ class DownholeCollectionBuilder:
         :return: Polars dataframe with new "dip" column, or the original.
         """
         if "inclinationResultant" not in df.columns:
-            return df
+            return df.with_columns(pl.lit(90.0).alias("dip"))
 
         return df.with_columns((90 - pl.col("inclinationResultant")).alias("dip"))
 
@@ -309,7 +315,7 @@ class DownholeCollectionBuilder:
         has_ew = "inclinationEW" in df.columns
 
         if not (has_ns and has_ew):
-            return df
+            return df.with_columns(pl.lit(0.0).alias("azimuth"))
 
         ns = pl.col("inclinationNS")
         ew = pl.col("inclinationEW")
@@ -357,6 +363,7 @@ class DownholeCollectionBuilder:
         except AttributeError:
             return
 
+    # TODO - Remove if unused
     def _apply_nan_values_to_measurements(self, df: pd.DataFrame) -> pd.DataFrame:
         """Replace sentinel values with np.nan in measurement dataframe.
 
@@ -373,10 +380,15 @@ class DownholeCollectionBuilder:
 
         :return: Pandas DataFrame with typed collar data
         """
+        df = pd.DataFrame(self.collar_rows)
+        df["target"] = df["current"] = df["final_depth"]
+        df = df.rename(columns={"final_depth": "final"})
+
         # There can be more columns for optional attributes that aren't defined in COLLAR_DTYPES, but we don't know
         # their types in advance. So we just enforce the types for the known columns.
-        return pd.DataFrame(self.collar_rows).astype(dtype=self.COLLAR_DTYPES)
+        return df.astype(self.COLLAR_DTYPES)
 
+    # TODO - Remove if unused
     def _create_measurements_dataframe(self) -> pd.DataFrame:
         """Create the measurements DataFrame from accumulated measurement DataFrames.
 
@@ -402,39 +414,35 @@ class DownholeCollectionBuilder:
         else:
             return f"GEF CPT {len(self.collar_rows)} holes {self.collar_rows[0]['hole_id']}...{self.collar_rows[-1]['hole_id']}"
 
+    def _get_crs(self):
+        return EpsgCode(self.epsg_code)
+
     def _create_collection(
-        self, collection_name: str, collars_df: pd.DataFrame, measurements_df: pd.DataFrame
-    ) -> DownholeCollection:
-        """Create the intermediary DownholeCollection object.
+        self, collection_name: str, collars_df: pd.DataFrame
+    ) -> DownholeCollectionData:
 
-        :param collection_name: Name for the collection
-        :param collars_df: DataFrame with collar data
-        :param measurements_df: DataFrame with measurement data
+        hole_properties = collars_df[list(self.COLLAR_DTYPES.keys())]
+        attributes = collars_df[[col for col in collars_df.columns if col not in list(self.COLLAR_DTYPES.keys())]]
 
-        :return: Intermediary DownholeCollection object
-        """
-        column_mapping = ColumnMapping(
-            DEPTH_COLUMNS=["penetrationLength"], DIP_COLUMNS=["dip"], AZIMUTH_COLUMNS=["azimuth"]
-        )
-        # NaN's have already replaced the sentinel values in the DFs, so there's no need to track them further.
-        nan_values = {}
-        distance_measurements = create_measurement_table(
-            df=measurements_df, column_mapping=column_mapping, nan_values_by_column=nan_values
-        )
-        collars = HoleCollars(df=collars_df)
+        # TODO - `typed\attributes.py` doesn't handle datetimes right now. I'm just kludging through this. See
+        #  `_infer_attribute_type_from_series()`. Also see also `attribute_from_pd_series()`.
+        attributes = attributes.astype(np.str_)
 
-        return DownholeCollection(
+        return DownholeCollectionData(
             name=collection_name,
-            collars=collars,
-            measurements=[distance_measurements],
-            coordinate_reference_system=self.epsg_code,
+            tags=self.tags,
+            coordinate_reference_system=self._get_crs(),
+            holes=self.measurement_dfs,
+            properties=hole_properties,
+            attributes=attributes,
         )
 
 
 def create_from_parsed_gef_cpts(
     parsed_cpt_files: dict[str, CPTData],
     name: str | None = None,
-) -> DownholeCollection:
+    tags: dict[str, typing.Any] = None,
+) -> DownholeCollectionData:
     """
     Create a DownholeCollection from parsed GEF CPT files.
 
@@ -449,7 +457,7 @@ def create_from_parsed_gef_cpts(
     if not parsed_cpt_files:
         raise ValueError("No CPT files provided - parsed_cpt_files dictionary is empty")
 
-    builder = DownholeCollectionBuilder()
+    builder = DownholeCollectionBuilder(tags=tags)
 
     if name:
         builder.set_name(name)

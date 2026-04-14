@@ -476,38 +476,60 @@ _gef_cpt_spec_2 = _CPTSpec(
     bbox=(116508.93743771227, 116509.0, 469889.95390897675, 469890.0, -12.009629784247299, -1.63),
 )
 
+@pytest.mark.asyncio
+async def test_import_gef_1(evo_metadata, data_client):
+    context = TestContext(mock_metadata=evo_metadata)
 
-def test_import_gef_1(evo_metadata, data_client):
-    gef_object = convert_gef(
-        filepaths=[GEF1],
-        evo_workspace_metadata=evo_metadata,
-        epsg_code=32650,
-        publish_objects=False,
-    )
+    with _mock_geoscience_objects(context.get_environment()) as mock_client:
+        gef_object = await convert_gef(
+            filepaths=[GEF1],
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+            # publish_objects=False,  # TODO - Review the best way to no-op a publish
+        )
 
-    cpt_data = _CPTData.from_gef_object(gef_object, data_client)
+    gef_object_dict, *_ = mock_client.objects.values()
+    cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
+
+    # TODO - Fix
     cpt_data.verify([_gef_cpt_spec_1])
 
 
-def test_import_gef_2(evo_metadata, data_client):
-    gef_object = convert_gef(
-        filepaths=[GEF2],
-        evo_workspace_metadata=evo_metadata,
-        epsg_code=32650,
-        publish_objects=False,
-    )
-    cpt_data = _CPTData.from_gef_object(gef_object, data_client)
+@pytest.mark.asyncio
+async def test_import_gef_2(evo_metadata, data_client):
+    context = TestContext(mock_metadata=evo_metadata)
+
+    with _mock_geoscience_objects(context.get_environment()) as mock_client:
+        gef_object = await convert_gef(
+            filepaths=[GEF2],
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+            # publish_objects=False,
+        )
+
+    gef_object_dict, *_ = mock_client.objects.values()
+    cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
+
+    # TODO - Fix
     cpt_data.verify([_gef_cpt_spec_2])
 
 
-def test_import_multiple_with_different_attributes(evo_metadata, data_client):
-    gef_object = convert_gef(
-        filepaths=[GEF1, GEF2],
-        evo_workspace_metadata=evo_metadata,
-        epsg_code=32650,
-        publish_objects=False,
-    )
-    cpt_data = _CPTData.from_gef_object(gef_object, data_client)
+@pytest.mark.asyncio
+async def test_import_multiple_with_different_attributes(evo_metadata, data_client):
+    context = TestContext(mock_metadata=evo_metadata)
+
+    with _mock_geoscience_objects(context.get_environment()) as mock_client:
+        gef_object = await convert_gef(
+            filepaths=[GEF1, GEF2],
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+            # publish_objects=False,
+        )
+
+    gef_object_dict, *_ = mock_client.objects.values()
+    cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
+
+    # TODO - Fix
     cpt_data.verify([_gef_cpt_spec_1, _gef_cpt_spec_2])
 
     # Spot check that the attributes columns get padded out to null for the GEF data that doesn't have them

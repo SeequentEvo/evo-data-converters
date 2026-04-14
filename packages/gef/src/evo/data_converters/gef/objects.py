@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated, ClassVar, Any
+from typing import Annotated, ClassVar, Any, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -45,6 +45,12 @@ type HoleProperties = pd.DataFrame
 type HoleAttributes = pd.DataFrame
 
 
+class ColumnMapping(TypedDict):
+    depth: str
+    dip: str
+    azimuth: str
+
+
 @dataclass(kw_only=True, frozen=True)
 class DownholeCollectionData(BaseSpatialObjectData):
     """Data class for creating a new DownholeCollection
@@ -61,9 +67,12 @@ class DownholeCollectionData(BaseSpatialObjectData):
     :param extensions: Optional dictionary of extensions for the object.
     """
 
+    # TODO - Remove if unneeded
+    column_mappings: list[ColumnMapping | None] = None
+
     holes: list[HolePath]
 
-    # Schema defined hole properties: id, final, target, current, x, y, z
+    # Schema defined hole properties: hole_id, final, target, current, x, y, z
     properties: HoleProperties
 
     # Data-specific attributes
@@ -77,7 +86,8 @@ class DownholeCollectionData(BaseSpatialObjectData):
 
         for i, hole in enumerate(self.holes):
             collar = tuple(self.properties.loc[i, _COORDINATE_COLUMNS])
-            bboxes.append(self._compute_hole_bounding_box(hole, collar))
+            column_mapping = None if not self.column_mappings else self.column_mappings[i]
+            bboxes.append(self._compute_hole_bounding_box(hole, collar, column_mapping))
 
         return self._combine_bounding_boxes(bboxes)
 
@@ -147,6 +157,7 @@ class DownholeCollectionData(BaseSpatialObjectData):
     def _compute_hole_bounding_box(
         depths_dips_azimuths_table: pd.DataFrame,
         collar: tuple[float, float, float],
+        column_mapping: ColumnMapping | None,
     ) -> BoundingBox:
         """
         Compute 3D bounding box for a deviated hole given collar XYZ and
@@ -168,10 +179,13 @@ class DownholeCollectionData(BaseSpatialObjectData):
 
         df = depths_dips_azimuths_table.dropna(subset=["depth"])
 
+        if column_mapping is None:
+            column_mapping = {"depth": "depth", "dip": "dip", "azimuth": "azimuth"}
+
         box = DownholeCollectionData._compute_bounding_box_np(
-            df["depth"].astype(float).to_numpy(),
-            df["dip"].astype(float).to_numpy(),
-            df["azimuth"].astype(float).to_numpy(),
+            df[column_mapping["depth"]].astype(float).to_numpy(),
+            df[column_mapping["dip"]].astype(float).to_numpy(),
+            df[column_mapping["azimuth"]].astype(float).to_numpy(),
             offset=collar,
         )
 
@@ -222,7 +236,7 @@ class HoleChunks(DataTable):
 class CategoryData(SchemaModel):
     @classmethod
     def _extract_category_table(cls, data: HoleAttributes):
-        return data[["id"]].astype(np.str_)
+        return data[["hole_id"]].astype(np.str_)
 
     @classmethod
     async def _data_to_schema(cls, data: HoleAttributes, context: IContext) -> Any:
@@ -245,6 +259,18 @@ class DownholePath(DataTableAndAttributes):
     @classmethod
     async def _data_to_schema(cls, data: list[HolePath], context: IContext) -> Any:
         combined_df = pd.concat([hole for hole in data], ignore_index=True)
+
+        for col, dtype in zip(combined_df.columns, combined_df.dtypes):
+            # Some columns have a `pint` type extension for their units. This won't work with pyarrow and has to be
+            # stripped out.
+            # TODO - Proper handling of the units. See `attribute_from_pd_series()`
+            if 'pint' in str(dtype):
+                combined_df[col] = combined_df[col].astype(dtype.subdtype.type)
+
+        combined_df["depth"] = combined_df["depth"].astype(float)
+
+
+
         return await super()._data_to_schema(combined_df, context)
 
 
@@ -308,3 +334,10 @@ class DownholeCollection(BaseSpatialObject):
     # ignoring:
     # distance_unit
     # desurvey
+
+    @classmethod
+    async def _data_to_schema(cls, data: DownholeCollectionData, context: IContext) -> dict[str, Any]:
+        object_dict = await super()._data_to_schema(data, context)
+        # TODO - What's the best way to do a constant?
+        object_dict["type"] = "downhole"
+        return object_dict
