@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+import typing
+import uuid
 from dataclasses import dataclass
 from typing import Annotated, ClassVar, Any, TypedDict
 
@@ -18,14 +20,20 @@ import numpy as np
 import pandas as pd
 
 from evo.common.interfaces import IContext
+from evo.common.utils import NoFeedback
 from evo.objects import SchemaVersion
-from evo.objects.utils.table_formats import FLOAT_ARRAY_3, KnownTableFormat, DOWNHOLE_COLLECTION_LOCATION_HOLES
+from evo.objects.utils.table_formats import FLOAT_ARRAY_1, FLOAT_ARRAY_3, KnownTableFormat, \
+    DOWNHOLE_COLLECTION_LOCATION_HOLES, DATE_TIME_ARRAY
+from evo_schemas.elements.unit_length import UnitLength_V1_0_1_UnitCategories
+from evo_schemas.elements.unit import Unit_V1_0_1
 
-from evo.objects.typed._data import DataTable, DataTableAndAttributes
-from evo.objects.typed._model import DataLocation, SchemaLocation, SchemaModel
-from evo.objects.typed.attributes import Attributes
+from evo.objects.typed._data import DataTable
+from evo.objects.typed._utils import get_data_client
+from evo.objects.typed._model import DataLocation, SchemaLocation, SchemaModel, SchemaList, SchemaBuilder
+from evo.objects.typed.attributes import _infer_attribute_type_from_series, Attribute, UnSupportedDataTypeError, _attribute_table_formats
 from evo.objects.typed.spatial import BaseSpatialObject, BaseSpatialObjectData
 from evo.objects.typed.types import BoundingBox
+from evo.objects.typed.exceptions import ObjectValidationError
 
 __all__ = [
     "DownholeCollection",
@@ -40,9 +48,204 @@ _Z = "z"
 _COORDINATE_COLUMNS = [_X, _Y, _Z]
 
 
+# type PathGeometry = pd.DataFrame
 type HolePath = pd.DataFrame
+type HoleChunks = pd.DataFrame
 type HoleProperties = pd.DataFrame
 type HoleAttributes = pd.DataFrame
+type Depths = pd.DataFrame
+
+
+# The below are minimal copies from evo-python-sdk. The copies were done to facilitate an experimental change to
+# support units without having to deal with contributing the change upstream. The intention is to push the change
+# upstream to evo-python-sdk later.
+
+
+assert "date_time" not in _attribute_table_formats
+_attribute_table_formats["date_time"] = [DATE_TIME_ARRAY]
+
+
+def _infer_attribute_type_from_series(series: pd.Series) -> str:
+    """Infer the attribute type from a Pandas Series.
+
+    :param series: The Pandas Series to infer the attribute type from.
+
+    :return: The inferred attribute type.
+    """
+    if pd.api.types.is_integer_dtype(series):
+        return "integer"
+    elif pd.api.types.is_float_dtype(series):
+        return "scalar"
+    elif pd.api.types.is_bool_dtype(series):
+        return "bool"
+    elif isinstance(series.dtype, pd.CategoricalDtype):
+        return "category"
+    elif pd.api.types.is_string_dtype(series):
+        return "string"
+    elif (inferred_type := pd.api.types.infer_dtype(series, skipna=True)) in ['date', 'datetime', 'datetime64']:
+        return "date_time"
+    else:
+        raise UnSupportedDataTypeError(f"Unsupported dtype for attribute: {series.dtype}")
+
+
+class Attributes(SchemaList[Attribute]):
+    """A collection of Geoscience Object Attributes"""
+
+    _schema_path: str | None = None
+    """The full JMESPath to this attributes list within the parent object schema."""
+
+    @classmethod
+    async def _data_to_schema(
+        cls,
+        data: Any,
+        context: IContext,
+    ) -> list[dict[str, Any]]:
+        """Convert a DataFrame to a list of attribute dictionaries for object creation.
+
+        :param df: The DataFrame with columns to convert to attributes, or None.
+        :param context: The context used for data upload operations.
+        :param fb: Optional feedback object to report progress.
+        :return: A list of attribute dictionaries suitable for the object document.
+        """
+        result: list[dict[str, Any]] = []
+        if data is not None:
+            await cls._upload_attributes_to_list(result, data, context)
+        return result
+
+    @staticmethod
+    async def _upload_attributes_to_list(
+        attributes_list: list[dict[str, Any]],
+        df: pd.DataFrame,
+        context: IContext,
+        fb = NoFeedback,
+    ) -> None:
+        """Upload DataFrame columns as attributes and append to the attributes list.
+
+        This is a static operation that doesn't require a model instance.
+
+        :param attributes_list: The list in the document to append attribute dicts to.
+        :param df: The DataFrame with columns to upload as attributes.
+        :param context: The context used for data upload operations.
+        :param fb: Optional feedback object to report progress.
+        """
+        data_client = get_data_client(context)
+
+        for col in df.columns:
+            series = df[col]
+            attribute_type = _infer_attribute_type_from_series(series)
+
+            attr_doc: dict[str, Any] = {
+                "name": str(col),
+                "key": str(uuid.uuid4()),
+                "attribute_type": attribute_type,
+            }
+
+            if attribute_type == "date_time":
+                # TODO - Do I need to do something with the time zone?
+                series = pd.to_datetime(series, utc=True).dt.as_unit("us")
+
+                # TODO - This should be handled in _upload_attribute_values
+                attr_doc["nan_description"] = {"values": []}
+
+            col_df = pd.DataFrame({"col": series})
+
+            # col_df = df[[col]]
+            await Attribute._upload_attribute_values(attr_doc, col_df, attribute_type, data_client)
+
+            # TODO - Is there a better way to do this?
+            #  One awkward thing is that not all the attribute descriptions have all the same fields.
+            attr_desc = df.attrs.get("attribute_descriptions", {}).get(col)
+            if attr_desc is not None:
+                if attr_desc.unit is not None:
+                    attr_doc["attribute_description"] = attr_desc.to_schema()
+
+            attributes_list.append(attr_doc)
+
+
+class DataTableAndAttributes(SchemaModel):
+    """A dataset representing a table of data along with associated attributes.
+
+    Subclasses should redefine the _table property to provide additional details about the data table like:
+    1. the location of it within the schema using SchemaLocation
+    2. the data columns that are expected in the table, which is done by creating a subclass of DataTable,
+    3. the table format used for storing the data, which can also be done by creating a subclass of DataTable.
+
+    e.g.,
+    class LocationTable(DataTable):
+        table_format: ClassVar[KnownTableFormat] = FLOAT_ARRAY_3
+        data_columns: ClassVar[list[str]] = ["x", "y", "z"]
+
+
+    class Locations(DataTableAndAttributes):
+        _table: Annotated[LocationTable, SchemaLocation("coordinates")]
+    """
+
+    attributes: Annotated[Attributes, SchemaLocation("attributes")]
+    _table: DataTable
+
+    @classmethod
+    def _split_dataframe(cls, data: pd.DataFrame, data_columns: list[str]) -> tuple[pd.DataFrame, pd.DataFrame | None]:
+        """Validate and split a DataFrame into table data and attribute data."""
+
+        missing = set(data_columns) - set(data.columns)
+        if missing:
+            raise ObjectValidationError(f"Input DataFrame must have {data_columns} columns. Missing: {missing}")
+
+        table_df = data[data_columns]
+        attr_cols = [col for col in data.columns if col not in data_columns]
+        attr_df = data[attr_cols] if attr_cols else None
+        return table_df, attr_df
+
+    @classmethod
+    async def _data_to_schema(cls, data: Any, context: IContext) -> Any:
+        if not isinstance(data, pd.DataFrame):
+            raise ObjectValidationError(f"Input data must be a pandas DataFrame, but got {type(data)}")
+
+        # Lookup the metadata of the _table sub-model, as sub-classes may redefine it
+        table_metadata = cls._sub_models["_table"]
+        table_type = table_metadata.model_type
+        table_df, attr_df = cls._split_dataframe(data, table_type.data_columns)
+
+        builder = SchemaBuilder(cls, context)
+        await builder.set_sub_model_value("_table", table_df)
+        await builder.set_sub_model_value("attributes", attr_df)
+        return builder.document
+
+
+# Everything below this was not copy/pasted
+
+
+@dataclass
+class DistanceCollection:
+    name: str
+    holes: HoleChunks
+    distance_table: Depths
+    collection_type: str = "distance"
+
+
+@dataclass
+class AttributeDescription:
+    discipline: str = ""
+    type: str = ""
+    unit: Unit_V1_0_1 | None = None
+    scale: str | None = None
+    extensions: dict[str, typing.Any] | None = None
+    tags: dict[str, str] | None = None
+
+    def to_schema(self):
+        result = {
+            "discipline": self.discipline,
+            "type": self.type,
+        }
+        if self.unit:
+            result["unit"] = self.unit
+        if self.scale:
+            result["scale"] = self.scale
+        if self.extensions:
+            result["extensions"] = self.extensions
+        if self.tags:
+            result["tags"] = self.tags
+        return result
 
 
 class ColumnMapping(TypedDict):
@@ -70,7 +273,8 @@ class DownholeCollectionData(BaseSpatialObjectData):
     # TODO - Remove if unneeded
     column_mappings: list[ColumnMapping | None] = None
 
-    holes: list[HolePath]
+    path: HolePath
+    holes: HoleChunks
 
     # Schema defined hole properties: hole_id, final, target, current, x, y, z
     properties: HoleProperties
@@ -78,16 +282,21 @@ class DownholeCollectionData(BaseSpatialObjectData):
     # Data-specific attributes
     attributes: HoleAttributes | None
 
+    collections: list[DistanceCollection]
+
     def __post_init__(self):
         assert self.attributes is None or len(self.holes) == len(self.attributes)
 
     def compute_bounding_box(self) -> BoundingBox:
         bboxes = []
 
-        for i, hole in enumerate(self.holes):
+        for i in range(len(self.holes)):
+            offset = self.holes.iat[i, 1]
+            count = self.holes.iat[i, 2]
             collar = tuple(self.properties.loc[i, _COORDINATE_COLUMNS])
+            path_table = self.path[offset: offset + count]
             column_mapping = None if not self.column_mappings else self.column_mappings[i]
-            bboxes.append(self._compute_hole_bounding_box(hole, collar, column_mapping))
+            bboxes.append(self._compute_hole_bounding_box(path_table, collar, column_mapping))
 
         return self._combine_bounding_boxes(bboxes)
 
@@ -208,28 +417,9 @@ class DownholeCollectionData(BaseSpatialObjectData):
         )
 
 
-class HoleChunks(DataTable):
+class HoleChunksTable(DataTable):
     table_format: ClassVar[KnownTableFormat] = DOWNHOLE_COLLECTION_LOCATION_HOLES
     data_columns: ClassVar[list[str]] = ["hole_index", "offset", "count"]
-
-    @classmethod
-    def _extract_chunks_table(cls, data: list[HolePath]):
-        counts = [len(hole) for hole in data]
-        offsets = np.cumsum([0] + counts[:-1])
-        return pd.DataFrame({
-            "hole_index": list(range(len(data))),
-            "offset": offsets,
-            "count": counts
-        }).astype({
-            "hole_index": np.int32,
-            "offset": np.uint64,
-            "count": np.uint64,
-        })
-
-    @classmethod
-    async def _data_to_schema(cls, data: list[HolePath], context: IContext) -> Any:
-        chunks_table = cls._extract_chunks_table(data)
-        return await super()._data_to_schema(chunks_table, context)
 
 
 # TODO this could be a generic model
@@ -250,28 +440,11 @@ class CategoryData(SchemaModel):
 
 class PathTable(DataTable):
     table_format: ClassVar[KnownTableFormat] = FLOAT_ARRAY_3
-    data_columns: ClassVar[list[str]] = ["depth", "dip", "azimuth"]
+    data_columns: ClassVar[list[str]] = ["depth", "azimuth", "dip"]
 
 
 class DownholePath(DataTableAndAttributes):
     _table: Annotated[PathTable, SchemaLocation(""), DataLocation("")]
-
-    @classmethod
-    async def _data_to_schema(cls, data: list[HolePath], context: IContext) -> Any:
-        combined_df = pd.concat([hole for hole in data], ignore_index=True)
-
-        for col, dtype in zip(combined_df.columns, combined_df.dtypes):
-            # Some columns have a `pint` type extension for their units. This won't work with pyarrow and has to be
-            # stripped out.
-            # TODO - Proper handling of the units. See `attribute_from_pd_series()`
-            if 'pint' in str(dtype):
-                combined_df[col] = combined_df[col].astype(dtype.subdtype.type)
-
-        combined_df["depth"] = combined_df["depth"].astype(float)
-
-
-
-        return await super()._data_to_schema(combined_df, context)
 
 
 class DistancesTable(DataTable):
@@ -304,17 +477,60 @@ class CollarCoordinates(DataTable):
 
 class DownholeLocation(SchemaModel):
     hole_id: Annotated[CategoryData, SchemaLocation("hole_id"), DataLocation("properties")]
-    path: Annotated[DownholePath, SchemaLocation("path"), DataLocation("holes")]
+    path: Annotated[DownholePath, SchemaLocation("path"), DataLocation("path")]
+    holes: Annotated[HoleChunksTable, SchemaLocation("holes"), DataLocation("holes")]
     distances: Annotated[DistancesTable, SchemaLocation("distances"), DataLocation("properties")]
-    holes: Annotated[HoleChunks, SchemaLocation("holes"), DataLocation("holes")]
     coordinates: Annotated[CollarCoordinates, SchemaLocation("coordinates"), DataLocation("properties")]
     attributes: Annotated[Attributes, SchemaLocation("attributes"), DataLocation("attributes")]
 
 
-class DownholeCollections(SchemaModel):
+class ColumnLengthUnits(SchemaModel):
     @classmethod
-    async def _data_to_schema(cls, data: Any, context: IContext) -> Any:
-        return []
+    async def _data_to_schema(cls, data: Depths, context: IContext) -> Any:
+        attr_desc = data.attrs.get("attribute_descriptions", {}).get("depth")
+        if attr_desc is None:
+            return None
+        else:
+            return attr_desc.unit
+
+
+class _Distances(DataTable):
+    table_format: ClassVar[KnownTableFormat] = FLOAT_ARRAY_1
+    data_columns: ClassVar[list[str]] = ["depth"]
+
+
+class DistanceTableDistances(DataTableAndAttributes):
+    _table: Annotated[_Distances, SchemaLocation("values"), DataLocation("")]
+    unit: Annotated[ColumnLengthUnits, SchemaLocation("unit"), DataLocation("")]
+
+    @classmethod
+    async def _data_to_schema(cls, data: pd.DataFrame, context: IContext) -> Any:
+        # TODO - Is there a better way to do this?
+        result = await super()._data_to_schema(data, context)
+        builder = SchemaBuilder(cls, context)
+        await builder.set_sub_model_value("unit", data)
+        result.update(**builder.document)
+        return result
+
+
+class DistanceTable(SchemaModel):
+    name: Annotated[str, SchemaLocation("name"), DataLocation("name")]
+    collection_type: Annotated[str, SchemaLocation("collection_type"), DataLocation("collection_type")]
+    distance: Annotated[DistanceTableDistances, SchemaLocation("distance"), DataLocation("distance_table")]
+
+
+class DownholeDistanceTable(DistanceTable):
+    holes: Annotated[HoleChunksTable, SchemaLocation("holes"), DataLocation("holes")]
+
+
+class DownholeCollectionTables(SchemaModel):
+    @classmethod
+    async def _data_to_schema(cls, data: list[DistanceCollection], context: IContext) -> Any:
+        results = []
+        for distance_collection in data:
+            results.append(await DownholeDistanceTable._data_to_schema(distance_collection, context))
+        return results
+
 
 
 class DownholeCollection(BaseSpatialObject):
@@ -328,7 +544,7 @@ class DownholeCollection(BaseSpatialObject):
 
     # There isn't currently a workflow that requires the `collections` part of the schema. But it is a required field
     # so it has been hard-coded to an empty list (see `DownholeCollections` above).
-    collections: Annotated[DownholeCollections, SchemaLocation("collections")]
+    collections: Annotated[DownholeCollectionTables, SchemaLocation("collections"), DataLocation("collections")]
 
     # TODO - Do these need to be handled?
     # ignoring:

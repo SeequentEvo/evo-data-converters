@@ -15,7 +15,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import polars as pl
-from pint_pandas import PintType as _  # noqa: F401
+from pint_pandas import PintType
 from pygef.cpt import CPTData
 
 import evo.logging
@@ -37,7 +37,8 @@ from .gef_spec import (
     MEASUREMENT_UNITS,
     MEASUREMENT_VAR_NAMES,
 )
-from ..objects import DownholeCollectionData
+from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
+from ...common.objects.units import UnitMapper
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -67,6 +68,18 @@ class DownholeCollectionBuilder:
         "current": "float64",
         "target": "float64",
     }
+
+    PATH_ATTRIBUTES: list[str] = [
+        # "depth",
+        "dip",
+        "azimuth",
+        "depthOffset",
+        "delapsedTime",
+        "inclinationEW",
+        "inclinationNS",
+        "inclinationResultant",
+        "depth_vertical",
+    ]
 
     def __init__(self, tags: dict[str, typing.Any] | None) -> None:
         self.epsg_code: int | str | None = None
@@ -421,21 +434,78 @@ class DownholeCollectionBuilder:
         self, collection_name: str, collars_df: pd.DataFrame
     ) -> DownholeCollectionData:
 
+
         hole_properties = collars_df[list(self.COLLAR_DTYPES.keys())]
         attributes = collars_df[[col for col in collars_df.columns if col not in list(self.COLLAR_DTYPES.keys())]]
-
-        # TODO - `typed\attributes.py` doesn't handle datetimes right now. I'm just kludging through this. See
-        #  `_infer_attribute_type_from_series()`. Also see also `attribute_from_pd_series()`.
-        attributes = attributes.astype(np.str_)
+        attributes = self._process_pint_columns(attributes)
+        hole_descriptions = self._build_hole_descriptions()
+        combined_table = self._prepare_combined_table()
+        paths = self._build_paths(combined_table)
+        collections = self._build_collections(combined_table, hole_descriptions)
 
         return DownholeCollectionData(
             name=collection_name,
             tags=self.tags,
             coordinate_reference_system=self._get_crs(),
-            holes=self.measurement_dfs,
+            path=paths,
+            collections=collections,
+            holes=hole_descriptions,
             properties=hole_properties,
             attributes=attributes,
         )
+
+    def _process_pint_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        for col in df.columns:
+            series = df[col]
+            if isinstance(series.dtype, PintType):
+                unit = UnitMapper.lookup(series.dtype)
+                if unit is not None:
+                    df.attrs.setdefault("attribute_descriptions", {})[col] = AttributeDescription(unit=unit)
+                df[col] = series.pint.magnitude
+        return df
+
+    def _prepare_combined_table(self) -> pd.DataFrame:
+        combined_table = pd.concat(self.measurement_dfs, ignore_index=True)
+        return self._process_pint_columns(combined_table)
+
+
+    def _build_hole_descriptions(self) -> pd.DataFrame:
+        hole_sizes = {
+            'hole_index': [],
+            'offset': [],
+            'count': [],
+        }
+        begin = 0
+        for i, df in enumerate(self.measurement_dfs):
+            count = len(df)
+
+            hole_sizes['hole_index'].append(i)
+            hole_sizes['offset'].append(begin)
+            hole_sizes['count'].append(count)
+
+            begin += count
+
+        return pd.DataFrame(hole_sizes).astype({
+            "hole_index": np.int32, "offset": np.uint64, "count": np.uint64,
+        })
+
+    def _build_paths(self, combined_table: pd.DataFrame) -> pd.DataFrame:
+        # combined_table = pd.concat(self.measurement_dfs, ignore_index=True)
+
+        path_attr_columns = ["depth"] + [col for col in combined_table.columns if col in  self.PATH_ATTRIBUTES]
+
+        paths_df = combined_table[path_attr_columns]
+        return paths_df
+
+    def _build_collections(self, combined_table: pd.DataFrame, holes: pd.DataFrame) -> list[DistanceCollection]:
+        distance_collection_attrs = [col for col in combined_table.columns if col not in self.PATH_ATTRIBUTES]
+        distance_collection_df = combined_table[distance_collection_attrs]
+        dc = DistanceCollection(
+            name="cpt",
+            holes=holes,
+            distance_table=distance_collection_df,
+        )
+        return [dc]
 
 
 def create_from_parsed_gef_cpts(
