@@ -49,19 +49,7 @@ See the documentation for each converter for information on how to use the data 
 
 For the data converter's common framework package, see [`evo-data-converters-common`](packages/common/README.md).
 
-Currently supported converters are:
- * [OMF](packages/omf/README.md)
- * [RESQML](packages/resqml/README.md)
- * [VTK](packages/vtk/README.md)
- * [UBC](packages/ubc/README.md)
- * [GOCAD](packages/gocad/README.md)
- * [DUF](packages/duf/README.md)
- * [Image](packages/image/README.md)
- * [OBJ](packages/obj/README.md)
- * [SHP](packages/shp/README.md)
- * [XYZ](packages/xyz/README.md)
-
- To use any of the data converters, you will need a few things:
+To use any of the data converters, you will need a few things:
   * An *access token* for your user
   * The *organisation ID*, *hub URL* and *workspace ID* that you would like to import your data to, or export it from.
 
@@ -96,15 +84,15 @@ It should open a browser where you can open the notebooks for the current direct
 
 For examples of how to use Evo data converters, please refer to the samples in each convertor of the `packages` directory.
 
-   * [OMF](packages/omf/code-samples)
-   * [RESQML](packages/resqml/code-samples)
-   * [VTK](packages/vtk/code-samples)
-   * [UBC](packages/ubc/code-samples)
-   * [GOCAD](packages/gocad/code-samples)
    * [DUF](packages/duf/code-samples)
+   * [GOCAD](packages/gocad/code-samples)
    * [Image](packages/image/code-samples)
    * [OBJ](packages/obj/code-samples)
+   * [OMF](packages/omf/code-samples)
+   * [RESQML](packages/resqml/code-samples)
    * [SHP](packages/shp/code-samples)
+   * [UBC](packages/ubc/code-samples)
+   * [VTK](packages/vtk/code-samples)
    * [XYZ](packages/xyz/code-samples)
 
 ## Contributing
@@ -131,7 +119,7 @@ We rely on an open, friendly, inclusive environment. To help us ensure this rema
 ## License
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at
