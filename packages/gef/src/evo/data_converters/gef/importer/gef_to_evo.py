@@ -25,6 +25,7 @@ from evo.data_converters.common.objects.downhole_collection_to_geoscience_object
     DownholeCollectionToGeoscienceObject,
 )
 from evo.data_converters.gef.converter import create_from_parsed_gef_cpts, parse_gef_files
+from evo.objects import ObjectReference
 from evo.objects.data import ObjectMetadata
 
 from evo.data_converters.gef.objects import DownholeCollection
@@ -100,5 +101,10 @@ async def convert_gef(
     # TODO - Does this make sense using the "typed" objects? What is expected to happen if publish_objects=False?
     if publish_objects:
         logger.debug("Publishing Geoscience Object")
-        # TODO - Need to update when appropriate
-        return await DownholeCollection.create(context, downhole_collection_data, path=upload_path)
+        if overwrite_existing_objects:
+            if not upload_path.lower().endswith(".json"):
+                upload_path += ".json"
+            ref = ObjectReference.new(data_client._environment, object_path=upload_path)
+            return await DownholeCollection.create_or_replace(context, ref, downhole_collection_data)
+        else:
+            return await DownholeCollection.create(context, downhole_collection_data, path=upload_path)
