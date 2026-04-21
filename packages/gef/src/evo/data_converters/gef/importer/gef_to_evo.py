@@ -46,7 +46,7 @@ async def convert_gef(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
-) -> DownholeCollection | None:
+) -> list[ObjectMetadata] | None:
     """Converts a collection of GEF-CPT files into a Downhole Collection Geoscience Object.
 
     One of evo_workspace_metadata or service_manager_widget is required.
@@ -105,6 +105,6 @@ async def convert_gef(
             if not upload_path.lower().endswith(".json"):
                 upload_path += ".json"
             ref = ObjectReference.new(data_client._environment, object_path=upload_path)
-            return await DownholeCollection.create_or_replace(context, ref, downhole_collection_data)
+            return [(await DownholeCollection.create_or_replace(context, ref, downhole_collection_data)).metadata]
         else:
-            return await DownholeCollection.create(context, downhole_collection_data, path=upload_path)
+            return [(await DownholeCollection.create(context, downhole_collection_data, path=upload_path)).metadata]
