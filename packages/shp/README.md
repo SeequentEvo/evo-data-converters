@@ -1,6 +1,6 @@
 <p align="center"><a href="https://seequent.com" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="https://developer.seequent.com/img/seequent-logo-dark.svg" alt="Seequent logo" width="400" /><img src="https://developer.seequent.com/img/seequent-logo.svg" alt="Seequent logo" width="400" /></picture></a></p>
 <p align="center">
-    <a href="https://pypi.org/project/evo-data-converters-obj/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>
+    <a href="https://pypi.org/project/evo-data-converters-shp/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-shp" /></a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml"><img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt="" /></a>
 </p>
 <p align="center">
@@ -52,7 +52,7 @@ We rely on an open, friendly, inclusive environment. To help us ensure this rema
 ## License
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at

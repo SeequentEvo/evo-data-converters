@@ -36,11 +36,16 @@ This framework (`evo.data_converters.common`) can be used to build custom data c
 data.
 
 For an existing set of supported data converters, see:
+* [DUF](../duf/README.md)
 * [GOCAD](../gocad/README.md)
+* [Image](../image/README.md)
+* [OBJ](../obj/README.md)
 * [OMF](../omf/README.md)
 * [RESQML](../resqml/README.md)
+* [SHP](../shp/README.md)
 * [UBC](../ubc/README.md)
 * [VTK](../vtk/README.md)
+* [XYZ](../xyz/README.md)
 
 Data converters can be optionally both an importer and an exporter.
 
@@ -273,7 +278,7 @@ We rely on an open, friendly, inclusive environment. To help us ensure this rema
 ## License
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at

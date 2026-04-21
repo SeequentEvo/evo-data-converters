@@ -1,6 +1,6 @@
 <p align="center"><a href="https://seequent.com" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="https://developer.seequent.com/img/seequent-logo-dark.svg" alt="Seequent logo" width="400" /><img src="https://developer.seequent.com/img/seequent-logo.svg" alt="Seequent logo" width="400" /></picture></a></p>
 <p align="center">
-    <a href="https://pypi.org/project/evo-data-converters-obj/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>
+    <a href="https://pypi.org/project/evo-data-converters-xyz/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-xyz" /></a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml"><img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt="" /></a>
 </p>
 <p align="center">
@@ -48,7 +48,7 @@ The XYZ converter currently supports:
 
 ### Publish geoscience objects from an XYZ file(s)
 
-The [`evo-sdk-common`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) Python library can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-xyz`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/geosoft-xyz) to convert your file.
+The [`evo-sdk-common`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) Python library can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-xyz`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/xyz) to convert your file.
 
 Have a look at the `code-samples/convert-xyz.ipynb` notebook for an example of how to publish XYZ files.
 
