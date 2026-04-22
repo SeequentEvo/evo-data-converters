@@ -20,12 +20,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
-from uuid import uuid4, UUID
+from uuid import UUID
 
 import numpy
 import pandas as pd
 import pytest
-from evo_schemas.objects import DownholeCollection_V1_3_0 as DownholeCollectionGo
 from packages.gef.tests.consts import GEF1, GEF2, GEF_XML_MULTIPLE
 
 from evo.common.connector import APIConnector
@@ -38,96 +37,8 @@ from evo.objects.data import ObjectSchema, ObjectReference
 from evo_schemas.objects.downhole_collection import DownholeCollection_V1_3_1
 
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
-from evo.data_converters.common.objects.downhole_collection import DownholeCollection
-from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
-    DownholeCollectionToGeoscienceObject,
-)
 from evo.data_converters.gef.importer import convert_gef
 from evo.data_converters.gef.objects import DownholeCollection, DownholeCollectionData
-from evo.objects.data import ObjectMetadata
-
-
-class TestConvertGef:
-    """Test the convert_gef function behaves as intended."""
-
-    @pytest.fixture
-    def sample_filepaths(self):
-        """Sample file paths for testing."""
-        return [Path("test1.gef"), Path("test2.gef")]
-
-    @pytest.fixture
-    def workspace_metadata(self):
-        """Mock workspace metadata with hub_url."""
-        hub_url = "https://example.org"
-        cache_root = tempfile.TemporaryDirectory()
-        return EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=cache_root.name, hub_url=hub_url)
-
-    @pytest.fixture
-    def mock_downhole_collection_go(self):
-        """Mock downhole collection geoscience object."""
-        dhc_go = Mock(spec=DownholeCollectionGo)
-        dhc_go.tags = {}
-        return dhc_go
-
-    @pytest.fixture
-    def mock_downhole_collection(self):
-        """Mock downhole collection intermediary object."""
-        dhc = Mock(spec=DownholeCollection)
-        return dhc
-
-    @pytest.fixture
-    def mock_object_metadata(self):
-        """Mock object metadata."""
-        return Mock(spec=ObjectMetadata)
-
-    @patch("evo.data_converters.gef.importer.gef_to_evo.publish_geoscience_objects_sync")
-    @patch("evo.data_converters.gef.importer.gef_to_evo.create_evo_object_service_and_data_client")
-    @patch("evo.data_converters.gef.importer.gef_to_evo.create_from_parsed_gef_cpts")
-    @patch("evo.data_converters.gef.importer.gef_to_evo.parse_gef_files")
-    @patch("evo.data_converters.gef.importer.gef_to_evo.DownholeCollectionToGeoscienceObject")
-    def test_convert_gef_with_workspace_metadata_and_hub_url(
-        self,
-        mock_converter,
-        mock_parse_files,
-        mock_create_collection,
-        mock_create_clients,
-        mock_publish,
-        sample_filepaths,
-        workspace_metadata,
-        mock_downhole_collection,
-        mock_downhole_collection_go,
-        mock_object_metadata,
-    ):
-        """Test conversion with workspace metadata and hub_url - should publish."""
-        collection_name = "Test Collection"
-
-        mock_create_clients.return_value = (Mock(), Mock())
-        mock_converter.return_value = Mock(
-            spec=DownholeCollectionToGeoscienceObject, convert=Mock(return_value=mock_downhole_collection_go)
-        )
-        mock_parse_files.return_value = Mock()
-        mock_create_collection.return_value = mock_downhole_collection
-        mock_publish.return_value = mock_object_metadata
-
-        result = convert_gef(
-            name=collection_name, filepaths=sample_filepaths, evo_workspace_metadata=workspace_metadata
-        )
-
-        assert result == mock_object_metadata
-        assert isinstance(result, ObjectMetadata)
-        mock_publish.assert_called_once()
-
-        mock_create_collection.assert_called_once()
-        assert mock_create_collection.call_args.kwargs["name"] == collection_name
-
-        # Check tags were added
-        expected_tags = {
-            "Source": "GEF-CPT files (via Evo Data Converters)",
-            "Stage": "Experimental",
-            "InputType": "GEF-CPT",
-        }
-        for key, value in expected_tags.items():
-            assert mock_downhole_collection_go.tags[key] == value
 
 
 @dataclass

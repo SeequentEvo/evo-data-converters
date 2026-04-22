@@ -12,17 +12,11 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from evo_schemas.objects import DownholeCollection_V1_3_1
-
 from evo.common.context import StaticContext
 import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
-)
-from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
-    DownholeCollectionToGeoscienceObject,
 )
 from evo.data_converters.gef.converter import create_from_parsed_gef_cpts, parse_gef_files
 from evo.objects import ObjectReference
