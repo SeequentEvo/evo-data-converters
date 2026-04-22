@@ -21,14 +21,6 @@ from pygef.cpt import CPTData
 import evo.logging
 from evo.objects.typed.types import EpsgCode
 
-
-from evo.data_converters.common.objects.downhole_collection import (
-    ColumnMapping,
-    DownholeCollection,
-    HoleCollars,
-    create_measurement_table,
-)
-
 from .gef_spec import (
     COLLAR_ATTRIBUTES,
     COMPUTED,
@@ -118,11 +110,9 @@ class DownholeCollectionBuilder:
         :raises ValueError: If EPSG code was not set during processing
         """
         self._validate_epsg_code()
-
-        collars_df = self._create_collars_dataframe()
         collection_name = self.collection_name or self._generate_collection_name()
 
-        return self._create_collection(collection_name, collars_df)
+        return self._create_collection(collection_name)
 
     def set_name(self, name: str) -> None:
         self.collection_name = name
@@ -387,12 +377,29 @@ class DownholeCollectionBuilder:
 
         return df
 
-    def _create_collars_dataframe(self) -> pd.DataFrame:
+    @staticmethod
+    def _combine_collar_rows(rows: dict[str, typing.Any]) -> pd.DataFrame:
+        table = pd.DataFrame(rows)
+        for col in table.columns:
+            series = table[col]
+            # Columns could have NA if the different rows have differing fields. Update integer and string columns to be
+            # compatible with the schema and future processing.
+            if series.isna().any():
+                inferred_type: str = pd.api.types.infer_dtype(series, skipna=True)
+                if inferred_type == "integer":
+                    table[col] = series.astype("Int64")
+                elif inferred_type == "string":
+                    table[col] = series.astype("string")
+        return table
+
+    def _build_collars_dataframe(self) -> pd.DataFrame:
         """Create the collars DataFrame from accumulated collar rows.
 
         :return: Pandas DataFrame with typed collar data
         """
-        df = pd.DataFrame(self.collar_rows)
+        # Build up a mapping for all of the
+
+        df = self._combine_collar_rows(self.collar_rows)
         df["target"] = df["current"] = df["final_depth"]
         df = df.rename(columns={"final_depth": "final"})
 
@@ -430,10 +437,9 @@ class DownholeCollectionBuilder:
         return EpsgCode(self.epsg_code)
 
     def _create_collection(
-        self, collection_name: str, collars_df: pd.DataFrame
+        self, collection_name: str,
     ) -> DownholeCollectionData:
-
-
+        collars_df = self._build_collars_dataframe()
         hole_properties = collars_df[list(self.COLLAR_DTYPES.keys())]
         attributes = collars_df[[col for col in collars_df.columns if col not in list(self.COLLAR_DTYPES.keys())]]
         attributes = self._process_pint_columns(attributes)

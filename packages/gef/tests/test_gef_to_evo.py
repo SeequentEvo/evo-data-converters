@@ -259,8 +259,18 @@ class _CPTData:
         assert math.isclose(sum_azimuths, spec.sum_azimuths, rel_tol=1e-5)
         assert math.isclose(sum_dips, spec.sum_dips, rel_tol=1e-5)
 
-    def verify_bounding_box(self, index: int, spec: _CPTSpec):
-        assert spec.bbox == self.bbox
+    def verify_bounding_box(self, specs: list[_CPTSpec]):
+        min_xs, max_xs, min_ys, max_ys, min_zs, max_zs = zip(*[spec.bbox for spec in specs], strict=True)
+        expected_bbox = (
+            min(min_xs),
+            max(max_xs),
+            min(min_ys),
+            max(max_ys),
+            min(min_zs),
+            max(max_zs),
+        )
+
+        assert numpy.isclose(expected_bbox, self.bbox).all()
 
     def verify(self, specs: list[_CPTSpec]):
         expected_attribute_columns = set().union(*[spec.attributes.keys() for spec in specs])
@@ -276,7 +286,8 @@ class _CPTData:
             self.verify_collar_locations(i, spec)
             self.verify_attributes(i, spec, expected_attribute_columns)
             self.verify_path_tables(i, spec)
-            self.verify_bounding_box(i, spec)
+
+        self.verify_bounding_box(specs)
 
 
 def _load_distance_collection(gef_object, data_client):
@@ -563,12 +574,12 @@ async def test_import_multiple_with_different_attributes(evo_metadata, data_clie
 
     # Spot check that the collar attributes also get padded to null
     for attr in _gef_cpt_spec_1.collar_attributes.keys() - _gef_cpt_spec_2.collar_attributes.keys():
-        assert cpt_data.collar_attributes[attr].iloc[0] is not None
-        assert cpt_data.collar_attributes[attr].iloc[1] is None
+        assert cpt_data.collar_attributes[attr].iloc[0] is not pd.NA
+        assert cpt_data.collar_attributes[attr].iloc[1] is pd.NA
 
     for attr in _gef_cpt_spec_2.collar_attributes.keys() - _gef_cpt_spec_1.collar_attributes.keys():
-        assert cpt_data.collar_attributes[attr].iloc[0] is None
-        assert cpt_data.collar_attributes[attr].iloc[1] is not None
+        assert cpt_data.collar_attributes[attr].iloc[0] is pd.NA
+        assert cpt_data.collar_attributes[attr].iloc[1] is not pd.NA
 
 
 # TODO Fix this
