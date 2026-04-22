@@ -432,8 +432,6 @@ async def test_import_gef_1(evo_metadata, data_client):
 
     gef_object_dict, *_ = mock_client.objects.values()
     cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
-
-    # TODO - Fix
     cpt_data.verify([_gef_cpt_spec_1])
 
 
@@ -451,8 +449,6 @@ async def test_import_gef_2(evo_metadata, data_client):
 
     gef_object_dict, *_ = mock_client.objects.values()
     cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
-
-    # TODO - Fix
     cpt_data.verify([_gef_cpt_spec_2])
 
 
@@ -470,8 +466,6 @@ async def test_import_multiple_with_different_attributes(evo_metadata, data_clie
 
     gef_object_dict, *_ = mock_client.objects.values()
     cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
-
-    # TODO - Fix
     cpt_data.verify([_gef_cpt_spec_1, _gef_cpt_spec_2])
 
     # Spot check that the attributes columns get padded out to null for the GEF data that doesn't have them

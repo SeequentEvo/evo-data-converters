@@ -80,20 +80,19 @@ class DownholeCollectionBuilder:
         self.nan_values_by_attribute: dict[str, list[typing.Any]] = defaultdict(list)
         self.tags = tags
 
-    def process_cpt_file(self, hole_index: int, hole_id: str, cpt_data: CPTData, filepath: str) -> None:
+    def process_cpt_file(self, hole_id: str, cpt_data: CPTData, filepath: str) -> None:
         """Process a single CPT file and add to the collection.
 
-        :param hole_index: Sequential index for this hole
         :param hole_id: Unique identifier for this hole
         :param cpt_data: Parsed CPT data object
         :param filepath: Path of the file that was parsed
         """
         self._validate_and_set_epsg(cpt_data, hole_id, filepath)
 
-        collar_row = self._create_collar_row(hole_index, hole_id, cpt_data)
+        collar_row = self._create_collar_row(hole_id, cpt_data)
         self.collar_rows.append(collar_row)
 
-        measurements = self._prepare_measurements(hole_index, cpt_data)
+        measurements = self._prepare_measurements(cpt_data)
 
 
         self.measurement_dfs.append(measurements)
@@ -247,10 +246,9 @@ class DownholeCollectionBuilder:
 
         return raw_header_info
 
-    def _create_collar_row(self, hole_index: int, hole_id: str, cpt_data: CPTData) -> dict[str, typing.Any]:
+    def _create_collar_row(self, hole_id: str, cpt_data: CPTData) -> dict[str, typing.Any]:
         """Create a collar data row for a single hole.
 
-        :param hole_index: Sequential index for this hole
         :param hole_id: Unique identifier for this hole
         :param cpt_data: CPT data object
 
@@ -259,7 +257,6 @@ class DownholeCollectionBuilder:
         final_depth = self._calculate_final_depth(cpt_data, hole_id)
 
         collar_data = {
-            # "hole_index": hole_index,
             "hole_id": hole_id,
             "x": cpt_data.delivered_location.x,
             "y": cpt_data.delivered_location.y,
@@ -270,10 +267,9 @@ class DownholeCollectionBuilder:
         raw_header_info = self._get_raw_header_info(cpt_data)
         return collar_data | collar_attributes | raw_header_info
 
-    def _prepare_measurements(self, hole_index: int, cpt_data: CPTData) -> pd.DataFrame:
-        """Prepare measurements DataFrame with hole_index as first column.
+    def _prepare_measurements(self, cpt_data: CPTData) -> pd.DataFrame:
+        """Prepare measurements DataFrame.
 
-        :param hole_index: Sequential index for this hole
         :param cpt_data: CPT data object
 
         :return: Pandas DataFrame with measurements
@@ -419,7 +415,7 @@ class DownholeCollectionBuilder:
             return measurements
         else:
             logger.warning("No measurement data found in CPT files")
-            return pd.DataFrame(columns=["hole_index"])
+            return pd.DataFrame()
 
     def _generate_collection_name(self) -> str:
         """Generate a collection name from collar data.
@@ -473,7 +469,6 @@ class DownholeCollectionBuilder:
         combined_table = pd.concat(self.measurement_dfs, ignore_index=True)
         return self._process_pint_columns(combined_table)
 
-
     def _build_hole_descriptions(self) -> pd.DataFrame:
         hole_sizes = {
             'hole_index': [],
@@ -495,10 +490,7 @@ class DownholeCollectionBuilder:
         })
 
     def _build_paths(self, combined_table: pd.DataFrame) -> pd.DataFrame:
-        # combined_table = pd.concat(self.measurement_dfs, ignore_index=True)
-
         path_attr_columns = ["distance"] + [col for col in combined_table.columns if col in  self.PATH_ATTRIBUTES]
-
         paths_df = combined_table[path_attr_columns]
         return paths_df
 
@@ -537,7 +529,7 @@ def create_from_parsed_gef_cpts(
     if name:
         builder.set_name(name)
 
-    for hole_index, (hole_id, (filepath, cpt_data)) in enumerate(parsed_cpt_files.items(), start=1):
-        builder.process_cpt_file(hole_index, hole_id, cpt_data, filepath)
+    for hole_id, (filepath, cpt_data) in parsed_cpt_files.items():
+        builder.process_cpt_file(hole_id, cpt_data, filepath)
 
     return builder.build()
