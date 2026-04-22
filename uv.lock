@@ -843,6 +843,7 @@ dev = [
     { name = "pandas-stubs" },
     { name = "pyarrow-stubs" },
     { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "requests-mock" },
     { name = "ruff" },
 ]
@@ -850,9 +851,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp" },
-    { name = "evo-objects", specifier = ">=0.3.0" },
-    { name = "evo-schemas", specifier = ">=2025.9.12" },
-    { name = "evo-sdk-common", specifier = ">=0.4.2" },
+    { name = "evo-objects", specifier = ">=0.4.2" },
+    { name = "evo-schemas", specifier = ">=2026.1.8" },
+    { name = "evo-sdk-common", specifier = ">=0.5.21" },
     { name = "nest-asyncio" },
     { name = "numpy", specifier = ">=1.26.3" },
     { name = "pandas", specifier = ">=2.3.1" },
@@ -869,6 +870,7 @@ dev = [
     { name = "pandas-stubs", specifier = ">=2.3.2.250926" },
     { name = "pyarrow-stubs", specifier = ">=20.0.0.20251104" },
     { name = "pytest", specifier = ">=8.2" },
+    { name = "pytest-asyncio" },
     { name = "requests-mock" },
     { name = "ruff" },
 ]
@@ -1125,41 +1127,41 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-objects"
-version = "0.3.3"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "evo-sdk-common", extra = ["jmespath"] },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/38/12b1117901e504fc7e78baca8fee76bb076ad74a32fa4b8c5951023772c3/evo_objects-0.3.3.tar.gz", hash = "sha256:275548aabed772a3a193313f746ea843542f7b24d61e7680d7a8cab16038e880", size = 39222, upload-time = "2025-11-16T20:53:18.024Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/36/550bb291a9877367871841b67668db59442e73b893ae3d10697e07fb218f/evo_objects-0.4.2.tar.gz", hash = "sha256:b19c6656c5c8f3bd38b5ddbcc4eb3d8f063812c5111878378faf6ccf597be411", size = 73816, upload-time = "2026-03-24T02:46:38.405Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/48/e91efffc8e57d3f4e3027ff57b090e6d929982429d31438efd74aca1533a/evo_objects-0.3.3-py3-none-any.whl", hash = "sha256:94b68f2142e0e66be453e58aadabf869e41a3ee1ba9b3f2132ce74517381a732", size = 60077, upload-time = "2025-11-16T20:53:16.745Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/fa/4b9b1f52f60fe9dd573186b66a8302e79f73823ae1f9960a503472f2c566/evo_objects-0.4.2-py3-none-any.whl", hash = "sha256:0338b069bec29d607ecdd1f22803eb47e093e41b540858d9f950231e5ffda33a", size = 110299, upload-time = "2026-03-24T02:46:36.717Z" },
 ]
 
 [[package]]
 name = "evo-schemas"
-version = "2025.12.15"
+version = "2026.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonpointer" },
     { name = "rfc3986-validator" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/47/76ed5353dc433a4d0e263a3df32b804a2b7418461f1f297733d16670181c/evo_schemas-2025.12.15-py3-none-any.whl", hash = "sha256:1eac7a784a54f9d1584302468baf6e537163c13665b26f14b30a183daae59e44", size = 534117, upload-time = "2025-12-15T22:00:30.808Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/08/6641ba467ceb255fa8113017c8c90601f623b8c657838f891eaadebd7459/evo_schemas-2026.1.8-py3-none-any.whl", hash = "sha256:87e7496fe90d454286542d79932b00ba8c3199e5297a49171ef1cbff53227e78", size = 538261, upload-time = "2026-01-08T00:58:52.981Z" },
 ]
 
 [[package]]
 name = "evo-sdk-common"
-version = "0.5.12"
+version = "0.5.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pure-interface" },
     { name = "pydantic" },
     { name = "python-dateutil" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/36/7e0fc8ad98fe0f595b735ef0775fa5bd341b2ca9e6e2c5dbc8cc1a3b58d7/evo_sdk_common-0.5.12.tar.gz", hash = "sha256:6cf4c60328750e7c3e153126a5c610c7e658b34a8aac2109516d3632ee327ece", size = 113664, upload-time = "2025-12-01T23:23:45.938Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/e0/865de6367b630232d28f9c844fe68c50e7a1422449842e57c5e8b98c69f8/evo_sdk_common-0.5.21.tar.gz", hash = "sha256:b031c2d9435562af055be7ff04e2e65b196a64ec295a4a72057b9bc176be0a05", size = 117829, upload-time = "2026-03-17T18:17:06.425Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/1f/4586560812873a1850d740224e668b256424b6d3df2985f350ab212d54b9/evo_sdk_common-0.5.12-py3-none-any.whl", hash = "sha256:8b9d666b180c7139d569411812718611dacd344197f54bcc7f0ac5c20a0d203d", size = 178344, upload-time = "2025-12-01T23:23:44.381Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/4a/67d0fbf3efcf19bcddc6e7ec71cff34ce8e605f0bf4638dee3f29b785815/evo_sdk_common-0.5.21-py3-none-any.whl", hash = "sha256:4641b9453bb2644d1b088df116d486b36acfa1d39a96e599595c0031f70b8325", size = 180686, upload-time = "2026-03-17T18:17:04.997Z" },
 ]
 
 [package.optional-dependencies]
@@ -3470,18 +3472,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-mock"
-version = "3.15.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pytest" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/68/14/eb014d26be205d38ad5ad20d9a80f7d201472e08167f0bb4361e251084a9/pytest_mock-3.15.1.tar.gz", hash = "sha256:1849a238f6f396da19762269de72cb1814ab44416fa73a8686deac10b0d87a0f", size = 34036, upload-time = "2025-09-16T16:37:27.081Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/cc/06253936f4a7fa2e0f48dfe6d851d9c56df896a9ab09ac019d70b760619c/pytest_mock-3.15.1-py3-none-any.whl", hash = "sha256:0a25e2eb88fe5168d535041d09a4529a188176ae608a6d249ee65abc0949630d", size = 10095, upload-time = "2025-09-16T16:37:25.734Z" },
-]
-
-[[package]]
 name = "pytest-asyncio"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3493,6 +3483,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/90/2c/8af215c0f776415f3590cac4f9086ccefd6fd463befeae41cd4d3f193e5a/pytest_asyncio-1.3.0.tar.gz", hash = "sha256:d7f52f36d231b80ee124cd216ffb19369aa168fc10095013c6b014a34d3ee9e5", size = 50087, upload-time = "2025-11-10T16:07:47.256Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/35/f8b19922b6a25bc0880171a2f1a003eaeb93657475193ab516fd87cac9da/pytest_asyncio-1.3.0-py3-none-any.whl", hash = "sha256:611e26147c7f77640e6d0a92a38ed17c3e9848063698d5c93d5aa7aa11cebff5", size = 15075, upload-time = "2025-11-10T16:07:45.537Z" },
+]
+
+[[package]]
+name = "pytest-mock"
+version = "3.15.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/68/14/eb014d26be205d38ad5ad20d9a80f7d201472e08167f0bb4361e251084a9/pytest_mock-3.15.1.tar.gz", hash = "sha256:1849a238f6f396da19762269de72cb1814ab44416fa73a8686deac10b0d87a0f", size = 34036, upload-time = "2025-09-16T16:37:27.081Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/cc/06253936f4a7fa2e0f48dfe6d851d9c56df896a9ab09ac019d70b760619c/pytest_mock-3.15.1-py3-none-any.whl", hash = "sha256:0a25e2eb88fe5168d535041d09a4529a188176ae608a6d249ee65abc0949630d", size = 10095, upload-time = "2025-09-16T16:37:25.734Z" },
 ]
 
 [[package]]
