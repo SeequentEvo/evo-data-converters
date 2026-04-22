@@ -386,13 +386,13 @@ class DownholeCollectionData(BaseSpatialObjectData):
         #  - Do the units need to be taken into account? The elements of the columns are `pint.Quantity`. It's not
         #     clear how these values correspond to the other units of the published object.
 
-        df = depths_dips_azimuths_table.dropna(subset=["depth"])
+        df = depths_dips_azimuths_table.dropna(subset=["distance"])
 
         if column_mapping is None:
-            column_mapping = {"depth": "depth", "dip": "dip", "azimuth": "azimuth"}
+            column_mapping = {"distance": "distance", "dip": "dip", "azimuth": "azimuth"}
 
         box = DownholeCollectionData._compute_bounding_box_np(
-            df[column_mapping["depth"]].astype(float).to_numpy(),
+            df[column_mapping["distance"]].astype(float).to_numpy(),
             df[column_mapping["dip"]].astype(float).to_numpy(),
             df[column_mapping["azimuth"]].astype(float).to_numpy(),
             offset=collar,
@@ -440,7 +440,7 @@ class CategoryData(SchemaModel):
 
 class PathTable(DataTable):
     table_format: ClassVar[KnownTableFormat] = FLOAT_ARRAY_3
-    data_columns: ClassVar[list[str]] = ["depth", "azimuth", "dip"]
+    data_columns: ClassVar[list[str]] = ["distance", "azimuth", "dip"]
 
 
 class DownholePath(DataTableAndAttributes):
@@ -487,7 +487,7 @@ class DownholeLocation(SchemaModel):
 class ColumnLengthUnits(SchemaModel):
     @classmethod
     async def _data_to_schema(cls, data: Depths, context: IContext) -> Any:
-        attr_desc = data.attrs.get("attribute_descriptions", {}).get("depth")
+        attr_desc = data.attrs.get("attribute_descriptions", {}).get("distance")
         if attr_desc is None:
             return None
         else:
@@ -496,7 +496,7 @@ class ColumnLengthUnits(SchemaModel):
 
 class _Distances(DataTable):
     table_format: ClassVar[KnownTableFormat] = FLOAT_ARRAY_1
-    data_columns: ClassVar[list[str]] = ["depth"]
+    data_columns: ClassVar[list[str]] = ["distance"]
 
 
 class DistanceTableDistances(DataTableAndAttributes):

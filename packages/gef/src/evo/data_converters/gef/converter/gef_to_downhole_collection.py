@@ -70,7 +70,6 @@ class DownholeCollectionBuilder:
     }
 
     PATH_ATTRIBUTES: list[str] = [
-        # "depth",
         "dip",
         "azimuth",
         "depthOffset",
@@ -78,7 +77,7 @@ class DownholeCollectionBuilder:
         "inclinationEW",
         "inclinationNS",
         "inclinationResultant",
-        "depth_vertical",
+        "depth",
     ]
 
     def __init__(self, tags: dict[str, typing.Any] | None) -> None:
@@ -299,7 +298,7 @@ class DownholeCollectionBuilder:
 
         df_pd = self._apply_measurement_units(df_pd, cpt_data)
 
-        return df_pd.rename(columns={"depth": "depth_vertical", "penetrationLength": "depth"})
+        return df_pd.rename(columns={"penetrationLength": "distance"})
 
     def calculate_dip(self, df: pl.DataFrame) -> pl.DataFrame:
         """Create dip column from inclinationResultant.
@@ -492,7 +491,7 @@ class DownholeCollectionBuilder:
     def _build_paths(self, combined_table: pd.DataFrame) -> pd.DataFrame:
         # combined_table = pd.concat(self.measurement_dfs, ignore_index=True)
 
-        path_attr_columns = ["depth"] + [col for col in combined_table.columns if col in  self.PATH_ATTRIBUTES]
+        path_attr_columns = ["distance"] + [col for col in combined_table.columns if col in  self.PATH_ATTRIBUTES]
 
         paths_df = combined_table[path_attr_columns]
         return paths_df

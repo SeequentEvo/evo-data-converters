@@ -144,14 +144,25 @@ class _CPTSpec:
     bbox: tuple[float, float, float, float, float, float]
 
 
+EXPECTED_PATH_ATTRIBUTES = [
+    "depthOffset",
+    "delapsedTime",
+    "inclinationEW",
+    "inclinationNS",
+    "inclinationResultant",
+    "depth",
+]
+
+
 class _CPTData:
-    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, geometries, bbox):
+    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, path_tables, path_attr_tables, bbox):
         self.cpt_tables = cpt_tables
         self.collar_attributes = collar_attributes
         self.collar_locations = collar_locations
         self.hole_distances = hole_distances
         self.hole_ids = hole_ids
-        self.geometries = geometries
+        self.path_tables = path_tables
+        self.path_attr_tables = path_attr_tables
         self.bbox = bbox
 
     @classmethod
@@ -161,17 +172,17 @@ class _CPTData:
         collar_locations_pd = data_client.load_table(gef_object.location.coordinates).to_pandas()
         hole_distances = data_client.load_table(gef_object.location.distances).to_pandas()
         hole_ids = data_client.load_category(gef_object.location.hole_id)
-        hole_geometries = _load_path_geometries(gef_object, data_client)
+        path_tables, path_attr_tables = _load_path_geometries(gef_object, data_client)
         cpt_tables = _load_distance_collection(gef_object, data_client)
         bbox = _get_bbox(gef_object)
 
-        # For GEF imports, the collection is supposed to match up exactly to the geometry definition
-        # (gef_object.location).
         if cpt_tables:
-            # TODO - There should be cpt_tables, but there aren't temporarily while refactoring is underway
-            assert len(cpt_tables) == len(hole_geometries)
-            for cpt_table, hole_geometry in zip(cpt_tables, hole_geometries, strict=True):
-                assert len(cpt_table) == len(hole_geometry)
+            # For GEF imports, the collection is supposed to match up exactly to the geometry definition
+            # (gef_object.location).
+            assert len(cpt_tables) == len(path_tables) == len(path_attr_tables)
+            for cpt_table, path_table, attr_table in zip(cpt_tables, path_tables, path_attr_tables, strict=True):
+                assert len(cpt_table) == len(path_table)
+                assert len(cpt_table) == len(attr_table)
 
         return cls(
             cpt_tables=cpt_tables,
@@ -179,7 +190,8 @@ class _CPTData:
             collar_locations=collar_locations_pd,
             hole_distances=hole_distances,
             hole_ids=hole_ids,
-            geometries=hole_geometries,
+            path_tables=path_tables,
+            path_attr_tables=path_attr_tables,
             bbox=bbox,
         )
 
@@ -192,13 +204,15 @@ class _CPTData:
     def attribute_names(self):
         return self.cpt_tables[0].columns.tolist()
 
-    def get_table_column_hashes(self, index) -> dict[str, str]:
-        table = self.cpt_tables[index]
+    def _table_column_hashes(self, table: pd.DataFrame) -> dict[str, str]:
         column_hashes = {}
         for col in table.columns:
             col_hash = hashlib.md5(table[col].values.tobytes()).hexdigest()
             column_hashes[col] = str(col_hash)
         return column_hashes
+
+    def get_table_column_hashes(self, index) -> dict[str, str]:
+        return self._table_column_hashes(self.cpt_tables[index]) | self._table_column_hashes(self.path_attr_tables[index])
 
     def verify_hole_distances(self, index: int, spec: _CPTSpec):
         final, target, current = self.hole_distances.iloc[index]
@@ -221,13 +235,19 @@ class _CPTData:
         assert numpy.isclose(actual_list, spec.collar_locations, rtol=1e-4).all()
 
     def verify_attributes(self, index: int, spec: _CPTSpec, expected_attribute_columns):
-        assert expected_attribute_columns == set(self.cpt_tables[index].columns)
+        expected_path_attribute = {attr for attr in expected_attribute_columns if attr in EXPECTED_PATH_ATTRIBUTES}
+        expected_cpt_attributes = {attr for attr in expected_attribute_columns if attr not in EXPECTED_PATH_ATTRIBUTES}
+
+        assert expected_cpt_attributes == set(self.cpt_tables[index].columns)
+        assert expected_path_attribute == set(self.path_attr_tables[index].columns)
+
         actual_attr_hashes = self.get_table_column_hashes(index)
         for key, value in spec.attributes.items():
-            assert value == actual_attr_hashes[key], key
+            actual_value = actual_attr_hashes[key]
+            assert value == actual_value, (key, value, actual_value)
 
-    def verify_geometries(self, index: int, spec: _CPTSpec):
-        geometry = self.geometries[index]
+    def verify_path_tables(self, index: int, spec: _CPTSpec):
+        geometry = self.path_tables[index]
 
         assert spec.num_rows == len(geometry)
 
@@ -255,7 +275,7 @@ class _CPTData:
             self.verify_collar_attributes(i, spec)
             self.verify_collar_locations(i, spec)
             self.verify_attributes(i, spec, expected_attribute_columns)
-            self.verify_geometries(i, spec)
+            self.verify_path_tables(i, spec)
             self.verify_bounding_box(i, spec)
 
 
@@ -279,16 +299,19 @@ def _load_distance_collection(gef_object, data_client):
 
 def _load_path_geometries(gef_object, data_client):
     path_table = data_client.load_table(gef_object.location.path).to_pandas()
+    path_attr_table = data_client.load_attributes(gef_object.location.path.attributes)
     holes_table = data_client.load_table(gef_object.location.holes).to_pandas()
 
     paths = []
+    path_attrs = []
 
     for i in range(len(holes_table)):
         offset = holes_table["offset"].iloc[i]
         count = holes_table["count"].iloc[i]
         paths.append(path_table.iloc[offset : offset + count])
+        path_attrs.append(path_attr_table.iloc[offset : offset + count])
 
-    return paths
+    return paths, path_attrs
 
 
 def _get_bbox(gef_object):
@@ -310,12 +333,9 @@ _gef_cpt_spec_1 = _CPTSpec(
     hole_distancess={"final": 20.0, "target": 20.0, "current": 20.0},
     num_rows=1004,
     sum_distances=1.006009e04,
-    sum_azimuths=3.054131e04,
-    sum_dips=1.087333e06,
+    sum_azimuths=3.054131e04,  # derived from inclinationNS and inclinationEW
+    sum_dips=1.087333e06,  # derived from inclinationResultant
     attributes={
-        # Computed by us
-        "azimuth": "90e5ed90d6338ce4b03c4c4b542948fc",  # derived from inclinationNS and inclinationEW
-        "dip": "98b6273bc30e489e31f78e6a95ce15ff",  # derived from inclinationResultant
         # Computed by pygef
         # This is computed from `delivered_vertical_position_offset - depth` (or penetrationLength if depth is abesent)
         "depthOffset": "740260f3a97f5af2269c3f785a1836b2",  # ?
@@ -323,13 +343,14 @@ _gef_cpt_spec_1 = _CPTSpec(
         "frictionRatioComputed": "23b3e60ed5c1c9b93399e406f596e37a",  # ?,
         "coneResistance": "5ef0301d72915c9258f2000ff8273fb0",  # 2
         "localFriction": "c98aabdaa48810064f9783c1cea80e9d",  # 3
-        "frictionRatio": "ca1077a8961f7bdfcdc48dad55d3cd4d",  # 4
+        "frictionRatio": "9c8c631c5c2275946d6666761aa2f334",  # 4
         "porePressureU2": "053a15c6f83abca0de2e620a9371ba58",  # 6
         "inclinationResultant": "a8974308463a973edb1c1b157d3813c0",  # 8
         "inclinationNS": "e37081d8569d4ff974e430a595b82d3c",  # 9
         "inclinationEW": "24ef1a5c3465ec301978f3242e1cd7ed",  # 10
-        "depth": "3a8a1d4f00a3c0c6e8318e7b301e192f",  # 11
+        "depth": "3a8a1d4f00a3c0c6e8318e7b301e192f",  # 11 - renamed by us from "depth"
         "correctedConeResistance": "86db84f105d3a7b4a807168d7c420867",  # 13
+
     },
     collar_attributes={
         "research_report_date": [pd.Timestamp("2019-02-13 00:00:00+0000", tz="UTC")],  # FILEDATE
@@ -393,8 +414,6 @@ _gef_cpt_spec_2 = _CPTSpec(
     sum_azimuths=199323.939914,
     sum_dips=75114.252900,
     attributes={
-        "azimuth": "f71bfc1875eec015f8a0c86c886416c9",
-        "dip": "ace3becc5897a609d28c7fae101d4672",
         "depthOffset": "ce7e5624d2f4d0d36d2c829d8273e33e",
         "frictionRatioComputed": "38368a44ebb0111c55cf89645196309f",
         "depth": "d7b3fce4f4aaac6062e15e5c4f510098",
@@ -475,6 +494,7 @@ _gef_cpt_spec_2 = _CPTSpec(
     },
     bbox=(116508.93743771227, 116509.0, 469889.95390897675, 469890.0, -12.009629784247299, -1.63),
 )
+
 
 @pytest.mark.asyncio
 async def test_import_gef_1(evo_metadata, data_client):
