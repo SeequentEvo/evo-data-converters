@@ -50,7 +50,7 @@ class DownholeCollectionBuilder:
         "raw_headers",
     ]
 
-    # Data types we expect for required hole collar information
+    # Data types required by the GO schema
     COLLAR_DTYPES: dict[str, str] = {
         "hole_id": "string",
         "x": "float64",
@@ -225,9 +225,6 @@ class DownholeCollectionBuilder:
         """
         raw_header_info = {}
 
-        if not hasattr(cpt_data, "raw_headers"):
-            return raw_header_info
-
         raw_headers_to_include = ["MEASUREMENTTEXT", "MEASUREMENTVAR"]
         for raw_header_name in raw_headers_to_include:
             if raw_header_name in cpt_data.raw_headers:
@@ -243,6 +240,11 @@ class DownholeCollectionBuilder:
                         key = f"{raw_header_name.lower()}_{id_}"
 
                     raw_header_info[key] = value
+
+        # `#PROJECTID= A project id` from GEF is presented as [["A", "project", "id"]]`
+        proj_id_list_of_lists: list[list[str]] = cpt_data.raw_headers.get("PROJECTID", [[""]])
+        proj_id = ", ".join(proj_id_list_of_lists[0])
+        raw_header_info["project_id"] = proj_id
 
         return raw_header_info
 
@@ -388,20 +390,18 @@ class DownholeCollectionBuilder:
                     table[col] = series.astype("string")
         return table
 
-    def _build_collars_dataframe(self) -> pd.DataFrame:
-        """Create the collars DataFrame from accumulated collar rows.
+    def _build_properties_and_attributes(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Create the properties and attributes DataFrames from accumulated collar rows."""
+        collars_df = self._combine_collar_rows(self.collar_rows)
+        collars_df["target"] = collars_df["current"] = collars_df["final_depth"]
+        collars_df = collars_df.rename(columns={"final_depth": "final"})
 
-        :return: Pandas DataFrame with typed collar data
-        """
-        # Build up a mapping for all of the
+        hole_properties_df = collars_df[list(self.COLLAR_DTYPES.keys())].astype(self.COLLAR_DTYPES)
 
-        df = self._combine_collar_rows(self.collar_rows)
-        df["target"] = df["current"] = df["final_depth"]
-        df = df.rename(columns={"final_depth": "final"})
+        attr_cols = ["project_id", *[c for c in collars_df.columns if c not in ["project_id", *self.COLLAR_DTYPES]]]
+        attributes_df = collars_df[attr_cols]
 
-        # There can be more columns for optional attributes that aren't defined in COLLAR_DTYPES, but we don't know
-        # their types in advance. So we just enforce the types for the known columns.
-        return df.astype(self.COLLAR_DTYPES)
+        return hole_properties_df, attributes_df
 
     # TODO - Remove if unused
     def _create_measurements_dataframe(self) -> pd.DataFrame:
@@ -435,10 +435,7 @@ class DownholeCollectionBuilder:
     def _create_collection(
         self, collection_name: str,
     ) -> DownholeCollectionData:
-        collars_df = self._build_collars_dataframe()
-        hole_properties = collars_df[list(self.COLLAR_DTYPES.keys())]
-        attributes = collars_df[[col for col in collars_df.columns if col not in list(self.COLLAR_DTYPES.keys())]]
-        attributes = self._process_pint_columns(attributes)
+        hole_properties, attributes = self._build_properties_and_attributes()
         hole_descriptions = self._build_hole_descriptions()
         combined_table = self._prepare_combined_table()
         paths = self._build_paths(combined_table)
@@ -455,7 +452,8 @@ class DownholeCollectionBuilder:
             attributes=attributes,
         )
 
-    def _process_pint_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _process_pint_columns(df: pd.DataFrame) -> pd.DataFrame:
         for col in df.columns:
             series = df[col]
             if isinstance(series.dtype, PintType):

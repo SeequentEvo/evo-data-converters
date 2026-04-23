@@ -279,6 +279,8 @@ _gef_cpt_spec_1 = _CPTSpec(
         "delivered_vertical_position_offset": [-0.09],  # ZID
         # This one is always the empty string when parsing GEF
         "cpt_description": [""],
+        # MISC
+        "project_id": ["CPT, 1801726"],
         # MEAUREMENTVAR
         "cone_tip_area": ["1000, mm2, nom. oppervlak conuspunt"],  # 1
         "friction_sleeve_area": ["15000, mm2, oppervlakte kleefmantel"],  # 2
@@ -352,6 +354,8 @@ _gef_cpt_spec_2 = _CPTSpec(
         "delivered_vertical_position_offset": [-1.63],
         # This one is always the empty string when parsing GEF
         "cpt_description": [""],
+        # MISC
+        "project_id": ["01.1138-233"],
         # MEASUREMENTVAR
         "cone_tip_area": ["1000.000000, mm2, Nom. surface area of cone tip"],  # 1
         "friction_sleeve_area": ["15000.000000, mm2, Nom. surface area of friction casing"],  # 2
