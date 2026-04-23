@@ -80,7 +80,7 @@ class TestParseGefFiles:
         bore_file = self.test_data_dir / "../../README.md"
         with pytest.raises(ValueError) as exc:
             parse_gef_files([bore_file])
-        assert "has extension '.md', expected .xml or .gef" in str(exc.value)
+        assert "Only .xml and .gef are supported" in str(exc.value)
 
     def test_overlapping_hole_ids(self):
         """Test that parse_gef_files raises an error for duplicate hole_ids (from test_id or filename)."""

@@ -17,7 +17,6 @@ COLLAR_ATTRIBUTES: list[str] = [
     # TODO Understand these
     # NOT GEF
     "cpt_description",
-    "standardized_location",
     "cone_diameter",
     "cone_to_friction_sleeve_surface_area",
     "zlm_inclination_resultant_before",

@@ -41,6 +41,9 @@ def mock_cpt_data() -> Mock:
     """Create a mock CPTData object with some extra attributes."""
     mock = Mock(
         spec=[
+            "alias",
+            "bro_id",
+            "standardized_location",
             "delivered_location",
             "delivered_vertical_position_offset",
             "final_depth",
@@ -55,10 +58,15 @@ def mock_cpt_data() -> Mock:
         ]
     )
 
+    mock.alias = "project id"
+    mock.bro_id = None
+
     mock.delivered_location = Mock()
     mock.delivered_location.srs_name = "EPSG:28992"
     mock.delivered_location.x = 100000.0
     mock.delivered_location.y = 500000.0
+
+    mock.standardized_location = None
 
     mock.delivered_vertical_position_offset = 0.5
     mock.final_depth = 10.0
@@ -102,6 +110,9 @@ def mock_cpt_data_2() -> Mock:
     """Create a second mock CPTData object with different values."""
     mock = Mock(
         spec=[
+            "alias",
+            "bro_id",
+            "standardized_location",
             "delivered_location",
             "delivered_vertical_position_offset",
             "final_depth",
@@ -116,10 +127,15 @@ def mock_cpt_data_2() -> Mock:
         ]
     )
 
+    mock.alias = "project id"
+    mock.bro_id = None
+    mock.standardized_location = None
+
     mock.delivered_location = Mock()
     mock.delivered_location.srs_name = "EPSG:28992"
     mock.delivered_location.x = 100000.0
     mock.delivered_location.y = 500100.0
+
 
     mock.delivered_vertical_position_offset = 0.5
     mock.final_depth = 10.0
@@ -161,6 +177,9 @@ def mock_cpt_data_3() -> Mock:
     """Create a third mock CPTData object with different attributes."""
     mock = Mock(
         spec=[
+            "alias",
+            "bro_id",
+            "standardized_location",
             "delivered_location",
             "delivered_vertical_position_offset",
             "final_depth",
@@ -172,6 +191,10 @@ def mock_cpt_data_3() -> Mock:
             "predrilled_depth_offset",
         ]
     )
+
+    mock.alias = "project id"
+    mock.bro_id = None
+    mock.standardized_location = None
 
     mock.delivered_location = Mock()
     mock.delivered_location.srs_name = "EPSG:28992"
@@ -211,6 +234,9 @@ def mock_cpt_data_4() -> Mock:
     """Create a mock CPTData object with some extra attributes."""
     mock = Mock(
         spec=[
+            "alias",
+            "bro_id",
+            "standardized_location",
             "delivered_location",
             "delivered_vertical_position_offset",
             "final_depth",
@@ -222,6 +248,10 @@ def mock_cpt_data_4() -> Mock:
             "predrilled_depth_offset",
         ]
     )
+
+    mock.alias = "project id"
+    mock.bro_id = None
+    mock.standardized_location = None
 
     mock.delivered_location = Mock()
     mock.delivered_location.srs_name = "EPSG:28992"
@@ -304,36 +334,26 @@ class TestBuild:
 
 
 class TestExtractEpsgCode:
-    def test_valid_epsg_short_format(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location.srs_name = "EPSG:28992"
-
-        result = builder._extract_epsg_code(mock_cpt, "TEST-001")
-
+    def test_valid_epsg_short_format(self, mock_cpt_data, builder: DownholeCollectionBuilder) -> None:
+        mock_cpt_data.delivered_location.srs_name = "EPSG:28992"
+        result = builder._extract_epsg_code(mock_cpt_data, "TEST-001")
         assert result == 28992
 
-    def test_valid_epsg_urn_format(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::4326"
-
-        result = builder._extract_epsg_code(mock_cpt, "TEST-001")
-
+    def test_valid_epsg_urn_format(self, mock_cpt_data, builder: DownholeCollectionBuilder) -> None:
+        mock_cpt_data.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::4326"
+        result = builder._extract_epsg_code(mock_cpt_data, "TEST-001")
         assert result == 4326
 
-    def test_epsg_404000_returns_none(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::404000"
-
-        result = builder._extract_epsg_code(mock_cpt, "TEST-001")
-
+    def test_epsg_404000_returns_none(self, mock_cpt_data, builder: DownholeCollectionBuilder) -> None:
+        mock_cpt_data.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::404000"
+        result = builder._extract_epsg_code(mock_cpt_data, "TEST-001")
         assert result is None
 
-    def test_malformed_srs_name_raises_error(self, builder: DownholeCollectionBuilder) -> None:
-        mock_cpt = Mock()
-        mock_cpt.delivered_location.srs_name = "INVALID_FORMAT"
+    def test_malformed_srs_name_raises_error(self, mock_cpt_data, builder: DownholeCollectionBuilder) -> None:
+        mock_cpt_data.delivered_location.srs_name = "INVALID_FORMAT"
 
         with pytest.raises(ValueError, match="malformed SRS name"):
-            builder._extract_epsg_code(mock_cpt, "TEST-001")
+            builder._extract_epsg_code(mock_cpt_data, "TEST-001")
 
 
 class TestValidateAndSetEpsg:
@@ -683,23 +703,22 @@ class TestApplyNanValuesToMeasurements:
 class TestCreateCollarsDataframe:
     def test_creates_dataframe_with_correct_dtypes(self, builder: DownholeCollectionBuilder, mock_cpt_data) -> None:
         builder.collar_rows.append(builder._create_collar_row("CPT-001", mock_cpt_data))
-        collars_df = builder._build_collars_dataframe()
+        hole_properties, attributes = builder._build_properties_and_attributes()
 
-        assert isinstance(collars_df, pd.DataFrame)
-        assert collars_df["hole_id"].dtype == "string"
-        assert collars_df["x"].dtype == "float64"
-        assert collars_df["y"].dtype == "float64"
-        assert collars_df["z"].dtype == "float64"
-        assert collars_df["final"].dtype == "float64"
+        assert hole_properties["hole_id"].dtype == "string"
+        assert hole_properties["x"].dtype == "float64"
+        assert hole_properties["y"].dtype == "float64"
+        assert hole_properties["z"].dtype == "float64"
+        assert hole_properties["final"].dtype == "float64"
 
     def test_creates_dataframe_with_multiple_rows(
         self, builder: DownholeCollectionBuilder, mock_cpt_data, mock_cpt_data_2
     ) -> None:
         builder.collar_rows.append(builder._create_collar_row("CPT-001", mock_cpt_data))
         builder.collar_rows.append(builder._create_collar_row("CPT-002", mock_cpt_data_2))
-        collars_df = builder._build_collars_dataframe()
+        hole_properties, attributes = builder._build_properties_and_attributes()
 
-        assert len(collars_df) == 2
+        assert len(attributes) == 2
 
     def test_creates_dataframe_with_differing_attributes(
         self, builder: DownholeCollectionBuilder, mock_cpt_data, mock_cpt_data_2, mock_cpt_data_3
@@ -708,17 +727,17 @@ class TestCreateCollarsDataframe:
         builder.collar_rows.append(builder._create_collar_row("CPT-002", mock_cpt_data_2))
         builder.collar_rows.append(builder._create_collar_row("CPT-003", mock_cpt_data_3))
 
-        collars_df = builder._build_collars_dataframe()
+        hole_properties, attributes = builder._build_properties_and_attributes()
 
         # groundwater_level_offset only exists in the 3rd cpt file
-        assert pd.isna(collars_df.iloc[0]["groundwater_level_offset"])
-        assert pd.isna(collars_df.iloc[1]["groundwater_level_offset"])
-        assert collars_df.iloc[2]["groundwater_level_offset"] == 400
+        assert pd.isna(attributes.iloc[0]["groundwater_level_offset"])
+        assert pd.isna(attributes.iloc[1]["groundwater_level_offset"])
+        assert attributes.iloc[2]["groundwater_level_offset"] == 400
 
         # final_depth_offset appears in the first two cpt files
-        assert collars_df.iloc[0]["final_depth_offset"]
-        assert collars_df.iloc[1]["final_depth_offset"]
-        assert pd.isna(collars_df.iloc[2]["final_depth_offset"])
+        assert attributes.iloc[0]["final_depth_offset"]
+        assert attributes.iloc[1]["final_depth_offset"]
+        assert pd.isna(attributes.iloc[2]["final_depth_offset"])
 
 
 class TestCreateMeasurementsDataframe:
@@ -809,6 +828,9 @@ class TestCreateFromParsedGefCpts:
         for i in range(1, 6):
             mock = Mock(
                 spec=[
+                    "alias",
+                    "bro_id",
+                    "standardized_location",
                     "delivered_location",
                     "delivered_vertical_position_offset",
                     "final_depth",
@@ -817,6 +839,9 @@ class TestCreateFromParsedGefCpts:
                     "raw_headers",
                 ]
             )
+            mock.alias = "project id"
+            mock.bro_id = None
+            mock.standardized_location = None
             mock.delivered_location = Mock()
             mock.delivered_location.srs_name = "EPSG:28992"
             mock.delivered_location.x = 100000.0 + (i * 50)

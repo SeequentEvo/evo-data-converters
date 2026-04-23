@@ -281,6 +281,7 @@ _gef_cpt_spec_1 = _CPTSpec(
         "cpt_description": [""],
         # MISC
         "project_id": ["CPT, 1801726"],
+        "delivered_crs": ["urn:ogc:def:crs:EPSG::28992"],
         # MEAUREMENTVAR
         "cone_tip_area": ["1000, mm2, nom. oppervlak conuspunt"],  # 1
         "friction_sleeve_area": ["15000, mm2, oppervlakte kleefmantel"],  # 2
@@ -356,6 +357,7 @@ _gef_cpt_spec_2 = _CPTSpec(
         "cpt_description": [""],
         # MISC
         "project_id": ["01.1138-233"],
+        "delivered_crs": ["urn:ogc:def:crs:EPSG::28992"],
         # MEASUREMENTVAR
         "cone_tip_area": ["1000.000000, mm2, Nom. surface area of cone tip"],  # 1
         "friction_sleeve_area": ["15000.000000, mm2, Nom. surface area of friction casing"],  # 2
@@ -419,6 +421,81 @@ _gef_cpt_spec_2 = _CPTSpec(
         "measurementtext_115": ["IMBRO, kwaliteitsregime"],
     },
     bbox=(116508.93743771227, 116509.0, 469889.95390897675, 469890.0, -12.009629784247299, -1.63),
+)
+
+_bro_xml_spec_1a = _CPTSpec(
+    collar_locations=[52.365336590, 5.609079550, 4.41],
+    hole_id="CPT000000099543",
+    hole_distancess={"final": 7.439, "target": 7.439, "current": 7.439},
+    num_rows=372,
+    sum_distances=1387.56,
+    sum_azimuths=0.0,
+    sum_dips=33406.0,
+    attributes={
+        'coneResistance': 'c1dad2157c5f9ba1e0cadfce9e252b81',
+        'depth': '83c0993a25cda7c86f4908f1ebbdcb85',
+        'depthOffset': '36950aeaac05473456978921af151991',
+        'elapsedTime': '8aa6de47df4f2e2eae0c8b70edaf6a40',
+        'frictionRatio': '59c941ca341d803da23131a84be44d44',
+        'frictionRatioComputed': '9e845403e1be8f691b8e05e2b90afdfa',
+        'inclinationEW': '6782b8c0b798cbc8e080df72a7433ab0',
+        'inclinationNS': '6782b8c0b798cbc8e080df72a7433ab0',
+        'inclinationResultant': 'b3e3cb2c270b0f4ad31088477ae614b6',
+        'inclinationX': 'f5a90f27a9257cb6b49564157491679a',
+        'inclinationY': 'f5a90f27a9257cb6b49564157491679a',
+        'localFriction': '58940f0017772ab3df30c43a9c1eaf12',
+        'porePressureU2': 'f5a90f27a9257cb6b49564157491679a'
+    },
+    collar_attributes={
+        'cone_diameter': [44.0],
+        'cone_to_friction_sleeve_surface_area': [22530],
+        'cpt_description': ['Hyson'],
+        'delivered_crs': ['urn:ogc:def:crs:EPSG::28992'],
+        'delivered_vertical_position_offset': [4.41],
+        'delivered_x': [170112.2],
+        'delivered_y': [486406.5],
+        'research_report_date': [pd.Timestamp('2019-04-23 00:00:00+0000', tz='UTC')],
+        'zlm_inclination_resultant_after': [0],
+        'zlm_inclination_resultant_before': [0]
+    },
+    bbox=(52.36533659, 52.36533659, 5.60907955, 5.63490911152718, -3.0297745888314376, 4.41),
+)
+
+__bro_xml_spec_1b = _CPTSpec(
+    collar_locations=[52.0201802, 5.06352596, .09],
+    hole_id="CPT000000155283",
+    hole_distancess={"final": 6.57, "target": 6.57, "current": 6.57},
+    num_rows=305,
+    sum_distances=1079.69,
+    sum_azimuths=0.0,
+    sum_dips=27450.0,
+    attributes={
+        'coneResistance': 'ed1da7653f0787eda66d4b49fa11db72',
+        'depth': '83bed41e23075dbe99f478f5c9af3c88',
+        'depthOffset': '103ab03b17ae6439f667c37fcb5d77bd',
+        'elapsedTime': '430bd0275d195820d00c0a406fe120eb',
+        'frictionRatio': 'fdaed5917273160f8084a992e9fcdfc3',
+        'frictionRatioComputed': 'c3d68f450c771effc0e54fd0b6666267',
+        'inclinationEW': '9f1558f07baa931b48b9ca105c7c8680',
+        'inclinationNS': '9f1558f07baa931b48b9ca105c7c8680',
+        'inclinationResultant': '9f1558f07baa931b48b9ca105c7c8680',
+        'inclinationX': 'fd6f33a259c0930150e92f9bd92b89bc',
+        'inclinationY': '3462b7a2cb5f489f9e9012eb56787cc8',
+        'localFriction': '26e8beebb34886dd79cba88ab60f57ed',
+        'porePressureU2': '8b6409310a4c83adb2209195718f1dea'
+    },
+    collar_attributes={
+        'cone_to_friction_sleeve_surface_area': [15050],
+        'cpt_description': ['Rups 09 Tor 27/PJW/'],
+        'delivered_crs': ['urn:ogc:def:crs:EPSG::28992'],
+        'delivered_vertical_position_offset': [0.09],
+        'delivered_x': [132782.52],
+        'delivered_y': [448030.34],
+        'research_report_date': [pd.Timestamp('2020-07-15 00:00:00+0000', tz='UTC')],
+        'zlm_inclination_resultant_after': [2],
+        'zlm_inclination_resultant_before': [2]
+    },
+    bbox=(52.0201802, 52.0201802, 5.06352596, 5.06352596, -6.48, 0.09),
 )
 
 
@@ -491,17 +568,21 @@ async def test_import_multiple_with_different_attributes(evo_metadata, data_clie
         assert cpt_data.collar_attributes[attr].iloc[1] is not pd.NA
 
 
-# TODO Fix this
-@pytest.mark.skip(reason="GEF-XML import seems to be broken")
-def test_import_gef_xml_cpt_multiple(evo_metadata, data_client):
-    gef_object = convert_gef(
-        filepaths=[GEF_XML_MULTIPLE],
-        evo_workspace_metadata=evo_metadata,
-        epsg_code=32650,
-        publish_objects=False,
-    )
+@pytest.mark.asyncio
+async def test_import_gef_xml_cpt_multiple(evo_metadata, data_client):
+    context = TestContext(mock_metadata=evo_metadata)
 
-    cpt_data = _CPTData.from_gef_object(gef_object, data_client)  # noqa
+    with _mock_geoscience_objects(context.get_environment()) as mock_client:
+        gef_object = await convert_gef(
+            filepaths=[GEF_XML_MULTIPLE],
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+            # publish_objects=False,
+        )
+
+    gef_object_dict, *_ = mock_client.objects.values()
+    cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
+    cpt_data.verify([_bro_xml_spec_1a, __bro_xml_spec_1b])
 
 
 # TODO - The test code for mocking was mostly copy/pasted. The assumption is that the tests that require them will

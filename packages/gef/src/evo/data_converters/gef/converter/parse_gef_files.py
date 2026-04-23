@@ -10,6 +10,7 @@
 #  limitations under the License.
 
 import sys
+from importlib.util import source_hash
 from pathlib import Path
 
 from pygef import read_cpt
@@ -17,6 +18,8 @@ from pygef.broxml.parse_cpt import read_cpt as read_cpt_xml
 from pygef.cpt import CPTData
 
 import evo.logging
+
+from evo.data_converters.gef.common_gef import CPTSource
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -32,9 +35,8 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
     try:
         if not Path(filepath).exists():
             raise FileNotFoundError(f"File not found: {filepath}")
-        ext = Path(filepath).suffix.lower()
-
-        if ext == ".xml":
+        source_type = CPTSource.infer_from_filename(filepath)
+        if source_type == CPTSource.BRO_XML:
             # No method in pygef to detect type, so just try to read as CPT.
             # XML files can contain multiple CPT entries.
             try:
@@ -46,7 +48,7 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
                 check_for_required_columns(cpt_data, filepath)
             return multiple_cpt_data
 
-        elif ext == ".gef":
+        elif source_type == CPTSource.GEF:
             cpt_data = read_cpt(filepath, replace_column_voids=replace_column_voids)
             # GEF test ID is in alias.
             # https://github.com/cemsbv/pygef/blob/6002e174b154a6ef7726f7a3aa467d6ada22be92/src/pygef/shim.py#L106
@@ -54,14 +56,14 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
             return [cpt_data]
 
         else:
-            raise ValueError(f"File '{filepath}' has extension '{ext}', expected .xml or .gef.")
+            raise ValueError(f"File '{filepath}' is not supported. Only .xml and .gef are supported.")
 
     except Exception as e:
         logger.error(f"Error processing file '{filepath}': {e}")
         raise
 
 
-def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, (str, CPTData)]:
+def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, tuple[str, CPTData]]:
     """Parse a list of GEF-CPT & GEF-XML files and return a dictionary of CPTData objects keyed by filename.
 
     Only files identified as CPT (Cone Penetration Test) are read and included.
@@ -71,7 +73,7 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
 
     :return: Dictionary mapping each CPT file's filename to its CPTData object.
     """
-    data: dict[str, CPTData] = {}
+    data: dict[str, tuple[str, CPTData]] = {}
 
     if sys.version_info[:2] == (3, 10):
         logger.warning("Python 3.10 detected. Additional GEF header information will not be parsed.")
@@ -124,9 +126,9 @@ def get_gef_cpt_id(gef: CPTData) -> str:
 
     :raises ValueError: If the CPTData is missing the required identifier
     """
-    if hasattr(gef, "bro_id") and gef.bro_id:
+    if gef.bro_id:
         return gef.bro_id
-    elif hasattr(gef, "alias") and gef.alias:
+    elif gef.alias:
         return gef.alias
     else:
-        raise ValueError("CPT missing required identifier 'bro_id' / 'alias'.")
+        raise ValueError("CPT missing required identifier 'bro_id' (BRO-XML) or 'alias' (GEF).")

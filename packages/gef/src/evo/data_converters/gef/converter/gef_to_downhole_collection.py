@@ -29,6 +29,7 @@ from .gef_spec import (
     MEASUREMENT_UNITS,
     MEASUREMENT_VAR_NAMES,
 )
+from ..common_gef import CPTSource
 from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
 from ...common.objects.units import UnitMapper
 
@@ -126,7 +127,12 @@ class DownholeCollectionBuilder:
 
         :raises ValueError: If EPSG code is missing or malformed
         """
-        srs_name = cpt_data.delivered_location.srs_name
+        if cpt_data.standardized_location is None:
+            # GEF
+            srs_name = cpt_data.delivered_location.srs_name
+        else:
+            # BRO-XML
+            srs_name = cpt_data.standardized_location.srs_name
         if ":" not in srs_name:
             raise ValueError(f"CPT file '{hole_id}' has malformed SRS name: '{srs_name}'. Expected format: 'urn:123'")
 
@@ -223,11 +229,11 @@ class DownholeCollectionBuilder:
 
         :return: Dictionary of raw header information
         """
-        raw_header_info = {}
+        processed_raw_headers = {}
 
         raw_headers_to_include = ["MEASUREMENTTEXT", "MEASUREMENTVAR"]
         for raw_header_name in raw_headers_to_include:
-            if raw_header_name in cpt_data.raw_headers:
+            if raw_header_name in (cpt_data.raw_headers or {}):
                 items = cpt_data.raw_headers[raw_header_name]
 
                 for id_, *values in items:
@@ -239,14 +245,42 @@ class DownholeCollectionBuilder:
                     else:
                         key = f"{raw_header_name.lower()}_{id_}"
 
-                    raw_header_info[key] = value
+                    processed_raw_headers[key] = value
 
-        # `#PROJECTID= A project id` from GEF is presented as [["A", "project", "id"]]`
-        proj_id_list_of_lists: list[list[str]] = cpt_data.raw_headers.get("PROJECTID", [[""]])
-        proj_id = ", ".join(proj_id_list_of_lists[0])
-        raw_header_info["project_id"] = proj_id
+        return processed_raw_headers
 
-        return raw_header_info
+    def _get_project_identification_attributes(self, cpt_data: CPTData) -> dict[str, typing.Any]:
+        cpt_source = CPTSource.infer_from_cpt_data(cpt_data)
+        if cpt_source == CPTSource.GEF:
+            proj_id_list_of_lists: list[list[str]] = cpt_data.raw_headers.get("PROJECTID", [[""]])
+            proj_id = ", ".join(proj_id_list_of_lists[0])
+            return {"project_id": proj_id}
+        else:
+            # BRO-XML doesn't have anything equivalent to GEF's "PROJECTID"
+            return {}
+
+    def _get_location_attributes(self, cpt_data: CPTData) -> dict[str, typing.Any]:
+        z = cpt_data.delivered_vertical_position_offset or 0.0
+        if cpt_data.standardized_location is None:
+            # TODO - This is going to be the case with GEF. There's a problem with this. There is no guarantee that
+            #  multiple GEFs will all have the same CRS description, but the GO schema is forcing a single CRS.
+            #  It might be necessary to standardize this ourselves.
+            location_data = {
+                "x": cpt_data.delivered_location.x,
+                "y": cpt_data.delivered_location.y,
+                "z": z,
+                "delivered_crs": cpt_data.delivered_location.srs_name,
+            }
+        else:
+            location_data = {
+                "x": cpt_data.standardized_location.x,
+                "y": cpt_data.standardized_location.y,
+                "z": z,
+                "delivered_x": cpt_data.delivered_location.x,
+                "delivered_y": cpt_data.delivered_location.y,
+                "delivered_crs": cpt_data.delivered_location.srs_name,
+            }
+        return location_data
 
     def _create_collar_row(self, hole_id: str, cpt_data: CPTData) -> dict[str, typing.Any]:
         """Create a collar data row for a single hole.
@@ -260,14 +294,15 @@ class DownholeCollectionBuilder:
 
         collar_data = {
             "hole_id": hole_id,
-            "x": cpt_data.delivered_location.x,
-            "y": cpt_data.delivered_location.y,
-            "z": cpt_data.delivered_vertical_position_offset or 0.0,
             "final_depth": final_depth,
         }
+        location_data = self._get_location_attributes(cpt_data)
         collar_attributes = self._get_collar_attributes(cpt_data)
         raw_header_info = self._get_raw_header_info(cpt_data)
-        return collar_data | collar_attributes | raw_header_info
+        project_id_data = self._get_project_identification_attributes(cpt_data)
+
+        # Put format_specific_data first, so "project_id" ends up on the left of the table
+        return project_id_data | collar_data | location_data | collar_attributes | raw_header_info
 
     def _prepare_measurements(self, cpt_data: CPTData) -> pd.DataFrame:
         """Prepare measurements DataFrame.
@@ -397,9 +432,7 @@ class DownholeCollectionBuilder:
         collars_df = collars_df.rename(columns={"final_depth": "final"})
 
         hole_properties_df = collars_df[list(self.COLLAR_DTYPES.keys())].astype(self.COLLAR_DTYPES)
-
-        attr_cols = ["project_id", *[c for c in collars_df.columns if c not in ["project_id", *self.COLLAR_DTYPES]]]
-        attributes_df = collars_df[attr_cols]
+        attributes_df = collars_df[[c for c in collars_df.columns if c not in self.COLLAR_DTYPES]]
 
         return hole_properties_df, attributes_df
 
