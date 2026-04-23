@@ -36,42 +36,31 @@ from ...common.objects.units import UnitMapper
 logger = evo.logging.getLogger("data_converters")
 
 
+# Data types required by the GO schema
+COLLAR_DTYPES: dict[str, str] = {
+    "hole_id": "string",
+    "x": "float64",
+    "y": "float64",
+    "z": "float64",
+    "final": "float64",
+    "current": "float64",
+    "target": "float64",
+}
+
+PATH_ATTRIBUTES: list[str] = [
+    "dip",
+    "azimuth",
+    "depthOffset",
+    "delapsedTime",
+    "inclinationEW",
+    "inclinationNS",
+    "inclinationResultant",
+    "depth",
+]
+
+
 class DownholeCollectionBuilder:
     """Builds an intermediary DownholeCollection from parsed GEF CPT files."""
-
-    # Keys to exclude from CPTData when building hole collar attributes
-    COLLAR_EXCLUDE_KEYS: list[str] = [
-        "alias",
-        "bro_id",
-        "column_void_mapping",
-        "data",
-        "delivered_location",
-        "delivered_vertical_position_datum",
-        "final_depth",
-        "raw_headers",
-    ]
-
-    # Data types required by the GO schema
-    COLLAR_DTYPES: dict[str, str] = {
-        "hole_id": "string",
-        "x": "float64",
-        "y": "float64",
-        "z": "float64",
-        "final": "float64",
-        "current": "float64",
-        "target": "float64",
-    }
-
-    PATH_ATTRIBUTES: list[str] = [
-        "dip",
-        "azimuth",
-        "depthOffset",
-        "delapsedTime",
-        "inclinationEW",
-        "inclinationNS",
-        "inclinationResultant",
-        "depth",
-    ]
 
     def __init__(self, tags: dict[str, typing.Any] | None) -> None:
         self.epsg_code: int | str | None = None
@@ -431,8 +420,8 @@ class DownholeCollectionBuilder:
         collars_df["target"] = collars_df["current"] = collars_df["final_depth"]
         collars_df = collars_df.rename(columns={"final_depth": "final"})
 
-        hole_properties_df = collars_df[list(self.COLLAR_DTYPES.keys())].astype(self.COLLAR_DTYPES)
-        attributes_df = collars_df[[c for c in collars_df.columns if c not in self.COLLAR_DTYPES]]
+        hole_properties_df = collars_df[list(COLLAR_DTYPES.keys())].astype(COLLAR_DTYPES)
+        attributes_df = collars_df[[c for c in collars_df.columns if c not in COLLAR_DTYPES]]
 
         return hole_properties_df, attributes_df
 
@@ -521,12 +510,12 @@ class DownholeCollectionBuilder:
         })
 
     def _build_paths(self, combined_table: pd.DataFrame) -> pd.DataFrame:
-        path_attr_columns = ["distance"] + [col for col in combined_table.columns if col in  self.PATH_ATTRIBUTES]
+        path_attr_columns = ["distance"] + [col for col in combined_table.columns if col in  PATH_ATTRIBUTES]
         paths_df = combined_table[path_attr_columns]
         return paths_df
 
     def _build_collections(self, combined_table: pd.DataFrame, holes: pd.DataFrame) -> list[DistanceCollection]:
-        distance_collection_attrs = [col for col in combined_table.columns if col not in self.PATH_ATTRIBUTES]
+        distance_collection_attrs = [col for col in combined_table.columns if col not in PATH_ATTRIBUTES]
         distance_collection_df = combined_table[distance_collection_attrs]
         dc = DistanceCollection(
             name="cpt",
