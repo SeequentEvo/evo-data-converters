@@ -18,10 +18,11 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
-from evo.data_converters.gef.converter import create_from_parsed_gef_cpts, parse_gef_files
+from evo.data_converters.gef.converter import parse_gef_files
 from evo.objects import ObjectReference
 from evo.objects.data import ObjectMetadata
 
+from evo.data_converters.gef.converter.gef_to_downhole_collection import process_cpt_files, build_downhole_collection
 from evo.data_converters.gef.objects import DownholeCollection
 
 logger = evo.logging.getLogger("data_converters")
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
 
 async def convert_gef(
     filepaths: list[str | Path],
-    epsg_code: int | None = None,
+    epsg_code: int | None = None,  # TODO - Need to do anything about the CRS code?
     evo_workspace_metadata: EvoWorkspaceMetadata | None = None,
     service_manager_widget: "ServiceManagerWidget | None" = None,
     name: str | None = None,
@@ -73,8 +74,6 @@ async def convert_gef(
         logger.debug("Publishing will be skipped due to missing hub_url.")
         publish_objects = False
 
-    gef_cpt_data = parse_gef_files(filepaths)
-
     tags = {
         "Source": "GEF-CPT files (via Evo Data Converters)",
         "Stage": "Experimental",
@@ -82,7 +81,9 @@ async def convert_gef(
         **(tags or {}),
     }
 
-    downhole_collection_data = create_from_parsed_gef_cpts(gef_cpt_data, name=name, tags=tags)
+    gef_cpt_data = parse_gef_files(filepaths)
+    processed_gef_cpt_data = process_cpt_files(gef_cpt_data)
+    downhole_collection_data = build_downhole_collection(processed_gef_cpt_data, name=name, tags=tags)
 
     # TODO - Need to find a better way to do this
     context = StaticContext(

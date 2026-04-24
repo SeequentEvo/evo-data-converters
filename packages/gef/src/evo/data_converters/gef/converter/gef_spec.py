@@ -12,7 +12,6 @@
 
 COLLAR_ATTRIBUTES: list[str] = [
     # GEF
-    "delivered_vertical_position_offset",  # ZID
     "research_report_date",  # FILEDATE
     # TODO Understand these
     # NOT GEF

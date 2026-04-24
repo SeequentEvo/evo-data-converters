@@ -9,10 +9,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .gef_to_downhole_collection import create_from_parsed_gef_cpts
+from .gef_to_downhole_collection import build_downhole_collection
 from .parse_gef_files import parse_gef_files
 
 __all__ = [
-    "create_from_parsed_gef_cpts",
+    "build_downhole_collection",
     "parse_gef_files",
 ]

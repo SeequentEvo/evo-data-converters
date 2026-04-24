@@ -41,9 +41,11 @@ class CPTSource(enum.Enum):
 
 
 @dataclasses.dataclass
-class CPTContext:
-    filename: str
+class ParsedCptFile:
+    filepath: str
+    hole_id: str
+    data: CPTData
 
     @property
     def source_type(self) -> CPTSource:
-        return CPTSource.infer_from_filename(self.filename)
+        return CPTSource.infer_from_filename(self.filepath)

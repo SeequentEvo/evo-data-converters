@@ -14,10 +14,8 @@ import contextlib
 import copy
 import hashlib
 import math
-import tempfile
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID
@@ -53,6 +51,7 @@ class _CPTSpec:
     sum_azimuths: float
     sum_dips: float
     bbox: tuple[float, float, float, float, float, float]
+    crs: str
 
 
 EXPECTED_PATH_ATTRIBUTES = [
@@ -66,7 +65,7 @@ EXPECTED_PATH_ATTRIBUTES = [
 
 
 class _CPTData:
-    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, path_tables, path_attr_tables, bbox):
+    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, path_tables, path_attr_tables, bbox, crs):
         self.cpt_tables = cpt_tables
         self.collar_attributes = collar_attributes
         self.collar_locations = collar_locations
@@ -75,6 +74,7 @@ class _CPTData:
         self.path_tables = path_tables
         self.path_attr_tables = path_attr_tables
         self.bbox = bbox
+        self.crs = crs
 
     @classmethod
     def from_gef_object(cls, gef_object, data_client):
@@ -86,6 +86,7 @@ class _CPTData:
         path_tables, path_attr_tables = _load_path_geometries(gef_object, data_client)
         cpt_tables = _load_distance_collection(gef_object, data_client)
         bbox = _get_bbox(gef_object)
+        crs = str(gef_object.coordinate_reference_system)
 
         if cpt_tables:
             # For GEF imports, the collection is supposed to match up exactly to the geometry definition
@@ -104,6 +105,7 @@ class _CPTData:
             path_tables=path_tables,
             path_attr_tables=path_attr_tables,
             bbox=bbox,
+            crs=crs,
         )
 
     @classmethod
@@ -188,6 +190,7 @@ class _CPTData:
         expected_collar_attributes = set().union(*[spec.collar_attributes.keys() for spec in specs])
 
         assert expected_collar_attributes == set(self.collar_attributes.columns.tolist())
+        assert specs[0].crs == self.crs
 
         for i, spec in enumerate(specs):
             assert spec.hole_id == self.hole_ids[i]
@@ -251,37 +254,35 @@ def _check_path_geometry(hole_geometry, sum_distances: float, sum_azimuths: floa
 
 _gef_cpt_spec_1 = _CPTSpec(
     collar_locations=[79578.38, 424838.97, -0.09],
+    crs="Crs_V1_0_1_EpsgCode(epsg_code=28992)",
     hole_id="CPTU17.8 + 83BITE",
     hole_distancess={"final": 20.0, "target": 20.0, "current": 20.0},
     num_rows=1004,
     sum_distances=1.006009e04,
-    sum_azimuths=3.054131e04,  # derived from inclinationNS and inclinationEW
-    sum_dips=1.087333e06,  # derived from inclinationResultant
+    sum_azimuths=30316.31327618739,  # derived from inclinationNS and inclinationEW
+    sum_dips=87243.70199999999,  # derived from inclinationResultant
     attributes={
         # Computed by pygef
         # This is computed from `delivered_vertical_position_offset - depth` (or penetrationLength if depth is abesent)
         "depthOffset": "740260f3a97f5af2269c3f785a1836b2",  # ?
         # This is computed from `localFriction / coneResistance * 100`
         "frictionRatioComputed": "23b3e60ed5c1c9b93399e406f596e37a",  # ?,
-        "coneResistance": "5ef0301d72915c9258f2000ff8273fb0",  # 2
-        "localFriction": "c98aabdaa48810064f9783c1cea80e9d",  # 3
-        "frictionRatio": "9c8c631c5c2275946d6666761aa2f334",  # 4
-        "porePressureU2": "053a15c6f83abca0de2e620a9371ba58",  # 6
-        "inclinationResultant": "a8974308463a973edb1c1b157d3813c0",  # 8
-        "inclinationNS": "e37081d8569d4ff974e430a595b82d3c",  # 9
-        "inclinationEW": "24ef1a5c3465ec301978f3242e1cd7ed",  # 10
-        "depth": "3a8a1d4f00a3c0c6e8318e7b301e192f",  # 11 - renamed by us from "depth"
-        "correctedConeResistance": "86db84f105d3a7b4a807168d7c420867",  # 13
-
+        "coneResistance": "c794f0f79774ef94ced05c67b89ab049",  # 2
+        "localFriction": "ffe52cfc6e077586f74bc0601ab3f604",  # 3
+        "frictionRatio": "ca1077a8961f7bdfcdc48dad55d3cd4d",  # 4
+        "porePressureU2": "bfc23ae3044ca50083657c9f1ba27cae",  # 6
+        "inclinationResultant": "a2d7e862d2c1d82f22bd6ad8b48019d8",  # 8
+        "inclinationNS": "0754bdc23ec22372fff0be6a769667e6",  # 9
+        "inclinationEW": "f3874df2dce708179077d8ec3706ae38",  # 10
+        "depth": "3a8a1d4f00a3c0c6e8318e7b301e192f",  # 11
+        "correctedConeResistance": "b29894e1fde9f1551cd5d99db104baa7",  # 13
     },
     collar_attributes={
         "research_report_date": [pd.Timestamp("2019-02-13 00:00:00+0000", tz="UTC")],  # FILEDATE
-        "delivered_vertical_position_offset": [-0.09],  # ZID
         # This one is always the empty string when parsing GEF
         "cpt_description": [""],
         # MISC
         "project_id": ["CPT, 1801726"],
-        "delivered_crs": ["urn:ogc:def:crs:EPSG::28992"],
         # MEAUREMENTVAR
         "cone_tip_area": ["1000, mm2, nom. oppervlak conuspunt"],  # 1
         "friction_sleeve_area": ["15000, mm2, oppervlakte kleefmantel"],  # 2
@@ -329,6 +330,7 @@ _gef_cpt_spec_1 = _CPTSpec(
 
 _gef_cpt_spec_2 = _CPTSpec(
     collar_locations=[116509.0, 469890.0, -1.63],
+    crs="Crs_V1_0_1_EpsgCode(epsg_code=28992)",
     hole_id="N04-25",
     hole_distancess={"final": 10.46, "target": 10.46, "current": 10.46},
     # TODO Make sure nothing is wrong here. There are 1039 rows in the source file, but the first bunch is being truncated.
@@ -352,12 +354,10 @@ _gef_cpt_spec_2 = _CPTSpec(
     },
     collar_attributes={
         "research_report_date": [pd.Timestamp("2021-05-03 00:00:00+0000", tz="UTC")],
-        "delivered_vertical_position_offset": [-1.63],
         # This one is always the empty string when parsing GEF
         "cpt_description": [""],
         # MISC
         "project_id": ["01.1138-233"],
-        "delivered_crs": ["urn:ogc:def:crs:EPSG::28992"],
         # MEASUREMENTVAR
         "cone_tip_area": ["1000.000000, mm2, Nom. surface area of cone tip"],  # 1
         "friction_sleeve_area": ["15000.000000, mm2, Nom. surface area of friction casing"],  # 2
@@ -425,6 +425,7 @@ _gef_cpt_spec_2 = _CPTSpec(
 
 _bro_xml_spec_1a = _CPTSpec(
     collar_locations=[52.365336590, 5.609079550, 4.41],
+    crs="Crs_V1_0_1_EpsgCode(epsg_code=4258)",
     hole_id="CPT000000099543",
     hole_distancess={"final": 7.439, "target": 7.439, "current": 7.439},
     num_rows=372,
@@ -450,8 +451,7 @@ _bro_xml_spec_1a = _CPTSpec(
         'cone_diameter': [44.0],
         'cone_to_friction_sleeve_surface_area': [22530],
         'cpt_description': ['Hyson'],
-        'delivered_crs': ['urn:ogc:def:crs:EPSG::28992'],
-        'delivered_vertical_position_offset': [4.41],
+        'delivered_crs': [28992],
         'delivered_x': [170112.2],
         'delivered_y': [486406.5],
         'research_report_date': [pd.Timestamp('2019-04-23 00:00:00+0000', tz='UTC')],
@@ -463,6 +463,7 @@ _bro_xml_spec_1a = _CPTSpec(
 
 __bro_xml_spec_1b = _CPTSpec(
     collar_locations=[52.0201802, 5.06352596, .09],
+    crs="Crs_V1_0_1_EpsgCode(epsg_code=4258)",
     hole_id="CPT000000155283",
     hole_distancess={"final": 6.57, "target": 6.57, "current": 6.57},
     num_rows=305,
@@ -487,8 +488,7 @@ __bro_xml_spec_1b = _CPTSpec(
     collar_attributes={
         'cone_to_friction_sleeve_surface_area': [15050],
         'cpt_description': ['Rups 09 Tor 27/PJW/'],
-        'delivered_crs': ['urn:ogc:def:crs:EPSG::28992'],
-        'delivered_vertical_position_offset': [0.09],
+        'delivered_crs': [28992],
         'delivered_x': [132782.52],
         'delivered_y': [448030.34],
         'research_report_date': [pd.Timestamp('2020-07-15 00:00:00+0000', tz='UTC')],
