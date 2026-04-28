@@ -56,7 +56,7 @@ class _CPTSpec:
 
 EXPECTED_PATH_ATTRIBUTES = [
     "depthOffset",
-    "delapsedTime",
+    "elapsedTime",
     "inclinationEW",
     "inclinationNS",
     "inclinationResultant",

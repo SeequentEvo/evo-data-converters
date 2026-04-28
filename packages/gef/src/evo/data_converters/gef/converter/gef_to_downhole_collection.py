@@ -53,7 +53,7 @@ PATH_ATTRIBUTES: list[str] = [
     "dip",
     "azimuth",
     "depthOffset",
-    "delapsedTime",
+    "elapsedTime",
     "inclinationEW",
     "inclinationNS",
     "inclinationResultant",
