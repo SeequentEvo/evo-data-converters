@@ -1,13 +1,13 @@
 # Changelog
 
-## evo-data-converters-image@v0.1.3
+## evo-data-converters-image@v0.1.4
 ### What's Changed
 #### evo-data-converters-image
 * Fix image-to-grid cell ordering to use bottom-row-first flattening so values align with bottom-left grid origin
 * Add regression test for bottom-left origin mapping
 * Update image converter code samples and docs to match the corrected orientation behavior
 
-**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.2...evo-data-converters-image@v0.1.3
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.3...evo-data-converters-image@v0.1.4
 
 ## evo-data-converters-image@v0.1.2
 
