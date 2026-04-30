@@ -185,6 +185,39 @@ MEASUREMENT_UNITS: dict[str, str] = {
     "magneticDeclination": "degrees",
 }
 
+CAMEL_TO_SNAKE: dict[str, str] = {
+    "penetrationLength": "penetration_length",
+    "coneResistance": "cone_resistance",
+    "localFriction": "local_friction",
+    "frictionRatio": "friction_ratio",
+    "frictionRatioComputed": "friction_ratio_computed",
+    "porePressureU1": "pore_pressure_u1",
+    "porePressureU2": "pore_pressure_u2",
+    "porePressureU3": "pore_pressure_u3",
+    "inclinationResultant": "inclination_resultant",
+    "inclinationNS": "inclination_ns",
+    "inclinationEW": "inclination_ew",
+    "depth": "depth",
+    "elapsedTime": "elapsed_time",
+    "correctedConeResistance": "corrected_cone_resistance",
+    "netConeResistance": "net_cone_resistance",
+    "poreRatio": "pore_ratio",
+    "coneResistanceRatio": "cone_resistance_ratio",
+    "soilDensity": "soil_density",
+    "porePressure": "pore_pressure",
+    "verticalPorePressureTotal": "vertical_pore_pressure_total",
+    "verticalPorePressureEffective": "vertical_pore_pressure_effective",
+    "inclinationX": "inclination_x",
+    "inclinationY": "inclination_y",
+    "electricalConductivity": "electrical_conductivity",
+    "magneticFieldStrengthX": "magnetic_field_strength_x",
+    "magneticFieldStrengthY": "magnetic_field_strength_y",
+    "magneticFieldStrengthZ": "magnetic_field_strength_z",
+    "magneticFieldStrengthTotal": "magnetic_field_strength_total",
+    "magneticInclination": "magnetic_inclination",
+    "magneticDeclination": "magnetic_declination",
+}
+
 MEASUREMENT_UNIT_CONVERSIONS: dict[str, str] = {
     "kN/m**3": "N/m**3",
 }

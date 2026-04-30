@@ -8,6 +8,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+from __future__ import annotations
+
 import dataclasses
 import math
 import os
@@ -22,6 +24,7 @@ from pygef.common import Location as PyGEFoLcation, VerticalDatumClass
 import pytest
 
 from evo.data_converters.gef.common_gef import ParsedCptFile, CPTSource
+from evo.data_converters.gef.converter.gef_spec import CAMEL_TO_SNAKE
 from evo.data_converters.gef.converter.gef_to_downhole_collection import process_cpt_file, build_downhole_collection
 from evo.data_converters.gef.objects import DownholeCollectionData
 
@@ -167,6 +170,53 @@ RANGE = list([float(x) for x in range(100)])
 SOIL_DENSITY = [math.cos(x) for x in range(100)]
 
 
+SNAKE_TO_CAMEL = {v: k for k, v in CAMEL_TO_SNAKE.items()}
+
+
+class MeasurementsColumn:
+    str_lookup: dict[str, MeasurementsColumn] = {}
+
+    def __new__(cls, name, *args, **kwargs):
+        obj = super().__new__(cls, *args, **kwargs)
+        cls.str_lookup[name] = obj
+        cls.str_lookup[SNAKE_TO_CAMEL.get(name, name)] = obj
+        return obj
+
+    def __init__(self, name: str):
+        self.name = name
+
+    @property
+    def as_snake(self):
+        return self.name
+
+    @property
+    def as_camel(self):
+        return SNAKE_TO_CAMEL.get(self.name, self.name)
+
+    @classmethod
+    def from_strs(cls, strs: list[str]):
+        return [cls.str_lookup[s] for s in strs]
+
+    def __repr__(self):
+        return self.as_snake
+
+
+inclination_ns = MeasurementsColumn("inclination_ns")
+inclination_ew = MeasurementsColumn("inclination_ew")
+inclination_resultant = MeasurementsColumn("inclination_resultant")
+depth = MeasurementsColumn("depth")
+cone_resistance = MeasurementsColumn("cone_resistance")
+local_friction = MeasurementsColumn("local_friction")
+friction_ratio_computed = MeasurementsColumn("friction_ratio_computed")
+soil_density = MeasurementsColumn("soil_density")
+elapsed_time = MeasurementsColumn("elapsed_time")
+dip = MeasurementsColumn("dip")
+azimuth = MeasurementsColumn("azimuth")
+depth_offset = MeasurementsColumn("depth_offset")
+_unknown = MeasurementsColumn("_unknown")
+
+
+# Input table, as it appears in pygef's CPTData. Note the camel case.
 DEFAULT_TABLE = pl.DataFrame({
     'penetrationLength': PENETRATION_LENGTH,  # Will be converted to "distance"
     # Path columns
@@ -183,20 +233,21 @@ DEFAULT_TABLE = pl.DataFrame({
 })
 
 COLUMN_RENAMES = {"penetrationLength": "distance"}
-COLLECTION_COLUMNS = ["penetrationLength", "coneResistance", "localFriction", "soilDensity"]
+COLLECTION_COLUMNS = [cone_resistance, local_friction, soil_density]
 
-PATH_COLUMNS: list[str] = [
-    "elapsedTime",
-    "inclinationEW",
-    "inclinationNS",
-    "inclinationResultant",
-    "depth",
+PATH_COLUMNS: list[MeasurementsColumn] = [
+    elapsed_time,
+    inclination_ew,
+    inclination_ns,
+    inclination_resultant,
+    depth,
     # Calculated by us
-    "dip",
-    "azimuth",
+    dip,
+    azimuth,
     # Can be calculated by pygef after CPTData construction
-    "depthOffset",
+    depth_offset,
 ]
+
 
 UNIT_CONVERSIONS = {
     # pygef is KN/m3, but evo is N/m3
@@ -204,14 +255,16 @@ UNIT_CONVERSIONS = {
 }
 
 
-def _make_pygef_cpt_table(rows: list[int] = None, columns: list[str] = None) -> pl.DataFrame:
+def _make_pygef_cpt_table(rows: list[int] = None, columns: list[MeasurementsColumn] = None) -> pl.DataFrame:
     if rows is None:
         rows = list(range(100))
     if columns is None:
-        columns = DEFAULT_TABLE.columns
-    if "penetrationLength" not in columns:
-        columns = ['penetrationLength'] + columns
-    return DEFAULT_TABLE.select(columns)[rows]
+        column_strs = DEFAULT_TABLE.columns
+    else:
+        column_strs = [col.as_camel for col in columns]
+    if "penetrationLength" not in column_strs:
+        column_strs = ['penetrationLength'] + column_strs
+    return DEFAULT_TABLE.select(column_strs)[rows]
 
 
 EVEN_ROWS = [x * 2 for x in range(50)]
@@ -285,9 +338,7 @@ class TestCPT:
     research_report_date: date = date(2000, 1, 1)
 
     # One of these
-    table_columns: list[str] = None
-    table_columns_excluded: list[str] = None
-    extra_table_columns: dict[str, list[Any]] = None
+    table_columns: list[MeasurementsColumn] = None
 
     # One of these
     hole_attrs: list[str] = None
@@ -296,9 +347,13 @@ class TestCPT:
 
     extra_args: dict = None
 
-    def with_table_columns(self, columns: list[str]):
-        # copy =
+    def with_table_columns(self, columns: list[MeasurementsColumn]):
         self.table_columns = columns
+        return self
+
+    def with_excluded_table_columns(self, columns: list[MeasurementsColumn] | MeasurementsColumn):
+        columns = columns if isinstance(columns, list) else [columns]
+        self.table_columns = [col for col in self._get_table_columns_used() if col not in columns]
         return self
 
     def get_hole_attrs_used(self) -> list[str]:
@@ -307,17 +362,18 @@ class TestCPT:
         base_hole_attrs = ["cone_type_serial", "ground_level", "reserved_13", "cone_tip_area", "test_type", "cone_zero_before"]  # TODO avoid hardcode?
         return base_hole_attrs  # TODO - Handle other test configs
 
-    def _get_table_columns_used(self) -> list[str]:
+    def _get_table_columns_used(self) -> list[MeasurementsColumn]:
         if self.table_columns is not None:
             return self.table_columns
-        base_table_columns = DEFAULT_TABLE.columns
+        column_strs = [col for col in DEFAULT_TABLE.columns if col != "penetrationLength"]
+        base_table_columns = MeasurementsColumn.from_strs(column_strs)
         return base_table_columns  # TODO - Handle other test configs
 
-    def _get_path_table_columns_used(self) -> list[str]:
+    def _get_path_table_columns_used(self) -> list[MeasurementsColumn]:
         all_columns = self._get_table_columns_used()
         return [col for col in all_columns if col in PATH_COLUMNS]
 
-    def _get_collection_table_columns_used(self) -> list[str]:
+    def _get_collection_table_columns_used(self) -> list[MeasurementsColumn]:
         all_columns = self._get_table_columns_used()
         return [col for col in all_columns if col in COLLECTION_COLUMNS]
 
@@ -390,18 +446,20 @@ class TestCPT:
     def _check_path(self, path: pd.Series):
         path_columns = self._get_path_table_columns_used()
         for col in path_columns:
-            expected_col = DEFAULT_TABLE[col][self.table_rows]
-            actual_col = path[COLUMN_RENAMES.get(col, col)]
+            expected_col = DEFAULT_TABLE[col.as_camel][self.table_rows]
+            actual_col = path[col.as_snake]
             assert np.array_equal(actual_col, expected_col)
+        assert np.array_equal(path["distance"], DEFAULT_TABLE["penetrationLength"][self.table_rows])
 
     def _check_collections(self, collection: pd.DataFrame):
         collection_columns = self._get_collection_table_columns_used()
         for col in collection_columns:
-            expected_col = DEFAULT_TABLE[col][self.table_rows]
-            actual_col = collection[COLUMN_RENAMES.get(col, col)]
-            if col in UNIT_CONVERSIONS:
-                expected_col *= UNIT_CONVERSIONS[col]
+            expected_col = DEFAULT_TABLE[col.as_camel][self.table_rows]
+            actual_col = collection[col.as_snake]
+            if col.as_camel in UNIT_CONVERSIONS:
+                expected_col *= UNIT_CONVERSIONS[col.as_camel]
             assert np.array_equal(actual_col, expected_col)
+        assert np.array_equal(collection["distance"], DEFAULT_TABLE["penetrationLength"][self.table_rows])
 
     def check_dhc(self, dhc: DownholeCollectionData):
         assert dhc.name == f"GEF CPT hole {self.hole_index}"
@@ -555,22 +613,20 @@ class TestProcessCptFile:
         assert dhc.attributes.drop(columns="cone_zero_before").iloc[1].notna().all()
 
     def test_to_gefs_with_differing_collection_measurements(self, test_cpt1, test_cpt2):
-        measurements1 = DEFAULT_TABLE.drop("coneResistance")[EVEN_ROWS]
-        measurements2 = DEFAULT_TABLE.drop("soilDensity")[ODD_ROWS]
-        cpt1 = test_cpt1.build_parsed_cpt(data=measurements1)
-        cpt2 = test_cpt2.build_parsed_cpt(data=measurements2)
+        cpt1 = test_cpt1.with_excluded_table_columns(cone_resistance).build_parsed_cpt()
+        cpt2 = test_cpt2.with_excluded_table_columns(soil_density).build_parsed_cpt()
 
         dhc = _process_cpt([cpt1, cpt2])
 
         table_first_section = dhc.collections[0].distance_table[:len(EVEN_ROWS)]
         table_second_section = dhc.collections[0].distance_table[len(EVEN_ROWS):]
 
-        assert table_first_section["coneResistance"].isna().all()
-        assert table_first_section["frictionRatioComputed"].isna().all()  # Derived from coneResistance
-        assert table_first_section.drop(columns=["coneResistance", "frictionRatioComputed"]).notna().all().all()
+        assert table_first_section["cone_resistance"].isna().all()
+        assert table_first_section["friction_ratio_computed"].isna().all()  # Derived from cone_resistance
+        assert table_first_section.drop(columns=["cone_resistance", "friction_ratio_computed"]).notna().all().all()
 
-        assert table_second_section["soilDensity"].isna().all()
-        assert table_second_section.drop(columns=["soilDensity"]).notna().all().all()
+        assert table_second_section["soil_density"].isna().all()
+        assert table_second_section.drop(columns=["soil_density"]).notna().all().all()
 
 
 class TestCRS:
@@ -679,23 +735,25 @@ class TestCollections:
 
         # "penetrationLength" has been converted to "distance", which appears in both tables
         assert "penetrationLength" not in path_cols
+        assert "penetration_length" not in path_cols
         assert "penetrationLength" not in coll_cols
+        assert "penetration_length" not in coll_cols
         assert np.array_equal(dhc.path["distance"] , DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
         assert np.array_equal(dhc.collections[0].distance_table["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
 
         # Check other path columns
-        other_path_cols = {col for col in path_cols if col != "distance"}
-        assert other_path_cols < set(PATH_COLUMNS)
+        other_path_cols = MeasurementsColumn.from_strs([col for col in path_cols if col != "distance"])
+        assert set(other_path_cols) < set(PATH_COLUMNS)
 
         # Check other collection columns
-        assert "coneResistance" in coll_cols
-        assert "localFriction" in coll_cols
+        assert "cone_resistance" in coll_cols
+        assert "local_friction" in coll_cols
 
     def test_we_include_friction_ratio_computed(self, test_cpt1):
-        test_cpt1.with_table_columns(["coneResistance", "localFriction"])
+        test_cpt1.with_table_columns([cone_resistance, local_friction])
         cpt = test_cpt1.build_parsed_cpt()
         dhc = _process_cpt(cpt)
-        assert "frictionRatioComputed" in dhc.collections[0].distance_table.columns
+        assert "friction_ratio_computed" in dhc.collections[0].distance_table.columns
 
     def test_dtypes(self, cpt):
         """The measurement table should consistent of floats, because they are measurements"""
@@ -708,7 +766,7 @@ class TestCollections:
 class TestPath:
     @pytest.mark.parametrize("columns, expected_dip_calculated", [
         ([], False),
-        (["inclinationResultant"], True),
+        ([inclination_resultant], True),
     ])
     def test_calculates_dip_when_inclination_resultant_present(self, test_cpt1, columns, expected_dip_calculated):
         cpt = test_cpt1.with_table_columns(columns).build_parsed_cpt()
@@ -719,13 +777,13 @@ class TestPath:
             return
 
         # Dip has been calculated
-        expected_dip = 90 - dhc.path["inclinationResultant"]
+        expected_dip = 90 - dhc.path["inclination_resultant"]
         assert np.array_equal(expected_dip, dhc.path["dip"])
 
     @pytest.mark.parametrize("columns, expected_az_calculated", [
-        (["inclinationEW"], False),
-        (["inclinationNS"], False),
-        (["inclinationEW", "inclinationNS"], True),
+        ([inclination_ew], False),
+        ([inclination_ns], False),
+        ([inclination_ew, inclination_ns], True),
     ])
     def test_calculates_azimuth_if_both_inclination_ns_and_ew_are_present(self, test_cpt1, columns, expected_az_calculated):
         cpt = test_cpt1.with_table_columns(columns).build_parsed_cpt()
@@ -733,8 +791,8 @@ class TestPath:
         if not expected_az_calculated:
             assert (dhc.path["azimuth"] == 0.0).all()
             return
-        ew = dhc.path["inclinationEW"]
-        ns = dhc.path["inclinationNS"]
+        ew = dhc.path["inclination_ew"]
+        ns = dhc.path["inclination_ns"]
         expected_az = (np.degrees(np.arctan2(ew, ns)) + 360) % 360
         assert np.array_equal(dhc.path["azimuth"], expected_az)
 
@@ -750,12 +808,12 @@ class TestApplyMeasurementUnits:
         processed = process_cpt_file(cpt)
 
         # Pint types
-        assert processed.cpt_table["penetrationLength"].dtype.units == "meter"
-        assert processed.cpt_table["coneResistance"].dtype.units == "megapascal"
-        assert processed.cpt_table["localFriction"].dtype.units == "megapascal"
-        assert processed.cpt_table["soilDensity"].dtype.units == "newton / meter ** 3"
+        assert processed.cpt_table["penetration_length"].dtype.units == "meter"
+        assert processed.cpt_table["cone_resistance"].dtype.units == "megapascal"
+        assert processed.cpt_table["local_friction"].dtype.units == "megapascal"
+        assert processed.cpt_table["soil_density"].dtype.units == "newton / meter ** 3"
         # Not a pint type
-        assert processed.cpt_table["frictionRatioComputed"].dtype == np.float64
+        assert processed.cpt_table["friction_ratio_computed"].dtype == np.float64
 
         dhc = build_downhole_collection([processed])
 
@@ -763,10 +821,10 @@ class TestApplyMeasurementUnits:
         path_descs = dhc.path.attrs["attribute_descriptions"]
         assert path_descs["distance"].unit.value == "m"
         coll_descs = dhc.collections[0].distance_table.attrs["attribute_descriptions"]
-        assert coll_descs["coneResistance"].unit.value == "MPa"
-        assert coll_descs["localFriction"].unit.value == "MPa"
-        assert coll_descs["soilDensity"].unit.value == "N/m3"
-        assert "frictionRatioComputed" not in coll_descs
+        assert coll_descs["cone_resistance"].unit.value == "MPa"
+        assert coll_descs["local_friction"].unit.value == "MPa"
+        assert coll_descs["soil_density"].unit.value == "N/m3"
+        assert "friction_ratio_computed" not in coll_descs
 
 
 class TestNanHandling:
@@ -788,18 +846,18 @@ class TestNanHandling:
 
         assert np.array_equal(
             data_table["coneResistance"] == nan_mapping["coneResistance"],
-            dhc.collections[0].distance_table["coneResistance"].isna()
+            dhc.collections[0].distance_table["cone_resistance"].isna()
         )
-        for col in ["inclinationEW", "inclinationNS", "inclinationResultant"]:
+        for col in [inclination_ew, inclination_ns, inclination_resultant]:
             assert np.array_equal(
-                data_table[col] == nan_mapping[col],
-                dhc.path[col].isna()
+                data_table[col.as_camel] == nan_mapping[col.as_camel],
+                dhc.path[col.as_snake].isna()
             )
 
         # Check how the dip and azimuth get handled if any of their inputs are NaN. It's inconsistent that azimuth
         # gets a value of 0.0 and dip gets NaN, but that's how it is.
-        nan_inputs_to_az = np.logical_or(dhc.path["inclinationEW"].isna(), dhc.path["inclinationNS"].isna())
+        nan_inputs_to_az = np.logical_or(dhc.path["inclination_ew"].isna(), dhc.path["inclination_ns"].isna())
         assert (dhc.path["azimuth"][nan_inputs_to_az] == 0.0).all()
 
-        nan_inputs_to_dip = dhc.path["inclinationResultant"].isna()
+        nan_inputs_to_dip = dhc.path["inclination_resultant"].isna()
         assert dhc.path["dip"][nan_inputs_to_dip].isna().all()

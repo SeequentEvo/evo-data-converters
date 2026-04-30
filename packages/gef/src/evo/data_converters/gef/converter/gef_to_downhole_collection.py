@@ -29,7 +29,7 @@ from .gef_spec import (
     MEASUREMENT_TEXT_NAMES,
     MEASUREMENT_UNIT_CONVERSIONS,
     MEASUREMENT_UNITS,
-    MEASUREMENT_VAR_NAMES,
+    MEASUREMENT_VAR_NAMES, CAMEL_TO_SNAKE,
 )
 from ..common_gef import CPTSource, ParsedCptFile
 from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
@@ -52,11 +52,11 @@ HOLE_PROPERTIES_DTYPES: dict[str, str] = {
 PATH_ATTRIBUTES: list[str] = [
     "dip",
     "azimuth",
-    "depthOffset",
-    "elapsedTime",
-    "inclinationEW",
-    "inclinationNS",
-    "inclinationResultant",
+    "depth_offset",
+    "elapsed_time",
+    "inclination_ew",
+    "inclination_ns",
+    "inclination_resultant",
     "depth",
 ]
 
@@ -234,12 +234,12 @@ def _process_hole_attributes(cpt: ParsedCptFile) -> dict[str, typing.Any]:
 def _process_cpt_table(cpt: ParsedCptFile) -> pd.DataFrame:
     """Process the primary CPT table data"""
     df = cpt.data.data.to_pandas()
-
     df = _apply_nan_mapping(df, cpt)
     df = _calculate_dip(df)
     df = _calculate_azimuth(df)
-
     df = _apply_measurement_units(df)
+    df = df.rename(columns=CAMEL_TO_SNAKE)
+
     return df
 
 
@@ -445,7 +445,7 @@ def _convert_from_pint_columns(df: pd.DataFrame) -> pd.DataFrame:
 def _combine_cpt_tables(cpts: list[ProcessedCPT]) -> pd.DataFrame:
     cpt_tables = [cpt.cpt_table for cpt in cpts]
     combined_table = pd.concat(cpt_tables, ignore_index=True)
-    combined_table = combined_table.rename(columns={"penetrationLength": "distance"})
+    combined_table = combined_table.rename(columns={"penetration_length": "distance"})
     return _convert_from_pint_columns(combined_table)
 
 
