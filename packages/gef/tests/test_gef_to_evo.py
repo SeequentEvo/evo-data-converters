@@ -333,24 +333,21 @@ _gef_cpt_spec_2 = _CPTSpec(
     crs="Crs_V1_0_1_EpsgCode(epsg_code=28992)",
     hole_id="N04-25",
     hole_distancess={"final": 10.46, "target": 10.46, "current": 10.46},
-    # TODO Make sure nothing is wrong here. There are 1039 rows in the source file, but the first bunch is being truncated.
-    #  Looking at the imported "distance" column, the distances start at 2.0, which is the same as preexcavated_depth.
-    #  Need to confirm that we want to discard these rows.
-    num_rows=839,
-    sum_distances=5193.41,
-    sum_azimuths=199323.939914,
-    sum_dips=75114.252900,
+    num_rows=1039,
+    sum_distances=5392.41,
+    sum_azimuths=244721.11715837254,
+    sum_dips=93023.0331,
     attributes={
-        "depthOffset": "ce7e5624d2f4d0d36d2c829d8273e33e",
-        "frictionRatioComputed": "38368a44ebb0111c55cf89645196309f",
-        "depth": "d7b3fce4f4aaac6062e15e5c4f510098",
-        "coneResistance": "35cfc50676c8c84667faa7431c8ef0ba",  # 2
-        "localFriction": "9a4b0e7d46ba24e47eece2b21d56fb91",  # 3
-        "frictionRatio": "989f5f071c20331b6bb06126939992c8",  # 4
-        "inclinationResultant": "5b3ed874c2936e1f750b62a55b68cc13",  # 8
-        "inclinationNS": "87d36476d5422514aee6b191b55c0bf2",  # 9
-        "inclinationEW": "8ac9f6acf1c60540c04fdf0600dbca83",  # 10
-        "elapsedTime": "ec2c330960a006e5a7f5506f05e9b9d1",  # 12
+        "depthOffset": "1bf9b2795fe576ac46692a0a6e5d9baa",
+        "frictionRatioComputed": "3cef78f21050ea2de35c3fcb48a34ba7",
+        "depth": "6d3cdf3b1f4665c225f2866fc1e1e02e",
+        "coneResistance": "722fd21f7444e2c7aee9075b4779af5c",  # 2
+        "localFriction": "3be183440664b350cf5a4708a79b0bb1",  # 3
+        "frictionRatio": "58460c64acc23f50f5bd3ce1f74822f4",  # 4
+        "inclinationResultant": "5fa908ed8056ee0269ede0357b5b9954",  # 8
+        "inclinationNS": "f42062a47a6524813aea4a2346959e40",  # 9
+        "inclinationEW": "8514b6c48af803844a762cea2414ccec",  # 10
+        "elapsedTime": "7525eae85ef60a0cca2e2b5b42fb587b",  # 12
     },
     collar_attributes={
         "research_report_date": [pd.Timestamp("2021-05-03 00:00:00+0000", tz="UTC")],
