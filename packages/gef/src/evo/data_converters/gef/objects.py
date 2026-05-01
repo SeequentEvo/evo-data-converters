@@ -30,7 +30,6 @@ from evo.objects.typed.attributes import (
     Attribute,
     UnSupportedDataTypeError,
     _attribute_table_formats,
-    _infer_attribute_type_from_series,
 )
 from evo.objects.typed.exceptions import ObjectValidationError
 from evo.objects.typed.spatial import BaseSpatialObject, BaseSpatialObjectData
