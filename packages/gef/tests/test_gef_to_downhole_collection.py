@@ -19,15 +19,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import polars as pl
-from pygef.cpt import CPTData
-from pygef.common import Location as PyGEFoLcation, VerticalDatumClass
 import pytest
+from pygef.common import Location as PyGEFoLcation
+from pygef.common import VerticalDatumClass
+from pygef.cpt import CPTData
 
-from evo.data_converters.gef.common_gef import ParsedCptFile, CPTSource
+from evo.data_converters.gef.common_gef import CPTSource, ParsedCptFile
 from evo.data_converters.gef.converter.gef_spec import CAMEL_TO_SNAKE
-from evo.data_converters.gef.converter.gef_to_downhole_collection import process_cpt_file, build_downhole_collection
+from evo.data_converters.gef.converter.gef_to_downhole_collection import build_downhole_collection, process_cpt_file
 from evo.data_converters.gef.objects import DownholeCollectionData
-
 
 CRS1 = "EPSG:28992"
 CRS2 = "EPSG:4326"
@@ -680,12 +680,12 @@ class TestCRS:
     def test_build_without_epsg_raises_error(self, cpt, invalid_crs: str):
         cpt.data.delivered_location.srs_name = invalid_crs
         dhc = _process_cpt(cpt)
-        assert dhc.coordinate_reference_system == None
+        assert dhc.coordinate_reference_system is None
 
     def test_epsg_404000_treated_as_unspecified(self, cpt):
         cpt.data.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::404000"
         dhc = _process_cpt(cpt)
-        assert dhc.coordinate_reference_system == None
+        assert dhc.coordinate_reference_system is None
 
 
 class TestCalculateFinalDepth:

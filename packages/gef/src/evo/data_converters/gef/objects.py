@@ -14,35 +14,34 @@ from __future__ import annotations
 import typing
 import uuid
 from dataclasses import dataclass
-from typing import Annotated, ClassVar, Any, TypedDict, TypeAlias
+from typing import Annotated, Any, ClassVar, TypeAlias, TypedDict
 
 import numpy as np
 import pandas as pd
+from evo_schemas.elements.unit import Unit_V1_0_1
 
 from evo.common.interfaces import IContext
 from evo.common.utils import NoFeedback
 from evo.objects import SchemaVersion
-from evo.objects.utils.table_formats import (
-    FLOAT_ARRAY_1,
-    FLOAT_ARRAY_3,
-    KnownTableFormat,
-    DOWNHOLE_COLLECTION_LOCATION_HOLES,
-    DATE_TIME_ARRAY,
-)
-from evo_schemas.elements.unit import Unit_V1_0_1
-
 from evo.objects.typed._data import DataTable
+from evo.objects.typed._model import DataLocation, SchemaBuilder, SchemaList, SchemaLocation, SchemaModel
 from evo.objects.typed._utils import get_data_client
-from evo.objects.typed._model import DataLocation, SchemaLocation, SchemaModel, SchemaList, SchemaBuilder
 from evo.objects.typed.attributes import (
-    _infer_attribute_type_from_series,
     Attribute,
     UnSupportedDataTypeError,
     _attribute_table_formats,
+    _infer_attribute_type_from_series,
 )
+from evo.objects.typed.exceptions import ObjectValidationError
 from evo.objects.typed.spatial import BaseSpatialObject, BaseSpatialObjectData
 from evo.objects.typed.types import BoundingBox
-from evo.objects.typed.exceptions import ObjectValidationError
+from evo.objects.utils.table_formats import (
+    DATE_TIME_ARRAY,
+    DOWNHOLE_COLLECTION_LOCATION_HOLES,
+    FLOAT_ARRAY_1,
+    FLOAT_ARRAY_3,
+    KnownTableFormat,
+)
 
 __all__ = [
     "DownholeCollection",
@@ -73,7 +72,7 @@ assert "date_time" not in _attribute_table_formats
 _attribute_table_formats["date_time"] = [DATE_TIME_ARRAY]
 
 
-def _infer_attribute_type_from_series(series: pd.Series) -> str:
+def _infer_attribute_type_from_series(series: pd.Series) -> str:  # noqa: F811
     """Infer the attribute type from a Pandas Series.
 
     :param series: The Pandas Series to infer the attribute type from.
@@ -90,7 +89,7 @@ def _infer_attribute_type_from_series(series: pd.Series) -> str:
         return "category"
     elif pd.api.types.is_string_dtype(series):
         return "string"
-    elif (inferred_type := pd.api.types.infer_dtype(series, skipna=True)) in ["date", "datetime", "datetime64"]:
+    elif pd.api.types.infer_dtype(series, skipna=True) in ["date", "datetime", "datetime64"]:
         return "date_time"
     else:
         raise UnSupportedDataTypeError(f"Unsupported dtype for attribute: {series.dtype}")

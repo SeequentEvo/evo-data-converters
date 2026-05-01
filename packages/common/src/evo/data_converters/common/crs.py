@@ -17,7 +17,6 @@ from pyproj import CRS
 from pyproj._crs import is_wkt
 from pyproj.exceptions import CRSError
 
-
 SchemaCrsCode: TypeAlias = Crs | Crs_EpsgCode | Crs_OgcWkt
 
 UNSPECIFIED = "unspecified"

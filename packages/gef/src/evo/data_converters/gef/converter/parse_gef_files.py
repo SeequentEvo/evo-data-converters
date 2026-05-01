@@ -17,7 +17,6 @@ from pygef.broxml.parse_cpt import read_cpt as read_cpt_xml
 from pygef.cpt import CPTData
 
 import evo.logging
-
 from evo.data_converters.gef.common_gef import CPTSource
 
 logger = evo.logging.getLogger("data_converters")

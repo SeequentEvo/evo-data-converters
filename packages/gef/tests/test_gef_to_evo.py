@@ -23,20 +23,17 @@ from uuid import UUID
 import numpy
 import pandas as pd
 import pytest
+from evo_schemas.objects.downhole_collection import DownholeCollection_V1_3_1
 from packages.gef.tests.consts import GEF1, GEF2, GEF_XML_MULTIPLE
 
 from evo.common.connector import APIConnector
 from evo.common.data import Environment
-from evo.common.interfaces import IContext, ICache
-
-from evo.objects.client.object_client import DownloadedObject
-from evo.objects.data import ObjectSchema, ObjectReference
-
-from evo_schemas.objects.downhole_collection import DownholeCollection_V1_3_1
-
+from evo.common.interfaces import ICache, IContext
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.gef.importer import convert_gef
 from evo.data_converters.gef.objects import DownholeCollection, DownholeCollectionData
+from evo.objects.client.object_client import DownloadedObject
+from evo.objects.data import ObjectReference, ObjectSchema
 
 
 @dataclass
@@ -514,7 +511,7 @@ async def test_import_gef_1(evo_metadata, data_client):
     context = TestContext(mock_metadata=evo_metadata)
 
     with _mock_geoscience_objects(context.get_environment()) as mock_client:
-        gef_object = await convert_gef(
+        await convert_gef(
             filepaths=[GEF1],
             evo_workspace_metadata=evo_metadata,
             epsg_code=32650,
@@ -531,7 +528,7 @@ async def test_import_gef_2(evo_metadata, data_client):
     context = TestContext(mock_metadata=evo_metadata)
 
     with _mock_geoscience_objects(context.get_environment()) as mock_client:
-        gef_object = await convert_gef(
+        await convert_gef(
             filepaths=[GEF2],
             evo_workspace_metadata=evo_metadata,
             epsg_code=32650,
@@ -548,7 +545,7 @@ async def test_import_multiple_with_different_attributes(evo_metadata, data_clie
     context = TestContext(mock_metadata=evo_metadata)
 
     with _mock_geoscience_objects(context.get_environment()) as mock_client:
-        gef_object = await convert_gef(
+        await convert_gef(
             filepaths=[GEF1, GEF2],
             evo_workspace_metadata=evo_metadata,
             epsg_code=32650,
@@ -583,7 +580,7 @@ async def test_import_gef_xml_cpt_multiple(evo_metadata, data_client):
     context = TestContext(mock_metadata=evo_metadata)
 
     with _mock_geoscience_objects(context.get_environment()) as mock_client:
-        gef_object = await convert_gef(
+        await convert_gef(
             filepaths=[GEF_XML_MULTIPLE],
             evo_workspace_metadata=evo_metadata,
             epsg_code=32650,
@@ -823,7 +820,7 @@ async def test_typed_dhc(evo_metadata, data_client):
             ),
         )
 
-        result = await DownholeCollection.create(context, dhc_data)
+        await DownholeCollection.create(context, dhc_data)
 
         gef_object_dict, *_ = mock_client.objects.values()
         cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)

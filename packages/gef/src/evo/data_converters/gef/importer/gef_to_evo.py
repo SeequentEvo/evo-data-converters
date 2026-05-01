@@ -12,18 +12,17 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from evo.common.context import StaticContext
 import evo.logging
+from evo.common.context import StaticContext
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
 )
 from evo.data_converters.gef.converter import parse_gef_files
+from evo.data_converters.gef.converter.gef_to_downhole_collection import build_downhole_collection, process_cpt_files
+from evo.data_converters.gef.objects import DownholeCollection
 from evo.objects import ObjectReference
 from evo.objects.data import ObjectMetadata
-
-from evo.data_converters.gef.converter.gef_to_downhole_collection import process_cpt_files, build_downhole_collection
-from evo.data_converters.gef.objects import DownholeCollection
 
 logger = evo.logging.getLogger("data_converters")
 

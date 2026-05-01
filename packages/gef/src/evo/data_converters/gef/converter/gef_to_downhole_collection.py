@@ -23,19 +23,19 @@ from pygef.cpt import CPTData
 import evo.logging
 from evo.objects.typed.types import EpsgCode
 
+from ...common import InvalidCRSError, crs_from_any
+from ...common.objects.units import UnitMapper
+from ..common_gef import CPTSource, ParsedCptFile
+from ..objects import AttributeDescription, DistanceCollection, DownholeCollectionData
 from .gef_spec import (
+    CAMEL_TO_SNAKE,
     COLLAR_ATTRIBUTES,
     COMPUTED,
     MEASUREMENT_TEXT_NAMES,
     MEASUREMENT_UNIT_CONVERSIONS,
     MEASUREMENT_UNITS,
     MEASUREMENT_VAR_NAMES,
-    CAMEL_TO_SNAKE,
 )
-from ..common_gef import CPTSource, ParsedCptFile
-from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
-from ...common import crs_from_any, InvalidCRSError
-from ...common.objects.units import UnitMapper
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -134,7 +134,7 @@ def _extract_crs(location: PygefLocation) -> int | str | None:
     srs_name = location.srs_name
     try:
         crs: int | str | None = crs_from_any(srs_name)
-    except InvalidCRSError as e:
+    except InvalidCRSError:
         logger.warning(f"Invalid or unrecognized CRS description: '{srs_name}'")
         return None
 
