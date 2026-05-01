@@ -17,6 +17,11 @@ from pyproj._crs import is_wkt
 from pyproj.exceptions import CRSError
 
 
+type SchemaCrsCode = Crs | Crs_EpsgCode | Crs_OgcWkt
+
+UNSPECIFIED = "unspecified"
+
+
 class InvalidCRSError(ValueError):
     """Raised when a CRS definition cannot be parsed or validated."""
 
@@ -75,10 +80,10 @@ def crs_unspecified() -> Crs:
     When the Crs is not specified, the goescience Crs object is
     returned as a simple string constant
     """
-    return "unspecified"
+    return UNSPECIFIED
 
 
-def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_OgcWkt:
+def crs_from_any(crs_def: str | int | None = None) -> SchemaCrsCode:
     """Select the applicable function to create a Crs geoscience object from *crs_def*.
 
     :raises InvalidCRSError: If the input is not a valid CRS definition.
@@ -92,7 +97,7 @@ def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_O
         crs = crs_from_any("unspecified")
         crs = crs_from_any("<valid OGC WKT string>")
     """
-    if crs_def is None or crs_def == "unspecified":
+    if crs_def is None or crs_def == UNSPECIFIED:
         return crs_unspecified()
     elif _is_epsg_code(crs_def):
         return crs_from_epsg_code(crs_def)

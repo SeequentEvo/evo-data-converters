@@ -33,6 +33,8 @@ from .gef_spec import (
 )
 from ..common_gef import CPTSource, ParsedCptFile
 from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
+from ...common import crs_from_any, InvalidCRSError
+from ...common.crs import SchemaCrsCode, UNSPECIFIED
 from ...common.objects.units import UnitMapper
 
 logger = evo.logging.getLogger("data_converters")
@@ -81,7 +83,7 @@ class _Location:
     x: float
     y: float
     z: float
-    crs: int | None  # TODO - insufficient
+    crs: SchemaCrsCode
 
     def xyz_dict(self):
         return {
@@ -127,22 +129,20 @@ def process_cpt_file(cpt: ParsedCptFile) -> ProcessedCPT:
     )
 
 
-def _extract_crs(location: PygefLocation) -> int | None:
-    # TODO - This isn't properly handling with all kinds of CRS. It only sniffs out EPSG.
+def _extract_crs(location: PygefLocation) -> SchemaCrsCode:
+    # For GEF, pygef infers srs_name from GEF's bespoke CRS description in the #XYID header
     srs_name = location.srs_name
-    if ":" not in srs_name:
-        raise ValueError(f"Malformed SRS name: '{srs_name}'. Expected format: 'urn:123'")
-
     try:
-        epsg_code = int(srs_name.split(":")[-1])
-    except (ValueError, IndexError) as e:
-        raise ValueError(f"Invalid EPSG code in SRS name: '{srs_name}'. Error: {e}")
+        crs: SchemaCrsCode = crs_from_any(srs_name)
+    except InvalidCRSError as e:
+        logger.warning(f"Invalid or unrecognized CRS description: '{srs_name}'")
+        crs = "unspecified"
 
-    # TODO - What's this?
-    if epsg_code == 404000:
-        epsg_code = None
+    if hasattr(crs, "epsg_code") and crs.epsg_code == 404000:
+        logger.warning(f"Invalid or unrecognized CRS description: '{srs_name}'")
+        crs = "unspecified"
 
-    return epsg_code
+    return crs
 
 
 def _extract_attributes_as_dict_from_object(cpt_data: CPTData) -> dict[str, typing.Any]:
@@ -466,8 +466,8 @@ def _build_collections(combined_table: pd.DataFrame, holes: pd.DataFrame) -> lis
     return [dc]
 
 
-def _get_crs(cpts: list[ProcessedCPT]) -> EpsgCode | None:
+def _get_crs(cpts: list[ProcessedCPT]) -> SchemaCrsCode:
     for cpt in cpts:
-        if cpt.location.crs is not None:
-            return EpsgCode(cpt.location.crs)
-    return
+        if cpt.location.crs != UNSPECIFIED:
+            return cpt.location.crs
+    return UNSPECIFIED

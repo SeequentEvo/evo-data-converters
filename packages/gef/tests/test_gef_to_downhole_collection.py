@@ -23,6 +23,7 @@ from pygef.cpt import CPTData
 from pygef.common import Location as PyGEFoLcation, VerticalDatumClass
 import pytest
 
+from evo.data_converters.common.crs import UNSPECIFIED
 from evo.data_converters.gef.common_gef import ParsedCptFile, CPTSource
 from evo.data_converters.gef.converter.gef_spec import CAMEL_TO_SNAKE
 from evo.data_converters.gef.converter.gef_to_downhole_collection import process_cpt_file, build_downhole_collection
@@ -466,7 +467,8 @@ class TestCPT:
         self.check(collar_attributes=dhc.attributes.iloc[0], collar_properties=dhc.properties.iloc[0], path=dhc.path, collection=dhc.collections[0].distance_table, crs=dhc.coordinate_reference_system)
 
     def check(self, collar_attributes: pd.Series, collar_properties: pd.Series, path: pd.DataFrame, collection: pd.DataFrame, crs):
-        assert crs == int(self.location.srs_name.split(":")[1])  # TODO improve CRS
+        # Assume its an EPSG
+        assert crs.epsg_code == int(self.location.srs_name.split(":")[1])
 
         self._check_properties(collar_properties)
         self._check_attributes(collar_attributes)
@@ -633,12 +635,12 @@ class TestCRS:
     @pytest.mark.parametrize("valid_crs,expected", [
         ("EPSG:28992", 28992),  # Short format
         ("urn:ogc:def:crs:EPSG::4326", 4326),  # urn format
-        (":4326", 4326),  # TODO - This probably shouldn't be valid
+        ("4326", 4326),
     ])
     def test_valid_epsg_formats(self, cpt, valid_crs: str, expected: int):
         cpt.data.delivered_location.srs_name = valid_crs
         dhc = _process_cpt(cpt)
-        assert dhc.coordinate_reference_system == expected
+        assert dhc.coordinate_reference_system.epsg_code == expected
 
     def test_inconsistent_epsg_picks_first_one(self, test_cpt1):
         cpt1 = test_cpt1.build_parsed_cpt()
@@ -646,18 +648,18 @@ class TestCRS:
         cpt2 = test_cpt1.build_parsed_cpt()
 
         dhc = _process_cpt([cpt1, cpt2])
-        assert dhc.coordinate_reference_system == 4326
+        assert dhc.coordinate_reference_system.epsg_code == 4326
 
-    @pytest.mark.parametrize("invalid_crs", ["", "blah", "123", ":", "EPSG:"])
+    @pytest.mark.parametrize("invalid_crs", ["", "blah", "123", ":", "EPSG:", ":4326"])
     def test_build_without_epsg_raises_error(self, cpt, invalid_crs: str):
         cpt.data.delivered_location.srs_name = invalid_crs
-        with pytest.raises(ValueError, match="SRS name"):
-            _process_cpt(cpt)
+        dhc = _process_cpt(cpt)
+        assert dhc.coordinate_reference_system == UNSPECIFIED
 
-    def test_epsg_404000_returns_none(self, cpt):
+    def test_epsg_404000_treated_as_unspecified(self, cpt):
         cpt.data.delivered_location.srs_name = "urn:ogc:def:crs:EPSG::404000"
         dhc = _process_cpt(cpt)
-        assert dhc.coordinate_reference_system is None
+        assert dhc.coordinate_reference_system == UNSPECIFIED
 
 
 class TestCalculateFinalDepth:
