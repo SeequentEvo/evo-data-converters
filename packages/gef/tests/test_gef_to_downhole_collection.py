@@ -75,7 +75,6 @@ class MTextRow:
         return MTextRow({k: v for k, v in self.row.items() if k in columns})
 
 
-
 MEASUREMENT_TEXT_ROWS = [
     MTextRow({"cone_type_serial": "serial1", "ground_level": "ground1", "reserved_13": "reserved1"}),
     MTextRow({"cone_type_serial": "serial2", "ground_level": "ground2", "reserved_13": "reserved2"}),
@@ -95,10 +94,10 @@ MVAR_NAME_TO_INDEX.update(_OUT_OF_BOUNDS_NAME_TO_INDEX)
 MVAR_INDEX_TO_NAME = dict(zip(MVAR_NAME_TO_INDEX.values(), MVAR_NAME_TO_INDEX.keys()))
 
 
-
 class MVarRow:
     def __init__(self, row: dict[str, tuple[Any, str]]):
         self.row = row
+
     def get(self) -> list[list[str]]:
         # The format as presented by pygef (which we are mocking) will look like
         # index, value, unit, label
@@ -115,7 +114,6 @@ class MVarRow:
         return MVarRow({k: v for k, v in self.row.items() if k in columns})
 
 
-
 MEASUREMENT_VAR_ROWS = [
     MVarRow({"cone_tip_area": ("1000", "mm2"), "test_type": ("1", "-"), "cone_zero_before": ("-0.2", "MPa")}),
     MVarRow({"cone_tip_area": ("1100", "mm2"), "test_type": ("2", "-"), "cone_zero_before": ("-0.2", "MPa")}),
@@ -130,12 +128,12 @@ def _build_expected_attributes():
 
     for mtext_row in MEASUREMENT_TEXT_ROWS:
         for field, value in mtext_row.row.items():
-            expected_entry = f'{value}, {field}'
+            expected_entry = f"{value}, {field}"
             attrs.setdefault(field, []).append(expected_entry)
 
     for mvar_row in MEASUREMENT_VAR_ROWS:
         for field, (value, unit) in mvar_row.row.items():
-            expected_entry = f'{value}, {unit}, {field}'
+            expected_entry = f"{value}, {unit}, {field}"
             attrs.setdefault(field, []).append(expected_entry)
 
     return attrs
@@ -155,15 +153,17 @@ def _build_raw_headers(mtext: MTextRow, mvar: MVarRow, project_id: str | None = 
     return headers
 
 
-def _make_raw_headers(row: int, text_cols: list[str] | None = None, var_cols: list[str] | None = None, project_id: str | None = None) -> dict:
+def _make_raw_headers(
+    row: int, text_cols: list[str] | None = None, var_cols: list[str] | None = None, project_id: str | None = None
+) -> dict:
     m_txt_row = MEASUREMENT_TEXT_ROWS[row].with_columns(text_cols)
     m_var_row = MEASUREMENT_VAR_ROWS[row].with_columns(var_cols)
 
     return _build_raw_headers(m_txt_row, m_var_row, project_id=project_id)
 
 
-PENETRATION_LENGTH = [x * .1 for x in range(100)]
-NEG_90_to_POS_90 =[x * 180/99 - 90 for x in range(100)]
+PENETRATION_LENGTH = [x * 0.1 for x in range(100)]
+NEG_90_to_POS_90 = [x * 180 / 99 - 90 for x in range(100)]
 CONE_RESISTANCE = [x / 10 - 5 for x in PENETRATION_LENGTH]
 LOCAL_FRICTION = [x + 20 for x in CONE_RESISTANCE]
 RANGE = list([float(x) for x in range(100)])
@@ -217,20 +217,22 @@ _unknown = MeasurementsColumn("_unknown")
 
 
 # Input table, as it appears in pygef's CPTData. Note the camel case.
-DEFAULT_TABLE = pl.DataFrame({
-    'penetrationLength': PENETRATION_LENGTH,  # Will be converted to "distance"
-    # Path columns
-    'inclinationNS': NEG_90_to_POS_90,
-    'inclinationEW': [90 * math.sin(x) for x in RANGE],
-    'inclinationResultant': NEG_90_to_POS_90,
-    "depth": PENETRATION_LENGTH,
-    # Collection columns
-    'coneResistance': CONE_RESISTANCE,
-    "localFriction": LOCAL_FRICTION,
-    "soilDensity": SOIL_DENSITY,
-    # Unknown column
-    "_unknown": RANGE,
-})
+DEFAULT_TABLE = pl.DataFrame(
+    {
+        "penetrationLength": PENETRATION_LENGTH,  # Will be converted to "distance"
+        # Path columns
+        "inclinationNS": NEG_90_to_POS_90,
+        "inclinationEW": [90 * math.sin(x) for x in RANGE],
+        "inclinationResultant": NEG_90_to_POS_90,
+        "depth": PENETRATION_LENGTH,
+        # Collection columns
+        "coneResistance": CONE_RESISTANCE,
+        "localFriction": LOCAL_FRICTION,
+        "soilDensity": SOIL_DENSITY,
+        # Unknown column
+        "_unknown": RANGE,
+    }
+)
 
 COLUMN_RENAMES = {"penetrationLength": "distance"}
 COLLECTION_COLUMNS = [cone_resistance, local_friction, soil_density]
@@ -263,7 +265,7 @@ def _make_pygef_cpt_table(rows: list[int] = None, columns: list[MeasurementsColu
     else:
         column_strs = [col.as_camel for col in columns]
     if "penetrationLength" not in column_strs:
-        column_strs = ['penetrationLength'] + column_strs
+        column_strs = ["penetrationLength"] + column_strs
     return DEFAULT_TABLE.select(column_strs)[rows]
 
 
@@ -291,27 +293,26 @@ _default_pygef_cpt = {
     "cone_to_friction_sleeve_distance": None,
     "cone_to_friction_sleeve_surface_area": None,
     "cone_to_friction_sleeve_surface_quotient": None,
-    "zlm_cone_resistance_before": -.1,
-    "zlm_cone_resistance_after": -.2,
-    "zlm_inclination_ew_before":  None,
-    "zlm_inclination_ew_after":  None,
-    "zlm_inclination_ns_before":  None,
-    "zlm_inclination_ns_after":  None,
-    "zlm_inclination_resultant_before":  None,
-    "zlm_inclination_resultant_after":  None,
-    "zlm_local_friction_before":  None,
-    "zlm_local_friction_after":  None,
-    "zlm_pore_pressure_u1_before":  None,
-    "zlm_pore_pressure_u2_before":  None,
-    "zlm_pore_pressure_u3_before":  None,
-    "zlm_pore_pressure_u1_after":  None,
-    "zlm_pore_pressure_u2_after":  None,
-    "zlm_pore_pressure_u3_after":  None,
+    "zlm_cone_resistance_before": -0.1,
+    "zlm_cone_resistance_after": -0.2,
+    "zlm_inclination_ew_before": None,
+    "zlm_inclination_ew_after": None,
+    "zlm_inclination_ns_before": None,
+    "zlm_inclination_ns_after": None,
+    "zlm_inclination_resultant_before": None,
+    "zlm_inclination_resultant_after": None,
+    "zlm_local_friction_before": None,
+    "zlm_local_friction_after": None,
+    "zlm_pore_pressure_u1_before": None,
+    "zlm_pore_pressure_u2_before": None,
+    "zlm_pore_pressure_u3_before": None,
+    "zlm_pore_pressure_u1_after": None,
+    "zlm_pore_pressure_u2_after": None,
+    "zlm_pore_pressure_u3_after": None,
     "delivered_vertical_position_offset": 1.0,
     "delivered_vertical_position_reference_point": "unknown",
     "delivered_vertical_position_datum": VerticalDatumClass.Unknown,
     "column_void_mapping": None,
-
     # REQUIRED TO BE PASSED
     # data
     # raw_headers
@@ -333,7 +334,7 @@ class TestCPT:
 
     location: PyGEFoLcation
 
-    project_id: str= "project id 1"
+    project_id: str = "project id 1"
 
     research_report_date: date = date(2000, 1, 1)
 
@@ -359,7 +360,14 @@ class TestCPT:
     def get_hole_attrs_used(self) -> list[str]:
         if self.hole_attrs is not None:
             return self.hole_attrs
-        base_hole_attrs = ["cone_type_serial", "ground_level", "reserved_13", "cone_tip_area", "test_type", "cone_zero_before"]  # TODO avoid hardcode?
+        base_hole_attrs = [
+            "cone_type_serial",
+            "ground_level",
+            "reserved_13",
+            "cone_tip_area",
+            "test_type",
+            "cone_zero_before",
+        ]  # TODO avoid hardcode?
         return base_hole_attrs  # TODO - Handle other test configs
 
     def _get_table_columns_used(self) -> list[MeasurementsColumn]:
@@ -391,12 +399,14 @@ class TestCPT:
         raw_headers = _make_raw_headers(self.hole_index, project_id=self.project_id)
 
         kwargs = _default_pygef_cpt.copy()
-        kwargs.update({
-            "data": _make_pygef_cpt_table(rows=self.table_rows, columns=self.table_columns),
-            "raw_headers": raw_headers,
-            "research_report_date": self.research_report_date,
-            "delivered_location": self.location,
-        })
+        kwargs.update(
+            {
+                "data": _make_pygef_cpt_table(rows=self.table_rows, columns=self.table_columns),
+                "raw_headers": raw_headers,
+                "research_report_date": self.research_report_date,
+                "delivered_location": self.location,
+            }
+        )
         source_type = CPTSource.infer_from_filename(self.filename)
         if source_type == CPTSource.GEF:
             kwargs["alias"] = self.name
@@ -463,9 +473,22 @@ class TestCPT:
 
     def check_dhc(self, dhc: DownholeCollectionData):
         assert dhc.name == f"GEF CPT hole {self.hole_index}"
-        self.check(collar_attributes=dhc.attributes.iloc[0], collar_properties=dhc.properties.iloc[0], path=dhc.path, collection=dhc.collections[0].distance_table, crs=dhc.coordinate_reference_system)
+        self.check(
+            collar_attributes=dhc.attributes.iloc[0],
+            collar_properties=dhc.properties.iloc[0],
+            path=dhc.path,
+            collection=dhc.collections[0].distance_table,
+            crs=dhc.coordinate_reference_system,
+        )
 
-    def check(self, collar_attributes: pd.Series, collar_properties: pd.Series, path: pd.DataFrame, collection: pd.DataFrame, crs):
+    def check(
+        self,
+        collar_attributes: pd.Series,
+        collar_properties: pd.Series,
+        path: pd.DataFrame,
+        collection: pd.DataFrame,
+        crs,
+    ):
         # Assume its an EPSG
         assert crs == int(self.location.srs_name.split(":")[1])
 
@@ -480,11 +503,11 @@ def check_dhc(dhc: DownholeCollectionData, test_cpts: list[TestCPT]):
     for i in range(len(dhc.holes)):
         path_offset = dhc.holes["offset"].iloc[i]
         path_count = dhc.holes["count"].iloc[i]
-        path = dhc.path[path_offset: path_offset + path_count]
+        path = dhc.path[path_offset : path_offset + path_count]
 
         coll_offset = dhc.collections[0].holes["offset"].iloc[i]
         coll_count = dhc.collections[0].holes["count"].iloc[i]
-        collection = dhc.collections[0].distance_table[coll_offset: coll_offset + coll_count]
+        collection = dhc.collections[0].distance_table[coll_offset : coll_offset + coll_count]
         assert len(path) == len(collection), f"For GEF import, the path and collection should correspond, hole {i}"
 
         collar_attributes = dhc.attributes.iloc[i]
@@ -582,7 +605,7 @@ class TestProcessCptFile:
 
         check_dhc(dhc, [test_cpt1, test_cpt2, test_cpt3, test_cpt4, test_cpt5])
 
-        assert dhc.name == 'GEF CPT 5 holes hole 0...hole 4'
+        assert dhc.name == "GEF CPT 5 holes hole 0...hole 4"
 
     @staticmethod
     def _remove_from_raw_headers(headers, to_remove: dict[str, list[str]]):
@@ -594,7 +617,7 @@ class TestProcessCptFile:
 
     def test_two_gefs_with_differing_attributes(self, test_cpt1, test_cpt2):
         original_attribute_columns: list[str] = test_cpt1.get_hole_attrs_used()
-        
+
         cpt1 = test_cpt1.build_parsed_cpt()
         cpt2 = test_cpt2.build_parsed_cpt()
 
@@ -619,8 +642,8 @@ class TestProcessCptFile:
 
         dhc = _process_cpt([cpt1, cpt2])
 
-        table_first_section = dhc.collections[0].distance_table[:len(EVEN_ROWS)]
-        table_second_section = dhc.collections[0].distance_table[len(EVEN_ROWS):]
+        table_first_section = dhc.collections[0].distance_table[: len(EVEN_ROWS)]
+        table_second_section = dhc.collections[0].distance_table[len(EVEN_ROWS) :]
 
         assert table_first_section["cone_resistance"].isna().all()
         assert table_first_section["friction_ratio_computed"].isna().all()  # Derived from cone_resistance
@@ -631,11 +654,14 @@ class TestProcessCptFile:
 
 
 class TestCRS:
-    @pytest.mark.parametrize("valid_crs,expected", [
-        ("EPSG:28992", 28992),  # Short format
-        ("urn:ogc:def:crs:EPSG::4326", 4326),  # urn format
-        ("4326", 4326),
-    ])
+    @pytest.mark.parametrize(
+        "valid_crs,expected",
+        [
+            ("EPSG:28992", 28992),  # Short format
+            ("urn:ogc:def:crs:EPSG::4326", 4326),  # urn format
+            ("4326", 4326),
+        ],
+    )
     def test_valid_epsg_formats(self, cpt, valid_crs: str, expected: int):
         cpt.data.delivered_location.srs_name = valid_crs
         dhc = _process_cpt(cpt)
@@ -680,7 +706,6 @@ class TestCollarAttributes:
     def test_gathers_only_whitelisted_attributes(self, cpt):
         dhc = _process_cpt(cpt)
         attr_columns = dhc.attributes.columns
-
 
         # These are valid attributes on the cpt_data returned by pygef
         assert "data" not in attr_columns
@@ -740,8 +765,10 @@ class TestCollections:
         assert "penetration_length" not in path_cols
         assert "penetrationLength" not in coll_cols
         assert "penetration_length" not in coll_cols
-        assert np.array_equal(dhc.path["distance"] , DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
-        assert np.array_equal(dhc.collections[0].distance_table["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
+        assert np.array_equal(dhc.path["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
+        assert np.array_equal(
+            dhc.collections[0].distance_table["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS]
+        )
 
         # Check other path columns
         other_path_cols = MeasurementsColumn.from_strs([col for col in path_cols if col != "distance"])
@@ -766,10 +793,13 @@ class TestCollections:
 
 
 class TestPath:
-    @pytest.mark.parametrize("columns, expected_dip_calculated", [
-        ([], False),
-        ([inclination_resultant], True),
-    ])
+    @pytest.mark.parametrize(
+        "columns, expected_dip_calculated",
+        [
+            ([], False),
+            ([inclination_resultant], True),
+        ],
+    )
     def test_calculates_dip_when_inclination_resultant_present(self, test_cpt1, columns, expected_dip_calculated):
         cpt = test_cpt1.with_table_columns(columns).build_parsed_cpt()
         dhc = _process_cpt(cpt)
@@ -782,12 +812,17 @@ class TestPath:
         expected_dip = 90 - dhc.path["inclination_resultant"]
         assert np.array_equal(expected_dip, dhc.path["dip"])
 
-    @pytest.mark.parametrize("columns, expected_az_calculated", [
-        ([inclination_ew], False),
-        ([inclination_ns], False),
-        ([inclination_ew, inclination_ns], True),
-    ])
-    def test_calculates_azimuth_if_both_inclination_ns_and_ew_are_present(self, test_cpt1, columns, expected_az_calculated):
+    @pytest.mark.parametrize(
+        "columns, expected_az_calculated",
+        [
+            ([inclination_ew], False),
+            ([inclination_ns], False),
+            ([inclination_ew, inclination_ns], True),
+        ],
+    )
+    def test_calculates_azimuth_if_both_inclination_ns_and_ew_are_present(
+        self, test_cpt1, columns, expected_az_calculated
+    ):
         cpt = test_cpt1.with_table_columns(columns).build_parsed_cpt()
         dhc = _process_cpt(cpt)
         if not expected_az_calculated:
@@ -840,7 +875,7 @@ class TestNanHandling:
         data_table = DEFAULT_TABLE[["penetrationLength"] + list(nan_mapping.keys())]
         for col in nan_mapping.keys():
             xs = data_table[col].to_list()
-            xs[1:1 + len(nan_mapping)] = list(nan_mapping.values())
+            xs[1 : 1 + len(nan_mapping)] = list(nan_mapping.values())
             data_table = data_table.with_columns(pl.Series(col, xs))
 
         cpt = test_cpt1.build_parsed_cpt(column_void_mapping=nan_mapping, data=data_table)
@@ -848,13 +883,10 @@ class TestNanHandling:
 
         assert np.array_equal(
             data_table["coneResistance"] == nan_mapping["coneResistance"],
-            dhc.collections[0].distance_table["cone_resistance"].isna()
+            dhc.collections[0].distance_table["cone_resistance"].isna(),
         )
         for col in [inclination_ew, inclination_ns, inclination_resultant]:
-            assert np.array_equal(
-                data_table[col.as_camel] == nan_mapping[col.as_camel],
-                dhc.path[col.as_snake].isna()
-            )
+            assert np.array_equal(data_table[col.as_camel] == nan_mapping[col.as_camel], dhc.path[col.as_snake].isna())
 
         # Check how the dip and azimuth get handled if any of their inputs are NaN. It's inconsistent that azimuth
         # gets a value of 0.0 and dip gets NaN, but that's how it is.

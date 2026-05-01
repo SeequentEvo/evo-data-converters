@@ -22,14 +22,24 @@ import pandas as pd
 from evo.common.interfaces import IContext
 from evo.common.utils import NoFeedback
 from evo.objects import SchemaVersion
-from evo.objects.utils.table_formats import FLOAT_ARRAY_1, FLOAT_ARRAY_3, KnownTableFormat, \
-    DOWNHOLE_COLLECTION_LOCATION_HOLES, DATE_TIME_ARRAY
+from evo.objects.utils.table_formats import (
+    FLOAT_ARRAY_1,
+    FLOAT_ARRAY_3,
+    KnownTableFormat,
+    DOWNHOLE_COLLECTION_LOCATION_HOLES,
+    DATE_TIME_ARRAY,
+)
 from evo_schemas.elements.unit import Unit_V1_0_1
 
 from evo.objects.typed._data import DataTable
 from evo.objects.typed._utils import get_data_client
 from evo.objects.typed._model import DataLocation, SchemaLocation, SchemaModel, SchemaList, SchemaBuilder
-from evo.objects.typed.attributes import _infer_attribute_type_from_series, Attribute, UnSupportedDataTypeError, _attribute_table_formats
+from evo.objects.typed.attributes import (
+    _infer_attribute_type_from_series,
+    Attribute,
+    UnSupportedDataTypeError,
+    _attribute_table_formats,
+)
 from evo.objects.typed.spatial import BaseSpatialObject, BaseSpatialObjectData
 from evo.objects.typed.types import BoundingBox
 from evo.objects.typed.exceptions import ObjectValidationError
@@ -80,7 +90,7 @@ def _infer_attribute_type_from_series(series: pd.Series) -> str:
         return "category"
     elif pd.api.types.is_string_dtype(series):
         return "string"
-    elif (inferred_type := pd.api.types.infer_dtype(series, skipna=True)) in ['date', 'datetime', 'datetime64']:
+    elif (inferred_type := pd.api.types.infer_dtype(series, skipna=True)) in ["date", "datetime", "datetime64"]:
         return "date_time"
     else:
         raise UnSupportedDataTypeError(f"Unsupported dtype for attribute: {series.dtype}")
@@ -115,7 +125,7 @@ class Attributes(SchemaList[Attribute]):
         attributes_list: list[dict[str, Any]],
         df: pd.DataFrame,
         context: IContext,
-        fb = NoFeedback,
+        fb=NoFeedback,
     ) -> None:
         """Upload DataFrame columns as attributes and append to the attributes list.
 
@@ -292,7 +302,7 @@ class DownholeCollectionData(BaseSpatialObjectData):
             offset = self.holes.iat[i, 1]
             count = self.holes.iat[i, 2]
             collar = tuple(self.properties.loc[i, _COORDINATE_COLUMNS])
-            path_table = self.path[offset: offset + count]
+            path_table = self.path[offset : offset + count]
             column_mapping = None if not self.column_mappings else self.column_mappings[i]
             bboxes.append(self._compute_hole_bounding_box(path_table, collar, column_mapping))
 
@@ -300,13 +310,12 @@ class DownholeCollectionData(BaseSpatialObjectData):
 
     @staticmethod
     def _compute_bounding_box_np(
-            # TODO Is there a common place for type hints?
-            depths: NDArray[np.float64],
-            dips: NDArray[np.float64],
-            azimuths: NDArray[np.float64],
-            offset: tuple[float, float, float] = (0., 0., 0.),
+        # TODO Is there a common place for type hints?
+        depths: NDArray[np.float64],
+        dips: NDArray[np.float64],
+        azimuths: NDArray[np.float64],
+        offset: tuple[float, float, float] = (0.0, 0.0, 0.0),
     ) -> BoundingBox:
-
         if not np.all(depths[:-1] <= depths[1:]):
             raise ValueError("depths must be sorted")
 
@@ -397,6 +406,7 @@ class DownholeCollectionData(BaseSpatialObjectData):
         )
 
         return box
+
     # TODO - Consider moving this to `types.py`, as `BoundingBox.from_path()`.
 
     # TODO move this to the BoundingBox definition
@@ -528,7 +538,6 @@ class DownholeCollectionTables(SchemaModel):
         for distance_collection in data:
             results.append(await DownholeDistanceTable._data_to_schema(distance_collection, context))
         return results
-
 
 
 class DownholeCollection(BaseSpatialObject):

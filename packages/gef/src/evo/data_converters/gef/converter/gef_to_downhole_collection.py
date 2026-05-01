@@ -29,7 +29,8 @@ from .gef_spec import (
     MEASUREMENT_TEXT_NAMES,
     MEASUREMENT_UNIT_CONVERSIONS,
     MEASUREMENT_UNITS,
-    MEASUREMENT_VAR_NAMES, CAMEL_TO_SNAKE,
+    MEASUREMENT_VAR_NAMES,
+    CAMEL_TO_SNAKE,
 )
 from ..common_gef import CPTSource, ParsedCptFile
 from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
@@ -160,6 +161,7 @@ def _extract_attributes_as_dict_from_object(cpt_data: CPTData) -> dict[str, typi
         if k in COLLAR_ATTRIBUTES + COMPUTED and not (v is None or v == [] or v == {})
     }
     return filtered_hash
+
 
 def _extract_attributes_from_raw_headers(cpt_data: CPTData) -> dict[str, typing.Any]:
     """Extract the raw header info we are interested in from CPTData
@@ -418,23 +420,27 @@ def _build_attributes(cpts: list[ProcessedCPT]) -> pd.DataFrame:
 
 def _build_hole_descriptions(cpts: list[ProcessedCPT]) -> pd.DataFrame:
     hole_sizes = {
-        'hole_index': [],
-        'offset': [],
-        'count': [],
+        "hole_index": [],
+        "offset": [],
+        "count": [],
     }
     begin = 0
     for i, cpt in enumerate(cpts):
         count = len(cpt.cpt_table)
 
-        hole_sizes['hole_index'].append(i)
-        hole_sizes['offset'].append(begin)
-        hole_sizes['count'].append(count)
+        hole_sizes["hole_index"].append(i)
+        hole_sizes["offset"].append(begin)
+        hole_sizes["count"].append(count)
 
         begin += count
 
-    return pd.DataFrame(hole_sizes).astype({
-        "hole_index": np.int32, "offset": np.uint64, "count": np.uint64,
-    })
+    return pd.DataFrame(hole_sizes).astype(
+        {
+            "hole_index": np.int32,
+            "offset": np.uint64,
+            "count": np.uint64,
+        }
+    )
 
 
 def _convert_from_pint_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -456,7 +462,7 @@ def _combine_cpt_tables(cpts: list[ProcessedCPT]) -> pd.DataFrame:
 
 
 def _build_paths(combined_table: pd.DataFrame) -> pd.DataFrame:
-    path_attr_columns = ["distance"] + [col for col in combined_table.columns if col in  PATH_ATTRIBUTES]
+    path_attr_columns = ["distance"] + [col for col in combined_table.columns if col in PATH_ATTRIBUTES]
     paths_df = combined_table[path_attr_columns]
     return paths_df
 

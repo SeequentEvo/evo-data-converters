@@ -65,7 +65,18 @@ EXPECTED_PATH_ATTRIBUTES = [
 
 
 class _CPTData:
-    def __init__(self, cpt_tables, collar_attributes, collar_locations, hole_distances, hole_ids, path_tables, path_attr_tables, bbox, crs):
+    def __init__(
+        self,
+        cpt_tables,
+        collar_attributes,
+        collar_locations,
+        hole_distances,
+        hole_ids,
+        path_tables,
+        path_attr_tables,
+        bbox,
+        crs,
+    ):
         self.cpt_tables = cpt_tables
         self.collar_attributes = collar_attributes
         self.collar_locations = collar_locations
@@ -125,7 +136,9 @@ class _CPTData:
         return column_hashes
 
     def get_table_column_hashes(self, index) -> dict[str, str]:
-        return self._table_column_hashes(self.cpt_tables[index]) | self._table_column_hashes(self.path_attr_tables[index])
+        return self._table_column_hashes(self.cpt_tables[index]) | self._table_column_hashes(
+            self.path_attr_tables[index]
+        )
 
     def verify_hole_distances(self, index: int, spec: _CPTSpec):
         final, target, current = self.hole_distances.iloc[index]
@@ -430,36 +443,36 @@ _bro_xml_spec_1a = _CPTSpec(
     sum_azimuths=0.0,
     sum_dips=33406.0,
     attributes={
-        'cone_resistance': 'c1dad2157c5f9ba1e0cadfce9e252b81',
-        'depth': '83c0993a25cda7c86f4908f1ebbdcb85',
-        'depth_offset': '36950aeaac05473456978921af151991',
-        'elapsed_time': '8aa6de47df4f2e2eae0c8b70edaf6a40',
-        'friction_ratio': '59c941ca341d803da23131a84be44d44',
-        'friction_ratio_computed': '9e845403e1be8f691b8e05e2b90afdfa',
-        'inclination_ew': '6782b8c0b798cbc8e080df72a7433ab0',
-        'inclination_ns': '6782b8c0b798cbc8e080df72a7433ab0',
-        'inclination_resultant': 'b3e3cb2c270b0f4ad31088477ae614b6',
-        'inclination_x': 'f5a90f27a9257cb6b49564157491679a',
-        'inclination_y': 'f5a90f27a9257cb6b49564157491679a',
-        'local_friction': '58940f0017772ab3df30c43a9c1eaf12',
-        'pore_pressure_u2': 'f5a90f27a9257cb6b49564157491679a'
+        "cone_resistance": "c1dad2157c5f9ba1e0cadfce9e252b81",
+        "depth": "83c0993a25cda7c86f4908f1ebbdcb85",
+        "depth_offset": "36950aeaac05473456978921af151991",
+        "elapsed_time": "8aa6de47df4f2e2eae0c8b70edaf6a40",
+        "friction_ratio": "59c941ca341d803da23131a84be44d44",
+        "friction_ratio_computed": "9e845403e1be8f691b8e05e2b90afdfa",
+        "inclination_ew": "6782b8c0b798cbc8e080df72a7433ab0",
+        "inclination_ns": "6782b8c0b798cbc8e080df72a7433ab0",
+        "inclination_resultant": "b3e3cb2c270b0f4ad31088477ae614b6",
+        "inclination_x": "f5a90f27a9257cb6b49564157491679a",
+        "inclination_y": "f5a90f27a9257cb6b49564157491679a",
+        "local_friction": "58940f0017772ab3df30c43a9c1eaf12",
+        "pore_pressure_u2": "f5a90f27a9257cb6b49564157491679a",
     },
     collar_attributes={
-        'cone_diameter': [44.0],
-        'cone_to_friction_sleeve_surface_area': [22530],
-        'cpt_description': ['Hyson'],
-        'delivered_crs': [28992],
-        'delivered_x': [170112.2],
-        'delivered_y': [486406.5],
-        'research_report_date': [pd.Timestamp('2019-04-23 00:00:00+0000', tz='UTC')],
-        'zlm_inclination_resultant_after': [0],
-        'zlm_inclination_resultant_before': [0]
+        "cone_diameter": [44.0],
+        "cone_to_friction_sleeve_surface_area": [22530],
+        "cpt_description": ["Hyson"],
+        "delivered_crs": [28992],
+        "delivered_x": [170112.2],
+        "delivered_y": [486406.5],
+        "research_report_date": [pd.Timestamp("2019-04-23 00:00:00+0000", tz="UTC")],
+        "zlm_inclination_resultant_after": [0],
+        "zlm_inclination_resultant_before": [0],
     },
     bbox=(52.36533659, 52.36533659, 5.60907955, 5.63490911152718, -3.0297745888314376, 4.41),
 )
 
 __bro_xml_spec_1b = _CPTSpec(
-    collar_locations=[52.0201802, 5.06352596, .09],
+    collar_locations=[52.0201802, 5.06352596, 0.09],
     crs="Crs_V1_0_1_EpsgCode(epsg_code=4258)",
     hole_id="CPT000000155283",
     hole_distancess={"final": 6.57, "target": 6.57, "current": 6.57},
@@ -468,29 +481,29 @@ __bro_xml_spec_1b = _CPTSpec(
     sum_azimuths=0.0,
     sum_dips=27450.0,
     attributes={
-        'cone_resistance': 'ed1da7653f0787eda66d4b49fa11db72',
-        'depth': '83bed41e23075dbe99f478f5c9af3c88',
-        'depth_offset': '103ab03b17ae6439f667c37fcb5d77bd',
-        'elapsed_time': '430bd0275d195820d00c0a406fe120eb',
-        'friction_ratio': 'fdaed5917273160f8084a992e9fcdfc3',
-        'friction_ratio_computed': 'c3d68f450c771effc0e54fd0b6666267',
-        'inclination_ew': '9f1558f07baa931b48b9ca105c7c8680',
-        'inclination_ns': '9f1558f07baa931b48b9ca105c7c8680',
-        'inclination_resultant': '9f1558f07baa931b48b9ca105c7c8680',
-        'inclination_x': 'fd6f33a259c0930150e92f9bd92b89bc',
-        'inclination_y': '3462b7a2cb5f489f9e9012eb56787cc8',
-        'local_friction': '26e8beebb34886dd79cba88ab60f57ed',
-        'pore_pressure_u2': '8b6409310a4c83adb2209195718f1dea'
+        "cone_resistance": "ed1da7653f0787eda66d4b49fa11db72",
+        "depth": "83bed41e23075dbe99f478f5c9af3c88",
+        "depth_offset": "103ab03b17ae6439f667c37fcb5d77bd",
+        "elapsed_time": "430bd0275d195820d00c0a406fe120eb",
+        "friction_ratio": "fdaed5917273160f8084a992e9fcdfc3",
+        "friction_ratio_computed": "c3d68f450c771effc0e54fd0b6666267",
+        "inclination_ew": "9f1558f07baa931b48b9ca105c7c8680",
+        "inclination_ns": "9f1558f07baa931b48b9ca105c7c8680",
+        "inclination_resultant": "9f1558f07baa931b48b9ca105c7c8680",
+        "inclination_x": "fd6f33a259c0930150e92f9bd92b89bc",
+        "inclination_y": "3462b7a2cb5f489f9e9012eb56787cc8",
+        "local_friction": "26e8beebb34886dd79cba88ab60f57ed",
+        "pore_pressure_u2": "8b6409310a4c83adb2209195718f1dea",
     },
     collar_attributes={
-        'cone_to_friction_sleeve_surface_area': [15050],
-        'cpt_description': ['Rups 09 Tor 27/PJW/'],
-        'delivered_crs': [28992],
-        'delivered_x': [132782.52],
-        'delivered_y': [448030.34],
-        'research_report_date': [pd.Timestamp('2020-07-15 00:00:00+0000', tz='UTC')],
-        'zlm_inclination_resultant_after': [2],
-        'zlm_inclination_resultant_before': [2]
+        "cone_to_friction_sleeve_surface_area": [15050],
+        "cpt_description": ["Rups 09 Tor 27/PJW/"],
+        "delivered_crs": [28992],
+        "delivered_x": [132782.52],
+        "delivered_y": [448030.34],
+        "research_report_date": [pd.Timestamp("2020-07-15 00:00:00+0000", tz="UTC")],
+        "zlm_inclination_resultant_after": [2],
+        "zlm_inclination_resultant_before": [2],
     },
     bbox=(52.0201802, 52.0201802, 5.06352596, 5.06352596, -6.48, 0.09),
 )
@@ -585,9 +598,9 @@ async def test_import_gef_xml_cpt_multiple(evo_metadata, data_client):
 # TODO - The test code for mocking was mostly copy/pasted. The assumption is that the tests that require them will
 #  be moved to evo-python-sdk.
 
+
 # Copied from evo-objects/tests/typed/helpers.py
 class TestContext(IContext):
-
     def __init__(self, mock_metadata):
         self._mock_metadata: EvoWorkspaceMetadata = mock_metadata
 
@@ -710,7 +723,7 @@ class MockClient:
         }
 
     async def create_geoscience_object(
-            self, context: IContext, object_dict: dict, parent: str | None = None, path: str | None = None
+        self, context: IContext, object_dict: dict, parent: str | None = None, path: str | None = None
     ):
         object_dict = object_dict.copy()
         object_dict["uuid"] = str(uuid.uuid4())
@@ -719,7 +732,7 @@ class MockClient:
         return MockDownloadedObject(self, object_dict)
 
     async def replace_geoscience_object(
-            self, context: IContext, reference: ObjectReference, object_dict: dict, create_if_missing=False
+        self, context: IContext, reference: ObjectReference, object_dict: dict, create_if_missing=False
     ):
         object_dict = object_dict.copy()
         assert reference.object_id is not None, "Reference must have an object ID"
@@ -748,20 +761,38 @@ def _mock_geoscience_objects(environment):
 @pytest.mark.skip
 @pytest.mark.asyncio
 async def test_typed_dhc(evo_metadata, data_client):
-    hole1 = pd.DataFrame({
-        'depth': [1.0, 2, 3, 4, 5, 6],
-        'dip': [90.0, 90, 90, 90, 90, 90],
-        'azimuth': [0.0, 0, 0, 0, 0, 0],
-        'attr1': ["oh", "bye", "oh", "bye",  "oh", "bye",],
-    })
+    hole1 = pd.DataFrame(
+        {
+            "depth": [1.0, 2, 3, 4, 5, 6],
+            "dip": [90.0, 90, 90, 90, 90, 90],
+            "azimuth": [0.0, 0, 0, 0, 0, 0],
+            "attr1": [
+                "oh",
+                "bye",
+                "oh",
+                "bye",
+                "oh",
+                "bye",
+            ],
+        }
+    )
 
-    hole2 = pd.DataFrame({
-        'depth': [0.0, 1, 2, 3, 4, 5],
-        'dip': [90.0, 90, 90, 90, 90, 90],
-        'azimuth': [0.0, 0, 0, 0, 0, 0],
-        'attr1': ["hi", "okay", "hi", "okay","hi", "okay",],
-        'attr2': [1.1, 2.2, 3.3, 4.4, 5.5, 6.6],
-    })
+    hole2 = pd.DataFrame(
+        {
+            "depth": [0.0, 1, 2, 3, 4, 5],
+            "dip": [90.0, 90, 90, 90, 90, 90],
+            "azimuth": [0.0, 0, 0, 0, 0, 0],
+            "attr1": [
+                "hi",
+                "okay",
+                "hi",
+                "okay",
+                "hi",
+                "okay",
+            ],
+            "attr2": [1.1, 2.2, 3.3, 4.4, 5.5, 6.6],
+        }
+    )
 
     context = TestContext(mock_metadata=evo_metadata)
 
@@ -772,20 +803,24 @@ async def test_typed_dhc(evo_metadata, data_client):
                 hole1,
                 hole2,
             ],
-            properties=pd.DataFrame({
-                'id': ['id 1', 'id 2'],
-                'x': [0., 1],
-                'y': [0., 20],
-                'z': [0., 300],
-                'final': [1., 4],
-                'current': [2., 5],
-                'target': [3., 6],
-            }),
-            attributes=pd.DataFrame({
-                'attr1': [1, 2],
-                'attr2': [1.1, 2.2],
-                'attr3': ["hi", "there"],
-            })
+            properties=pd.DataFrame(
+                {
+                    "id": ["id 1", "id 2"],
+                    "x": [0.0, 1],
+                    "y": [0.0, 20],
+                    "z": [0.0, 300],
+                    "final": [1.0, 4],
+                    "current": [2.0, 5],
+                    "target": [3.0, 6],
+                }
+            ),
+            attributes=pd.DataFrame(
+                {
+                    "attr1": [1, 2],
+                    "attr2": [1.1, 2.2],
+                    "attr3": ["hi", "there"],
+                }
+            ),
         )
 
         result = await DownholeCollection.create(context, dhc_data)
