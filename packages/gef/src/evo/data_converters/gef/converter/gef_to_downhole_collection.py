@@ -34,7 +34,6 @@ from .gef_spec import (
 from ..common_gef import CPTSource, ParsedCptFile
 from ..objects import DownholeCollectionData, DistanceCollection, AttributeDescription
 from ...common import crs_from_any, InvalidCRSError
-from ...common.crs import SchemaCrsCode, UNSPECIFIED
 from ...common.objects.units import UnitMapper
 
 logger = evo.logging.getLogger("data_converters")
@@ -83,7 +82,7 @@ class _Location:
     x: float
     y: float
     z: float
-    crs: SchemaCrsCode
+    crs: int | str | None
 
     def xyz_dict(self):
         return {
@@ -129,18 +128,25 @@ def process_cpt_file(cpt: ParsedCptFile) -> ProcessedCPT:
     )
 
 
-def _extract_crs(location: PygefLocation) -> SchemaCrsCode:
+def _extract_crs(location: PygefLocation) -> int | str | None:
     # For GEF, pygef infers srs_name from GEF's bespoke CRS description in the #XYID header
     srs_name = location.srs_name
     try:
-        crs: SchemaCrsCode = crs_from_any(srs_name)
+        crs: int | str | None = crs_from_any(srs_name)
     except InvalidCRSError as e:
         logger.warning(f"Invalid or unrecognized CRS description: '{srs_name}'")
-        crs = "unspecified"
+        return None
 
-    if hasattr(crs, "epsg_code") and crs.epsg_code == 404000:
+    if hasattr(crs, "epsg_code"):
+        crs = EpsgCode(crs.epsg_code)
+    elif hasattr(crs, "ogc_wkt"):
+        crs = crs.ogc_wkt
+    else:  # "unspecified"
+        crs = None
+
+    if crs == 404000:
         logger.warning(f"Invalid or unrecognized CRS description: '{srs_name}'")
-        crs = "unspecified"
+        crs = None
 
     return crs
 
@@ -466,15 +472,15 @@ def _build_collections(combined_table: pd.DataFrame, holes: pd.DataFrame) -> lis
     return [dc]
 
 
-def _get_crs(cpts: list[ProcessedCPT]) -> SchemaCrsCode:
+def _get_crs(cpts: list[ProcessedCPT]) -> int | str | None:
     """
     Grab the first specified CRS from the processed CPT data.
 
     N.B. The DownholeCollection schema requires a singular CRS description.
     """
-    valid_crs = [cpt.location.crs for cpt in cpts if cpt.location.crs != UNSPECIFIED]
+    valid_crs = [cpt.location.crs for cpt in cpts if cpt.location.crs is not None]
     if len(valid_crs) == 0:
-        return UNSPECIFIED
+        return None
 
     # Arbitrarily rab the first specified CRS
     crs = valid_crs[0]

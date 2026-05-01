@@ -8,6 +8,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+from typing import TypeAlias
 
 from evo_schemas.components import Crs_V1_0_1 as Crs
 from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
@@ -17,7 +18,7 @@ from pyproj._crs import is_wkt
 from pyproj.exceptions import CRSError
 
 
-type SchemaCrsCode = Crs | Crs_EpsgCode | Crs_OgcWkt
+SchemaCrsCode: TypeAlias = Crs | Crs_EpsgCode | Crs_OgcWkt
 
 UNSPECIFIED = "unspecified"
 
