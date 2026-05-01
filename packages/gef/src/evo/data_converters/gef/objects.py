@@ -14,7 +14,7 @@ from __future__ import annotations
 import typing
 import uuid
 from dataclasses import dataclass
-from typing import Annotated, ClassVar, Any, TypedDict
+from typing import Annotated, ClassVar, Any, TypedDict, TypeAlias
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,6 @@ from evo.common.utils import NoFeedback
 from evo.objects import SchemaVersion
 from evo.objects.utils.table_formats import FLOAT_ARRAY_1, FLOAT_ARRAY_3, KnownTableFormat, \
     DOWNHOLE_COLLECTION_LOCATION_HOLES, DATE_TIME_ARRAY
-from evo_schemas.elements.unit_length import UnitLength_V1_0_1_UnitCategories
 from evo_schemas.elements.unit import Unit_V1_0_1
 
 from evo.objects.typed._data import DataTable
@@ -48,12 +47,11 @@ _Z = "z"
 _COORDINATE_COLUMNS = [_X, _Y, _Z]
 
 
-# type PathGeometry = pd.DataFrame
-type HolePath = pd.DataFrame
-type HoleChunks = pd.DataFrame
-type HoleProperties = pd.DataFrame
-type HoleAttributes = pd.DataFrame
-type Depths = pd.DataFrame
+HolePath: TypeAlias = pd.DataFrame
+HoleChunks: TypeAlias = pd.DataFrame
+HoleProperties: TypeAlias = pd.DataFrame
+HoleAttributes: TypeAlias = pd.DataFrame
+Depths: TypeAlias = pd.DataFrame
 
 
 # The below are minimal copies from evo-python-sdk. The copies were done to facilitate an experimental change to

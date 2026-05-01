@@ -112,7 +112,7 @@ class MVarRow:
     def with_columns(self, columns: list[str] | None = None):
         if columns is None:
             return self
-        return MTextRow({k: v for k, v in self.row.items() if k in columns})
+        return MVarRow({k: v for k, v in self.row.items() if k in columns})
 
 
 

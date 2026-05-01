@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 from .blockmodel_client import BlockSyncClient
-from .grid_data import BaseGridData, RegularGridData, TensorGridData
 from .crs import crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified, crs_from_any, InvalidCRSError
 from .evo_client import EvoObjectMetadata, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from .grid_data import BaseGridData, RegularGridData, TensorGridData

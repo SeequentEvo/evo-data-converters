@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 import sys
-from importlib.util import source_hash
 from pathlib import Path
 
 from pygef import read_cpt
@@ -71,7 +70,7 @@ def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> 
     :param filepaths: List of file paths to parse.
     :param replace_column_voids: (Default value = False) Whether to interpolate void values
 
-    :return: Dictionary mapping each CPT file's filename to its CPTData object.
+    :return: Dictionary mapping each CPT file's generated id to a tuple of its (filename, CPTData).
     """
     data: dict[str, tuple[str, CPTData]] = {}
 

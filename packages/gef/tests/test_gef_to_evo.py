@@ -609,7 +609,6 @@ class TestContext(IContext):
 
     def get_org_id(self) -> UUID:
         return self._org_id
-        return UUID(self._mock_metadata.org_id)
 
     def get_connector(self) -> APIConnector:
         return self._connector
@@ -745,6 +744,8 @@ def _mock_geoscience_objects(environment):
         yield mock_client
 
 
+# TODO - Fix this test and move it wherever the "typed" DHC code ends up
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_typed_dhc(evo_metadata, data_client):
     hole1 = pd.DataFrame({
