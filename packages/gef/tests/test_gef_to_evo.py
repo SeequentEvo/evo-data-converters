@@ -55,11 +55,11 @@ class _CPTSpec:
 
 
 EXPECTED_PATH_ATTRIBUTES = [
-    "depthOffset",
-    "elapsedTime",
-    "inclinationEW",
-    "inclinationNS",
-    "inclinationResultant",
+    "depth_offset",
+    "elapsed_time",
+    "inclination_ew",
+    "inclination_ns",
+    "inclination_resultant",
     "depth",
 ]
 
@@ -264,18 +264,18 @@ _gef_cpt_spec_1 = _CPTSpec(
     attributes={
         # Computed by pygef
         # This is computed from `delivered_vertical_position_offset - depth` (or penetrationLength if depth is abesent)
-        "depthOffset": "740260f3a97f5af2269c3f785a1836b2",  # ?
+        "depth_offset": "740260f3a97f5af2269c3f785a1836b2",  # ?
         # This is computed from `localFriction / coneResistance * 100`
-        "frictionRatioComputed": "23b3e60ed5c1c9b93399e406f596e37a",  # ?,
-        "coneResistance": "c794f0f79774ef94ced05c67b89ab049",  # 2
-        "localFriction": "ffe52cfc6e077586f74bc0601ab3f604",  # 3
-        "frictionRatio": "ca1077a8961f7bdfcdc48dad55d3cd4d",  # 4
-        "porePressureU2": "bfc23ae3044ca50083657c9f1ba27cae",  # 6
-        "inclinationResultant": "a2d7e862d2c1d82f22bd6ad8b48019d8",  # 8
-        "inclinationNS": "0754bdc23ec22372fff0be6a769667e6",  # 9
-        "inclinationEW": "f3874df2dce708179077d8ec3706ae38",  # 10
+        "friction_ratio_computed": "23b3e60ed5c1c9b93399e406f596e37a",  # ?,
+        "cone_resistance": "c794f0f79774ef94ced05c67b89ab049",  # 2
+        "local_friction": "ffe52cfc6e077586f74bc0601ab3f604",  # 3
+        "friction_ratio": "ca1077a8961f7bdfcdc48dad55d3cd4d",  # 4
+        "pore_pressure_u2": "bfc23ae3044ca50083657c9f1ba27cae",  # 6
+        "inclination_resultant": "a2d7e862d2c1d82f22bd6ad8b48019d8",  # 8
+        "inclination_ns": "0754bdc23ec22372fff0be6a769667e6",  # 9
+        "inclination_ew": "f3874df2dce708179077d8ec3706ae38",  # 10
         "depth": "3a8a1d4f00a3c0c6e8318e7b301e192f",  # 11
-        "correctedConeResistance": "b29894e1fde9f1551cd5d99db104baa7",  # 13
+        "corrected_cone_resistance": "b29894e1fde9f1551cd5d99db104baa7",  # 13
     },
     collar_attributes={
         "research_report_date": [pd.Timestamp("2019-02-13 00:00:00+0000", tz="UTC")],  # FILEDATE
@@ -338,16 +338,16 @@ _gef_cpt_spec_2 = _CPTSpec(
     sum_azimuths=244721.11715837254,
     sum_dips=93023.0331,
     attributes={
-        "depthOffset": "1bf9b2795fe576ac46692a0a6e5d9baa",
-        "frictionRatioComputed": "3cef78f21050ea2de35c3fcb48a34ba7",
+        "depth_offset": "1bf9b2795fe576ac46692a0a6e5d9baa",
+        "friction_ratio_computed": "3cef78f21050ea2de35c3fcb48a34ba7",
         "depth": "6d3cdf3b1f4665c225f2866fc1e1e02e",
-        "coneResistance": "722fd21f7444e2c7aee9075b4779af5c",  # 2
-        "localFriction": "3be183440664b350cf5a4708a79b0bb1",  # 3
-        "frictionRatio": "58460c64acc23f50f5bd3ce1f74822f4",  # 4
-        "inclinationResultant": "5fa908ed8056ee0269ede0357b5b9954",  # 8
-        "inclinationNS": "f42062a47a6524813aea4a2346959e40",  # 9
-        "inclinationEW": "8514b6c48af803844a762cea2414ccec",  # 10
-        "elapsedTime": "7525eae85ef60a0cca2e2b5b42fb587b",  # 12
+        "cone_resistance": "722fd21f7444e2c7aee9075b4779af5c",  # 2
+        "local_friction": "3be183440664b350cf5a4708a79b0bb1",  # 3
+        "friction_ratio": "58460c64acc23f50f5bd3ce1f74822f4",  # 4
+        "inclination_resultant": "5fa908ed8056ee0269ede0357b5b9954",  # 8
+        "inclination_ns": "f42062a47a6524813aea4a2346959e40",  # 9
+        "inclination_ew": "8514b6c48af803844a762cea2414ccec",  # 10
+        "elapsed_time": "7525eae85ef60a0cca2e2b5b42fb587b",  # 12
     },
     collar_attributes={
         "research_report_date": [pd.Timestamp("2021-05-03 00:00:00+0000", tz="UTC")],
@@ -430,19 +430,19 @@ _bro_xml_spec_1a = _CPTSpec(
     sum_azimuths=0.0,
     sum_dips=33406.0,
     attributes={
-        'coneResistance': 'c1dad2157c5f9ba1e0cadfce9e252b81',
+        'cone_resistance': 'c1dad2157c5f9ba1e0cadfce9e252b81',
         'depth': '83c0993a25cda7c86f4908f1ebbdcb85',
-        'depthOffset': '36950aeaac05473456978921af151991',
-        'elapsedTime': '8aa6de47df4f2e2eae0c8b70edaf6a40',
-        'frictionRatio': '59c941ca341d803da23131a84be44d44',
-        'frictionRatioComputed': '9e845403e1be8f691b8e05e2b90afdfa',
-        'inclinationEW': '6782b8c0b798cbc8e080df72a7433ab0',
-        'inclinationNS': '6782b8c0b798cbc8e080df72a7433ab0',
-        'inclinationResultant': 'b3e3cb2c270b0f4ad31088477ae614b6',
-        'inclinationX': 'f5a90f27a9257cb6b49564157491679a',
-        'inclinationY': 'f5a90f27a9257cb6b49564157491679a',
-        'localFriction': '58940f0017772ab3df30c43a9c1eaf12',
-        'porePressureU2': 'f5a90f27a9257cb6b49564157491679a'
+        'depth_offset': '36950aeaac05473456978921af151991',
+        'elapsed_time': '8aa6de47df4f2e2eae0c8b70edaf6a40',
+        'friction_ratio': '59c941ca341d803da23131a84be44d44',
+        'friction_ratio_computed': '9e845403e1be8f691b8e05e2b90afdfa',
+        'inclination_ew': '6782b8c0b798cbc8e080df72a7433ab0',
+        'inclination_ns': '6782b8c0b798cbc8e080df72a7433ab0',
+        'inclination_resultant': 'b3e3cb2c270b0f4ad31088477ae614b6',
+        'inclination_x': 'f5a90f27a9257cb6b49564157491679a',
+        'inclination_y': 'f5a90f27a9257cb6b49564157491679a',
+        'local_friction': '58940f0017772ab3df30c43a9c1eaf12',
+        'pore_pressure_u2': 'f5a90f27a9257cb6b49564157491679a'
     },
     collar_attributes={
         'cone_diameter': [44.0],
@@ -468,19 +468,19 @@ __bro_xml_spec_1b = _CPTSpec(
     sum_azimuths=0.0,
     sum_dips=27450.0,
     attributes={
-        'coneResistance': 'ed1da7653f0787eda66d4b49fa11db72',
+        'cone_resistance': 'ed1da7653f0787eda66d4b49fa11db72',
         'depth': '83bed41e23075dbe99f478f5c9af3c88',
-        'depthOffset': '103ab03b17ae6439f667c37fcb5d77bd',
-        'elapsedTime': '430bd0275d195820d00c0a406fe120eb',
-        'frictionRatio': 'fdaed5917273160f8084a992e9fcdfc3',
-        'frictionRatioComputed': 'c3d68f450c771effc0e54fd0b6666267',
-        'inclinationEW': '9f1558f07baa931b48b9ca105c7c8680',
-        'inclinationNS': '9f1558f07baa931b48b9ca105c7c8680',
-        'inclinationResultant': '9f1558f07baa931b48b9ca105c7c8680',
-        'inclinationX': 'fd6f33a259c0930150e92f9bd92b89bc',
-        'inclinationY': '3462b7a2cb5f489f9e9012eb56787cc8',
-        'localFriction': '26e8beebb34886dd79cba88ab60f57ed',
-        'porePressureU2': '8b6409310a4c83adb2209195718f1dea'
+        'depth_offset': '103ab03b17ae6439f667c37fcb5d77bd',
+        'elapsed_time': '430bd0275d195820d00c0a406fe120eb',
+        'friction_ratio': 'fdaed5917273160f8084a992e9fcdfc3',
+        'friction_ratio_computed': 'c3d68f450c771effc0e54fd0b6666267',
+        'inclination_ew': '9f1558f07baa931b48b9ca105c7c8680',
+        'inclination_ns': '9f1558f07baa931b48b9ca105c7c8680',
+        'inclination_resultant': '9f1558f07baa931b48b9ca105c7c8680',
+        'inclination_x': 'fd6f33a259c0930150e92f9bd92b89bc',
+        'inclination_y': '3462b7a2cb5f489f9e9012eb56787cc8',
+        'local_friction': '26e8beebb34886dd79cba88ab60f57ed',
+        'pore_pressure_u2': '8b6409310a4c83adb2209195718f1dea'
     },
     collar_attributes={
         'cone_to_friction_sleeve_surface_area': [15050],

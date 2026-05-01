@@ -198,6 +198,7 @@ CAMEL_TO_SNAKE: dict[str, str] = {
     "inclinationNS": "inclination_ns",
     "inclinationEW": "inclination_ew",
     "depth": "depth",
+    "depthOffset": "depth_offset",
     "elapsedTime": "elapsed_time",
     "correctedConeResistance": "corrected_cone_resistance",
     "netConeResistance": "net_cone_resistance",
