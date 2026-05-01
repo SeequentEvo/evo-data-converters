@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 async def convert_gef(
     filepaths: list[str | Path],
-    epsg_code: int | None = None,  # TODO - Need to do anything about the CRS code?
+    epsg_code: int | None = None,
     evo_workspace_metadata: EvoWorkspaceMetadata | None = None,
     service_manager_widget: "ServiceManagerWidget | None" = None,
     name: str | None = None,
@@ -82,7 +82,9 @@ async def convert_gef(
 
     gef_cpt_data = parse_gef_files(filepaths)
     processed_gef_cpt_data = process_cpt_files(gef_cpt_data)
-    downhole_collection_data = build_downhole_collection(processed_gef_cpt_data, name=name, tags=tags)
+    downhole_collection_data = build_downhole_collection(
+        processed_gef_cpt_data, name=name, tags=tags, epsg_code=epsg_code
+    )
 
     # TODO - Need to find a better way to do this
     context = StaticContext(

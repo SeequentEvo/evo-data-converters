@@ -331,9 +331,7 @@ def _apply_nan_mapping(df: pd.DataFrame, cpt: ParsedCptFile) -> pd.DataFrame:
 
 
 def build_downhole_collection(
-    cpts: list[ProcessedCPT],
-    name: str | None = None,
-    tags: dict[str, typing.Any] = None,
+    cpts: list[ProcessedCPT], name: str | None = None, tags: dict[str, typing.Any] = None, epsg_code: int | None = None
 ) -> DownholeCollectionData:
     """Create a DownholeCollection from parsed GEF CPT files.
 
@@ -357,7 +355,7 @@ def build_downhole_collection(
     _combined_table = _combine_cpt_tables(cpts)
     paths = _build_paths(_combined_table)
     collections = _build_collections(_combined_table, hole_descriptions)
-    crs = _get_crs(cpts)
+    crs = EpsgCode(epsg_code) if epsg_code is not None else _get_crs(cpts)
 
     return DownholeCollectionData(
         name=name,

@@ -514,7 +514,6 @@ async def test_import_gef_1(evo_metadata, data_client):
         await convert_gef(
             filepaths=[GEF1],
             evo_workspace_metadata=evo_metadata,
-            epsg_code=32650,
             # publish_objects=False,  # TODO - Review the best way to no-op a publish
         )
 
@@ -531,8 +530,6 @@ async def test_import_gef_2(evo_metadata, data_client):
         await convert_gef(
             filepaths=[GEF2],
             evo_workspace_metadata=evo_metadata,
-            epsg_code=32650,
-            # publish_objects=False,
         )
 
     gef_object_dict, *_ = mock_client.objects.values()
@@ -548,8 +545,6 @@ async def test_import_multiple_with_different_attributes(evo_metadata, data_clie
         await convert_gef(
             filepaths=[GEF1, GEF2],
             evo_workspace_metadata=evo_metadata,
-            epsg_code=32650,
-            # publish_objects=False,
         )
 
     gef_object_dict, *_ = mock_client.objects.values()
@@ -583,13 +578,26 @@ async def test_import_gef_xml_cpt_multiple(evo_metadata, data_client):
         await convert_gef(
             filepaths=[GEF_XML_MULTIPLE],
             evo_workspace_metadata=evo_metadata,
-            epsg_code=32650,
-            # publish_objects=False,
         )
 
     gef_object_dict, *_ = mock_client.objects.values()
     cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
     cpt_data.verify([_bro_xml_spec_1a, __bro_xml_spec_1b])
+
+
+@pytest.mark.asyncio
+async def test_can_override_crs(evo_metadata, data_client):
+    context = TestContext(mock_metadata=evo_metadata)
+
+    with _mock_geoscience_objects(context.get_environment()) as mock_client:
+        await convert_gef(
+            filepaths=[GEF_XML_MULTIPLE],
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+        )
+
+    gef_object_dict, *_ = mock_client.objects.values()
+    assert gef_object_dict["coordinate_reference_system"]["epsg_code"] == 32650
 
 
 # TODO - The test code for mocking was mostly copy/pasted. The assumption is that the tests that require them will
