@@ -467,7 +467,21 @@ def _build_collections(combined_table: pd.DataFrame, holes: pd.DataFrame) -> lis
 
 
 def _get_crs(cpts: list[ProcessedCPT]) -> SchemaCrsCode:
-    for cpt in cpts:
-        if cpt.location.crs != UNSPECIFIED:
-            return cpt.location.crs
-    return UNSPECIFIED
+    """
+    Grab the first specified CRS from the processed CPT data.
+
+    N.B. The DownholeCollection schema requires a singular CRS description.
+    """
+    valid_crs = [cpt.location.crs for cpt in cpts if cpt.location.crs != UNSPECIFIED]
+    if len(valid_crs) == 0:
+        return UNSPECIFIED
+
+    # Arbitrarily rab the first specified CRS
+    crs = valid_crs[0]
+
+    for other_crs in valid_crs:
+        if other_crs != crs:
+            logger.warning(f"Conflicting CRS descriptions. {crs}, {other_crs}. Picking the first.")
+            break
+
+    return crs

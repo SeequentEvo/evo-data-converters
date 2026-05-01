@@ -642,10 +642,11 @@ class TestCRS:
         dhc = _process_cpt(cpt)
         assert dhc.coordinate_reference_system.epsg_code == expected
 
-    def test_inconsistent_epsg_picks_first_one(self, test_cpt1):
+    def test_inconsistent_epsg_picks_first_one(self, test_cpt1, test_cpt2):
         cpt1 = test_cpt1.build_parsed_cpt()
         cpt1.data.delivered_location.srs_name = "EPSG:4326"
-        cpt2 = test_cpt1.build_parsed_cpt()
+        cpt2 = test_cpt2.build_parsed_cpt()
+        cpt2.data.delivered_location.srs_name = "EPSG:28992"
 
         dhc = _process_cpt([cpt1, cpt2])
         assert dhc.coordinate_reference_system.epsg_code == 4326
