@@ -21,9 +21,10 @@
 packages/common/              @SeequentEvo/data-converters-common-maintainers
 packages/duf/                 @SeequentEvo/duf-maintainers
 packages/gocad/               @SeequentEvo/gocad-maintainers
+packages/image/               @SeequentEvo/image-maintainers
 packages/omf/                 @SeequentEvo/omf-maintainers
 packages/resqml/              @SeequentEvo/resqml-maintainers
+packages/shp/                 @SeequentEvo/shp-maintainers
 packages/ubc/                 @SeequentEvo/ubc-maintainers
 packages/vtk/                 @SeequentEvo/vtk-maintainers
-packages/image/               @SeequentEvo/image-maintainers
-packages/shp/                 @SeequentEvo/shp-maintainers
+packages/xyz/                 @SeequentEvo/xyz-maintainers
