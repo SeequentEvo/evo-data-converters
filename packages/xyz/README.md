@@ -26,24 +26,45 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## XYZ
 
-XYZ (`.xyz`) is a simple ASCII file format where each line contains comma-separated coordinate values. The converter supports the following XYZ variants:
+XYZ (`.xyz`) is a simple ASCII file format where each line contains space- or comma-separated coordinate values. The converter automatically detects the file variant from the first data line. Header lines (any line not starting with a digit, `.`, `+`, or `-`) are automatically skipped. Sentinel values (`*`) are replaced with `-1.0e32`.
 
-| Type | Format | Example |
-|------|--------|---------|
-| **Points** | 3 numeric columns (x, y, z) | `10.2,10.2,10.3` |
-| **Binary** | 2 numeric columns | `12.2,12.3` |
-| **Geochemistry** | A label followed by 3 numeric columns | `C,10.1,10.2,10.2` |
+### Supported file types
 
-Header lines (any line not starting with a digit, `.`, `+`, or `-`) are automatically skipped.
+| Type | Delimiter | Columns | Example |
+|------|-----------|---------|---------|
+| **Points** | comma | 3 numeric (x, y, z) | `10.2,10.2,10.3` |
+| **Binary** | comma | 2 numeric (x, y) | `12.2,12.3` |
+| **Geochemistry (comma)** | comma | label + 3 numeric (x, y, z) | `C,10.1,10.2,10.3` |
+| **Geochemistry (space)** | space | label + 3 numeric (x, y, z) | `C 10.1 10.2 10.3` |
+| **Geosoft Binary XYZ** | space | 2 numeric (x, y); z set to `0.0` | `-0.69 -1.40` |
+| **Geosoft Binary XYZ + Data** | space | ≥3 columns; x, y + data value; z set to `0.0` | `-0.69 -1.40 5.2` |
+| **Geosoft XYZ Triplet** | space | 3 numeric (x, y, z) | `-0.69 -1.40 0.20` |
+| **Geosoft XYZ Triplet + Data** | space | ≥4 columns; x, y, z + data value | `-0.69 -1.40 0.20 5.2` |
+
+> **Type disambiguation for multi-column Geosoft files:** when the file has ≥3 space-separated columns, the detected type depends on the `z_index` and `data_index` parameters passed to `convert_xyz`:
+> - `data_index` set, `z_index = -1` → **Geosoft Binary XYZ + Data** (z forced to `0.0`)
+> - `data_index` set, `z_index` set → **Geosoft XYZ Triplet + Data**
+> - neither set → **Geosoft XYZ Triplet**
+
+### Column index parameters
+
+All index parameters default to `-1`, which means "use the natural column order". Pass explicit zero-based column indices to select different columns from the file. These are only used in the **Geosoft** types, being ignored for all the others.
+
+| Parameter | Default (`-1`) | Custom (≥ 0) |
+|-----------|----------------|--------------|
+| `x_index` | column 0 | picks the specified column |
+| `y_index` | column 1 | picks the specified column |
+| `z_index` | column 2 (or `0.0` for binary types) | picks the specified column; also promotes the type to Triplet + Data when `data_index` is also set |
+| `data_index` | no attribute created | picks the specified column as a per-point `data` attribute on the pointset |
 
 ### Implementations
 
 The XYZ converter currently supports:
 
-- **Reading** – Parse a `.xyz` file into a NumPy `float64` array of shape `(N, 3)`.
-- **Type detection** – Automatically identify the XYZ variant (Points, Binary, or Geochemistry) from the first data line.
-- **Parquet export** – Save the parsed coordinates to a Parquet file with three `float64` columns (`x`, `y`, `z`).
-- **Publishing** – Import the XYZ file as a `pointset-3d-schema` into an Evo workspace.
+- **Reading** – Parse a `.xyz` file into a NumPy `float64` array of shape `(N, 3)` plus an optional `list[float]` of per-point data values.
+- **Type detection** – Automatically identify the XYZ variant from the first data line, refined by the `z_index`/`data_index` parameters.
+- **Parquet export** – Save the parsed coordinates to a Parquet file with three `float64` columns (`x`, `y`, `z`). Per-point data values are saved to a separate Parquet file.
+- **Publishing** – Import the XYZ file as a `Pointset` (schema `pointset/1.3.0`) into an Evo workspace. When data values are present they are attached as a `ContinuousAttribute` named `data` on the pointset locations.
 
 
 ### Publish geoscience objects from an XYZ file(s)

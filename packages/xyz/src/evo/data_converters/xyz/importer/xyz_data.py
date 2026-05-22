@@ -9,17 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from enum import Enum
+from dataclasses import dataclass, field
+
+import numpy as np
+import numpy.typing as npt
 
 
-# Define XYZ class type
-class XYZ_Type(Enum):
-    UNKNOWN = 0
-    POINTS = 1
-    GEOCHEMISTRY_COMMA = 2
-    BINARY = 3
-    GEOCHEMISTRY_SPACE = 4
-    GEOSOFT_BYNARY_XYZ = 5
-    GEOSOFT_BYNARY_XYZ_DATA = 6
-    GEOSOFT_XYZ_TRIPLET = 7
-    GEOSOFT_XYZ_TRIPLET_DATA = 8
+@dataclass
+class XYZData:
+    points: npt.NDArray[np.float64] = field(default_factory=lambda: np.empty(0, dtype=np.float64))
+    data: list[float] = field(default_factory=list)
