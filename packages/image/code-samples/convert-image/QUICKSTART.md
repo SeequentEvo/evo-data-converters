@@ -63,8 +63,8 @@ This creates:
 
 ## How It Works
 
-1. **Read Image**: Opens image and converts to grayscale
-2. **Extract Pixels**: Flattens pixel values in row-major order
+1. **Read Image**: Opens image and detects grayscale vs color mode
+2. **Extract Pixels**: Flattens pixel values bottom-row-first in row-major order
 3. **Create Parquet**: Stores data with SHA-256 hash reference
 4. **Build Schema**: Creates Regular 2D Grid JSON object
 5. **Upload to Evo**: Publishes both JSON and parquet data
@@ -72,6 +72,8 @@ This creates:
 ## Key Features
 
 ✅ Image-to-grid conversion for Evo Regular 2D Grid objects  
+✅ Grayscale to scalar attribute conversion  
+✅ RGB color to color attribute conversion  
 ✅ Proper parquet generation with hash references  
 ✅ Schema compliance (regular-2d-grid v1.3.0)  
 ✅ Works with Evo publishing workflow  
@@ -79,15 +81,17 @@ This creates:
 
 ## Schema Output
 
-The converter creates JSON matching your example:
+The converter creates JSON matching your example (grayscale shown below):
 
 ```json
 {
   "schema": "/objects/regular-2d-grid/1.3.0/regular-2d-grid.schema.json",
   "name": "my_image",
+  "description": "A 2D grid from image",
   "origin": [572565.0, 6839415.0, 1000.0],
   "size": [128, 106],
   "cell_size": [30.0, 30.0],
+  "coordinate_reference_system": {"epsg_code": 4326},
   "rotation": {"dip": 0.0, "dip_azimuth": 0.0, "pitch": 0.0},
   "bounding_box": {
     "min_x": 572565.0,
@@ -101,6 +105,7 @@ The converter creates JSON matching your example:
     "attribute_type": "scalar",
     "name": "2d-grid-data-continuous",
     "key": "abc123...",
+    "nan_description": {"values": [-1.0000000331813535e32, -1e32]},
     "values": {
       "data": "abc123...",
       "data_type": "float64",
@@ -110,6 +115,8 @@ The converter creates JSON matching your example:
   }]
 }
 ```
+
+For RGB images, `cell_attributes[0]` is emitted as a color attribute (`attribute_type: "color"`) with name `"2d-grid-data-color"`.
 
 ## Installation
 
