@@ -1,14 +1,5 @@
 # Changelog
 
-## evo-data-converters-image@v0.1.5
-### What's Changed
-#### evo-data-converters-image
-* Add color image conversion support using `ColorAttribute_V1_1_0` with packed `0xAABBGGRR` values.
-* Keep grayscale conversion behavior using continuous float64 attributes.
-* Add color-focused tests and update image converter sample script/docs for color and grayscale flows.
-
-**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.4...evo-data-converters-image@v0.1.5
-
 ## evo-data-converters-image@v0.1.4
 ### What's Changed
 #### evo-data-converters-image
