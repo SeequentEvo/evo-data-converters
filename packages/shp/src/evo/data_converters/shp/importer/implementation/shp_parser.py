@@ -25,7 +25,15 @@ class ShpParser:
     Currently only supports multipatch files without rings.
     """
 
-    def __init__(self, path: str, data_client: ObjectDataClient, crs: Crs_V1_0_1, tags: dict[str, str] = None):
+    def __init__(
+        self,
+        path: str,
+        data_client: ObjectDataClient,
+        crs: Crs_V1_0_1,
+        tags: dict[str, str] = None,
+        shx_path: str | None = None,
+        dbf_path: str | None = None,
+    ):
         """
         Initialize the shapefile to triangle mesh converter.
 
@@ -33,12 +41,18 @@ class ShpParser:
         a path to a zip file containing the shapefile.
         :param data_client: Object data client for uploading parquet files (real or stub).
         :param crs: Coordiante reference system to use for the file. Cannot be None, but can be "unspecified".
-        :param tags: (Optional) Dict of tags to add to the Geoscience Object(s)."
+        :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
+        :param shx_path: (Optional) Explicit path to the .shx index file. If not provided, pyshp will
+        attempt to auto-discover it relative to the .shp file.
+        :param dbf_path: (Optional) Explicit path to the .dbf attribute file. If not provided, pyshp will
+        attempt to auto-discover it relative to the .shp file.
         """
         self.path = path
         self.data_client = data_client
         self.crs = crs
         self.tags = tags
+        self.shx_path = shx_path
+        self.dbf_path = dbf_path
 
     def parse_shp(self) -> TriangleMesh_V2_2_0:
         """
@@ -48,7 +62,12 @@ class ShpParser:
 
         :raise InvalidSHPError: If the input shapefile is invalid or cannot be parsed
         """
-        with shapefile.Reader(self.path) as sf:
+        if self.shx_path is not None or self.dbf_path is not None:
+            reader = shapefile.Reader(shp=self.path, shx=self.shx_path, dbf=self.dbf_path)
+        else:
+            reader = shapefile.Reader(self.path)
+
+        with reader as sf:
             if sf.shapeType != shapefile.MULTIPATCH:
                 raise InvalidSHPError(
                     "Provided shapefile is not multipatch. Only multipatch shapefiles without rings are supported."

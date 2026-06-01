@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 def convert_shp(
     filepath: str,
     filepath_prj: Optional[str] = None,
+    filepath_shx: Optional[str] = None,
+    filepath_dbf: Optional[str] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
@@ -41,7 +43,12 @@ def convert_shp(
 
     :param filepath: Path to the base filename of the shapefile, any of the component files (.shp, .shx, or .dbf),
      or a zip file containing the shapefile.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param filepath_prj: (Optional) Explicit path to the .prj projection file. If not provided,
+     the CRS will be set to "unspecified".
+    :param filepath_shx: (Optional) Explicit path to the .shx spatial index file. If not provided,
+     pyshp will attempt to auto-discover it relative to the .shp file.
+    :param filepath_dbf: (Optional) Explicit path to the .dbf attribute file. If not provided,
+     pyshp will attempt to auto-discover it relative to the .shp file.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
@@ -49,7 +56,7 @@ def convert_shp(
     :param publish_objects: (Optional) Set False to prevent publishing and instead return Geoscience models.
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the destiation path.
 
-    :return: list[ObjectMetadata] if publish_objects is true, otherwise list[Regular2DGrid]
+    :return: list[ObjectMetadata] if publish_objects is true, otherwise list[TriangleMesh_V2_2_0]
 
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
@@ -76,7 +83,9 @@ def convert_shp(
 
     crs = prj_to_crs(filepath_prj)
 
-    parser = ShpParser(path=filepath, data_client=data_client, crs=crs, tags=full_tags)
+    parser = ShpParser(
+        path=filepath, data_client=data_client, crs=crs, tags=full_tags, shx_path=filepath_shx, dbf_path=filepath_dbf
+    )
     mesh = parser.parse_shp()
 
     geoscience_objects.append(mesh)
