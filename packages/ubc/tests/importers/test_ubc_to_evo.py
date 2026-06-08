@@ -124,6 +124,7 @@ def test_convert_ubc_conflicting_connection_details_error() -> None:
         (4326, Crs_V1_0_1_EpsgCode(epsg_code=4326)),
         ("EPSG:4326", Crs_V1_0_1_EpsgCode(epsg_code=4326)),
         (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
     ],
 )
 def test_coordinate_reference_system(input_crs, expected_crs) -> None:

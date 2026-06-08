@@ -159,6 +159,7 @@ class TestConverter(TestCase):
         (32650, Crs_V1_0_1_EpsgCode(epsg_code=32650)),
         ("EPSG:32650", Crs_V1_0_1_EpsgCode(epsg_code=32650)),
         (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
     ],
 )
 def test_coordinate_reference_system(input_crs, expected_crs) -> None:

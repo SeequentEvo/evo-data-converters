@@ -103,9 +103,10 @@ def test_import_category_with_missing_attrs(
         (32650, Crs_V1_0_1_EpsgCode(epsg_code=32650)),
         ("EPSG:32650", Crs_V1_0_1_EpsgCode(epsg_code=32650)),
         (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
     ],
 )
-def test_coordinate_reference_system_integer(evo_metadata, simple_objects_path, input_crs, expected_crs) -> None:
+def test_coordinate_reference_system(evo_metadata, simple_objects_path, input_crs, expected_crs) -> None:
     go_objects = convert_duf(
         filepath=simple_objects_path,
         evo_workspace_metadata=evo_metadata,
