@@ -27,7 +27,11 @@ from evo_schemas.components import VectorAttribute_V1_0_0 as VectorAttribute
 from numpy.typing import DTypeLike
 from resqpy.time_series import TimeSeries
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+    crs_from_epsg_code,
+)
 from evo.data_converters.resqml.importer._attribute_converters import create_category_lookup_and_data
 from evo.data_converters.resqml.importer._grid_converter import (
     _build_actnum,
@@ -103,7 +107,7 @@ class TestGridConverter(TestCase):
         )
 
         # Then the default code is used
-        crs = _get_crs(self.model, grid, 5519)
+        crs = _get_crs(self.model, grid, crs_from_epsg_code(5519))
         self.assertEqual(5519, crs.epsg_code)
 
     def test_get_crs_crs_on_grid(self) -> None:
@@ -133,7 +137,7 @@ class TestGridConverter(TestCase):
         grid.crs = rp_crs
 
         # Then the default EPSG code is used
-        crs = _get_crs(model, grid, 5519)
+        crs = _get_crs(model, grid, crs_from_epsg_code(5519))
         self.assertEqual(5519, crs.epsg_code)
 
     def test_get_crs_crs_on_grid_with_no_epsg_code_and_with_root_crs(self) -> None:
@@ -167,7 +171,7 @@ class TestGridConverter(TestCase):
         grid.crs = None  # pyright: ignore
 
         # Then the grid default EPSG code is used
-        crs = _get_crs(self.model, grid, 5519)
+        crs = _get_crs(self.model, grid, crs_from_epsg_code(5519))
         self.assertEqual(5519, crs.epsg_code)
 
     def test_build_actnum(self) -> None:

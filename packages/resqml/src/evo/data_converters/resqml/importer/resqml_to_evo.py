@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Optional
 
 import resqpy.well as rqw
 from evo_schemas import DownholeIntervals_V1_0_1 as DownholeIntervals
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_0_0 as TriangleMesh
 from evo_schemas.objects import UnstructuredHexGrid_V1_1_0 as UnstructuredHexGrid
 from resqpy.grid import Grid
@@ -27,6 +27,8 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
+    crs_from_epsg_code,
+    crs_from_any,
 )
 from evo.data_converters.resqml import convert_size
 from evo.data_converters.resqml.utils import estimate_corner_points_size
@@ -46,7 +48,7 @@ if TYPE_CHECKING:
 
 def convert_resqml(
     filepath: str,
-    epsg_code: int,
+    epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
@@ -54,6 +56,8 @@ def convert_resqml(
     options: RESQMLConversionOptions = RESQMLConversionOptions(),
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    *,
+    coordinate_reference_system: str | int | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts a RESQML file into Evo Geoscience Objects.
     service_manager_widget: ServiceManagerWidget = None,
@@ -61,14 +65,15 @@ def convert_resqml(
 
     :param filepath: Path to the RESQML file.
     :param evo_workspace_metadata: Evo Workspace metadata required for creating an ObjectAPIClient and ObjectDataClient.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the coordinate reference system. Use ``coordinate_reference_system`` instead.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param options: (Optional) Import and conversion options for the RESQML file, if not supplied the default options are used.
     :param upload_path: (Optional) Path objects will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
-    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param publish_objects: (Optional) Set False to return rather than publish objects.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -84,6 +89,13 @@ def convert_resqml(
     :raise FileNotFoundError: If the input file can not be opened.
     """
 
+    if epsg_code is not None:
+        if coordinate_reference_system is not None:
+            raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        crs = crs_from_epsg_code(epsg_code)
+    else:
+        crs = crs_from_any(coordinate_reference_system)
+
     geoscience_objects = []
     go_objects = []
 
@@ -95,9 +107,9 @@ def convert_resqml(
         publish_objects = False
 
     with ModelContext(filepath) as model:
-        go_objects.extend(_convert_grids(model, data_client, epsg_code, options))
-        go_objects.extend(_convert_surfaces(model, data_client, epsg_code, options))
-        go_objects.extend(_convert_downhole_intervals(model, data_client, epsg_code, options))
+        go_objects.extend(_convert_grids(model, data_client, crs, options))
+        go_objects.extend(_convert_surfaces(model, data_client, crs, options))
+        go_objects.extend(_convert_downhole_intervals(model, data_client, crs, options))
 
         for geoscience_object in go_objects:
             if geoscience_object.tags is None:
@@ -124,13 +136,13 @@ def convert_resqml(
 
 
 def _convert_grids(
-    model: Model, data_client: ObjectDataClient, epsg_code: int, options: RESQMLConversionOptions
+    model: Model, data_client: ObjectDataClient, crs: Crs_V1_0_1, options: RESQMLConversionOptions
 ) -> list[UnstructuredHexGrid]:
     """Convert the regular IJK grids in the Model to UnstructuredHexGrids
 
     :param model:       The resqpy model, representation of the RESQML file
     :param data_client: Wrapper around data upload and download functionality for geoscience objects.
-    :param epsg_code:   The epsg code to be used on grids without a CoordinateReference System
+    :param crs:         The coordinate reference system to be used on grids without a Coordinate Reference System
     :param options:     Import and conversion options for the RESQML file.
 
     :return: list of UnstructuredHexGrid objects
@@ -154,7 +166,7 @@ def _convert_grids(
                 )
             )
             continue
-        go = convert_grid(model, grid, epsg_code, options, data_client)
+        go = convert_grid(model, grid, crs, options, data_client)
         if go is not None:
             grids.append(go)
     return grids
@@ -163,7 +175,7 @@ def _convert_grids(
 def _convert_downhole_intervals(
     model: Model,
     data_client: ObjectDataClient,
-    epsg_code: Optional[int] = None,
+    crs: Optional[Crs_V1_0_1] = None,
     options: Optional[RESQMLConversionOptions] = None,
 ) -> list[DownholeIntervals]:
     """
@@ -172,7 +184,7 @@ def _convert_downhole_intervals(
 
     :param model: The resqpy model to convert
     :param data_client: The Evo data client to use
-    :param epsg_code: Optional. The EPSG code to use for the CRS, else the model CRS is used
+    :param crs: Optional. The coordinate reference system to use for the CRS, else the model CRS is used
     :param options: Optional, import and conversion options for the RESQML file
 
     :return: A list of Evo DownholeIntervals objects
@@ -188,7 +200,7 @@ def _convert_downhole_intervals(
             trajectory=trajectory,
             prefix=prefix,
             data_client=data_client,
-            epsg_code=epsg_code,
+            crs=crs,
             options=options,
         )
         if go is not None:
@@ -197,13 +209,13 @@ def _convert_downhole_intervals(
 
 
 def _convert_surfaces(
-    model: Model, data_client: ObjectDataClient, epsg_code: int, options: RESQMLConversionOptions
+    model: Model, data_client: ObjectDataClient, crs: Crs_V1_0_1, options: RESQMLConversionOptions
 ) -> list[TriangleMesh]:
     """Convert TriangulatedSetRepresentations in the Model to TriangleMeshes
 
     :param model:       The resqpy model, representation of the RESQML file.
     :param data_client: Wrapper around data upload and download functionality for geoscience objects.
-    :param epsg_code:   The EPSG code to be used on grids without a coordinate reference system.
+    :param crs:         The coordinate reference system to be used on grids without a coordinate reference system.
     :param options:     Import and conversion options for the RESQML file.
 
     :return: list of TriangleMeshes
@@ -213,7 +225,7 @@ def _convert_surfaces(
     uuids = model.uuids(obj_type="TriangulatedSetRepresentation")
     for uuid in uuids:
         surface = Surface(model, uuid=uuid)
-        go = convert_surface(model, surface, epsg_code, options, data_client)
+        go = convert_surface(model, surface, crs, options, data_client)
         if go is not None:
             surfaces.append(go)
     return surfaces

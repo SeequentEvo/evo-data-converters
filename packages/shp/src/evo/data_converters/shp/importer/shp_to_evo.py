@@ -41,13 +41,13 @@ def convert_shp(
 
     :param filepath: Path to the base filename of the shapefile, any of the component files (.shp, .shx, or .dbf),
      or a zip file containing the shapefile.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param filepath_prj: (Optional) Path to the .prj file containing the CRS information for the shapefile.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
     :param publish_objects: (Optional) Set False to prevent publishing and instead return Geoscience models.
-    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the destiation path.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the destination path.
 
     :return: list[ObjectMetadata] if publish_objects is true, otherwise list[Regular2DGrid]
 

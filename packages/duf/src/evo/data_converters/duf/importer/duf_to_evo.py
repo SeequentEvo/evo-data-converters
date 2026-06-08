@@ -20,9 +20,11 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects,
+    crs_from_epsg_code,
+    crs_from_any,
 )
 from evo.objects.data import ObjectMetadata
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1
 
 import evo.data_converters.duf.common.deswik_types as dw
 from ..common import ObjectCollector
@@ -71,7 +73,7 @@ def _get_converter(klass, options, count=1, warn=True):
     return converter
 
 
-def _convert_object_list(klass, objs, data_client, epsg_code, tags):
+def _convert_object_list(klass, objs, data_client, crs: Crs_V1_0_1, tags):
     if (converter := _get_converter(klass, CONVERTERS, len(objs))) is None:
         return []
 
@@ -81,7 +83,7 @@ def _convert_object_list(klass, objs, data_client, epsg_code, tags):
 
     geoscience_objects = []
     for i, obj in enumerate(objs):
-        geoscience_object = converter(obj, data_client, epsg_code)
+        geoscience_object = converter(obj, data_client, crs)
 
         if geoscience_object:
             if geoscience_object.tags is None:
@@ -97,7 +99,7 @@ def _convert_object_list(klass, objs, data_client, epsg_code, tags):
 
 
 def _convert_and_combine_duf_objects(
-    collector: ObjectCollector, data_client: ObjectDataClient, epsg_code: int, tags: dict[str, str]
+    collector: ObjectCollector, data_client: ObjectDataClient, crs: Crs_V1_0_1, tags: dict[str, str]
 ):
     geoscience_objects = []
     for layer, objs in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities).items():
@@ -120,7 +122,7 @@ def _convert_and_combine_duf_objects(
 
         for layer_converter, objs_to_convert in objs_to_convert_as_group.items():
             logger.info(f"Converting and combining {len(objs_to_convert)} objects using {layer_converter}.")
-            geoscience_object = layer_converter(objs_to_convert, data_client, epsg_code)
+            geoscience_object = layer_converter(objs_to_convert, data_client, crs)
 
             if geoscience_object:
                 if geoscience_object.tags is None:
@@ -132,17 +134,17 @@ def _convert_and_combine_duf_objects(
 
 
 def _convert_duf_objects(
-    collector: ObjectCollector, data_client: ObjectDataClient, epsg_code: int, tags: dict[str, str]
+    collector: ObjectCollector, data_client: ObjectDataClient, crs: Crs_V1_0_1, tags: dict[str, str]
 ):
     geoscience_objects = []
     for klass, objs in collector.get_objects_with_category_by_type(dw.Category.ModelEntities).items():
-        geoscience_objects.extend(_convert_object_list(klass, objs, data_client, epsg_code, tags))
+        geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags))
     return geoscience_objects
 
 
 async def convert_duf(
     filepath: str,
-    epsg_code: int,
+    epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
@@ -150,18 +152,21 @@ async def convert_duf(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    *,
+    coordinate_reference_system: str | int | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts a DUF file into Geoscience Objects.
 
     :param filepath: Path to the DUF file.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the coordinate reference system. Use ``coordinate_reference_system`` instead.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param combine_objects_in_layers: (Optional) If True, objects in the same layer will be combined if possible.
     :param upload_path: (Optional) Path objects will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
-    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param publish_objects: (Optional) Set False to return rather than publish objects.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -187,13 +192,20 @@ async def convert_duf(
     if not had_stage:
         tags.pop("Stage", None)
 
+    if epsg_code is not None:
+        if coordinate_reference_system is not None:
+            raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        crs = crs_from_epsg_code(epsg_code)
+    else:
+        crs = crs_from_any(coordinate_reference_system)
+
     with DUFCollectorContext(filepath) as context:
         collector: ObjectCollector = context.collector
 
     if not combine_objects_in_layers:
-        geoscience_objects = _convert_duf_objects(collector, data_client, epsg_code, tags)
+        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags)
     else:
-        geoscience_objects = _convert_and_combine_duf_objects(collector, data_client, epsg_code, tags)
+        geoscience_objects = _convert_and_combine_duf_objects(collector, data_client, crs, tags)
 
     objects_metadata = None
     if publish_objects:

@@ -13,6 +13,8 @@ import uuid
 from pathlib import Path
 
 import pytest
+from pyproj import CRS
+from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo_schemas.objects import Regular3DGrid_V1_2_0, Tensor3DGrid_V1_2_0, UnstructuredTetGrid_V1_2_0
 
 from evo.data_converters.common import EvoWorkspaceMetadata
@@ -21,12 +23,29 @@ from evo.data_converters.vtk.importer import VTKImportError, convert_vtk
 this_dir = Path(__file__).parent
 
 
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
+
+
 def test_failed_to_read_file() -> None:
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / "not_file.vtk"
     with pytest.raises(VTKImportError):
-        convert_vtk(str(file_name), 0, evo_workspace_metadata=workspace_metadata)
+        convert_vtk(str(file_name), evo_workspace_metadata=workspace_metadata)
 
 
 @pytest.mark.parametrize("test_file, n_messages", [("unsupported.vtp", 1), ("all_unsupported.vtm", 2)])
@@ -34,7 +53,7 @@ def test_unsupported(caplog: pytest.LogCaptureFixture, test_file: str, n_message
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / test_file
-    result = convert_vtk(str(file_name), 0, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+    result = convert_vtk(str(file_name), evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert result == []
 
     messages = caplog.text.splitlines()
@@ -97,3 +116,37 @@ def test_convert_multiple() -> None:
     assert isinstance(result[0], Regular3DGrid_V1_2_0)
     assert isinstance(result[1], Tensor3DGrid_V1_2_0)
     assert isinstance(result[2], UnstructuredTetGrid_V1_2_0)
+
+
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (4326, Crs_V1_0_1_EpsgCode(epsg_code=4326)),
+        ("EPSG:4326", Crs_V1_0_1_EpsgCode(epsg_code=4326)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+    ],
+)
+def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+    workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
+    file_name = this_dir / "data" / "image_data.vti"
+    result = convert_vtk(
+        str(file_name),
+        evo_workspace_metadata=workspace_metadata,
+        coordinate_reference_system=input_crs,
+        publish_objects=False,
+    )
+    assert len(result) == 1
+    assert result[0].coordinate_reference_system == expected_crs
+
+
+def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+    workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
+    file_name = this_dir / "data" / "image_data.vti"
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        convert_vtk(
+            str(file_name),
+            4326,
+            evo_workspace_metadata=workspace_metadata,
+            coordinate_reference_system=4326,
+            publish_objects=False,
+        )

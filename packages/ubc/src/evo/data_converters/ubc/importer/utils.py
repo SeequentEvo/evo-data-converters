@@ -18,12 +18,12 @@ from evo_schemas.components import (
     ContinuousAttribute_V1_1_0,
     NanContinuous_V1_0_1,
     Rotation_V1_1_0,
+    Crs_V1_0_1,
 )
 from evo_schemas.elements import FloatArray1_V1_0_1
 from evo_schemas.objects import Tensor3DGrid_V1_2_0, Tensor3DGrid_V1_2_0_GridCells3D
 
 import evo.logging
-from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.common.utils import get_object_tags, grid_bounding_box
 
 from evo.data_converters.ubc.importer.ubc_reader import UBCMeshFileImporter, UBCPropertyFileImporter
@@ -67,7 +67,7 @@ def _handle_ubc_files_list(files_path: list[str]) -> tuple[str, list[str]]:
 
 
 def get_geoscience_object_from_ubc(
-    data_client: ObjectDataClient, files_path: list[str], epsg_code: int, tags: Optional[dict[str, str]] = None
+    data_client: ObjectDataClient, files_path: list[str], crs: Crs_V1_0_1, tags: Optional[dict[str, str]] = None
 ) -> Tensor3DGrid_V1_2_0:
     ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
     name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
@@ -91,7 +91,7 @@ def get_geoscience_object_from_ubc(
         origin=origin.tolist(),
         size=size_of_dimensions,
         grid_cells_3d=grid_cells_3d,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=crs,
         bounding_box=bbox,
         rotation=Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0),
         cell_attributes=cell_attributes,
