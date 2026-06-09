@@ -33,6 +33,10 @@ def convert_xyz(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    x_index: int = -1,
+    y_index: int = -1,
+    z_index: int = -1,
+    data_index: int = -1,
 ) -> list[Pointset_V1_3_0]:
     geoscience_objects = []
 
@@ -40,7 +44,9 @@ def convert_xyz(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
-    pointset = parse_xyz_file(filepath, data_client)
+    pointset = parse_xyz_file(
+        filepath, data_client, x_index=x_index, y_index=y_index, z_index=z_index, data_index=data_index
+    )
 
     pointset.tags = {
         "Source": f"{os.path.basename(filepath)} (via Evo Data Converters)",

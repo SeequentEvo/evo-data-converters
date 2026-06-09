@@ -15,6 +15,19 @@ import numpy.typing as npt
 import numpy as np
 
 
+def save_1d_array_to_parquet(data_1d: list[float], output_path) -> None:
+    table = pa.table({"value": pa.array(data_1d, type=pa.float64())})
+    pq.write_table(
+        table,
+        output_path,
+        compression="gzip",
+        version="2.4",
+        flavor="none",
+        data_page_size=None,
+        encryption_properties=None,
+    )
+
+
 def save_array_to_parquet(data_2d: npt.NDArray[np.float64], output_path) -> None:
     # Create a table with 3 columns (x, y, z), each float64
     table = pa.table(

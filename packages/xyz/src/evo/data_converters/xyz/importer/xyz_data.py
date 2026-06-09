@@ -9,8 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .shp_to_evo import convert_shp
+from dataclasses import dataclass, field
 
-__all__ = [
-    "convert_shp",
-]
+import numpy as np
+import numpy.typing as npt
+
+
+@dataclass
+class XYZData:
+    points: npt.NDArray[np.float64] = field(default_factory=lambda: np.empty(0, dtype=np.float64))
+    data: list[float] = field(default_factory=list)
