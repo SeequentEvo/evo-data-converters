@@ -60,6 +60,8 @@ async def convert_obj(
     :param implementation: (Optional) The implementation to use for the conversion, either "trimesh" or "tinyobj". Default is "trimesh".
     :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
 
+    Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
+
     One of evo_workspace_metadata or service_manager_widget is required.
 
     :return: List of Geoscience Objects and Block Models, or list of ObjectMetadata and Block Models if published.
