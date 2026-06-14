@@ -1,13 +1,15 @@
-# Automated DUF file to Evo data converter
+# Automated DUF File to Evo Converter
 
-This workflow consists of a Windows batch script that first collects parameters provided by the user. The batch script then calls a Python script that performs the DUF to Evo geoscience object conversion. 
+This root-level sample demonstrates a non-interactive DUF-to-Evo workflow.
 
-This workflow can be performed with no (or minimal) user interaction. To fully automate the workflow a user could set up the Windows Task Scheduler to trigger the workflow on a regular schedule.
+The batch script `convert_duf.bat` reads parameters from a `.env` file and then runs `publish_to_evo.py` to convert and publish geoscience objects.
+
+Use this sample when you want to run DUF imports repeatedly with minimal user interaction (for example with Windows Task Scheduler).
 
 ## Prerequisites
 
 - [uv](https://github.com/astral-sh/uv) - Fast Python package installer and resolver
-- An installed copy of Deswik.CAD
+- An installed copy of Deswik.Suite
 
 ### Install uv
 
@@ -40,6 +42,15 @@ Visit the [setup documentation](docs/SETUP.md) for instructions on how to find t
    uv sync
    ```
    No need to manually create a Python virtual environment - `uv` handles this automatically!
+
+## Sample Data Files
+
+The `example-data` folder includes sample DUF files that you can use for testing:
+- `Marlin Mapping v1.duf`
+- `Marlin Stopes.duf`
+- `Pit Mesh.duf`
+
+These files can be referenced in your `.env` file or passed directly via the `--duf-file` argument.
 
 ## Usage
 
@@ -88,15 +99,10 @@ Notes:
 6. Saves detailed execution information to the log file
 7. Cleans up temporary files
 
-## Sample Data Files
-
-The `data` folder includes sample DUF files that you can use for testing:
-- `Marlin Mapping v1.duf`
-- `Marlin Stopes.duf`
-- `Pit Mesh.duf`
-
-These files can be referenced in your `.env` file or passed directly via the `--duf-file` argument.
-
 ## Log Files
 
 Check `log.txt` in this directory for detailed execution logs.
+
+## Related Sample
+
+For an interactive notebook workflow, see the sibling sample in `../duf-jupyter-conversion`.

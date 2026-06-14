@@ -195,9 +195,13 @@ call :log "[%DATE% %TIME%] All required environment variables are set."
 REM Set upload path with default empty string if not defined
 if not defined EVO_UPLOAD_PATH set "EVO_UPLOAD_PATH="
 
+REM Pass sensitive secret via environment instead of command line
+set "PUBLISH_CLIENT_SECRET=%EVO_CLIENT_SECRET%"
+
 REM Run the Python script with all parameters and log output
 echo Running Python script... >> "%LOG_FILE%"
-uv run "%~dp0publish_to_evo.py" --duf-file "%DEST_FILE%" --org-id "%EVO_ORG_ID%" --workspace-id "%EVO_WORKSPACE_ID%" --client-id "%EVO_CLIENT_ID%" --client-secret "%EVO_CLIENT_SECRET%" --hub-url "%EVO_HUB_URL%" --user-agent "%EVO_USER_AGENT%" --epsg-code "%EVO_EPSG_CODE%" --upload-path "%EVO_UPLOAD_PATH%" --combine-layers 2>&1 | "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -Command "$input | ForEach-Object { Write-Output $_; Add-Content -Path '%LOG_FILE%' -Value $_ }"
+set "EVO_CLIENT_SECRET=%PUBLISH_CLIENT_SECRET%"
+uv run "%~dp0publish_to_evo.py" --duf-file "%DEST_FILE%" --org-id "%EVO_ORG_ID%" --workspace-id "%EVO_WORKSPACE_ID%" --client-id "%EVO_CLIENT_ID%" --hub-url "%EVO_HUB_URL%" --user-agent "%EVO_USER_AGENT%" --epsg-code "%EVO_EPSG_CODE%" --upload-path "%EVO_UPLOAD_PATH%" --combine-layers 2>&1 | "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -Command "$input | ForEach-Object { Write-Output $_; Add-Content -Path '%LOG_FILE%' -Value $_ }"
 set PYTHON_EXIT_CODE=%ERRORLEVEL%
 echo Python script finished with exit code: %PYTHON_EXIT_CODE% >> "%LOG_FILE%"
 
