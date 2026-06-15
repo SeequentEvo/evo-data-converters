@@ -1,4 +1,4 @@
-# Automated DUF File to Evo Converter
+# Automated DUF File to Evo Data Converter
 
 This root-level sample demonstrates a non-interactive DUF-to-Evo workflow.
 
