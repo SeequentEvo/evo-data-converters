@@ -35,6 +35,7 @@ Visit the [setup documentation](docs/SETUP.md) for instructions on how to find t
    EVO_USER_AGENT=your-user-agent
    EVO_EPSG_CODE=your-epsg-code
    EVO_UPLOAD_PATH=optional/path/in/evo
+   EVO_COMBINE_LAYERS=true
    ```
 
 2. Open a command prompt, navigate to this directory and install the dependencies:
@@ -76,7 +77,6 @@ uv run publish_to_evo.py \
    --org-id "<EVO_ORG_ID>" \
    --workspace-id "<EVO_WORKSPACE_ID>" \
    --client-id "<EVO_CLIENT_ID>" \
-   --client-secret "<EVO_CLIENT_SECRET>" \
    --hub-url "<EVO_HUB_URL>" \
    --user-agent "<EVO_USER_AGENT>" \
    --epsg-code "<EPSG_CODE>" \
@@ -87,7 +87,9 @@ uv run publish_to_evo.py \
 Notes:
 - `--duf-file` should point to the file you want to convert. The batch script copies the source to `temp\<name>.duf` before execution; you can point to any accessible path when running manually.
 - `--upload-path` is optional; omit or pass an empty string to upload at the workspace root.
-- `--combine-layers` is a flag; include it to enable combining objects into layers.
+- `EVO_CLIENT_SECRET` can be provided as an environment variable instead of a command-line argument.
+- `--combine-layers` enables combining, and `--no-combine-layers` disables it.
+- In the batch workflow, `EVO_COMBINE_LAYERS` controls combine behavior. Defaults to `true`; set `false` or `0` to disable.
 
 ## How it works
 
