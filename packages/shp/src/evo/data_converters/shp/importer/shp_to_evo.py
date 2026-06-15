@@ -16,7 +16,6 @@ from evo.data_converters.common import (
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
 )
-from evo.data_converters.shp.importer.implementation.local_data import LocalDataClient
 from evo.data_converters.shp.importer.implementation.prj_parser import prj_to_crs
 from evo.data_converters.shp.importer.implementation.shp_parser import ShpParser
 from evo.objects.data import ObjectMetadata
@@ -73,12 +72,9 @@ def convert_shp(
     """
     geoscience_objects = []
 
-    if publish_objects:
-        object_service_client, data_client = create_evo_object_service_and_data_client(
-            evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
-        )
-    else:
-        data_client = LocalDataClient(upload_path)
+    object_service_client, data_client = create_evo_object_service_and_data_client(
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+    )
 
     full_tags = {
         "Source": f"{os.path.basename(filepath)} (via Evo Data Converters)",
