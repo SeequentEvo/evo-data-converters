@@ -37,7 +37,9 @@ def main():
     parser.add_argument("--user-agent", required=True, help="User agent string")
     parser.add_argument("--epsg-code", type=int, required=True, help="EPSG code for coordinate reference system")
     parser.add_argument("--upload-path", default="", help="Upload path in the workspace (default: root level)")
-    parser.add_argument("--combine-layers", dest="combine_layers", action="store_true", help="Combine objects in layers")
+    parser.add_argument(
+        "--combine-layers", dest="combine_layers", action="store_true", help="Combine objects in layers"
+    )
     parser.add_argument(
         "--no-combine-layers",
         dest="combine_layers",
@@ -52,7 +54,9 @@ def main():
     args.org_id = args.org_id.strip()
     args.workspace_id = args.workspace_id.strip()
     args.client_id = args.client_id.strip()
-    args.client_secret = (args.client_secret if args.client_secret is not None else os.getenv("EVO_CLIENT_SECRET", "")).strip()
+    args.client_secret = (
+        args.client_secret if args.client_secret is not None else os.getenv("EVO_CLIENT_SECRET", "")
+    ).strip()
     args.hub_url = args.hub_url.strip()
     args.user_agent = args.user_agent.strip()
     args.upload_path = args.upload_path.strip()
