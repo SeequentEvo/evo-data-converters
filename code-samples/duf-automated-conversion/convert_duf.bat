@@ -37,7 +37,7 @@ call :main %*
 goto :eof
 
 :main
-setlocal enabledelayedexpansion
+setlocal enableextensions disabledelayedexpansion
 
 REM Helper function to log to both console and file
 REM Usage: call :log "message"
@@ -60,15 +60,9 @@ if not exist "%ENV_FILE%" (
 
 call :log "[%DATE% %TIME%] Found .env file"
 call :log "[%DATE% %TIME%] Loading environment variables from .env file..."
-for /f "usebackq tokens=1,* delims==" %%a in ("%ENV_FILE%") do (
-    set "line=%%a"
-    REM Skip empty lines and comments
-    if not "!line!"=="" (
-        if not "!line:~0,1!"=="#" (
-            set "%%a=%%b"
-            call :log "[%DATE% %TIME%] Loaded: %%a"
-        )
-    )
+for /f "usebackq tokens=1,* delims== " %%a in (`findstr /R /V "^[ ]*$ ^[ ]*#" "%ENV_FILE%"`) do (
+    set "%%a=%%b"
+    call :log "[%DATE% %TIME%] Loaded: %%a"
 )
 
 REM Check if DUF_FILE_PATH is set
@@ -144,7 +138,8 @@ if %ERRORLEVEL% equ 0 (
     call :log ""
     call :log "[%DATE% %TIME%] ERROR: Failed to copy file. Error code: %ERRORLEVEL%"
     call :log "[%DATE% %TIME%] Please check network connectivity and file permissions."
-    call :log "[%DATE% %TIME%] WARNING: Continuing anyway, but Python script may fail..."
+    call :log "[%DATE% %TIME%] Aborting to prevent publishing stale or incomplete data."
+    exit /b 1
 )
 
 call :log ""
@@ -195,9 +190,17 @@ call :log "[%DATE% %TIME%] All required environment variables are set."
 REM Set upload path with default empty string if not defined
 if not defined EVO_UPLOAD_PATH set "EVO_UPLOAD_PATH="
 
+REM Set combine behavior with default true
+if not defined EVO_COMBINE_LAYERS set "EVO_COMBINE_LAYERS=true"
+set "COMBINE_FLAG=--combine-layers"
+if /I "%EVO_COMBINE_LAYERS%"=="false" set "COMBINE_FLAG=--no-combine-layers"
+if "%EVO_COMBINE_LAYERS%"=="0" set "COMBINE_FLAG=--no-combine-layers"
+call :log "[%DATE% %TIME%] Combine layers setting: %EVO_COMBINE_LAYERS%"
+
+REM Pass sensitive secret via environment instead of command line
 REM Run the Python script with all parameters and log output
 echo Running Python script... >> "%LOG_FILE%"
-uv run "%~dp0publish_to_evo.py" --duf-file "%DEST_FILE%" --org-id "%EVO_ORG_ID%" --workspace-id "%EVO_WORKSPACE_ID%" --client-id "%EVO_CLIENT_ID%" --client-secret "%EVO_CLIENT_SECRET%" --hub-url "%EVO_HUB_URL%" --user-agent "%EVO_USER_AGENT%" --epsg-code "%EVO_EPSG_CODE%" --upload-path "%EVO_UPLOAD_PATH%" --combine-layers 2>&1 | "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -Command "$input | ForEach-Object { Write-Output $_; Add-Content -Path '%LOG_FILE%' -Value $_ }"
+uv run "%~dp0publish_to_evo.py" --duf-file "%DEST_FILE%" --org-id "%EVO_ORG_ID%" --workspace-id "%EVO_WORKSPACE_ID%" --client-id "%EVO_CLIENT_ID%" --hub-url "%EVO_HUB_URL%" --user-agent "%EVO_USER_AGENT%" --epsg-code "%EVO_EPSG_CODE%" --upload-path "%EVO_UPLOAD_PATH%" %COMBINE_FLAG% 2>&1 | "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -Command "$input | ForEach-Object { Write-Output $_; Add-Content -Path '%LOG_FILE%' -Value $_ }"
 set PYTHON_EXIT_CODE=%ERRORLEVEL%
 echo Python script finished with exit code: %PYTHON_EXIT_CODE% >> "%LOG_FILE%"
 

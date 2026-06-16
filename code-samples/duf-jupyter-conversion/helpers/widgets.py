@@ -72,13 +72,6 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
         value='<a href="https://epsg.io" target="_blank" style="font-size: 12px;">Visit epsg.io to find an EPSG code</a>'
     )
 
-    # Object path input widget
-    object_path_input = widgets.Text(
-        description="Object path:",
-        placeholder="(optional), eg. /duf/converted ",
-        style={"description_width": "initial"},
-    )
-
     # Conversion section: only show Convert button + timer
     convert_button = widgets.Button(
         description="Convert",
@@ -100,12 +93,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
         layout=widgets.Layout(border="1px solid #ccc", padding="10px", margin="5px 0px"),
     )
 
-    # Object path box with border
-    object_path_box = widgets.VBox(
-        [object_path_input], layout=widgets.Layout(border="1px solid #ccc", padding="10px", margin="5px 0px")
-    )
-
-    advanced_box = widgets.VBox([epsg_box, object_path_box])
+    advanced_box = widgets.VBox([epsg_box])
     advanced_box.layout.display = "none"
 
     def update_summary():
@@ -183,13 +171,8 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
         print(f"Full path: {selected_file_path}")
         print(f"Updated {env_file_path} with unique SELECTED_DUF_FILE entry")
 
-    def on_object_path_change(change):
-        update_env_var(env_file_path, "OBJECT_PATH", change["new"] or "")
-        update_summary()
-
     epsg_input.observe(validate_epsg, names="value")
     select_button.on_click(on_button_click)
-    object_path_input.observe(on_object_path_change, names="value")
 
     # Apply preload state
     saved_path = env_vars.get("SELECTED_DUF_FILE")
@@ -218,7 +201,6 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
                     epsg_info.value = f"Invalid: EPSG:{saved_epsg} not found"
                     epsg_info.style = {"text_color": "red"}
                     epsg_valid = False
-            object_path_input.value = env_vars.get("OBJECT_PATH", "")
             update_summary()
         else:
             status_label.value = "ERROR: Saved file not found on disk"
@@ -236,7 +218,6 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
         convert_button.disabled = True
         select_button.disabled = True
         epsg_input.disabled = True
-        object_path_input.disabled = True
 
         start_time = time.time()
         stop_event = threading.Event()
@@ -265,7 +246,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             while retry_count < max_retries:
                 try:
                     epsg_code = int(epsg_input.value.strip())
-                    upload_path = object_path_input.value.strip() or ""
+                    upload_path = Path(selected_file_path).stem
                     object_metadata = await convert_duf_to_evo(selected_file_path, epsg_code, upload_path, manager)
 
                     # Display link to open workspace
@@ -310,7 +291,6 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             convert_button.disabled = False
             select_button.disabled = False
             epsg_input.disabled = False
-            object_path_input.disabled = False
 
         # Schedule the async conversion on the captured event loop
         asyncio.run_coroutine_threadsafe(do_convert(), event_loop)

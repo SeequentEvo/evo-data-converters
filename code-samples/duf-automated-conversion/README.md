@@ -1,13 +1,15 @@
-# Automated DUF file to Evo data converter
+# Automated DUF File to Evo Data Converter
 
-This workflow consists of a Windows batch script that first collects parameters provided by the user. The batch script then calls a Python script that performs the DUF to Evo geoscience object conversion. 
+This root-level sample demonstrates a non-interactive DUF-to-Evo workflow.
 
-This workflow can be performed with no (or minimal) user interaction. To fully automate the workflow a user could set up the Windows Task Scheduler to trigger the workflow on a regular schedule.
+The batch script `convert_duf.bat` reads parameters from a `.env` file and then runs `publish_to_evo.py` to convert and publish geoscience objects.
+
+Use this sample when you want to run DUF imports repeatedly with minimal user interaction (for example with Windows Task Scheduler).
 
 ## Prerequisites
 
 - [uv](https://github.com/astral-sh/uv) - Fast Python package installer and resolver
-- An installed copy of Deswik.CAD
+- An installed copy of Deswik.Suite
 
 ### Install uv
 
@@ -33,6 +35,7 @@ Visit the [setup documentation](docs/SETUP.md) for instructions on how to find t
    EVO_USER_AGENT=your-user-agent
    EVO_EPSG_CODE=your-epsg-code
    EVO_UPLOAD_PATH=optional/path/in/evo
+   EVO_COMBINE_LAYERS=true
    ```
 
 2. Open a command prompt, navigate to this directory and install the dependencies:
@@ -40,6 +43,15 @@ Visit the [setup documentation](docs/SETUP.md) for instructions on how to find t
    uv sync
    ```
    No need to manually create a Python virtual environment - `uv` handles this automatically!
+
+## Sample Data Files
+
+The `example-data` folder includes sample DUF files that you can use for testing:
+- `Marlin Mapping v1.duf`
+- `Marlin Stopes.duf`
+- `Pit Mesh.duf`
+
+These files can be referenced in your `.env` file or passed directly via the `--duf-file` argument.
 
 ## Usage
 
@@ -65,7 +77,6 @@ uv run publish_to_evo.py \
    --org-id "<EVO_ORG_ID>" \
    --workspace-id "<EVO_WORKSPACE_ID>" \
    --client-id "<EVO_CLIENT_ID>" \
-   --client-secret "<EVO_CLIENT_SECRET>" \
    --hub-url "<EVO_HUB_URL>" \
    --user-agent "<EVO_USER_AGENT>" \
    --epsg-code "<EPSG_CODE>" \
@@ -76,7 +87,9 @@ uv run publish_to_evo.py \
 Notes:
 - `--duf-file` should point to the file you want to convert. The batch script copies the source to `temp\<name>.duf` before execution; you can point to any accessible path when running manually.
 - `--upload-path` is optional; omit or pass an empty string to upload at the workspace root.
-- `--combine-layers` is a flag; include it to enable combining objects into layers.
+- `EVO_CLIENT_SECRET` can be provided as an environment variable instead of a command-line argument.
+- `--combine-layers` enables combining, and `--no-combine-layers` disables it.
+- In the batch workflow, `EVO_COMBINE_LAYERS` controls combine behavior. Defaults to `true`; set `false` or `0` to disable.
 
 ## How it works
 
@@ -88,15 +101,10 @@ Notes:
 6. Saves detailed execution information to the log file
 7. Cleans up temporary files
 
-## Sample Data Files
-
-The `data` folder includes sample DUF files that you can use for testing:
-- `Marlin Mapping v1.duf`
-- `Marlin Stopes.duf`
-- `Pit Mesh.duf`
-
-These files can be referenced in your `.env` file or passed directly via the `--duf-file` argument.
-
 ## Log Files
 
 Check `log.txt` in this directory for detailed execution logs.
+
+## Related Sample
+
+For an interactive notebook workflow, see the sibling sample in `../duf-jupyter-conversion`.
