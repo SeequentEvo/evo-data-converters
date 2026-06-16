@@ -7,7 +7,7 @@ It is useful when you want to explore conversion options step-by-step, select a 
 ## Contents
 
 - `convert_duf.ipynb`: Main notebook workflow
-- `start-here.bat`: Windows launcher that installs/updates `uv`, creates `.venv` (if needed), and opens the notebook
+- `start-here.bat`: Windows launcher that tries setup with `uv`, falls back to `pip` if `uv` setup fails, and opens the notebook
 - `helpers/`: UI and conversion helper modules used by the notebook
 - `example-data/`: Sample DUF files for testing
 
@@ -17,17 +17,24 @@ It is useful when you want to explore conversion options step-by-step, select a 
 - Python 3.10 to 3.12
 - Installed Deswik.Suite
 - .NET runtime required by your Deswik.Suite version
-- `uv` (installed automatically by `start-here.bat` if missing)
+- `uv` for the recommended setup, or `pip` for automatic fallback setup
 
 ## Quick Start (Recommended)
 
 From Windows File Explorer, double-click `start-here.bat`.
 
+If the project is stored in a deep folder path and Windows Long Path support is disabled, dependency installation can fail. The launcher now warns about this before setup starts; if you see that warning, either enable Windows Long Paths or move this folder closer to the drive root.
+
 The script will:
 1. Ensure `uv` is installed (or update it)
-2. Create `.venv` with `uv sync` if needed
-3. Activate the virtual environment
-4. Launch `jupyter notebook convert_duf.ipynb`
+2. Run `uv sync` to create or update `.venv`
+3. If `uv` setup fails, create or update `.venv` with Python's built-in `venv` module and `pip`
+4. Activate the virtual environment
+5. Launch `jupyter notebook convert_duf.ipynb`
+
+Tip: force `pip` setup instead of `uv`
+- Run `start-here.bat --force-pip` to skip `uv` and use `pip` directly.
+- Or set `FORCE_PIP_SETUP=1` before launching the script (for example: `set FORCE_PIP_SETUP=1 && start-here.bat`).
 
 ## Manual Setup
 
@@ -36,6 +43,16 @@ From this folder in a command prompt:
 ```cmd
 uv sync
 uv run jupyter notebook convert_duf.ipynb
+```
+
+Or, using `pip`:
+
+```cmd
+py -3.12 -m venv .venv
+.venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+jupyter notebook convert_duf.ipynb
 ```
 
 ## Sample Data Files
