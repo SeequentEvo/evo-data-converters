@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 def convert_ubc(
     files_path: list[str],
-    epsg_code: int,
+    epsg_code: int = -1,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
@@ -41,7 +41,8 @@ def convert_ubc(
     """Converts a UBC files into Geoscience Objects.
 
     :param files_path: list of paths to the UBC .msh/.nev files.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param epsg_code: (Optional) The EPSG code to use when creating a Coordinate Reference System object.
+                     If not provided or -1, will attempt to extract from UBC file or use WKT.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).

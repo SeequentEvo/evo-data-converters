@@ -1034,7 +1034,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-ubc"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "packages/ubc" }
 dependencies = [
     { name = "evo-data-converters-common" },
