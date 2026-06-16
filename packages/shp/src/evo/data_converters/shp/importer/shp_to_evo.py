@@ -60,7 +60,7 @@ def convert_shp(
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
     :param publish_objects: (Optional) Set False to prevent publishing and instead return Geoscience models.
-    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the destination path.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the destiation path.
 
     :return: list[ObjectMetadata] if publish_objects is true, otherwise list[TriangleMesh_V2_2_0]
 
