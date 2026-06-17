@@ -10,6 +10,7 @@
 #  limitations under the License.
 
 from typing import TYPE_CHECKING, Optional
+import warnings
 
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
@@ -22,7 +23,6 @@ from evo.data_converters.common import (
 from evo.data_converters.common.crs import crs_from_any, crs_from_epsg_code
 from evo.data_converters.gocad.importer import utils
 from evo.objects.data import ObjectMetadata
-from yaml import warnings
 
 logger = evo.logging.getLogger("data_converters")
 
