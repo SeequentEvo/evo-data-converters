@@ -107,81 +107,10 @@ def test_get_geoscience_object_from_ubc_multiple_mesh_files(mock_data_client: Ma
         get_geoscience_object_from_ubc(mock_data_client, files_path, epsg_code)
 
 
-def test_derive_epsg_from_wkt_gda94_mga() -> None:
-    from evo.data_converters.ubc.importer.utils import _derive_epsg_from_wkt
-
-    # Test GDA94/MGA zone 55
-    wkt = "GDA94 / MGA zone 55"
-    assert _derive_epsg_from_wkt(wkt) == 28355
-
-    # Test GDA94/MGA zone 50
-    wkt = "GDA94 / MGA zone 50"
-    assert _derive_epsg_from_wkt(wkt) == 28350
-
-
-def test_derive_epsg_from_wkt_gda2020_mga() -> None:
-    from evo.data_converters.ubc.importer.utils import _derive_epsg_from_wkt
-
-    # Test GDA2020/MGA zone 55
-    wkt = "GDA2020 / MGA zone 55"
-    assert _derive_epsg_from_wkt(wkt) == 7855
-
-    # Test GDA2020/MGA zone 50
-    wkt = "GDA2020 / MGA zone 50"
-    assert _derive_epsg_from_wkt(wkt) == 7850
-
-
-def test_derive_epsg_from_wkt_wgs84_utm() -> None:
-    from evo.data_converters.ubc.importer.utils import _derive_epsg_from_wkt
-
-    # Test WGS84/UTM zone 55N
-    wkt = "WGS 84 / UTM zone 55 N"
-    assert _derive_epsg_from_wkt(wkt) == 32655
-
-    # Test WGS84/UTM zone 55S
-    wkt = "WGS 84 / UTM zone 55 S"
-    assert _derive_epsg_from_wkt(wkt) == 32755
-
-
-def test_derive_epsg_from_wkt_nad83_utm() -> None:
-    from evo.data_converters.ubc.importer.utils import _derive_epsg_from_wkt
-
-    # Test NAD83/UTM zone 11N
-    wkt = "NAD83 / UTM zone 11 N"
-    assert _derive_epsg_from_wkt(wkt) == 26911
-
-
-def test_derive_epsg_from_wkt_invalid() -> None:
-    from evo.data_converters.ubc.importer.utils import _derive_epsg_from_wkt
-
-    # Test invalid WKT
-    wkt = "Some random coordinate system"
-    assert _derive_epsg_from_wkt(wkt) is None
-
-    # Test empty string
-    assert _derive_epsg_from_wkt("") is None
-
-    # Test None
-    assert _derive_epsg_from_wkt(None) is None
-
-
-def test_derive_epsg_from_wkt_case_insensitive() -> None:
-    from evo.data_converters.ubc.importer.utils import _derive_epsg_from_wkt
-
-    # Test case insensitivity
-    wkt_lower = "gda94 / mga zone 55"
-    wkt_upper = "GDA94 / MGA ZONE 55"
-    wkt_mixed = "GdA94 / mGa ZoNe 55"
-
-    assert _derive_epsg_from_wkt(wkt_lower) == 28355
-    assert _derive_epsg_from_wkt(wkt_upper) == 28355
-    assert _derive_epsg_from_wkt(wkt_mixed) == 28355
-
-
-def test_get_geoscience_object_from_ubc_with_inferred_epsg(
+def test_get_geoscience_object_from_ubc_with_coordinate_reference_system_epsg(
     mock_data_client: MagicMock, mock_mesh_importer: MagicMock, mock_property_importer: MagicMock
 ) -> None:
-    """Test that EPSG code is inferred from WKT when not provided"""
+    """Test that coordinate_reference_system with EPSG can be provided."""
     values_data = {
         "data": "475667033d674e3dbcc25a05880e9e151c10c4d682234b1cfb63d41b905b97a4",
         "data_type": "float64",
@@ -195,14 +124,74 @@ def test_get_geoscience_object_from_ubc_with_inferred_epsg(
         np.array([1.0, 2.0, 3.0]),
         [np.array([3.0]), np.array([4.0]), np.array([5.0])],
         [3, 4, 5],
-        "GDA94 / MGA zone 55",  # wkt_string with inferred EPSG
+        "",  # wkt_string is ignored by explicit coordinate_reference_system
     )
     mock_property_importer.return_value.execute.return_value = np.array([1.0])
 
     tags = {"First tag": "first tag value"}
-    # Call with default epsg_code (-1)
-    result = get_geoscience_object_from_ubc(mock_data_client, files_path, tags=tags)
+    result = get_geoscience_object_from_ubc(
+        mock_data_client,
+        files_path,
+        coordinate_reference_system={"epsg_code": 28355},
+        tags=tags,
+    )
 
     assert isinstance(result, Tensor3DGrid_V1_2_0)
-    # EPSG 28355 should be inferred from "GDA94 / MGA zone 55"
     assert result.coordinate_reference_system.epsg_code == 28355
+
+
+def test_get_geoscience_object_from_ubc_with_coordinate_reference_system_wkt(
+    mock_data_client: MagicMock, mock_mesh_importer: MagicMock, mock_property_importer: MagicMock
+) -> None:
+    values_data = {
+        "data": "475667033d674e3dbcc25a05880e9e151c10c4d682234b1cfb63d41b905b97a4",
+        "data_type": "float64",
+        "length": 60,
+        "width": 1,
+    }
+    mock_data_client.save_table.return_value = values_data
+    files_path = ["dummy_file.msh", "dummy_values.txt"]
+
+    mock_mesh_importer.return_value.execute.return_value = (
+        np.array([1.0, 2.0, 3.0]),
+        [np.array([3.0]), np.array([4.0]), np.array([5.0])],
+        [3, 4, 5],
+        "",
+    )
+    mock_property_importer.return_value.execute.return_value = np.array([1.0])
+
+    wkt = 'GEOGCRS["WGS 84",DATUM["WGS_1984"]]'
+    result = get_geoscience_object_from_ubc(
+        mock_data_client,
+        files_path,
+        coordinate_reference_system={"ogc_wkt": wkt},
+    )
+
+    assert isinstance(result, Tensor3DGrid_V1_2_0)
+    assert result.coordinate_reference_system.ogc_wkt == wkt
+
+
+def test_get_geoscience_object_from_ubc_uses_unspecified_crs_by_default(
+    mock_data_client: MagicMock, mock_mesh_importer: MagicMock, mock_property_importer: MagicMock
+) -> None:
+    values_data = {
+        "data": "475667033d674e3dbcc25a05880e9e151c10c4d682234b1cfb63d41b905b97a4",
+        "data_type": "float64",
+        "length": 60,
+        "width": 1,
+    }
+    mock_data_client.save_table.return_value = values_data
+    files_path = ["dummy_file.msh", "dummy_values.txt"]
+
+    mock_mesh_importer.return_value.execute.return_value = (
+        np.array([1.0, 2.0, 3.0]),
+        [np.array([3.0]), np.array([4.0]), np.array([5.0])],
+        [3, 4, 5],
+        "GDA94 / MGA zone 55",  # ignored if no explicit CRS or epsg_code
+    )
+    mock_property_importer.return_value.execute.return_value = np.array([1.0])
+
+    result = get_geoscience_object_from_ubc(mock_data_client, files_path)
+
+    assert isinstance(result, Tensor3DGrid_V1_2_0)
+    assert result.coordinate_reference_system == "unspecified"

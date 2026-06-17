@@ -10,7 +10,6 @@
 #  limitations under the License.
 
 import os
-import re
 from typing import Optional
 
 import numpy
@@ -34,58 +33,22 @@ from evo.objects.utils.data import ObjectDataClient
 logger = evo.logging.getLogger("data_converters")
 
 
-def _derive_epsg_from_wkt(wkt: str) -> Optional[int]:
-    """
-    Attempt to derive an EPSG code from a WKT string using regex pattern matching.
+def _resolve_coordinate_reference_system(
+    epsg_code: Optional[int], coordinate_reference_system: Optional[dict]
+) -> object:
+    if coordinate_reference_system is not None:
+        if isinstance(coordinate_reference_system, dict):
+            if "epsg_code" in coordinate_reference_system:
+                return crs_from_epsg_code(coordinate_reference_system["epsg_code"])
+            if "ogc_wkt" in coordinate_reference_system:
+                return Crs_V1_0_1_OgcWkt(ogc_wkt=coordinate_reference_system["ogc_wkt"])
+            raise ValueError("coordinate_reference_system must contain 'epsg_code' or 'ogc_wkt'.")
+        return coordinate_reference_system
 
-    Supports common coordinate systems like:
-    - GDA94/MGA zones
-    - GDA2020/MGA zones
-    - WGS84/UTM zones
-    - NAD83/UTM zones
+    if epsg_code is not None:
+        return crs_from_epsg_code(epsg_code)
 
-    :param wkt: WKT projection string
-    :return: EPSG code if found, None otherwise
-    """
-    if not wkt:
-        return None
-
-    name_patterns = [
-        (
-            r"GDA94\s*/\s*MGA\s*zone\s*(\d{1,2})",
-            lambda zone: 28300 + zone,
-        ),
-        (
-            r"GDA2020\s*/\s*MGA\s*zone\s*(\d{1,2})",
-            lambda zone: 7800 + zone,
-        ),
-        (
-            r"WGS\s*84\s*/\s*UTM\s*zone\s*(\d{1,2})\s*([NS])",
-            lambda zone, hemi: (32600 if hemi == "N" else 32700) + zone,
-        ),
-        (
-            r"NAD83\s*/\s*UTM\s*zone\s*(\d{1,2})\s*N",
-            lambda zone: 26900 + zone,
-        ),
-    ]
-
-    for pattern, resolver in name_patterns:
-        match = re.search(pattern, wkt, flags=re.IGNORECASE)
-        if not match:
-            continue
-
-        groups = match.groups()
-        try:
-            if len(groups) == 1:
-                zone = int(groups[0])
-                return resolver(zone)
-            zone = int(groups[0])
-            hemi = groups[1].upper()
-            return resolver(zone, hemi)
-        except (TypeError, ValueError):
-            continue
-
-    return None
+    return "unspecified"
 
 
 def _create_continuous_attributes(
@@ -123,33 +86,16 @@ def _handle_ubc_files_list(files_path: list[str]) -> tuple[str, list[str]]:
 
 
 def get_geoscience_object_from_ubc(
-    data_client: ObjectDataClient, files_path: list[str], epsg_code: int = -1, tags: Optional[dict[str, str]] = None
+    data_client: ObjectDataClient,
+    files_path: list[str],
+    epsg_code: Optional[int] = None,
+    coordinate_reference_system: Optional[dict] = None,
+    tags: Optional[dict[str, str]] = None,
 ) -> Tensor3DGrid_V1_2_0:
     ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
     name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
-    origin, spacings, size_of_dimensions, wkt_string = UBCMeshFileImporter(ubc_mesh_file).execute()
-
-    # Determine the CRS to use
-    coordinate_reference_system = None
-
-    if epsg_code > 0:
-        # Use provided EPSG code
-        logger.debug(f"Using provided EPSG code: {epsg_code}")
-        coordinate_reference_system = crs_from_epsg_code(epsg_code)
-    elif wkt_string:
-        # Try to infer EPSG from WKT
-        inferred_epsg = _derive_epsg_from_wkt(wkt_string)
-        if inferred_epsg is not None and inferred_epsg > 0:
-            logger.debug(f"Inferred EPSG code {inferred_epsg} from WKT string in UBC file")
-            coordinate_reference_system = crs_from_epsg_code(inferred_epsg)
-        else:
-            # Fallback to WKT-based CRS
-            logger.debug("Using WKT projection from UBC file (no EPSG code could be inferred)")
-            coordinate_reference_system = Crs_V1_0_1_OgcWkt(ogc_wkt=wkt_string)
-    else:
-        # No EPSG code provided and no WKT string found
-        logger.warning(f"No coordinate system found in UBC file '{os.path.basename(ubc_mesh_file)}'")
-        coordinate_reference_system = "unspecified"
+    origin, spacings, size_of_dimensions, _wkt_string = UBCMeshFileImporter(ubc_mesh_file).execute()
+    resolved_coordinate_reference_system = _resolve_coordinate_reference_system(epsg_code, coordinate_reference_system)
 
     n_blocks = size_of_dimensions[0] * size_of_dimensions[1] * size_of_dimensions[2]
     numerical_values = {}
@@ -169,7 +115,7 @@ def get_geoscience_object_from_ubc(
         origin=origin.tolist(),
         size=size_of_dimensions,
         grid_cells_3d=grid_cells_3d,
-        coordinate_reference_system=coordinate_reference_system,
+        coordinate_reference_system=resolved_coordinate_reference_system,
         bounding_box=bbox,
         rotation=Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0),
         cell_attributes=cell_attributes,

@@ -23,6 +23,7 @@ from evo.objects.data import ObjectMetadata
 def test_convert_ubc_success() -> None:
     files_path = ["dummy_file.msh"]
     epsg_code = 4326
+    coordinate_reference_system = {"ogc_wkt": 'GEOGCRS["WGS 84"]'}
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
     tags = {"tag1": "value1"}
     upload_path = "upload/path"
@@ -34,19 +35,32 @@ def test_convert_ubc_success() -> None:
         patch(
             "evo.data_converters.ubc.importer.ubc_to_evo.create_evo_object_service_and_data_client"
         ) as mock_create_client,
-        patch("evo.data_converters.ubc.importer.ubc_to_evo.publish_geoscience_objects_sync") as mock_publish,
+        patch("evo.data_converters.ubc.importer.ubc_to_evo._publish_ubc_objects_sync") as mock_publish,
         patch(
             "evo.data_converters.ubc.importer.utils.get_geoscience_object_from_ubc", return_value=mock_geoscience_object
-        ),
+        ) as mock_get_geoscience_object,
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
         mock_publish.return_value = [mock_metadata]
 
         result = convert_ubc(
-            files_path, epsg_code, evo_workspace_metadata, tags=tags, upload_path=upload_path, publish_objects=True
+            files_path,
+            epsg_code,
+            evo_workspace_metadata,
+            tags=tags,
+            upload_path=upload_path,
+            publish_objects=True,
+            coordinate_reference_system=coordinate_reference_system,
         )
 
         assert result == [mock_metadata]
+        mock_get_geoscience_object.assert_called_once_with(
+            mock_create_client.return_value[1],
+            files_path,
+            epsg_code=epsg_code,
+            coordinate_reference_system=coordinate_reference_system,
+            tags=tags,
+        )
         mock_publish.assert_called_once_with(
             [mock_geoscience_object],
             mock_create_client.return_value[0],
