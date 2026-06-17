@@ -22,6 +22,7 @@ from evo.data_converters.common import (
 from evo.data_converters.common.crs import crs_from_any, crs_from_epsg_code
 from evo.data_converters.gocad.importer import utils
 from evo.objects.data import ObjectMetadata
+from yaml import warnings
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -77,6 +78,9 @@ def convert_gocad(
     if epsg_code is not None:
         if coordinate_reference_system is not None:
             raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
         crs = crs_from_epsg_code(epsg_code)
     else:
         crs = crs_from_any(coordinate_reference_system)

@@ -12,6 +12,7 @@
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Generator, Optional, TypeAlias
+import warnings
 
 from evo.data_converters.common.crs import crs_from_any, crs_from_epsg_code
 import vtk
@@ -154,6 +155,9 @@ def convert_vtk(
     if epsg_code is not None:
         if coordinate_reference_system is not None:
             raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
         crs = crs_from_epsg_code(epsg_code)
     else:
         crs = crs_from_any(coordinate_reference_system)

@@ -12,6 +12,7 @@
 import os
 from collections import defaultdict
 from typing import TYPE_CHECKING, Optional, Any
+import warnings
 
 import evo.logging
 from evo.objects.utils import ObjectDataClient
@@ -197,6 +198,9 @@ async def convert_duf(
     if epsg_code is not None:
         if coordinate_reference_system is not None:
             raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
         crs = crs_from_epsg_code(epsg_code)
     else:
         crs = crs_from_any(coordinate_reference_system)
