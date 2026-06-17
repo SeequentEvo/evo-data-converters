@@ -11,6 +11,7 @@
 
 import os
 from typing import TYPE_CHECKING, Optional
+import warnings
 
 import omf2
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
@@ -20,6 +21,8 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
+    crs_from_epsg_code,
+    crs_from_any,
 )
 from evo.data_converters.omf import OMFReaderContext
 from evo.objects.data import ObjectMetadata
@@ -37,24 +40,29 @@ if TYPE_CHECKING:
 
 def convert_omf(
     filepath: str,
-    epsg_code: int,
+    epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    *,
+    coordinate_reference_system: str | int | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata | dict]:
     """Converts an OMF file into Geoscience Objects.
 
     :param filepath: Path to the OMF file.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the coordinate reference system. Use ``coordinate_reference_system`` instead.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
-    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param publish_objects: (Optional) Set False to return rather than publish objects.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+
+    Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -72,7 +80,19 @@ def convert_omf(
 
     :raise MissingConnectionDetailsError: If no connections details could be derived.
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
+    :raise InvalidCRSError: If the input CRS information is invalid.
     """
+
+    if epsg_code is not None:
+        if coordinate_reference_system is not None:
+            raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
+        crs = crs_from_epsg_code(epsg_code)
+    else:
+        crs = crs_from_any(coordinate_reference_system)
+
     geoscience_objects = []
     block_models = []
 
@@ -100,14 +120,14 @@ def convert_omf(
 
         match geometry:
             case omf2.PointSet():
-                geoscience_object = convert_omf_pointset(element, project, reader, data_client, epsg_code)
+                geoscience_object = convert_omf_pointset(element, project, reader, data_client, crs)
             case omf2.Surface():
-                geoscience_object = convert_omf_surface(element, project, reader, data_client, epsg_code)
+                geoscience_object = convert_omf_surface(element, project, reader, data_client, crs)
             case omf2.LineSet():
-                geoscience_object = convert_omf_lineset(element, project, reader, data_client, epsg_code)
+                geoscience_object = convert_omf_lineset(element, project, reader, data_client, crs)
             case omf2.BlockModel():
                 if publish_objects:
-                    block_models = convert_omf_blockmodel(object_service_client, element, reader, epsg_code)
+                    block_models = convert_omf_blockmodel(object_service_client, element, reader, crs)
                 else:
                     logger.warning("Skipping block models due to publish_objects=False")
             case _:

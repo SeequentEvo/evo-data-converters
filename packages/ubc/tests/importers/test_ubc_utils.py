@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 from evo_schemas import Tensor3DGrid_V1_2_0
 
+from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.ubc.importer.utils import get_geoscience_object_from_ubc
 from evo.objects.utils.data import ObjectDataClient
 
@@ -59,7 +60,7 @@ def test_get_geoscience_object_from_ubc_success(
     mock_property_importer.return_value.execute.return_value = np.array([1.0])
 
     tags = {"First tag": "first tag value", "Second tag": "second tag value"}
-    result = get_geoscience_object_from_ubc(mock_data_client, files_path, epsg_code, tags=tags)
+    result = get_geoscience_object_from_ubc(mock_data_client, files_path, crs_from_epsg_code(epsg_code), tags=tags)
 
     expected_tags = {
         "Source": "dummy_file.msh (via Evo Data Converters)",

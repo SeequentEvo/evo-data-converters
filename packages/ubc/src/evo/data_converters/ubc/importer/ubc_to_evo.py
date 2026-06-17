@@ -13,8 +13,9 @@ import asyncio
 from collections import defaultdict
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Optional
+import warnings
 
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1_OgcWkt
 
 import evo.logging
 import nest_asyncio
@@ -22,6 +23,8 @@ from evo.common.exceptions import NotFoundException
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
+    crs_from_any,
+    crs_from_epsg_code,
 )
 from evo.data_converters.ubc.importer import utils
 from evo.objects.data import ObjectMetadata
@@ -97,50 +100,68 @@ def convert_ubc(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
-    coordinate_reference_system: Optional[dict] = None,
+    *,
+    coordinate_reference_system: str | int | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
-    """Converts a UBC files into Geoscience Objects.
+    """Converts UBC files into Geoscience Objects.
 
     :param files_path: list of paths to the UBC .msh/.nev files.
-    :param epsg_code: (Optional) EPSG code for backward compatibility.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the CRS.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
-    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
-    :param coordinate_reference_system: (Optional) Coordinate Reference System in Evo-compatible format,
-                                        for example {"epsg_code": 4326} or {"ogc_wkt": "..."}.
-                                        If both are provided, coordinate_reference_system takes precedence.
+    :param publish_objects: (Optional) Set False to return rather than publish objects.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param coordinate_reference_system: (Optional) Coordinate reference system.
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
-    Converted objects will be published if either of the following is true:
-    - evo_workspace_metadata.hub_url is present, or
-    - service_manager_widget was passed to this function.
-
     :return: List of Geoscience Objects, or list of ObjectMetadata if published.
-
-    :raise MissingConnectionDetailsError: If no connections details could be derived.
-    :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
-    :raise UBCFileIOError: If failed to read UBC file.
-    :raise UBCInvalidDataError: If an error was detected within the UBC file.
-    :raise UBCOOMError: If out of memory error occurred while handling the UBC file.
     """
 
+    if (
+        epsg_code is not None
+        and coordinate_reference_system is not None
+        and not isinstance(coordinate_reference_system, dict)
+    ):
+        raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+
+    if isinstance(coordinate_reference_system, dict):
+        if "epsg_code" in coordinate_reference_system:
+            crs = crs_from_epsg_code(coordinate_reference_system["epsg_code"])
+        elif "ogc_wkt" in coordinate_reference_system:
+            crs = Crs_V1_0_1_OgcWkt(ogc_wkt=coordinate_reference_system["ogc_wkt"])
+        else:
+            raise ValueError("coordinate_reference_system must contain 'epsg_code' or 'ogc_wkt'.")
+    elif coordinate_reference_system is not None:
+        crs = crs_from_any(coordinate_reference_system)
+    elif epsg_code is not None:
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.",
+            DeprecationWarning,
+        )
+        crs = crs_from_epsg_code(epsg_code)
+    else:
+        crs = crs_from_any(coordinate_reference_system)
+
     object_service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+        evo_workspace_metadata=evo_workspace_metadata,
+        service_manager_widget=service_manager_widget,
     )
 
-    geoscience_objects = [
-        utils.get_geoscience_object_from_ubc(
+    if isinstance(coordinate_reference_system, dict) or epsg_code is not None:
+        geoscience_object = utils.get_geoscience_object_from_ubc(
             data_client,
             files_path,
             epsg_code=epsg_code,
             coordinate_reference_system=coordinate_reference_system,
             tags=tags,
         )
-    ]
+    else:
+        geoscience_object = utils.get_geoscience_object_from_ubc(data_client, files_path, crs, tags)
+
+    geoscience_objects = [geoscience_object]
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")

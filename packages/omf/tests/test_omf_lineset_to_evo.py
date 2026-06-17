@@ -61,7 +61,11 @@ class TestOMFLineSetConverter(TestCase):
 
         epsg_code = 32650
         line_segments_go = convert_omf_lineset(
-            lineset=lineset_element, project=project, reader=reader, data_client=self.data_client, epsg_code=epsg_code
+            lineset=lineset_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(epsg_code),
         )
 
         self.assertIsInstance(line_segments_go, LineSegments_V2_1_0)
@@ -117,7 +121,11 @@ class TestOMFLineSetConverter(TestCase):
 
         epsg_code = 32650
         line_segments_go = convert_omf_lineset(
-            lineset=lineset_element, project=project, reader=reader, data_client=self.data_client, epsg_code=epsg_code
+            lineset=lineset_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(epsg_code),
         )
 
         self.assertIsInstance(line_segments_go, LineSegments_V2_1_0)
@@ -172,7 +180,11 @@ class TestOMFLineSetConverter(TestCase):
         lineset_element = self._element_by_name(project, "data_vertices_lines")
 
         line_segments_go = convert_omf_lineset(
-            lineset=lineset_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            lineset=lineset_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(line_segments_go, LineSegments_V2_1_0)
@@ -216,7 +228,11 @@ class TestOMFLineSetConverter(TestCase):
         lineset_element = self._element_by_name(project, "data_vertices_lines")
 
         line_segments_go = convert_omf_lineset(
-            lineset=lineset_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            lineset=lineset_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(line_segments_go, LineSegments_V2_1_0)
@@ -260,7 +276,11 @@ class TestOMFLineSetConverter(TestCase):
         lineset_element = self._element_by_name(project, "data_segments_lines")
 
         line_segments_go = convert_omf_lineset(
-            lineset=lineset_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            lineset=lineset_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(line_segments_go, LineSegments_V2_1_0)
@@ -303,7 +323,11 @@ class TestOMFLineSetConverter(TestCase):
         lineset_element = self._element_by_name(project, "data_segments_lines")
 
         line_segments_go = convert_omf_lineset(
-            lineset=lineset_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            lineset=lineset_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(line_segments_go, LineSegments_V2_1_0)

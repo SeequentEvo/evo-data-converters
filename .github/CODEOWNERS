@@ -26,3 +26,4 @@ packages/resqml/              @SeequentEvo/resqml-maintainers
 packages/ubc/                 @SeequentEvo/ubc-maintainers
 packages/vtk/                 @SeequentEvo/vtk-maintainers
 packages/image/               @SeequentEvo/image-maintainers
+packages/shp/                 @SeequentEvo/shp-maintainers

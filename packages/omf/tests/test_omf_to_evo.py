@@ -15,10 +15,29 @@ from os import path
 from unittest import TestCase
 
 import pytest
+from pyproj import CRS
+from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo_schemas.objects import LineSegments_V2_1_0, Pointset_V1_2_0, TriangleMesh_V2_1_0
 
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.omf.importer import convert_omf
+
+
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
 
 
 @pytest.mark.usefixtures("caplog")
@@ -73,3 +92,39 @@ class TestOMFToEvoConverter(TestCase):
 
         expected_go_object_types = [TriangleMesh_V2_1_0, Pointset_V1_2_0, LineSegments_V2_1_0, TriangleMesh_V2_1_0]
         self.assertListEqual(expected_go_object_types, [type(obj) for obj in go_objects])
+
+
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (32650, Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        ("EPSG:32650", Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
+    ],
+)
+def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+    cache_root_dir = tempfile.TemporaryDirectory()
+    metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
+    omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
+    go_objects = convert_omf(
+        filepath=omf_file,
+        evo_workspace_metadata=metadata,
+        coordinate_reference_system=input_crs,
+        publish_objects=False,
+    )
+    assert all(obj.coordinate_reference_system == expected_crs for obj in go_objects)
+
+
+def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+    cache_root_dir = tempfile.TemporaryDirectory()
+    metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
+    omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        convert_omf(
+            filepath=omf_file,
+            evo_workspace_metadata=metadata,
+            epsg_code=32650,
+            coordinate_reference_system=32650,
+            publish_objects=False,
+        )

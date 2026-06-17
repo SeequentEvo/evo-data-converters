@@ -5,8 +5,8 @@ This module converts images (JPEG, PNG, TIFF, BMP, GIF, etc.) to Regular 2D Grid
 ## Overview
 
 The converter:
-1. Reads an image file and converts it to grayscale
-2. Extracts pixel values as a flattened array
+1. Reads an image file and detects grayscale or color mode
+2. Extracts pixel values as a bottom-row-first flattened array
 3. Stores the data in a parquet file following geoscience object schema specifications
 4. Creates a Regular 2D Grid JSON object with proper schema references
 5. Publishes the grid and associated data to Evo workspace
@@ -15,14 +15,14 @@ The converter:
 
 The converter implements the Regular 2D Grid schema version 1.3.0:
 - **Schema**: `/objects/regular-2d-grid/1.3.0/regular-2d-grid.schema.json`
-- **Cell Attributes**: Scalar attribute type for continuous data
+- **Cell Attributes**: Scalar (grayscale) or color (RGB) attributes
 - **Data Storage**: Parquet files with SHA-256 hash references
 
 ## Key Features
 
-- Converts images to grayscale for grid data
+- Supports both grayscale and RGB color image conversion
 - Supports JPEG, PNG, TIFF, BMP, GIF, and other PIL/Pillow formats
-- Row-major iteration for pixel extraction
+- Bottom-row-first row-major pixel extraction (grid origin alignment)
 - Configurable origin, cell size, and coordinate reference system
 - Automatic parquet file generation with hash-based naming
 - Compatible with Evo publishing workflow
@@ -134,35 +134,42 @@ print(f"Cell attributes: {len(grid.cell_attributes)}")
 
 ### Cell Attributes
 
-The converter creates a scalar attribute named `"2d-grid-data-continuous"` with:
+For grayscale images, the converter creates a scalar attribute named `"2d-grid-data-continuous"` with:
 - **Data type**: `float64`
 - **Width**: 1 (single value per cell)
 - **Length**: width × height
 - **Data**: SHA-256 hash reference to parquet file
 - **NaN values**: `[-1.0000000331813535e+32, -1e+32]`
 
+For color images, the converter creates a color attribute named `"2d-grid-data-color"` with:
+- **Attribute type**: `color`
+- **Length**: width × height
+- **Packed format**: one RGB value per pixel in `0xAABBGGRR` (alpha fixed to `0xFF`)
+- **Data**: SHA-256 hash reference to parquet file
+
 ### Parquet File Structure
 
-The parquet file contains a single column named `"values"` with:
-- Flattened pixel values (row-major order)
-- Type: double (float64)
+The parquet file contains one column named `"data"` with:
+- Grayscale: flattened float64 values (row-major order)
+- Color: packed int32/uint32 color values (`0xAABBGGRR`)
 - Compression: gzip
 - Version: 2.4 (Apache Parquet)
 
 ## Grid Orientation
 
-The converter follows this pattern for pixel extraction:
+The converter follows these patterns for pixel extraction:
 
 ```python
-for y in range(height):
-    for x in range(width):
-        value = pixel_array[y, x]
-        cell_values.append(value)
+# grayscale
+cell_values = np.flipud(pixel_array).ravel(order="C")
+
+# color
+cell_values = np.flipud(pixel_array).reshape(-1, 3)
 ```
 
 This creates a row-major flattened array where:
-- First `width` values = top row of image
-- Next `width` values = second row
+- First `width` values = bottom row of image
+- Next `width` values = second row from bottom
 - And so on...
 
 ## Coordinate Reference System
@@ -183,7 +190,7 @@ crs = {
 
 ## Example Output
 
-A successfully converted grid will have this structure:
+A successfully converted grayscale grid will have this structure:
 
 ```json
 {

@@ -15,6 +15,7 @@ dependencies = [
   "evo-data-converters-resqml",
   "evo-data-converters-ubc",
   "evo-data-converters-vtk",
+  "evo-data-converters-xyz"
 ]
 
 [project.optional-dependencies]
@@ -46,6 +47,7 @@ evo-data-converters-omf = { workspace = true }
 evo-data-converters-resqml = { workspace = true }
 evo-data-converters-ubc = { workspace = true }
 evo-data-converters-vtk = { workspace = true }
+evo-data-converters-xyz = { workspace = true }
 omf2 = { git = "https://github.com/gmggroup/omf-rust", subdirectory = "omf-python" }
 
 [tool.uv.workspace]

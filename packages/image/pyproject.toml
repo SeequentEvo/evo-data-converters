@@ -1,6 +1,6 @@
 [project]
 name = "evo-data-converters-image"
-version = "0.1.0"
+version = "0.1.5"
 description = "Image data converter for Evo (supports JPEG, PNG, TIFF, etc.)"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
@@ -16,7 +16,7 @@ dependencies = [
   "evo-objects>=0.3.3",
   "evo-schemas>=2025.12.15",
   "evo-sdk-common>=0.5.12",
-  "numpy<=1.26.4",
+  "numpy>=1.26.3,<3",
   "pyarrow",
   "pydantic",
   "pillow",

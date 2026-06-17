@@ -44,16 +44,25 @@ from evo_schemas.components import (
     Rotation_V1_1_0,
     OneOfAttribute_V1_2_0,
     ContinuousAttribute_V1_1_0,
+    ColorAttribute_V1_1_0,
     NanContinuous_V1_0_1,
     AttributeDescription_V1_0_1,
     Crs_V1_0_1_EpsgCode,
 )
-from evo_schemas.elements import FloatArray1_V1_0_1
+from evo_schemas.elements import FloatArray1_V1_0_1, ColorArray_V1_0_1
 
 logger = evo.logging.getLogger("data_converters")
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
+
+
+def _normalize_array_data_type(pa_type: pa.DataType) -> str:
+    """Map PyArrow type names to evo_schemas data_type values."""
+    arrow_name = str(pa_type)
+    if arrow_name == "double":
+        return "float64"
+    return arrow_name
 
 
 # -----------------------------------------------------------------------------
@@ -94,13 +103,15 @@ class _LocalObjectDataClientStub:
         # Persist a local copy so you can inspect/debug the parquet
         (self.output_path / f"{data_hash}.parquet").write_bytes(data)
 
+        first_field = table.schema.field(0)
+
         # Shape matches what the converter expects from the real data client
         # (include basic metadata commonly used by downstream code)
         return {
             "data": data_hash,
             "length": table.num_rows,
             "width": 1,
-            "data_type": "float64",
+            "data_type": _normalize_array_data_type(first_field.type),
         }
 
 
@@ -129,28 +140,57 @@ class ImageGridConverter:
         self.output_path = Path(output_dir)
         self.output_parquet = output_parquet
 
-    def _read_image_as_grayscale(self, image_path: str) -> tuple[np.ndarray, int, int]:
-        """Read image file and convert to grayscale values.
+    def _read_image(self, image_path: str) -> tuple[np.ndarray, int, int, str]:
+        """Read image file and preserve its color mode (grayscale or RGB).
 
         Supports JPEG, PNG, TIFF, BMP, GIF, and other formats supported by PIL/Pillow.
 
+        For grayscale images (mode L, LA): returns single float64 array.
+        For color images (mode RGB, RGBA): returns uint8 RGB array (flattened, one value per pixel = 3 bytes RGB).
+
         :param image_path: Path to the image file
-        :return: Tuple of (flattened pixel_values (float64), width, height)
+        :return: Tuple of (pixel_values (float64 or uint8 array), width, height, mode_type)
+             mode_type is either 'grayscale' or 'color'
+             Pixel values are flattened row-major starting from the bottom row so
+             index 0 maps to the grid origin (bottom-left convention).
         """
         logger.info(f"Reading image file: {image_path}")
 
         with Image.open(image_path) as img:
-            grayscale_img = img.convert("L")  # luminance
-            width, height = grayscale_img.size
-            logger.info(f"Image dimensions: {width}x{height}")
+            width, height = img.size
+            original_mode = img.mode
+            logger.info(f"Image dimensions: {width}x{height}, mode: {original_mode}")
 
-            # Vectorized conversion to 1D float64 (row-major)
-            cell_values = np.asarray(grayscale_img, dtype=np.float64).ravel(order="C")
+            # Determine if grayscale or color
+            if original_mode in ("L", "LA"):
+                # Grayscale: convert to single channel float64
+                if original_mode == "LA":
+                    # Drop alpha channel for grayscale
+                    grayscale_img = img.convert("L")
+                else:
+                    grayscale_img = img
 
-        return cell_values, width, height
+                pixel_array = np.asarray(grayscale_img, dtype=np.float64)
+                cell_values = np.flipud(pixel_array).ravel(order="C")
+                logger.info("Image is grayscale, returning single float64 array")
+                return cell_values, width, height, "grayscale"
 
-    def _create_parquet_file(self, table: pa.Table) -> tuple[str, Path | None]:
-        """Create parquet file and return (hash, local_path_if_any).
+            else:
+                # Color image: preserve RGB channels (drop alpha if present)
+                color_img = img.convert("RGB") if original_mode in ("RGBA", "P", "LA") else img
+
+                # Get uint8 RGB array
+                pixel_array = np.asarray(color_img, dtype=np.uint8)  # shape: (height, width, 3)
+
+                # Flip vertically and flatten to 1D for color storage
+                pixel_array_flipped = np.flipud(pixel_array)
+                # Reshape to (height*width, 3) then flatten to 1D with RGB interleaved
+                cell_values = pixel_array_flipped.reshape(-1, 3).astype(np.uint8)
+                logger.info(f"Image is color (RGB), returning uint8 array of shape {cell_values.shape}")
+                return cell_values, width, height, "color"
+
+    def _create_parquet_file(self, table: pa.Table) -> tuple[dict[str, str | int], Path | None]:
+        """Create parquet file and return (save_table_like_metadata, local_path_if_any).
 
         If a data_client is present (real or stub), use it. Otherwise, compute the hash and
         optionally write a local file only when output_parquet=True.
@@ -166,7 +206,7 @@ class ImageGridConverter:
                 self.output_path.mkdir(parents=True, exist_ok=True)
                 local_path = self.output_path / f"{data_hash}.parquet"
                 pq.write_table(table, local_path, **geoscience_object_data_options())
-            return data_hash, local_path
+            return saved_table_info, local_path
 
         # No data_client provided: compute a content hash locally
         logger.info("No data_client provided; computing local parquet + hash")
@@ -175,48 +215,80 @@ class ImageGridConverter:
         raw = buf.getvalue()
         data_hash = hashlib.sha256(raw).hexdigest()
 
+        first_field = table.schema.field(0)
+        saved_table_info: dict[str, str | int] = {
+            "data": data_hash,
+            "length": table.num_rows,
+            "width": 1,
+            "data_type": _normalize_array_data_type(first_field.type),
+        }
+
         local_path = None
         if self.output_parquet:
             self.output_path.mkdir(parents=True, exist_ok=True)
             local_path = self.output_path / f"{data_hash}.parquet"
             local_path.write_bytes(raw)
-        return data_hash, local_path
+        return saved_table_info, local_path
 
-    def _create_cell_attribute(self, cell_values: np.ndarray, width: int, height: int) -> ContinuousAttribute_V1_1_0:
-        """Create cell attribute from pixel values."""
-        logger.info("Creating cell attribute from pixel data")
+    def _create_cell_attribute(
+        self, cell_values: np.ndarray, width: int, height: int, image_mode: str
+    ) -> ContinuousAttribute_V1_1_0 | ColorAttribute_V1_1_0:
+        """Create cell attribute from pixel values (grayscale or color)."""
+        if image_mode == "grayscale":
+            logger.info("Creating grayscale cell attribute from pixel data")
+            # Arrow table of float64 values
+            table = pa.table({"data": cell_values})
+        else:  # color
+            logger.info("Creating color cell attribute from pixel data")
+            # Pack RGB into 0xAABBGGRR uint32 (A=255 fully opaque), one value per pixel
+            # This matches the ColorArray_V1_0_1 expected format (little-endian RGBA)
+            r = cell_values[:, 0].astype(np.uint32)
+            g = cell_values[:, 1].astype(np.uint32)
+            b = cell_values[:, 2].astype(np.uint32)
+            packed = r | (g << 8) | (b << 16) | np.uint32(0xFF000000)
+            packed_i32 = packed.view(np.int32)
+            schema = pa.schema([("data", pa.int32())])
+            table = pa.Table.from_arrays([pa.array(packed_i32, type=pa.int32())], schema=schema)
 
-        # Arrow table of values
-        table = pa.table({"values": cell_values})
+        # Persist parquet (via data_client or locally) and get metadata
+        array_args, _ = self._create_parquet_file(table)
+        data_hash = str(array_args["data"])
 
-        # Persist parquet (via data_client or locally) and get the content hash
-        data_hash, _ = self._create_parquet_file(table)
+        if image_mode == "grayscale":
+            # Grayscale continuous attribute
+            attribute_description = AttributeDescription_V1_0_1(
+                discipline="Imagery",
+                type="Grayscale Intensity",
+            )
 
-        # Attribute metadata
-        attribute_description = AttributeDescription_V1_0_1(
-            discipline="Imagery",
-            type="Grayscale Intensity",
-        )
+            nan_description = NanContinuous_V1_0_1(values=[-1.0000000331813535e32, -1e32])
 
-        nan_description = NanContinuous_V1_0_1(values=[-1.0000000331813535e32, -1e32])
+            values = FloatArray1_V1_0_1.from_dict(array_args)
 
-        values = FloatArray1_V1_0_1(
-            data=data_hash,
-            length=width * height,
-            width=1,
-            data_type="float64",
-        )
+            attribute = ContinuousAttribute_V1_1_0(
+                name="2d-grid-data-continuous",
+                key=data_hash,
+                attribute_type="scalar",
+                attribute_description=attribute_description,
+                nan_description=nan_description,
+                values=values,
+            )
+            return attribute
+        else:  # color
+            # Color attribute
+            color_array_args = {
+                "data": data_hash,
+                "length": int(array_args.get("length", width * height)),
+                "data_type": "uint32",
+            }
+            color_values = ColorArray_V1_0_1.from_dict(color_array_args)
 
-        attribute = ContinuousAttribute_V1_1_0(
-            name="2d-grid-data-continuous",
-            key=data_hash,
-            attribute_type="scalar",
-            attribute_description=attribute_description,
-            nan_description=nan_description,
-            values=values,
-        )
-
-        return attribute
+            attribute = ColorAttribute_V1_1_0(
+                name="2d-grid-data-color",
+                key=data_hash,
+                values=color_values,
+            )
+            return attribute
 
     def convert(
         self,
@@ -228,10 +300,14 @@ class ImageGridConverter:
         name: Optional[str] = None,
         description: Optional[str] = None,
     ) -> Regular2DGrid_V1_3_0:
-        """Convert an image file to a Regular 2D Grid object."""
+        """Convert an image file to a Regular 2D Grid object.
 
-        # Read and preprocess image
-        cell_values, width, height = self._read_image_as_grayscale(image_path)
+        Preserves color images as RGB (ColorAttribute_V1_1_0).
+        Grayscale images returned as float64 intensity (ContinuousAttribute_V1_1_0).
+        """
+
+        # Read and preprocess image (detect grayscale vs color)
+        cell_values, width, height, image_mode = self._read_image(image_path)
 
         # Defaults
         grid_name = name or Path(image_path).stem
@@ -252,9 +328,8 @@ class ImageGridConverter:
         # Rotation (default none)
         rotation = Rotation_V1_1_0(dip=0.0, dip_azimuth=0.0, pitch=0.0)
 
-        # Cell attributes (pixel data)
-        cell_attribute = self._create_cell_attribute(cell_values, width, height)
-
+        # Cell attribute: single attribute for either grayscale or color
+        cell_attribute = self._create_cell_attribute(cell_values, width, height, image_mode)
         cell_attributes_list = OneOfAttribute_V1_2_0()
         cell_attributes_list.append(cell_attribute)
 
@@ -287,7 +362,7 @@ class ImageGridConverter:
             cell_attributes=cell_attributes_list,
         )
 
-        logger.info(f"Successfully converted image to Regular 2D Grid: {grid.name} ({width}x{height})")
+        logger.info(f"Successfully converted {image_mode} image to Regular 2D Grid: {grid.name} ({width}x{height})")
         return grid
 
 
@@ -305,6 +380,7 @@ def convert_image_to_grid(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     upload_path: str = "",
+    output_dir: str = "./parquet_arrays",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
 ) -> list:
@@ -328,7 +404,7 @@ def convert_image_to_grid(
     else:
         # Offline path: local stub (no credentials); still writes a local parquet and computes hash
         object_service_client = None
-        data_client = _LocalObjectDataClientStub(output_dir="./parquet_arrays")
+        data_client = _LocalObjectDataClientStub(output_dir=output_dir)
 
     # Convert (this will write parquet via data_client: real or stub)
     converter = ImageGridConverter(data_client, output_parquet=False)

@@ -46,6 +46,9 @@ def _resolve_coordinate_reference_system(
         return coordinate_reference_system
 
     if epsg_code is not None:
+        # Backward compatibility: some callers pass a CRS object positionally.
+        if not isinstance(epsg_code, int):
+            return epsg_code
         return crs_from_epsg_code(epsg_code)
 
     return "unspecified"
@@ -88,14 +91,23 @@ def _handle_ubc_files_list(files_path: list[str]) -> tuple[str, list[str]]:
 def get_geoscience_object_from_ubc(
     data_client: ObjectDataClient,
     files_path: list[str],
+    crs: Optional[object] = None,
+    tags: Optional[dict[str, str]] = None,
+    *,
     epsg_code: Optional[int] = None,
     coordinate_reference_system: Optional[dict] = None,
-    tags: Optional[dict[str, str]] = None,
 ) -> Tensor3DGrid_V1_2_0:
     ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
     name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
     origin, spacings, size_of_dimensions, _wkt_string = UBCMeshFileImporter(ubc_mesh_file).execute()
-    resolved_coordinate_reference_system = _resolve_coordinate_reference_system(epsg_code, coordinate_reference_system)
+    if coordinate_reference_system is not None or epsg_code is not None:
+        resolved_coordinate_reference_system = _resolve_coordinate_reference_system(
+            epsg_code, coordinate_reference_system
+        )
+    elif crs is not None:
+        resolved_coordinate_reference_system = crs_from_epsg_code(crs) if isinstance(crs, int) else crs
+    else:
+        resolved_coordinate_reference_system = "unspecified"
 
     n_blocks = size_of_dimensions[0] * size_of_dimensions[1] * size_of_dimensions[2]
     numerical_values = {}

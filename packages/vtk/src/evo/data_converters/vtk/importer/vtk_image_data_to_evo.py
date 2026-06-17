@@ -12,7 +12,7 @@
 import pyarrow as pa
 import vtk
 from evo.data_converters.common import RegularGridData
-from evo_schemas.components import BoolAttribute_V1_1_0
+from evo_schemas.components import BoolAttribute_V1_1_0, Crs_V1_0_1
 from evo_schemas.elements import BoolArray1_V1_0_1
 from evo_schemas.objects import Regular3DGrid_V1_2_0, RegularMasked3DGrid_V1_2_0
 
@@ -85,7 +85,7 @@ def convert_vtk_image_data(
     name: str,
     image_data: vtk.vtkImageData,
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
 ) -> Regular3DGrid_V1_2_0 | RegularMasked3DGrid_V1_2_0:
     """Convert a vtkImageData object to a Regular3DGrid or RegularMasked3DGrid object, depending on whether the
     vtkImageData object has any blanked cells.
@@ -103,7 +103,7 @@ def convert_vtk_image_data(
             values=BoolArray1_V1_0_1(**data_client.save_table(pa.table({"mask": mask}))),
         )
         return RegularMasked3DGrid_V1_2_0(
-            **common_fields(name, epsg_code, image_data),
+            **common_fields(name, crs, image_data),
             origin=origin,
             size=list(size),
             cell_size=list(spacing),
@@ -116,7 +116,7 @@ def convert_vtk_image_data(
         cell_attributes = convert_attributes(cell_data, data_client)
         vertex_attributes = convert_attributes(vertex_data, data_client)
         return Regular3DGrid_V1_2_0(
-            **common_fields(name, epsg_code, image_data),
+            **common_fields(name, crs, image_data),
             origin=origin,
             size=list(size),
             cell_size=list(spacing),
