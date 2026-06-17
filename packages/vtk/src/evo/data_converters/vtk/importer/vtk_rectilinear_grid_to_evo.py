@@ -12,7 +12,7 @@
 import numpy as np
 import vtk
 from evo.data_converters.common import TensorGridData
-from evo_schemas.components import Rotation_V1_1_0
+from evo_schemas.components import Rotation_V1_1_0, Crs_V1_0_1
 from evo_schemas.objects import Tensor3DGrid_V1_2_0, Tensor3DGrid_V1_2_0_GridCells3D
 from vtk.util.numpy_support import vtk_to_numpy
 
@@ -77,7 +77,7 @@ def convert_vtk_rectilinear_grid(
     name: str,
     rectilinear_grid: vtk.vtkRectilinearGrid,
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
 ) -> Tensor3DGrid_V1_2_0:
     cell_data, mask, vertex_data, origin, size, x_spacings, y_spacings, z_spacings = _extract_vtk_data(rectilinear_grid)
 
@@ -90,7 +90,7 @@ def convert_vtk_rectilinear_grid(
         vertex_attributes = convert_attributes(vertex_data, data_client)
 
     return Tensor3DGrid_V1_2_0(
-        **common_fields(name, epsg_code, rectilinear_grid),
+        **common_fields(name, crs, rectilinear_grid),
         origin=origin,
         size=list(size),
         grid_cells_3d=Tensor3DGrid_V1_2_0_GridCells3D(

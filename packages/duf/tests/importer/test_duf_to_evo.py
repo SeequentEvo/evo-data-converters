@@ -14,9 +14,27 @@ import re
 
 import numpy
 import pytest
+from pyproj import CRS
+from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo_schemas.objects import LineSegments_V2_1_0, TriangleMesh_V2_1_0
 
 from packages.duf.tests.utils import convert_duf
+
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
 
 
 def test_should_log_warnings(evo_metadata, simple_objects_path, caplog: pytest.LogCaptureFixture) -> None:
@@ -77,6 +95,37 @@ def test_import_category_with_missing_attrs(
     # that the empty string has been removed from categories on import.
     assert "" not in categories
     assert len(categories) > 0
+
+
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (32650, Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        ("EPSG:32650", Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
+    ],
+)
+def test_coordinate_reference_system(evo_metadata, simple_objects_path, input_crs, expected_crs) -> None:
+    go_objects = convert_duf(
+        filepath=simple_objects_path,
+        evo_workspace_metadata=evo_metadata,
+        coordinate_reference_system=input_crs,
+        publish_objects=False,
+    )
+    assert len(go_objects) == 1
+    assert go_objects[0].coordinate_reference_system == expected_crs
+
+
+def test_coordinate_reference_system_conflicts_with_epsg_code(evo_metadata, simple_objects_path) -> None:
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        convert_duf(
+            filepath=simple_objects_path,
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+            coordinate_reference_system=32650,
+            publish_objects=False,
+        )
 
 
 def test_import_object_with_missing_attrs(evo_metadata, data_client, missing_attr_and_missing_xprops_path) -> None:

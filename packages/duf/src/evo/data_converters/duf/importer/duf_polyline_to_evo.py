@@ -14,13 +14,13 @@ from evo_schemas.components import (
     Segments_V1_2_0,
     Segments_V1_2_0_Indices,
     Segments_V1_2_0_Vertices,
+    Crs_V1_0_1,
 )
 from evo_schemas.objects import LineSegments_V2_1_0, LineSegments_V2_1_0_Parts
 
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 
-from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.duf.common.consts import EvoSchema
 import evo.data_converters.duf.common.deswik_types as dw
 from .utils import (
@@ -34,7 +34,7 @@ from .utils import (
 logger = evo.logging.getLogger("data_converters")
 
 
-def _create_line_segments_obj(name, vertices_array, indices_array, parts, epsg_code, data_client):
+def _create_line_segments_obj(name, vertices_array, indices_array, parts, crs: Crs_V1_0_1, data_client):
     vertices_go, bounding_box_go = vertices_array_to_go_and_bbox(data_client, vertices_array, Segments_V1_2_0_Vertices)
 
     indices_go = indices_array_to_go(data_client, indices_array, Segments_V1_2_0_Indices)
@@ -45,7 +45,7 @@ def _create_line_segments_obj(name, vertices_array, indices_array, parts, epsg_c
         name=name,
         uuid=None,
         bounding_box=bounding_box_go,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=crs,
         segments=Segments_V1_2_0(vertices=vertices_go, indices=indices_go),
         parts=parts_go,
     )
@@ -65,7 +65,7 @@ def _polyline_indices_array(num_vertices):
 def combine_duf_polylines(
     polylines: list[dw.Polyline],
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
 ) -> LineSegments_V2_1_0 | None:
     if not polylines:
         logger.warning("No polylines to combine.")
@@ -87,13 +87,13 @@ def combine_duf_polylines(
         polylines, indices_arrays, EvoSchema.line_segments
     )
 
-    return _create_line_segments_obj(name, vertices_array, indices_array, parts, epsg_code, data_client)
+    return _create_line_segments_obj(name, vertices_array, indices_array, parts, crs, data_client)
 
 
 def convert_duf_polyline(
     polyline: dw.Polyline,
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
 ) -> LineSegments_V2_1_0:
     name = get_name(polyline)
     logger.debug(f'Converting polyline: "{name}" to LineSegments_V2_1_0.')
@@ -106,4 +106,4 @@ def convert_duf_polyline(
         [polyline], [indices_array], EvoSchema.line_segments
     )
 
-    return _create_line_segments_obj(name, vertices_array, indices_array, parts, epsg_code, data_client)
+    return _create_line_segments_obj(name, vertices_array, indices_array, parts, crs, data_client)

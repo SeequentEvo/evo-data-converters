@@ -12,12 +12,30 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+from pyproj import CRS
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError, MissingConnectionDetailsError
 from evo.data_converters.ubc.importer.ubc_to_evo import convert_ubc
 from evo.objects.data import ObjectMetadata
+
+
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
 
 
 def test_convert_ubc_success() -> None:
@@ -98,3 +116,54 @@ def test_convert_ubc_conflicting_connection_details_error() -> None:
 
     with pytest.raises(ConflictingConnectionDetailsError):
         convert_ubc(files_path, epsg_code, evo_workspace_metadata, service_manager_widget, publish_objects=False)
+
+
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (4326, Crs_V1_0_1_EpsgCode(epsg_code=4326)),
+        ("EPSG:4326", Crs_V1_0_1_EpsgCode(epsg_code=4326)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
+    ],
+)
+def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+    files_path = ["dummy_file.msh"]
+    evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
+
+    mock_geoscience_object = MagicMock(spec=BaseSpatialDataProperties_V1_0_1)
+
+    with (
+        patch(
+            "evo.data_converters.ubc.importer.ubc_to_evo.create_evo_object_service_and_data_client"
+        ) as mock_create_client,
+        patch(
+            "evo.data_converters.ubc.importer.utils.get_geoscience_object_from_ubc",
+            return_value=mock_geoscience_object,
+        ) as mock_get_obj,
+    ):
+        mock_create_client.return_value = (MagicMock(), MagicMock())
+
+        convert_ubc(
+            files_path,
+            evo_workspace_metadata=evo_workspace_metadata,
+            coordinate_reference_system=input_crs,
+            publish_objects=False,
+        )
+
+        crs_arg = mock_get_obj.call_args[0][2]
+        assert crs_arg == expected_crs
+
+
+def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+    files_path = ["dummy_file.msh"]
+    evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
+
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        convert_ubc(
+            files_path,
+            4326,
+            evo_workspace_metadata,
+            coordinate_reference_system=4326,
+            publish_objects=False,
+        )
