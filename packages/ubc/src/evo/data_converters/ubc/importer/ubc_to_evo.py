@@ -113,11 +113,22 @@ def convert_ubc(
     :param upload_path: (Optional) Path objects will be published under.
     :param publish_objects: (Optional) Set False to return rather than publish objects.
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
-    :param coordinate_reference_system: (Optional) Coordinate reference system.
+    :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+
+    Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
     One of evo_workspace_metadata or service_manager_widget is required.
+    Converted objects will be published if either of the following is true:
+    - evo_workspace_metadata.hub_url is present, or
+    - service_manager_widget was passed to this function.
 
     :return: List of Geoscience Objects, or list of ObjectMetadata if published.
+
+    :raise MissingConnectionDetailsError: If no connections details could be derived.
+    :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
+    :raise UBCFileIOError: If failed to read UBC file.
+    :raise UBCInvalidDataError: If an error was detected within the UBC file.
+    :raise UBCOOMError: If out of memory error occurred while handling the UBC file.
     """
 
     if (
