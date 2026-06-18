@@ -106,7 +106,7 @@ def convert_ubc(
     """Converts UBC files into Geoscience Objects.
 
     :param files_path: list of paths to the UBC .msh/.nev files.
-    :param epsg_code: (Optional, deprecated) Integer EPSG code for the CRS.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the coordinate reference system. Use ``coordinate_reference_system`` instead.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
