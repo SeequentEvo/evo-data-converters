@@ -55,6 +55,7 @@ def test_get_geoscience_object_from_ubc_success(
         np.array([1.0, 2.0, 3.0]),
         [np.array([3.0]), np.array([4.0]), np.array([5.0])],
         [3, 4, 5],
+        "",  # wkt_string
     )
     mock_property_importer.return_value.execute.return_value = np.array([1.0])
 
@@ -105,3 +106,93 @@ def test_get_geoscience_object_from_ubc_multiple_mesh_files(mock_data_client: Ma
 
     with pytest.raises(ValueError, match="Multiple UBC mesh files provided."):
         get_geoscience_object_from_ubc(mock_data_client, files_path, epsg_code)
+
+
+def test_get_geoscience_object_from_ubc_with_coordinate_reference_system_epsg(
+    mock_data_client: MagicMock, mock_mesh_importer: MagicMock, mock_property_importer: MagicMock
+) -> None:
+    """Test that coordinate_reference_system with EPSG can be provided."""
+    values_data = {
+        "data": "475667033d674e3dbcc25a05880e9e151c10c4d682234b1cfb63d41b905b97a4",
+        "data_type": "float64",
+        "length": 60,
+        "width": 1,
+    }
+    mock_data_client.save_table.return_value = values_data
+    files_path = ["dummy_file.msh", "dummy_values.txt"]
+
+    mock_mesh_importer.return_value.execute.return_value = (
+        np.array([1.0, 2.0, 3.0]),
+        [np.array([3.0]), np.array([4.0]), np.array([5.0])],
+        [3, 4, 5],
+        "",  # wkt_string is ignored by explicit coordinate_reference_system
+    )
+    mock_property_importer.return_value.execute.return_value = np.array([1.0])
+
+    tags = {"First tag": "first tag value"}
+    result = get_geoscience_object_from_ubc(
+        mock_data_client,
+        files_path,
+        coordinate_reference_system={"epsg_code": 28355},
+        tags=tags,
+    )
+
+    assert isinstance(result, Tensor3DGrid_V1_2_0)
+    assert result.coordinate_reference_system.epsg_code == 28355
+
+
+def test_get_geoscience_object_from_ubc_with_coordinate_reference_system_wkt(
+    mock_data_client: MagicMock, mock_mesh_importer: MagicMock, mock_property_importer: MagicMock
+) -> None:
+    values_data = {
+        "data": "475667033d674e3dbcc25a05880e9e151c10c4d682234b1cfb63d41b905b97a4",
+        "data_type": "float64",
+        "length": 60,
+        "width": 1,
+    }
+    mock_data_client.save_table.return_value = values_data
+    files_path = ["dummy_file.msh", "dummy_values.txt"]
+
+    mock_mesh_importer.return_value.execute.return_value = (
+        np.array([1.0, 2.0, 3.0]),
+        [np.array([3.0]), np.array([4.0]), np.array([5.0])],
+        [3, 4, 5],
+        "",
+    )
+    mock_property_importer.return_value.execute.return_value = np.array([1.0])
+
+    wkt = 'GEOGCRS["WGS 84",DATUM["WGS_1984"]]'
+    result = get_geoscience_object_from_ubc(
+        mock_data_client,
+        files_path,
+        coordinate_reference_system={"ogc_wkt": wkt},
+    )
+
+    assert isinstance(result, Tensor3DGrid_V1_2_0)
+    assert result.coordinate_reference_system.ogc_wkt == wkt
+
+
+def test_get_geoscience_object_from_ubc_uses_unspecified_crs_by_default(
+    mock_data_client: MagicMock, mock_mesh_importer: MagicMock, mock_property_importer: MagicMock
+) -> None:
+    values_data = {
+        "data": "475667033d674e3dbcc25a05880e9e151c10c4d682234b1cfb63d41b905b97a4",
+        "data_type": "float64",
+        "length": 60,
+        "width": 1,
+    }
+    mock_data_client.save_table.return_value = values_data
+    files_path = ["dummy_file.msh", "dummy_values.txt"]
+
+    mock_mesh_importer.return_value.execute.return_value = (
+        np.array([1.0, 2.0, 3.0]),
+        [np.array([3.0]), np.array([4.0]), np.array([5.0])],
+        [3, 4, 5],
+        "GDA94 / MGA zone 55",  # ignored if no explicit CRS or epsg_code
+    )
+    mock_property_importer.return_value.execute.return_value = np.array([1.0])
+
+    result = get_geoscience_object_from_ubc(mock_data_client, files_path)
+
+    assert isinstance(result, Tensor3DGrid_V1_2_0)
+    assert result.coordinate_reference_system == "unspecified"
