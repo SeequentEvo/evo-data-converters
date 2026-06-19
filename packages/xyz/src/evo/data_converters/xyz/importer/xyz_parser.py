@@ -33,7 +33,7 @@ def parse_xyz_file(
     y_index: int = -1,
     z_index: int = -1,
     data_index: int = -1,
-    epsg: int = None
+    epsg: int = None,
 ) -> Pointset_V1_3_0:
     name = os.path.basename(filepath)
     filename_hash = hashlib.sha256(os.path.basename(filepath).encode()).hexdigest().lower()

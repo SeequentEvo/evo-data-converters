@@ -37,7 +37,7 @@ def convert_xyz(
     y_index: int = -1,
     z_index: int = -1,
     data_index: int = -1,
-    epsg: int = None
+    epsg: int = None,
 ) -> list[Pointset_V1_3_0]:
     geoscience_objects = []
 

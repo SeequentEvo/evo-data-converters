@@ -11,6 +11,7 @@
 
 import pyproj as pyproj
 
+
 def is_valid_epsg(epsg_code: int) -> bool:
     """Check if the provided EPSG code is valid."""
     try:
