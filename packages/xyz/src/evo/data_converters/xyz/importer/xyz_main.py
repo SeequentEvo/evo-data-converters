@@ -37,6 +37,7 @@ def convert_xyz(
     y_index: int = -1,
     z_index: int = -1,
     data_index: int = -1,
+    epsg: int = None
 ) -> list[Pointset_V1_3_0]:
     geoscience_objects = []
 
@@ -45,7 +46,7 @@ def convert_xyz(
     )
 
     pointset = parse_xyz_file(
-        filepath, data_client, x_index=x_index, y_index=y_index, z_index=z_index, data_index=data_index
+        filepath, data_client, x_index=x_index, y_index=y_index, z_index=z_index, data_index=data_index, epsg=epsg
     )
 
     pointset.tags = {

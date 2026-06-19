@@ -19,9 +19,11 @@ from evo_schemas.elements.float_array_1 import FloatArray1_V1_0_1
 from evo_schemas.components import BoundingBox_V1_0_1
 from evo_schemas.components.continuous_attribute import ContinuousAttribute_V1_1_0
 from evo_schemas.components.nan_continuous import NanContinuous_V1_0_1
+from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 
 from .xyz_reader import read_xyz
 from .xyz_parquet_manager import save_array_to_parquet, save_1d_array_to_parquet
+from .xyz_crs import is_valid_epsg
 
 
 def parse_xyz_file(
@@ -31,6 +33,7 @@ def parse_xyz_file(
     y_index: int = -1,
     z_index: int = -1,
     data_index: int = -1,
+    epsg: int = None
 ) -> Pointset_V1_3_0:
     name = os.path.basename(filepath)
     filename_hash = hashlib.sha256(os.path.basename(filepath).encode()).hexdigest().lower()
@@ -68,12 +71,16 @@ def parse_xyz_file(
 
     location = Pointset_V1_3_0_Locations(coordinates=floatArr, attributes=attributes)
 
+    crs = "unspecified"
+    if epsg is not None and epsg > 0 and is_valid_epsg(epsg):
+        crs = Crs_EpsgCode(epsg_code=epsg)
+
     pointset = Pointset_V1_3_0(
         name=name,
         uuid=None,
         description=None,
         bounding_box=bb,
-        coordinate_reference_system="unspecified",
+        coordinate_reference_system=crs,
         locations=location,
     )
 
