@@ -89,6 +89,7 @@ Notes:
 - `--upload-path` is optional; omit or pass an empty string to upload at the workspace root.
 - `EVO_CLIENT_SECRET` can be provided as an environment variable instead of a command-line argument.
 - `--combine-layers` enables combining, and `--no-combine-layers` disables it.
+- `--combine-layers` and `--no-combine-layers` map to the same argparse destination; if both are passed, the last flag wins.
 - In the batch workflow, `EVO_COMBINE_LAYERS` controls combine behavior. Defaults to `true`; set `false` or `0` to disable.
 
 ## How it works

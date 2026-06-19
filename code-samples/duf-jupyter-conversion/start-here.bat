@@ -16,8 +16,10 @@ if errorlevel 1 (
 
 call :WarnIfLongPathRisk
 
-REM Allow forcing pip setup via first argument, e.g. start-here.bat --force-pip
-if /i "%~1"=="--force-pip" set "FORCE_PIP_SETUP=1"
+REM Allow forcing pip setup via any argument, e.g. start-here.bat --force-pip
+for %%I in (%*) do (
+    if /i "%%~I"=="--force-pip" set "FORCE_PIP_SETUP=1"
+)
 
 REM Normalize possible quoted values from environment assignment
 set "FORCE_PIP_SETUP=!FORCE_PIP_SETUP:\"=!"
@@ -28,7 +30,7 @@ if /i "!FORCE_PIP_SETUP!"=="1" (
     call :PipSetup
     if errorlevel 1 (
         echo.
-        echo ERROR: Failed to set up the Python environment.
+        echo ERROR: Forced pip setup failed.
         pause
         exit /b 1
     )
@@ -41,7 +43,7 @@ if /i "!FORCE_PIP_SETUP!"=="1" (
         call :PipSetup
         if errorlevel 1 (
             echo.
-            echo ERROR: Failed to set up the Python environment.
+            echo ERROR: pip fallback setup failed after uv setup failed.
             pause
             exit /b 1
         )
@@ -144,10 +146,26 @@ exit /b 0
 :PipSetup
 REM Find a Python launcher/interpreter that can create the virtual environment
 set "PYTHON_CMD="
+set "PYTHON_PREFERRED_VERSION="
+set "ROOT_PYTHON_VERSION_FILE=%SCRIPT_DIR%..\..\.python-version"
+
+if defined ROOT_PYTHON_VERSION_FILE if exist "!ROOT_PYTHON_VERSION_FILE!" (
+    for /f "usebackq tokens=1 delims= " %%V in ("!ROOT_PYTHON_VERSION_FILE!") do set "PYTHON_PREFERRED_VERSION=%%V"
+    for /f "tokens=1,2,3 delims=." %%A in ("!PYTHON_PREFERRED_VERSION!") do (
+        if not "%%A"=="" if not "%%B"=="" set "PYTHON_PREFERRED_VERSION=%%A.%%B"
+    )
+    echo Found repo Python version preference: !PYTHON_PREFERRED_VERSION!
+)
+
 where py >nul 2>&1
 if !ERRORLEVEL! equ 0 (
+    if defined PYTHON_PREFERRED_VERSION (
+        py -!PYTHON_PREFERRED_VERSION! --version >nul 2>&1
+        if !ERRORLEVEL! equ 0 set "PYTHON_CMD=py -!PYTHON_PREFERRED_VERSION!"
+    )
+
     py -3.12 --version >nul 2>&1
-    if !ERRORLEVEL! equ 0 set "PYTHON_CMD=py -3.12"
+    if !ERRORLEVEL! equ 0 if not defined PYTHON_CMD set "PYTHON_CMD=py -3.12"
 
     if not defined PYTHON_CMD (
         py -3.11 --version >nul 2>&1
@@ -162,7 +180,18 @@ if !ERRORLEVEL! equ 0 (
 
 if not defined PYTHON_CMD (
     where python >nul 2>&1
-    if !ERRORLEVEL! equ 0 set "PYTHON_CMD=python"
+    if !ERRORLEVEL! equ 0 (
+        python -c "import sys; pref='!PYTHON_PREFERRED_VERSION!'.strip(); v=f'{sys.version_info[0]}.{sys.version_info[1]}'; ok=((3, 10) <= sys.version_info[:2] <= (3, 12)) and ((not pref) or (v == pref)); raise SystemExit(0 if ok else 1)" >nul 2>&1
+        if !ERRORLEVEL! equ 0 (
+            set "PYTHON_CMD=python"
+        ) else (
+            if defined PYTHON_PREFERRED_VERSION (
+                echo ERROR: Found python in PATH, but it is not the preferred version !PYTHON_PREFERRED_VERSION! from .python-version.
+            ) else (
+                echo ERROR: Found python in PATH, but it is not Python 3.10 to 3.12.
+            )
+        )
+    )
 )
 
 if not defined PYTHON_CMD (

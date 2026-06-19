@@ -60,7 +60,7 @@ if not exist "%ENV_FILE%" (
 
 call :log "[%DATE% %TIME%] Found .env file"
 call :log "[%DATE% %TIME%] Loading environment variables from .env file..."
-for /f "usebackq tokens=1,* delims== " %%a in (`findstr /R /V "^[ ]*$ ^[ ]*#" "%ENV_FILE%"`) do (
+for /f "usebackq tokens=1,* delims==" %%a in (`findstr /R /V /C:"^[ 	]*$" /C:"^[ 	]*#" "%ENV_FILE%"`) do (
     set "%%a=%%b"
     call :log "[%DATE% %TIME%] Loaded: %%a"
 )
