@@ -1038,7 +1038,7 @@ dev = [
 
 [[package]]
 name = "evo-data-converters-shp"
-version = "0.1.4"
+version = "0.1.6"
 source = { editable = "packages/shp" }
 dependencies = [
     { name = "evo-data-converters-common" },
