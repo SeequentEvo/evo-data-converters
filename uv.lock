@@ -1107,12 +1107,14 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-xyz"
-version = "0.0.2"
+version = "0.0.3"
 source = { editable = "packages/xyz" }
 dependencies = [
     { name = "evo-data-converters-common" },
     { name = "numpy" },
     { name = "pyarrow" },
+    { name = "pyproj", version = "3.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 
 [package.dev-dependencies]
@@ -1125,6 +1127,7 @@ requires-dist = [
     { name = "evo-data-converters-common", editable = "packages/common" },
     { name = "numpy", specifier = ">=1.19.0" },
     { name = "pyarrow" },
+    { name = "pyproj" },
 ]
 
 [package.metadata.requires-dev]
