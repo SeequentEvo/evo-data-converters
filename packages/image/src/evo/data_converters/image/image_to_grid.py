@@ -35,6 +35,7 @@ from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
     publish_geoscience_objects_sync,
+    crs_unspecified,
 )
 
 from evo.objects.utils.data import ObjectDataClient
@@ -343,6 +344,9 @@ class ImageGridConverter:
                     crs = coordinate_reference_system["ogc_wkt"]  # WKT string
             else:
                 crs = coordinate_reference_system
+        else:
+            # No CRS provided: use unspecified to preserve data integrity
+            crs = crs_unspecified()
 
         # Assemble Regular 2D Grid object
         grid = Regular2DGrid_V1_3_0(
@@ -351,9 +355,7 @@ class ImageGridConverter:
             description=grid_description,
             tags=tags,
             bounding_box=bbox,
-            coordinate_reference_system=crs
-            if crs is not None
-            else Crs_V1_0_1_EpsgCode(epsg_code=4326),  # default WGS84
+            coordinate_reference_system=crs,
             origin=grid_origin,
             size=[width, height],
             cell_size=grid_cell_size,
