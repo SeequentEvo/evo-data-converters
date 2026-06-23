@@ -29,6 +29,9 @@ Evo is powered by Seequent, a Bentley organisation.
 The OBJ 3D mesh format is a legacy of Wavefront Technologies, but is now a common format for specifying polygon meshes,
 optionally with texture data (stored in a separate MTL file).
 
+> [!NOTE]  
+> Texture and material data are not currently supported. Only the mesh geometry is published into Evo; any material information is ignored.
+
 ### Implementations
 
 The Python [Trimesh](https://trimesh.org/index.html) package is used to work with OBJ files by default, for import and export. There is a second importer implementation that uses [TinyOBJ](https://github.com/tinyobjloader/tinyobjloader). TinyOBJ might be more suitable for very large meshes.
