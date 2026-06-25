@@ -360,7 +360,7 @@ def validify(name: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', "_", name)[-255:]  # limit to 255 chars, keep the end
 
 
-def get_name(obj: dw.BaseEntity) -> str:
+def get_name(obj: dw.BaseEntity, include_layer: bool) -> str:
     if isinstance(obj, dw.Layer):
         return obj.Name.split("\\")[-1]
 
@@ -368,8 +368,8 @@ def get_name(obj: dw.BaseEntity) -> str:
         return validify(label)
 
     obj_name = f"{type(obj).__name__}-{obj.Guid}"
-    if (layer := getattr(obj, "Layer", None)) is not None:
-        layer_name = get_name(layer)
+    if include_layer and (layer := getattr(obj, "Layer", None)) is not None:
+        layer_name = get_name(layer, include_layer=False)
         return validify(f"{layer_name}-{obj_name}".strip("-_"))
 
     return validify(obj_name)
@@ -547,7 +547,7 @@ class ResolveObjectNameOption(enum.Enum):
     @staticmethod
     def _pick_name_of_leaf(context: ResolveObjectNameContext) -> str:
         if not context.combined:
-            return get_name(context.entity)
+            return get_name(context.entity, include_layer=True)
         else:
             assert len(context.layers) >= 0
             return f"{context.layers[-1]} - {context.entity_type}"
@@ -555,8 +555,7 @@ class ResolveObjectNameOption(enum.Enum):
     @staticmethod
     def _concatenate(context: ResolveObjectNameContext) -> str:
         if not context.combined:
-            assert context.entity_name is not None
-            return " - ".join([*context.layers, get_name(context.entity)])
+            return " - ".join([*context.layers, get_name(context.entity, include_layer=False)])
         else:
             assert len(context.layers) >= 0
             return " - ".join([*context.layers, context.entity_type])
