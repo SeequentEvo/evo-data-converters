@@ -205,6 +205,17 @@ def test_tags_and_crs(sample_image: Tuple[Path, int, int], mock_data_client: _Mo
     assert grid.coordinate_reference_system.epsg_code == 32618
 
 
+def test_no_crs_when_not_provided(sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient):
+    """When no CRS is provided, coordinate_reference_system should be 'unspecified'."""
+    image_path, _, _ = sample_image
+
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    grid = converter.convert(str(image_path))
+
+    # Image without an explicitly defined coordinate system should be marked as unspecified
+    assert grid.coordinate_reference_system == "unspecified"
+
+
 def test_parquet_file_output(sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, tmp_path: Path):
     """When output_parquet=True, a local parquet file is written with hash filename."""
     image_path, _, _ = sample_image

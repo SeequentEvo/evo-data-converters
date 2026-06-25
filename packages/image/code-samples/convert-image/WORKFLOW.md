@@ -55,7 +55,7 @@ INPUT: Image File (JPEG, PNG, TIFF, BMP, GIF, etc.)
 │       grayscale: {attribute_type:"scalar", name:"2d-grid-data-..."},   │
 │       color:     {attribute_type:"color",  name:"2d-grid-data-color"}   │
 │     ],                                                                   │
-│     "coordinate_reference_system": {...},  ← EPSG provided or 4326     │
+│     "coordinate_reference_system": {...},  ← EPSG provided or "unspecified" if not provided │
 │     "tags": {...}                      ← Optional metadata             │
 │   }                                                                     │
 └─────────────────────────────────────────────────────────────────────────┘
