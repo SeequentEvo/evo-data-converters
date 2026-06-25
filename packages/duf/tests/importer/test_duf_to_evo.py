@@ -113,7 +113,7 @@ def test_coordinate_reference_system(evo_metadata, simple_objects_path, input_cr
         coordinate_reference_system=input_crs,
         publish_objects=False,
     )
-    assert len(go_objects) == 1
+    assert len(go_objects) == 2
     assert go_objects[0].coordinate_reference_system == expected_crs
 
 
