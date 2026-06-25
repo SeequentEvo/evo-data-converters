@@ -912,7 +912,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-image"
-version = "0.1.6"
+version = "0.1.7"
 source = { editable = "packages/image" }
 dependencies = [
     { name = "evo-data-converters-common" },
@@ -923,7 +923,9 @@ dependencies = [
     { name = "pillow" },
     { name = "pyarrow" },
     { name = "pydantic" },
+    { name = "rasterio" },
 ]
+
 
 [package.dev-dependencies]
 dev = [
