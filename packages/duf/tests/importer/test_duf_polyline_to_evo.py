@@ -31,13 +31,13 @@ def polyline_obj(simple_objects):
 
 
 def test_should_convert_duf_polyline_geometry(polyline_obj, data_client):
-    epsg_code = 32650
+    epsg_code = crs_from_epsg_code(32650)
     line_segments_go = convert_duf_polyline(polyline_obj, data_client, epsg_code)
 
     expected_line_segments_go = LineSegments_V2_1_0(
         name="0-dwPolyline-f83a4e34-0428-431c-aed7-c554febcbc4a",  # layer name - type - object guid
         uuid=None,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=epsg_code,
         bounding_box=line_segments_go.bounding_box,  # Tested later
         segments=line_segments_go.segments,  # Tested later
     )
@@ -72,7 +72,7 @@ def test_should_convert_duf_polyline_geometry(polyline_obj, data_client):
 
 
 def test_combining_duf_polyline_geometry(multiple_objects, data_client):
-    epsg_code = 32650
+    epsg_code = crs_from_epsg_code(32650)
 
     # Two are from the same layer. We don't always get them in the same order, so group by layer and take the largest
     polyline_objs = [obj for _, obj in multiple_objects.get_objects_of_type(dw.Polyline)]
@@ -88,7 +88,7 @@ def test_combining_duf_polyline_geometry(multiple_objects, data_client):
     expected_line_segments_go = LineSegments_V2_1_0(
         name="LINELAYER - polylines",
         uuid=None,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=epsg_code,
         parts=line_segments_go.parts,  # Tested later
         bounding_box=line_segments_go.bounding_box,  # Tested later
         segments=line_segments_go.segments,  # Tested later
@@ -156,7 +156,7 @@ def test_polyline_obj_attrs(polyline_attrs_boat, data_client):
     polyline_objs = [obj for _, obj in polyline_attrs_boat.get_objects_of_type(dw.Polyline)]
     polyline_objs = sorted(polyline_objs, key=lambda pl: pl.VertexList[0].X)  # Ensure consistent order
 
-    line_segments_gos = [convert_duf_polyline(pl, data_client, 4326) for pl in polyline_objs]
+    line_segments_gos = [convert_duf_polyline(pl, data_client, crs_from_epsg_code(4326)) for pl in polyline_objs]
     all_attrs = [ls.parts.attributes for ls in line_segments_gos]
 
     # This list records which objects/entities have an integer attribute with at least one None value
@@ -192,7 +192,7 @@ def test_combine_polyline_attrs(polyline_attrs_boat, data_client):
     polyline_objs = [obj for _, obj in polyline_attrs_boat.get_objects_of_type(dw.Polyline)]
     polyline_objs = sorted(polyline_objs, key=lambda pl: pl.VertexList[0].X)  # Ensure consistent order
 
-    line_segments_go = combine_duf_polylines(polyline_objs, data_client, 4326)
+    line_segments_go = combine_duf_polylines(polyline_objs, data_client, crs_from_epsg_code(4326))
     attrs = line_segments_go.parts.attributes
     assert [attr.name for attr in attrs] == ["Part", "Date", "Doub", "Int", "Choice"]
     # The "Int" column was converted to double (scalar) because it has None values
