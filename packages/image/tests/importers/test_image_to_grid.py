@@ -1,4 +1,3 @@
-#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -19,6 +18,7 @@ from __future__ import annotations
 
 import io
 import hashlib
+import importlib.util
 from pathlib import Path
 from typing import Tuple
 
@@ -27,12 +27,15 @@ import pytest
 import pyarrow as pa
 import pyarrow.parquet as pq
 from PIL import Image
+from pyproj import CRS
 
 from evo.data_converters.image.image_to_grid import (
     ImageGridConverter,
     geoscience_object_data_options,
     _normalize_array_data_type,
 )
+
+HAS_RASTERIO = importlib.util.find_spec("rasterio") is not None
 
 
 class _MockDataClient:
@@ -97,6 +100,29 @@ def test_read_image_as_grayscale(sample_image: Tuple[Path, int, int], mock_data_
     assert cell_values.dtype == np.float64
     # Row-major after vertical flip: first row should still be strictly increasing.
     assert np.all(np.diff(cell_values[:width]) > 0)
+
+
+@pytest.mark.parametrize("mode,dtype", [("F", np.float32), ("I", np.int32)])
+def test_read_image_tiff_single_band_numeric_modes_are_grayscale(
+    tmp_path: Path,
+    mock_data_client: _MockDataClient,
+    mode: str,
+    dtype,
+):
+    """Single-band TIFF numeric modes (F/I) must be handled as grayscale."""
+    width, height = 7, 5
+    arr = np.arange(width * height, dtype=dtype).reshape((height, width))
+    img_path = tmp_path / f"single_band_{mode}.tif"
+    Image.fromarray(arr, mode=mode).save(img_path)
+
+    converter = ImageGridConverter(mock_data_client)
+    cell_values, read_width, read_height, read_mode = converter._read_image(str(img_path))
+
+    assert read_width == width
+    assert read_height == height
+    assert read_mode == "grayscale"
+    assert cell_values.dtype == np.float64
+    assert len(cell_values) == width * height
 
 
 def test_read_image_uses_bottom_left_as_origin(sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient):
@@ -214,6 +240,118 @@ def test_no_crs_when_not_provided(sample_image: Tuple[Path, int, int], mock_data
 
     # Image without an explicitly defined coordinate system should be marked as unspecified
     assert grid.coordinate_reference_system == "unspecified"
+
+
+def test_extract_epsg_from_geokey_directory_projected(mock_data_client: _MockDataClient):
+    """ProjectedCSTypeGeoKey (3072) should be preferred when present."""
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    geokey = (
+        1,
+        1,
+        0,
+        2,
+        2048,
+        0,
+        1,
+        4326,
+        3072,
+        0,
+        1,
+        32614,
+    )
+    assert converter._extract_epsg_from_geokey_directory(geokey) == 32614
+
+
+def test_extract_epsg_from_geokey_directory_geographic(mock_data_client: _MockDataClient):
+    """GeographicTypeGeoKey (2048) should be used when projected key is absent."""
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    geokey = (1, 1, 0, 1, 2048, 0, 1, 4326)
+    assert converter._extract_epsg_from_geokey_directory(geokey) == 4326
+
+
+def test_extract_epsg_from_geokey_directory_user_defined_returns_none(mock_data_client: _MockDataClient):
+    """User-defined key value (32767) should not be treated as EPSG authority."""
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    geokey = (1, 1, 0, 1, 3072, 0, 1, 32767)
+    assert converter._extract_epsg_from_geokey_directory(geokey) is None
+
+
+def test_extract_wkt_candidate_from_text(mock_data_client: _MockDataClient):
+    """WKT text can be isolated from surrounding metadata text."""
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    metadata = 'prefix text PROJCS["WGS 84 / UTM zone 14N",GEOGCS["WGS 84",DATUM["WGS_1984"]]] trailing text'
+
+    wkt = converter._extract_wkt_candidate_from_text(metadata)
+    assert wkt is not None
+    assert wkt.startswith("PROJCS[")
+    assert wkt.endswith("]")
+
+
+def test_auto_crs_from_embedded_geotiff_when_not_provided(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If input CRS is not provided, embedded GeoTIFF CRS should be used when detected."""
+    image_path, _, _ = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_coordinate_reference_system",
+        lambda _: {"epsg_code": 32614},
+    )
+
+    from evo_schemas.components import Crs_V1_0_1_EpsgCode
+
+    grid = converter.convert(str(image_path))
+    assert isinstance(grid.coordinate_reference_system, Crs_V1_0_1_EpsgCode)
+    assert grid.coordinate_reference_system.epsg_code == 32614
+
+
+def test_auto_wkt_crs_from_embedded_geotiff_when_epsg_missing(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If embedded EPSG is unavailable, embedded WKT should be used as CRS."""
+    image_path, _, _ = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    wkt = CRS.from_epsg(32614).to_wkt(version="WKT2_2019")
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_coordinate_reference_system",
+        lambda _: {"ogc_wkt": wkt},
+    )
+
+    from evo_schemas.components import Crs_V1_0_1_OgcWkt
+
+    grid = converter.convert(str(image_path))
+    assert isinstance(grid.coordinate_reference_system, Crs_V1_0_1_OgcWkt)
+    assert grid.coordinate_reference_system.ogc_wkt == CRS.from_wkt(wkt).to_wkt(version="WKT2_2019")
+
+
+def test_explicit_crs_overrides_embedded_geotiff_crs(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Explicit coordinate_reference_system input should take precedence over embedded CRS."""
+    image_path, _, _ = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_coordinate_reference_system",
+        lambda _: {"epsg_code": 4326},
+    )
+
+    from evo_schemas.components import Crs_V1_0_1_EpsgCode
+
+    grid = converter.convert(str(image_path), coordinate_reference_system={"epsg_code": 32614})
+    assert isinstance(grid.coordinate_reference_system, Crs_V1_0_1_EpsgCode)
+    assert grid.coordinate_reference_system.epsg_code == 32614
 
 
 def test_parquet_file_output(sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, tmp_path: Path):
@@ -460,3 +598,229 @@ def test_color_parquet_roundtrip(color_image_rgb: Tuple[Path, int, int], mock_da
         [255, 255, 255, 255],  # White
     ]
     np.testing.assert_array_equal(rgba_colors[:width], expected_rgba)
+
+
+# ============================================================================
+# BigTIFF Tests
+# ============================================================================
+
+
+class TestBigTiffDetection:
+    """Test BigTIFF format detection."""
+
+    def test_is_bigtiff_returns_false_for_standard_tiff(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """Standard TIFF (version 42) should not be detected as BigTIFF."""
+        # Create a standard TIFF file
+        arr = np.random.randint(0, 256, (10, 10), dtype=np.uint8)
+        tiff_path = tmp_path / "standard.tiff"
+        Image.fromarray(arr, mode="L").save(tiff_path)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        assert not converter._is_bigtiff(str(tiff_path))
+
+    def test_is_bigtiff_returns_false_for_png(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """PNG format should not be detected as BigTIFF."""
+        arr = np.random.randint(0, 256, (10, 10), dtype=np.uint8)
+        png_path = tmp_path / "test.png"
+        Image.fromarray(arr, mode="L").save(png_path)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        assert not converter._is_bigtiff(str(png_path))
+
+    def test_is_bigtiff_returns_false_for_nonexistent_file(self, mock_data_client: _MockDataClient):
+        """Nonexistent file should return False."""
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        assert not converter._is_bigtiff("/nonexistent/file.tiff")
+
+    @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+    def test_read_bigtiff_single_band(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """Test reading single-band BigTIFF returns grayscale data."""
+        import rasterio
+        from rasterio.transform import Affine
+
+        # Create a simple 1-band BigTIFF
+        width, height = 10, 8
+        data = np.arange(height * width, dtype=np.float32).reshape(height, width)
+
+        bigtiff_path = tmp_path / "test_1band.tif"
+        with rasterio.open(
+            str(bigtiff_path),
+            "w",
+            driver="GTiff",
+            height=height,
+            width=width,
+            count=1,
+            dtype=data.dtype,
+            transform=Affine.identity(),
+            TILED="YES",
+            BIGTIFF="YES",  # Force BigTIFF format
+        ) as dst:
+            dst.write(data, 1)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        pixel_values, w, h, mode = converter._read_bigtiff(str(bigtiff_path))
+
+        assert mode == "grayscale"
+        assert w == width
+        assert h == height
+        assert pixel_values.dtype == np.float64
+        assert len(pixel_values) == width * height
+
+    @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+    def test_read_bigtiff_three_bands(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """Test reading 3-band BigTIFF returns RGB data."""
+        import rasterio
+        from rasterio.transform import Affine
+
+        width, height = 10, 8
+        r_data = np.full((height, width), 255, dtype=np.uint8)
+        g_data = np.full((height, width), 128, dtype=np.uint8)
+        b_data = np.full((height, width), 64, dtype=np.uint8)
+
+        bigtiff_path = tmp_path / "test_3band.tif"
+        with rasterio.open(
+            str(bigtiff_path),
+            "w",
+            driver="GTiff",
+            height=height,
+            width=width,
+            count=3,
+            dtype=np.uint8,
+            transform=Affine.identity(),
+            TILED="YES",
+            BIGTIFF="YES",
+        ) as dst:
+            dst.write(r_data, 1)
+            dst.write(g_data, 2)
+            dst.write(b_data, 3)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        pixel_values, w, h, mode = converter._read_bigtiff(str(bigtiff_path))
+
+        assert mode == "color"
+        assert w == width
+        assert h == height
+        assert pixel_values.shape == (width * height, 3)
+        assert pixel_values.dtype == np.uint8
+        # Verify each pixel has the expected RGB values
+        for i in range(width * height):
+            np.testing.assert_array_equal(pixel_values[i], [255, 128, 64])
+
+    @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+    def test_read_bigtiff_many_bands(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """Test reading many-band BigTIFF uses first 3 bands as RGB."""
+        import rasterio
+        from rasterio.transform import Affine
+
+        width, height = 8, 6
+        band_count = 10
+
+        bigtiff_path = tmp_path / "test_manyband.tif"
+        with rasterio.open(
+            str(bigtiff_path),
+            "w",
+            driver="GTiff",
+            height=height,
+            width=width,
+            count=band_count,
+            dtype=np.uint8,
+            transform=Affine.identity(),
+            TILED="YES",
+            BIGTIFF="YES",
+        ) as dst:
+            for i in range(band_count):
+                data = np.full((height, width), 50 + i * 10, dtype=np.uint8)
+                dst.write(data, i + 1)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        pixel_values, w, h, mode = converter._read_bigtiff(str(bigtiff_path))
+
+        assert mode == "color"
+        assert w == width
+        assert h == height
+        assert pixel_values.shape == (width * height, 3)
+        # Verify each pixel uses first 3 bands (50, 60, 70)
+        for i in range(width * height):
+            np.testing.assert_array_equal(pixel_values[i], [50, 60, 70])
+
+    @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+    def test_read_bigtiff_two_bands_averages_to_grayscale(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """Test reading 2-band BigTIFF averages to grayscale."""
+        import rasterio
+        from rasterio.transform import Affine
+
+        width, height = 8, 6
+        b1_data = np.full((height, width), 100.0, dtype=np.float32)
+        b2_data = np.full((height, width), 200.0, dtype=np.float32)
+
+        bigtiff_path = tmp_path / "test_2band.tif"
+        with rasterio.open(
+            str(bigtiff_path),
+            "w",
+            driver="GTiff",
+            height=height,
+            width=width,
+            count=2,
+            dtype=np.float32,
+            transform=Affine.identity(),
+            TILED="YES",
+            BIGTIFF="YES",
+        ) as dst:
+            dst.write(b1_data, 1)
+            dst.write(b2_data, 2)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        pixel_values, w, h, mode = converter._read_bigtiff(str(bigtiff_path))
+
+        assert mode == "grayscale"
+        assert w == width
+        assert h == height
+        assert pixel_values.dtype == np.float64
+        # Average of 100 and 200 is 150
+        np.testing.assert_array_almost_equal(pixel_values[0], 150.0)
+
+    @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+    def test_read_bigtiff_float_rgb_bands_normalized_to_uint8(self, tmp_path: Path, mock_data_client: _MockDataClient):
+        """Float/NaN RGB bands should be normalized safely to uint8 without cast errors."""
+        import rasterio
+        from rasterio.transform import Affine
+
+        width, height = 4, 3
+        r_data = np.array(
+            [
+                [-10.0, 0.0, 100.0, np.nan],
+                [200.0, 300.0, 400.0, 500.0],
+                [600.0, 700.0, 800.0, 900.0],
+            ],
+            dtype=np.float32,
+        )
+        g_data = r_data + 5.0
+        b_data = r_data + 10.0
+
+        bigtiff_path = tmp_path / "test_float_rgb.tif"
+        with rasterio.open(
+            str(bigtiff_path),
+            "w",
+            driver="GTiff",
+            height=height,
+            width=width,
+            count=3,
+            dtype=np.float32,
+            transform=Affine.identity(),
+            TILED="YES",
+            BIGTIFF="YES",
+        ) as dst:
+            dst.write(r_data, 1)
+            dst.write(g_data, 2)
+            dst.write(b_data, 3)
+
+        converter = ImageGridConverter(mock_data_client, output_parquet=False)
+        pixel_values, w, h, mode = converter._read_bigtiff(str(bigtiff_path))
+
+        assert mode == "color"
+        assert w == width
+        assert h == height
+        assert pixel_values.shape == (width * height, 3)
+        assert pixel_values.dtype == np.uint8
+        assert int(pixel_values.min()) >= 0
+        assert int(pixel_values.max()) <= 255
