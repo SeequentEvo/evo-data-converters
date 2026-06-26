@@ -475,7 +475,9 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
                 attr = value_from_xproperties(obj, spec.name, spec.attr_type)
                 if spec.required and attr is None:
                     # Hopefully not going to happen
-                    logger.warning(f"Required attribute '{spec.name}' is missing in object {get_name(obj)}.")
+                    logger.warning(
+                        f"Required attribute '{spec.name}' is missing in object {get_name(obj, include_layer=True)}."
+                    )
 
                 attributes[spec].append(attr)
 
