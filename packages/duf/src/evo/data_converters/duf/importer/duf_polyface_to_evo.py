@@ -25,7 +25,7 @@ from numpy._typing import NDArray
 
 from evo.data_converters.duf.common.consts import EvoSchema
 import evo.data_converters.duf.common.deswik_types as dw
-from evo.data_converters.duf.importer.utils import (
+from .utils import (
     vertices_array_to_go_and_bbox,
     indices_array_to_go,
     parts_to_go,
