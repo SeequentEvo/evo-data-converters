@@ -20,7 +20,7 @@ from evo.common import APIConnector, Environment, NoAuth
 from evo.common.interfaces import ITransport
 from evo.common.utils.cache import Cache
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError, MissingConnectionDetailsError
-from evo.oauth import AuthorizationCodeAuthorizer, ClientCredentialsAuthorizer, OAuthScopes, OAuthConnector
+from evo.oauth import AuthorizationCodeAuthorizer, ClientCredentialsAuthorizer, OAuthConnector, OAuthScopes
 from evo.objects import ObjectAPIClient
 from evo.objects.utils.data import ObjectDataClient
 

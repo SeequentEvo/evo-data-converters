@@ -20,6 +20,7 @@
 
 packages/common/              @SeequentEvo/data-converters-common-maintainers
 packages/duf/                 @SeequentEvo/duf-maintainers
+packages/gef/                 @SeequentEvo/gef-maintainers
 packages/gocad/               @SeequentEvo/gocad-maintainers
 packages/omf/                 @SeequentEvo/omf-maintainers
 packages/resqml/              @SeequentEvo/resqml-maintainers

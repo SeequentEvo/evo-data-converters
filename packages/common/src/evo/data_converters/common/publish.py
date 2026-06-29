@@ -14,8 +14,8 @@ import asyncio
 import nest_asyncio
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
-from evo.common.exceptions import NotFoundException
 import evo.logging
+from evo.common.exceptions import NotFoundException
 from evo.objects import ObjectAPIClient
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient

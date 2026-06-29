@@ -15,7 +15,7 @@ import tempfile
 import time
 from http import HTTPStatus
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 import pyarrow as pa
