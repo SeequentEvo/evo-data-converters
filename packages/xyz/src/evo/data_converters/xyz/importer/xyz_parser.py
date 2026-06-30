@@ -32,10 +32,12 @@ def parse_xyz_file(
     z_index: int = -1,
     data_index: int = -1,
 ) -> Pointset_V1_3_0:
-    name = os.path.basename(filepath)
-    filename_hash = hashlib.sha256(os.path.basename(filepath).encode()).hexdigest().lower()
-
     xyz = read_xyz(filepath, x_index=x_index, y_index=y_index, z_index=z_index, data_index=data_index)
+
+    name = os.path.basename(filepath)
+    data_bytes = np.ascontiguousarray(xyz.points.data).tobytes()
+    filename_hash = hashlib.sha256(data_bytes).hexdigest().lower()
+
     parquet_path = os.path.join(str(data_client.cache_location), filename_hash)
     save_array_to_parquet(xyz.points, parquet_path)
 
