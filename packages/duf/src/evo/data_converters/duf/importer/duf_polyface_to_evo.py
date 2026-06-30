@@ -26,11 +26,12 @@ from numpy._typing import NDArray
 from evo.data_converters.duf.common.consts import EvoSchema
 import evo.data_converters.duf.common.deswik_types as dw
 from .utils import (
-    get_name,
     vertices_array_to_go_and_bbox,
     indices_array_to_go,
     parts_to_go,
     obj_list_and_indices_to_arrays,
+    ConvertOptions,
+    ResolveObjectNameContext,
 )
 
 
@@ -103,14 +104,14 @@ def combine_duf_polyfaces(
     polyfaces: list[dw.Polyface],
     data_client: ObjectDataClient,
     crs: Crs_V1_0_1,
+    options: ConvertOptions,
 ) -> TriangleMesh_V2_1_0 | None:
     if not polyfaces:
         logger.warning("No polyfaces to combine.")
         return None
 
-    layer = get_name(polyfaces[0].Layer)
-    name = f"{layer} - polyfaces"
-    logger.debug(f'Combining polyfaces from layer: "{layer}" to TriangleMesh_V2_1_0.')
+    object_name = ResolveObjectNameContext.get_name(polyfaces[0], options)
+    logger.debug(f'Combining polyfaces from layer: "{polyfaces[0].Layer.Name}" to TriangleMesh_V2_1_0.')
 
     indices_arrays = []
     for i, polyface in enumerate(polyfaces):
@@ -122,16 +123,17 @@ def combine_duf_polyfaces(
         polyfaces, indices_arrays, EvoSchema.triangle_mesh
     )
 
-    return _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, crs, data_client)
+    return _create_triangle_mesh_obj(object_name, vertices_array, indices_array, parts, crs, data_client)
 
 
 def convert_duf_polyface(
     polyface: dw.Polyface,
     data_client: ObjectDataClient,
     crs: Crs_V1_0_1,
+    options: ConvertOptions,
 ) -> TriangleMesh_V2_1_0:
-    name = get_name(polyface)
-    logger.debug(f'Converting polyface: "{name}" to TriangleMesh_V2_1_0.')
+    object_name = ResolveObjectNameContext.get_name(polyface, options)
+    logger.debug(f'Converting polyface: "{object_name}" to TriangleMesh_V2_1_0.')
 
     indices_array = indices_from_polyface(polyface.FaceList)
 
@@ -139,4 +141,4 @@ def convert_duf_polyface(
         [polyface], [indices_array], EvoSchema.triangle_mesh
     )
 
-    return _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, crs, data_client)
+    return _create_triangle_mesh_obj(object_name, vertices_array, indices_array, parts, crs, data_client)

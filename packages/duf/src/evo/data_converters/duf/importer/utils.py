@@ -8,13 +8,16 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+from __future__ import annotations
 
+import enum
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import auto, Enum
-from typing import Any
+from typing import Any, TypeAlias
 
 from dateutil.parser import ParserError, isoparse
 import numpy
@@ -357,7 +360,7 @@ def validify(name: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', "_", name)[-255:]  # limit to 255 chars, keep the end
 
 
-def get_name(obj: dw.BaseEntity) -> str:
+def get_name(obj: dw.BaseEntity, include_layer: bool) -> str:
     if isinstance(obj, dw.Layer):
         return obj.Name.split("\\")[-1]
 
@@ -365,8 +368,8 @@ def get_name(obj: dw.BaseEntity) -> str:
         return validify(label)
 
     obj_name = f"{type(obj).__name__}-{obj.Guid}"
-    if (layer := getattr(obj, "Layer", None)) is not None:
-        layer_name = get_name(layer)
+    if include_layer and (layer := getattr(obj, "Layer", None)) is not None:
+        layer_name = get_name(layer, include_layer=False)
         return validify(f"{layer_name}-{obj_name}".strip("-_"))
 
     return validify(obj_name)
@@ -472,7 +475,9 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
                 attr = value_from_xproperties(obj, spec.name, spec.attr_type)
                 if spec.required and attr is None:
                     # Hopefully not going to happen
-                    logger.warning(f"Required attribute '{spec.name}' is missing in object {get_name(obj)}.")
+                    logger.warning(
+                        f"Required attribute '{spec.name}' is missing in object {get_name(obj, include_layer=True)}."
+                    )
 
                 attributes[spec].append(attr)
 
@@ -493,3 +498,82 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
     logger.debug(f"Num {type(obj_list[0]).__name__} attributes: {len(attribute_specs)}")
 
     return unique_vertices_array, flattened_indices_array, parts
+
+
+@dataclass
+class ResolveObjectNameContext:
+    combined: bool
+    entity: dw.BaseEntity
+
+    @property
+    def entity_type(self) -> str:
+        if isinstance(self.entity, dw.Polyline):
+            return "polylines"
+        elif isinstance(self.entity, dw.Polyface):
+            return "polyfaces"
+        else:
+            raise NotImplementedError(f"Object type {type(self.entity)} is not supported")
+
+    @property
+    def layers(self) -> list[str]:
+        layer: str = self.entity.Layer
+        if layer is None or (layer_path := layer.Name) is None or not layer_path:
+            logger.warning(f"Layers missing from {self.entity.Label}")
+            return []
+        else:
+            return layer_path.split("\\")
+
+    @classmethod
+    def make_context(cls, entity: dw.BaseEntity, options: ConvertOptions) -> ResolveObjectNameContext:
+        result = cls(
+            combined=options.combined,
+            entity=entity,
+        )
+        result.entity_type  # Accessing `object_type` ensures the entity is valid
+        return result
+
+    @classmethod
+    def get_name(cls, entity: dw.BaseEntity, options: ConvertOptions) -> str:
+        self = cls.make_context(entity, options)
+        func = options.get_name_resolver()
+        return func(self)
+
+
+ResolveObjectNameType: TypeAlias = Callable[[ResolveObjectNameContext], str]
+
+
+class ResolveObjectNameOption(enum.Enum):
+    DEFAULT = enum.auto()
+    CONCATENATE = enum.auto()
+
+    @staticmethod
+    def _pick_name_of_leaf(context: ResolveObjectNameContext) -> str:
+        if not context.combined:
+            return get_name(context.entity, include_layer=True)
+        else:
+            assert len(context.layers) >= 0
+            return f"{context.layers[-1]} - {context.entity_type}"
+
+    @staticmethod
+    def _concatenate(context: ResolveObjectNameContext) -> str:
+        if not context.combined:
+            return " - ".join([*context.layers, get_name(context.entity, include_layer=False)])
+        else:
+            assert len(context.layers) >= 0
+            return " - ".join([*context.layers, context.entity_type])
+
+
+@dataclass
+class ConvertOptions:
+    combined: bool = False
+    resolve_object_name: ResolveObjectNameOption | ResolveObjectNameType = ResolveObjectNameOption.DEFAULT
+
+    def get_name_resolver(self) -> ResolveObjectNameType:
+        if callable(self.resolve_object_name):
+            return self.resolve_object_name
+        elif self.resolve_object_name == ResolveObjectNameOption.DEFAULT:
+            return ResolveObjectNameOption._pick_name_of_leaf
+        elif self.resolve_object_name == ResolveObjectNameOption.CONCATENATE:
+            return ResolveObjectNameOption._concatenate
+        else:
+            raise NotImplementedError()

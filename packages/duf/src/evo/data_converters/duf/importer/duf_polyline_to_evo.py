@@ -24,11 +24,12 @@ from evo.objects.utils.data import ObjectDataClient
 from evo.data_converters.duf.common.consts import EvoSchema
 import evo.data_converters.duf.common.deswik_types as dw
 from .utils import (
-    get_name,
     vertices_array_to_go_and_bbox,
     indices_array_to_go,
     parts_to_go,
     obj_list_and_indices_to_arrays,
+    ConvertOptions,
+    ResolveObjectNameContext,
 )
 
 logger = evo.logging.getLogger("data_converters")
@@ -66,14 +67,14 @@ def combine_duf_polylines(
     polylines: list[dw.Polyline],
     data_client: ObjectDataClient,
     crs: Crs_V1_0_1,
+    options: ConvertOptions,
 ) -> LineSegments_V2_1_0 | None:
     if not polylines:
         logger.warning("No polylines to combine.")
         return None
 
-    layer = get_name(polylines[0].Layer)
-    name = f"{layer} - polylines"
-    logger.debug(f'Combining polylines from layer: "{layer}" to LineSegments_V2_1_0.')
+    object_name = ResolveObjectNameContext.get_name(polylines[0], options)
+    logger.debug(f'Combining polylines from layer: "{polylines[0].Layer.Name}" to LineSegments_V2_1_0.')
 
     indices_arrays = []
     for i, polyline in enumerate(polylines):
@@ -87,16 +88,17 @@ def combine_duf_polylines(
         polylines, indices_arrays, EvoSchema.line_segments
     )
 
-    return _create_line_segments_obj(name, vertices_array, indices_array, parts, crs, data_client)
+    return _create_line_segments_obj(object_name, vertices_array, indices_array, parts, crs, data_client)
 
 
 def convert_duf_polyline(
     polyline: dw.Polyline,
     data_client: ObjectDataClient,
     crs: Crs_V1_0_1,
+    options: ConvertOptions,
 ) -> LineSegments_V2_1_0:
-    name = get_name(polyline)
-    logger.debug(f'Converting polyline: "{name}" to LineSegments_V2_1_0.')
+    object_name = ResolveObjectNameContext.get_name(polyline, options)
+    logger.debug(f'Converting polyline: "{object_name}" to LineSegments_V2_1_0.')
 
     num_vertices = polyline.VertexList.Count
 
@@ -106,4 +108,4 @@ def convert_duf_polyline(
         [polyline], [indices_array], EvoSchema.line_segments
     )
 
-    return _create_line_segments_obj(name, vertices_array, indices_array, parts, crs, data_client)
+    return _create_line_segments_obj(object_name, vertices_array, indices_array, parts, crs, data_client)
