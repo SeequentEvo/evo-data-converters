@@ -12,6 +12,7 @@
 import os
 import hashlib
 import numpy as np
+import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.objects.pointset import Pointset_V1_3_0, Pointset_V1_3_0_Locations
 from evo_schemas.elements import FloatArray3_V1_0_1
@@ -71,9 +72,16 @@ def parse_xyz_file(
 
     location = Pointset_V1_3_0_Locations(coordinates=floatArr, attributes=attributes)
 
+    logger = evo.logging.getLogger("data_converters")
     crs = "unspecified"
-    if epsg is not None and epsg > 0 and is_valid_epsg(epsg):
-        crs = Crs_EpsgCode(epsg_code=epsg)
+
+    if epsg is not None:
+        if is_valid_epsg(epsg):
+            crs = Crs_EpsgCode(epsg_code=epsg)
+        else:
+            errMsg = "Invalid EPSG code. Please enter a valid EPSG number."
+            logger.error(errMsg)
+            raise ValueError(errMsg)
 
     pointset = Pointset_V1_3_0(
         name=name,

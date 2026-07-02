@@ -1154,7 +1154,7 @@ dev = [{ name = "pytest" }]
 
 [[package]]
 name = "evo-data-converters-xyz"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "packages/xyz" }
 dependencies = [
     { name = "evo-data-converters-common" },
