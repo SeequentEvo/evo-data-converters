@@ -355,6 +355,107 @@ def test_explicit_crs_overrides_embedded_geotiff_crs(
     assert grid.coordinate_reference_system.epsg_code == 32614
 
 
+def test_auto_georeferencing_from_embedded_geotiff_when_origin_and_cell_size_not_provided(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If origin/cell_size are not provided, embedded GeoTIFF georeferencing should be used."""
+    image_path, width, height = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_georeferencing",
+        lambda _image_path, _width, _height: {
+            "origin": [1000.0, 2000.0, 0.0],
+            "cell_size": [30.0, 40.0],
+        },
+    )
+
+    grid = converter.convert(str(image_path))
+    assert grid.origin == [1000.0, 2000.0, 0.0]
+    assert grid.cell_size == [30.0, 40.0]
+    assert grid.bounding_box.min_x == 1000.0
+    assert grid.bounding_box.min_y == 2000.0
+    assert grid.bounding_box.max_x == 1000.0 + (width * 30.0)
+    assert grid.bounding_box.max_y == 2000.0 + (height * 40.0)
+
+
+def test_explicit_origin_and_cell_size_override_embedded_georeferencing(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Explicit origin/cell_size should take precedence over embedded georeferencing."""
+    image_path, _, _ = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_georeferencing",
+        lambda _image_path, _width, _height: {
+            "origin": [1000.0, 2000.0, 0.0],
+            "cell_size": [30.0, 40.0],
+        },
+    )
+
+    grid = converter.convert(
+        str(image_path),
+        origin=[10.0, 20.0, 0.0],
+        cell_size=[2.0, 3.0],
+    )
+
+    assert grid.origin == [10.0, 20.0, 0.0]
+    assert grid.cell_size == [2.0, 3.0]
+
+
+def test_partial_override_origin_uses_embedded_cell_size(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If only origin is explicit, cell_size should come from embedded georeferencing."""
+    image_path, _, _ = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_georeferencing",
+        lambda _image_path, _width, _height: {
+            "origin": [1000.0, 2000.0, 0.0],
+            "cell_size": [30.0, 40.0],
+        },
+    )
+
+    grid = converter.convert(str(image_path), origin=[10.0, 20.0, 0.0])
+    assert grid.origin == [10.0, 20.0, 0.0]
+    assert grid.cell_size == [30.0, 40.0]
+
+
+def test_partial_override_cell_size_uses_embedded_origin(
+    sample_image: Tuple[Path, int, int],
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If only cell_size is explicit, origin should come from embedded georeferencing."""
+    image_path, _, _ = sample_image
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+
+    monkeypatch.setattr(
+        converter,
+        "_extract_embedded_georeferencing",
+        lambda _image_path, _width, _height: {
+            "origin": [1000.0, 2000.0, 0.0],
+            "cell_size": [30.0, 40.0],
+        },
+    )
+
+    grid = converter.convert(str(image_path), cell_size=[2.0, 3.0])
+    assert grid.origin == [1000.0, 2000.0, 0.0]
+    assert grid.cell_size == [2.0, 3.0]
+
+
 def test_parquet_file_output(sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, tmp_path: Path):
     """When output_parquet=True, a local parquet file is written with hash filename."""
     image_path, _, _ = sample_image
@@ -666,6 +767,77 @@ class TestBigTiffDetection:
         assert h == height
         assert pixel_values.dtype == np.float64
         assert len(pixel_values) == width * height
+
+
+@pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+def test_extract_embedded_georeferencing_from_geotiff(tmp_path: Path, mock_data_client: _MockDataClient):
+    """GeoTIFF transform should map to bottom-left origin and positive cell sizes."""
+    import rasterio
+    from rasterio.transform import from_origin
+
+    width, height = 4, 3
+    x_min = 500000.0
+    y_max = 6200000.0
+    x_res = 10.0
+    y_res = 20.0
+    transform = from_origin(x_min, y_max, x_res, y_res)
+
+    data = np.arange(width * height, dtype=np.uint8).reshape(height, width)
+    tif_path = tmp_path / "georef_test.tif"
+    with rasterio.open(
+        str(tif_path),
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype=data.dtype,
+        transform=transform,
+        crs="EPSG:25832",
+    ) as dst:
+        dst.write(data, 1)
+
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    georef = converter._extract_embedded_georeferencing(str(tif_path), width, height)
+
+    assert georef is not None
+    assert georef["origin"] == [x_min, y_max - (height * y_res), 0.0]
+    assert georef["cell_size"] == [x_res, y_res]
+
+
+@pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+def test_convert_uses_embedded_georeferencing_for_geotiff(tmp_path: Path, mock_data_client: _MockDataClient):
+    """End-to-end conversion should use embedded GeoTIFF georeferencing when not explicitly provided."""
+    import rasterio
+    from rasterio.transform import from_origin
+
+    width, height = 4, 3
+    x_min = 500000.0
+    y_max = 6200000.0
+    x_res = 10.0
+    y_res = 20.0
+    transform = from_origin(x_min, y_max, x_res, y_res)
+
+    data = np.arange(width * height, dtype=np.uint8).reshape(height, width)
+    tif_path = tmp_path / "georef_convert.tif"
+    with rasterio.open(
+        str(tif_path),
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype=data.dtype,
+        transform=transform,
+        crs="EPSG:25832",
+    ) as dst:
+        dst.write(data, 1)
+
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    grid = converter.convert(str(tif_path))
+
+    assert grid.origin == [x_min, y_max - (height * y_res), 0.0]
+    assert grid.cell_size == [x_res, y_res]
 
     @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
     def test_read_bigtiff_three_bands(self, tmp_path: Path, mock_data_client: _MockDataClient):

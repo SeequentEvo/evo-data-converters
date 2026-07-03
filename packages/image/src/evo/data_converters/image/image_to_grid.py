@@ -491,6 +491,63 @@ class ImageGridConverter:
 
         return None
 
+    def _extract_embedded_georeferencing(
+        self,
+        image_path: str,
+        width: int,
+        height: int,
+    ) -> Optional[dict[str, list[float]]]:
+        """Try to extract origin and cell size from embedded GeoTIFF metadata.
+
+        Returns a dict with:
+        - origin: [x_min, y_min, z]
+        - cell_size: [dx, dy]
+
+        The converter uses bottom-left origin convention with positive cell sizes.
+        """
+        suffix = Path(image_path).suffix.lower()
+        if suffix not in {".tif", ".tiff", ".cog"}:
+            return None
+
+        if not HAS_RASTERIO:
+            return None
+
+        try:
+            with rasterio.open(image_path) as src:
+                bounds = src.bounds
+
+                # Rotated/sheared transforms are not representable with axis-aligned
+                # origin + cell_size in Regular2DGrid.
+                transform = src.transform
+                if transform.b != 0 or transform.d != 0:
+                    logger.warning(
+                        "GeoTIFF has rotated/sheared transform; using default origin/cell_size for '%s'",
+                        image_path,
+                    )
+                    return None
+
+                if width <= 0 or height <= 0:
+                    return None
+
+                dx = float((bounds.right - bounds.left) / width)
+                dy = float((bounds.top - bounds.bottom) / height)
+
+                if dx <= 0 or dy <= 0:
+                    return None
+
+                origin = [float(bounds.left), float(bounds.bottom), 0.0]
+                cell_size = [dx, dy]
+                logger.info(
+                    "Detected embedded GeoTIFF georeferencing origin=%s cell_size=%s",
+                    origin,
+                    cell_size,
+                )
+                return {"origin": origin, "cell_size": cell_size}
+        except Exception as e:  # pragma: no cover - defensive parsing path
+            logger.debug(f"Failed to read embedded GeoTIFF georeferencing from '{image_path}': {e}")
+
+        return None
+
     def _create_parquet_file(self, table: pa.Table) -> tuple[dict[str, str | int], Path | None]:
         """Create parquet file and return (save_table_like_metadata, local_path_if_any).
 
@@ -614,8 +671,24 @@ class ImageGridConverter:
         # Defaults
         grid_name = name or Path(image_path).stem
         grid_description = description or "A 2D grid from image"
-        grid_origin = origin or [0.0, 0.0, 0.0]
-        grid_cell_size = cell_size or [1.0, 1.0]
+
+        embedded_georeferencing = None
+        if origin is None or cell_size is None:
+            embedded_georeferencing = self._extract_embedded_georeferencing(image_path, width, height)
+
+        if origin is not None:
+            grid_origin = origin
+        elif embedded_georeferencing and "origin" in embedded_georeferencing:
+            grid_origin = embedded_georeferencing["origin"]
+        else:
+            grid_origin = [0.0, 0.0, 0.0]
+
+        if cell_size is not None:
+            grid_cell_size = cell_size
+        elif embedded_georeferencing and "cell_size" in embedded_georeferencing:
+            grid_cell_size = embedded_georeferencing["cell_size"]
+        else:
+            grid_cell_size = [1.0, 1.0]
 
         # Bounding box (from origin, grid size, and cell size)
         bbox = BoundingBox_V1_0_1(
