@@ -181,6 +181,7 @@ async def convert_duf(
     :param publish_objects: (Optional) Set False to return rather than publish objects.
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
     :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+    :param resolve_object_name: (Optional) See description below
 
     Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
@@ -191,6 +192,14 @@ async def convert_duf(
     - service_manager_widget was passed to this function.
 
     If problems are encountered while loading the DUF file, these will be logged as warnings.
+
+    `resolve_object_name` controls how names are generated for any Evo objects that get generated. The way it works
+    depends on the `combine_objects_in_layers` options.
+    - DEFAULT and combine_objects_in_layers=True -> Object gets the name of the imediately enclosing Deswik layer
+    - CONCATENATE and combine_objects_in_layers=True -> As above, but the name includes all layers in the hierarchy
+    - DEFAULT and combine_objects_in_layers=False -> Each object gets the name of the Deswik entity
+    - CONCATENATE and combine_objects_in_layers=False -> As above, but the names include all layers in the hierarchy
+    - A custom resolver can also be provided
 
     :return: List of Geoscience Objects, or list of ObjectMetadata if published.
 
