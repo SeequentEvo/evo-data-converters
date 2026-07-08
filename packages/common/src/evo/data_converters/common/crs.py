@@ -8,14 +8,18 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
-from pyproj import CRS
-from pyproj._crs import is_wkt
-from pyproj.exceptions import CRSError
+from typing import TypeAlias
 
 from evo_schemas.components import Crs_V1_0_1 as Crs
 from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from evo_schemas.components import Crs_V1_0_1_OgcWkt as Crs_OgcWkt
+from pyproj import CRS
+from pyproj._crs import is_wkt
+from pyproj.exceptions import CRSError
+
+SchemaCrsCode: TypeAlias = Crs | Crs_EpsgCode | Crs_OgcWkt
+
+UNSPECIFIED = "unspecified"
 
 
 class InvalidCRSError(ValueError):
@@ -76,10 +80,10 @@ def crs_unspecified() -> Crs:
     When the Crs is not specified, the goescience Crs object is
     returned as a simple string constant
     """
-    return "unspecified"
+    return UNSPECIFIED
 
 
-def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_OgcWkt:
+def crs_from_any(crs_def: str | int | None = None) -> SchemaCrsCode:
     """Select the applicable function to create a Crs geoscience object from *crs_def*.
 
     :raises InvalidCRSError: If the input is not a valid CRS definition.
@@ -90,9 +94,10 @@ def crs_from_any(crs_def: str | int | None = None) -> Crs | Crs_EpsgCode | Crs_O
         crs = crs_from_any(2193)
         crs = crs_from_any("2193")
         crs = crs_from_any("EPSG:2193")
+        crs = crs_from_any("unspecified")
         crs = crs_from_any("<valid OGC WKT string>")
     """
-    if crs_def is None or crs_def == "unspecified":
+    if crs_def is None or crs_def == UNSPECIFIED:
         return crs_unspecified()
     elif _is_epsg_code(crs_def):
         return crs_from_epsg_code(crs_def)

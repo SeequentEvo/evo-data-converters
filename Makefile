@@ -14,6 +14,9 @@ test-common:
 test-duf:
 	uv run --package evo-data-converters-duf pytest packages/duf/tests
 
+test-gef:
+	uv run --package evo-data-converters-gef pytest packages/gef/tests
+
 test-gocad:
 	uv run --package evo-data-converters-gocad pytest packages/gocad/tests
 
