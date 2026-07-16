@@ -106,9 +106,13 @@ def _convert_and_combine_duf_objects(
     crs: Crs_V1_0_1,
     tags: dict[str, str],
     options: ConvertOptions,
+    layers: set[str] | None = None,
 ):
     geoscience_objects = []
     for layer, objs in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities).items():
+        layer_name = layer.Name if layer else "<No Layer>"
+        if layers is not None and layer_name not in layers:
+            continue
         layer_by_type = defaultdict(list)
         for obj in objs:
             layer_by_type[type(obj)].append(obj)
@@ -148,10 +152,23 @@ def _convert_duf_objects(
     crs: Crs_V1_0_1,
     tags: dict[str, str],
     options: ConvertOptions,
+    layers: set[str] | None = None,
 ):
     geoscience_objects = []
-    for klass, objs in collector.get_objects_with_category_by_type(dw.Category.ModelEntities).items():
-        geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags, options))
+    if layers is not None:
+        by_layer = collector.get_objects_with_category_by_layer(dw.Category.ModelEntities)
+        filtered_by_type: dict[type, list] = defaultdict(list)
+        for layer, objs in by_layer.items():
+            layer_name = layer.Name if layer else "<No Layer>"
+            if layer_name not in layers:
+                continue
+            for obj in objs:
+                filtered_by_type[type(obj)].append(obj)
+        for klass, objs in filtered_by_type.items():
+            geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags, options))
+    else:
+        for klass, objs in collector.get_objects_with_category_by_type(dw.Category.ModelEntities).items():
+            geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags, options))
     return geoscience_objects
 
 
@@ -168,6 +185,7 @@ async def convert_duf(
     *,
     coordinate_reference_system: str | int | None = None,
     resolve_object_name: ResolveObjectNameOption | ResolveObjectNameType = ResolveObjectNameOption.DEFAULT,
+    layers: set[str] | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts a DUF file into Geoscience Objects.
 
@@ -182,6 +200,7 @@ async def convert_duf(
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
     :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
     :param resolve_object_name: (Optional) See description below
+    :param layers: (Optional) A set of layer names to include. If None, all layers are converted. Only objects belonging to the specified layers will be processed.
 
     Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
@@ -235,9 +254,9 @@ async def convert_duf(
         resolve_object_name=resolve_object_name,
     )
     if not combine_objects_in_layers:
-        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options)
+        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options, layers)
     else:
-        geoscience_objects = _convert_and_combine_duf_objects(collector, data_client, crs, tags, options)
+        geoscience_objects = _convert_and_combine_duf_objects(collector, data_client, crs, tags, options, layers)
 
     objects_metadata = None
     if publish_objects:
