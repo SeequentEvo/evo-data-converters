@@ -8,3 +8,8 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+from .importer.gocad_reader import GocadDataFileIOError, GocadInvalidDataError
+from .importer.gocad_to_evo import convert_gocad
+
+__all__ = ["GocadDataFileIOError", "GocadInvalidDataError", "convert_gocad"]

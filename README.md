@@ -27,12 +27,14 @@ The existing data converters can be used without modification or used as a templ
 | [evo-data-converters-common](packages/common/README.md) | <a href="https://pypi.org/project/evo-data-converters-common/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-common" /></a> |
 | [evo-data-converters-duf](packages/duf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-duf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" /></a>       |
 | [evo-data-converters-gocad](packages/gocad/README.md)   | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a>   |
-| [evo-data-converters-image](packages/image/README.md) | <a href="https://pypi.org/project/evo-data-converters-image/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-image" /></a> |
+| [evo-data-converters-image](packages/image/README.md)   | <a href="https://pypi.org/project/evo-data-converters-image/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-image" /></a>   |
 | [evo-data-converters-obj](packages/obj/README.md)       | <a href="https://pypi.org/project/evo-data-converters-obj/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-obj" /></a>       |
 | [evo-data-converters-omf](packages/omf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-omf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-omf" /></a>       |
 | [evo-data-converters-resqml](packages/resqml/README.md) | <a href="https://pypi.org/project/evo-data-converters-resqml/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-resqml" /></a> |
+| [evo-data-converters-shp](packages/shp/README.md)       | <a href="https://pypi.org/project/evo-data-converters-shp/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-shp" /></a>       |
 | [evo-data-converters-ubc](packages/ubc/README.md)       | <a href="https://pypi.org/project/evo-data-converters-ubc/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ubc" /></a>       |
 | [evo-data-converters-vtk](packages/vtk/README.md)       | <a href="https://pypi.org/project/evo-data-converters-vtk/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-vtk" /></a>       |
+| [evo-data-converters-xyz](packages/xyz/README.md)       | <a href="https://pypi.org/project/evo-data-converters-xyz/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-xyz" /></a>       |
 
 ## Pre-requisites
 
@@ -47,17 +49,7 @@ See the documentation for each converter for information on how to use the data 
 
 For the data converter's common framework package, see [`evo-data-converters-common`](packages/common/README.md).
 
-Currently supported converters are:
- * [OMF](packages/omf/README.md)
- * [RESQML](packages/resqml/README.md)
- * [VTK](packages/vtk/README.md)
- * [UBC](packages/ubc/README.md)
- * [GOCAD](packages/gocad/README.md)
- * [DUF](packages/duf/README.md)
- * [Image](packages/image/README.md)
- * [OBJ](packages/obj/README.md)
-
- To use any of the data converters, you will need a few things:
+To use any of the data converters, you will need a few things:
   * An *access token* for your user
   * The *organisation ID*, *hub URL* and *workspace ID* that you would like to import your data to, or export it from.
 
@@ -92,14 +84,16 @@ It should open a browser where you can open the notebooks for the current direct
 
 For examples of how to use Evo data converters, please refer to the samples in each convertor of the `packages` directory.
 
-   * [OMF](packages/omf/samples)
-   * [RESQML](packages/resqml/samples)
-   * [VTK](packages/vtk/samples)
-   * [UBC](packages/ubc/samples)
-   * [GOCAD](packages/gocad/samples)
-   * [DUF](packages/duf/samples)
-   * [Image](packages/image/code-samples/convert-image)
-   * [OBJ](packages/obj/samples)
+   * [DUF](packages/duf/code-samples)
+   * [GOCAD](packages/gocad/code-samples)
+   * [Image](packages/image/code-samples)
+   * [OBJ](packages/obj/code-samples)
+   * [OMF](packages/omf/code-samples)
+   * [RESQML](packages/resqml/code-samples)
+   * [SHP](packages/shp/code-samples)
+   * [UBC](packages/ubc/code-samples)
+   * [VTK](packages/vtk/code-samples)
+   * [XYZ](packages/xyz/code-samples)
 
 ## Contributing
 
@@ -125,7 +119,7 @@ We rely on an open, friendly, inclusive environment. To help us ensure this rema
 ## License
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at

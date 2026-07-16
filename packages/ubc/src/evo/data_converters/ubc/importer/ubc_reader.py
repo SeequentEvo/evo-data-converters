@@ -103,11 +103,20 @@ class UBCMeshFileImporter(UBCFile):
             else:
                 yield float(txt)
 
-    def run(self, *args: Any, **kwargs: Any) -> tuple[numpy.ndarray, list[numpy.ndarray], list[int]]:
+    def run(self, *args: Any, **kwargs: Any) -> tuple[numpy.ndarray, list[numpy.ndarray], list[int], str]:
         self.line_number_of_import_file = 0
+        wkt_string = ""  # WKT projection string if available
+
         with self.opened_file() as data_file:
             line_iterator = self.row_iter(data_file)
             self.line_number_of_import_file, line = next(line_iterator)
+
+            # Try to extract CRS/WKT information from header
+            # UBC files may have CRS information in the first line or as comments
+            if len(line) > 3:
+                # If there are more than 3 elements, the extra elements might be CRS data
+                wkt_string = " ".join(line[3:])
+
             size_of_dimensions = [int(size) for size in line[:3]]  # x, y, z dimensions of grid
             if 0 in size_of_dimensions:
                 # This is how we do error handling...
@@ -128,7 +137,7 @@ class UBCMeshFileImporter(UBCFile):
                 spacings.append(d)
         origin[2] -= sum(spacings[2])
         spacings[2] = spacings[2][::-1]
-        return origin, spacings, size_of_dimensions
+        return origin, spacings, size_of_dimensions, wkt_string
 
 
 class UBCPropertyFileImporter(UBCFile):

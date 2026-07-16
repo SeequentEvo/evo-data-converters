@@ -110,7 +110,12 @@ def parquet_path(tmp_path: Path) -> Path:
 def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_path: Path):
     path, expected_fields, expected_shape_num, expected_triangle_num, expected_vertex_num = sample_shp
     triangle_meshes = convert_shp(
-        path, None, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        filepath=path,
+        filepath_shx=path.with_suffix(".shx"),
+        filepath_dbf=path.with_suffix(".dbf"),
+        upload_path=parquet_path,
+        publish_objects=False,
+        overwrite_existing_objects=True,
     )
 
     assert len(triangle_meshes) == 1
@@ -152,7 +157,13 @@ def test_custom_tags(sample_shp: Path, parquet_path: Path):
     expected_tags = {"Stage": "Experimental", "InputType": "SHP", **(tags)}
 
     triangle_meshes = convert_shp(
-        path, None, tags=tags, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        filepath=path,
+        filepath_shx=path.with_suffix(".shx"),
+        filepath_dbf=path.with_suffix(".dbf"),
+        tags=tags,
+        upload_path=parquet_path,
+        publish_objects=False,
+        overwrite_existing_objects=True,
     )
 
     assert len(triangle_meshes) == 1
@@ -167,7 +178,13 @@ def test_prj(sample_shp: Path, prj: Path, parquet_path: Path):
     prj_file, expected_prj = prj
 
     triangle_meshes = convert_shp(
-        path, filepath_prj=prj_file, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        filepath=path,
+        filepath_shx=path.with_suffix(".shx"),
+        filepath_dbf=path.with_suffix(".dbf"),
+        filepath_prj=prj_file,
+        upload_path=parquet_path,
+        publish_objects=False,
+        overwrite_existing_objects=True,
     )
 
     assert len(triangle_meshes) == 1
@@ -181,7 +198,12 @@ def test_parquet_output(sample_shp: Path, parquet_path: Path):
     path, _, _, _, _ = sample_shp
 
     triangle_meshes = convert_shp(
-        path, None, upload_path=parquet_path, publish_objects=False, overwrite_existing_objects=True
+        filepath=path,
+        filepath_shx=path.with_suffix(".shx"),
+        filepath_dbf=path.with_suffix(".dbf"),
+        upload_path=parquet_path,
+        publish_objects=False,
+        overwrite_existing_objects=True,
     )
 
     assert len(triangle_meshes) == 1

@@ -23,6 +23,7 @@ from evo_schemas.components import (
     UnstructuredGridGeometry_V1_2_0,
     UnstructuredGridGeometry_V1_2_0_Cells,
     UnstructuredGridGeometry_V1_2_0_Vertices,
+    Crs_V1_0_1,
 )
 from evo_schemas.elements import IndexArray1_V1_0_1
 from evo_schemas.objects import (
@@ -61,7 +62,7 @@ def _create_indices_table(unstructured_grid: vtk.vtkUnstructuredGrid, n_vertices
 
 def _create_tetrahedron_grid(
     name: str,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
     unstructured_grid: vtk.vtkUnstructuredGrid,
     data_client: ObjectDataClient,
     vertex_attributes: OneOfAttribute_V1_2_0,
@@ -70,7 +71,7 @@ def _create_tetrahedron_grid(
 ) -> UnstructuredTetGrid_V1_2_0:
     indices_tables = _create_indices_table(unstructured_grid, 4)
     return UnstructuredTetGrid_V1_2_0(
-        **common_fields(name, epsg_code, unstructured_grid),
+        **common_fields(name, crs, unstructured_grid),
         tetrahedra=Tetrahedra_V1_2_0(
             vertices=Tetrahedra_V1_2_0_Vertices(
                 attributes=vertex_attributes,
@@ -86,7 +87,7 @@ def _create_tetrahedron_grid(
 
 def _create_hexahedron_grid(
     name: str,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
     unstructured_grid: vtk.vtkUnstructuredGrid,
     data_client: ObjectDataClient,
     vertex_attributes: OneOfAttribute_V1_2_0,
@@ -95,7 +96,7 @@ def _create_hexahedron_grid(
 ) -> UnstructuredHexGrid_V1_2_0:
     indices_tables = _create_indices_table(unstructured_grid, 8)
     return UnstructuredHexGrid_V1_2_0(
-        **common_fields(name, epsg_code, unstructured_grid),
+        **common_fields(name, crs, unstructured_grid),
         hexahedrons=Hexahedrons_V1_2_0(
             vertices=Hexahedrons_V1_2_0_Vertices(
                 attributes=vertex_attributes,
@@ -108,7 +109,7 @@ def _create_hexahedron_grid(
 
 def _create_generic_unstructured_grid(
     name: str,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
     unstructured_grid: vtk.vtkUnstructuredGrid,
     data_client: ObjectDataClient,
     vertex_attributes: OneOfAttribute_V1_2_0,
@@ -133,7 +134,7 @@ def _create_generic_unstructured_grid(
     index_array = vtk_to_numpy(unstructured_grid.GetCells().GetConnectivityArray())
     index_table = pa.table({"index": index_array.astype("uint64")})
     return UnstructuredGrid_V1_2_0(
-        **common_fields(name, epsg_code, unstructured_grid),
+        **common_fields(name, crs, unstructured_grid),
         geometry=UnstructuredGridGeometry_V1_2_0(
             vertices=UnstructuredGridGeometry_V1_2_0_Vertices(
                 attributes=vertex_attributes, **data_client.save_table(points_table)
@@ -150,7 +151,7 @@ def convert_vtk_unstructured_grid(
     name: str,
     unstructured_grid: vtk.vtkUnstructuredGrid,
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
 ) -> UnstructuredGrid_V1_2_0 | UnstructuredHexGrid_V1_2_0 | UnstructuredTetGrid_V1_2_0:
     # Unstructured grids don't support blank cells/points, so no mask should be returned here.
     _ = check_for_ghosts(unstructured_grid)
@@ -175,14 +176,14 @@ def convert_vtk_unstructured_grid(
         match single_shape:
             case vtk.VTK_TETRA:
                 return _create_tetrahedron_grid(
-                    name, epsg_code, unstructured_grid, data_client, vertex_attributes, points_table, cell_attributes
+                    name, crs, unstructured_grid, data_client, vertex_attributes, points_table, cell_attributes
                 )
             case vtk.VTK_HEXAHEDRON:
                 return _create_hexahedron_grid(
-                    name, epsg_code, unstructured_grid, data_client, vertex_attributes, points_table, cell_attributes
+                    name, crs, unstructured_grid, data_client, vertex_attributes, points_table, cell_attributes
                 )
 
     # Otherwise, create a generic unstructured grid, which can contain multiple cell types
     return _create_generic_unstructured_grid(
-        name, epsg_code, unstructured_grid, data_client, vertex_attributes, points_table, cell_attributes, vtk_shapes
+        name, crs, unstructured_grid, data_client, vertex_attributes, points_table, cell_attributes, vtk_shapes
     )

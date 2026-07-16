@@ -22,6 +22,7 @@ from evo.data_converters.common import crs_from_epsg_code
 import evo.data_converters.duf.common.deswik_types as dw
 from evo.data_converters.duf.importer import convert_duf_polyface
 from evo.data_converters.duf.importer.duf_polyface_to_evo import indices_from_polyface, combine_duf_polyfaces
+from evo.data_converters.duf.importer.utils import ConvertOptions
 from utils import extract_single_attr_value, extract_attr_values
 
 
@@ -31,13 +32,14 @@ def polyface_obj(simple_objects):
 
 
 def test_should_convert_duf_polyface_geometry(polyface_obj, data_client):
-    epsg_code = 32650
-    triangle_mesh_go = convert_duf_polyface(polyface_obj, data_client, epsg_code)
+    epsg_code = crs_from_epsg_code(32650)
+    options = ConvertOptions(combined=False)
+    triangle_mesh_go = convert_duf_polyface(polyface_obj, data_client, epsg_code, options)
 
     expected_triangle_mesh_go = TriangleMesh_V2_1_0(
         name="FACELAYER-dwPolyface-1c14ef99-e5e3-4388-bbe6-6120344712b1",  # layer name - type - object guid
         uuid=None,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=epsg_code,
         bounding_box=triangle_mesh_go.bounding_box,  # Tested later
         triangles=triangle_mesh_go.triangles,  # Tested later
     )
@@ -72,7 +74,8 @@ def test_should_convert_duf_polyface_geometry(polyface_obj, data_client):
 
 
 def test_combining_duf_polyface_geometry(multiple_objects, data_client):
-    epsg_code = 32650
+    epsg_code = crs_from_epsg_code(32650)
+    options = ConvertOptions(combined=True)
 
     # Two are from the same layer. We don't always get them in the same order, so group by layer and take the largest
     polyface_objs = [obj for _, obj in multiple_objects.get_objects_of_type(dw.Polyface)]
@@ -83,12 +86,12 @@ def test_combining_duf_polyface_geometry(multiple_objects, data_client):
     assert len(polyface_objs) == 2
     polyface_objs = sorted(polyface_objs, key=lambda pf: pf.VertexList[0].Y)  # Ensure consistent order
 
-    triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, epsg_code)
+    triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, epsg_code, options)
 
     expected_triangle_mesh_go = TriangleMesh_V2_1_0(
         name="FACELAYER - polyfaces",
         uuid=None,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=epsg_code,
         parts=triangle_mesh_go.parts,  # Tested later
         bounding_box=triangle_mesh_go.bounding_box,  # Tested later
         triangles=triangle_mesh_go.triangles,  # Tested later
@@ -220,7 +223,8 @@ def test_indices_from_polyface_incomplete():
 def test_polyface_obj_attrs(pit_mesh_attrs, data_client):
     polyface = [obj for _, obj in pit_mesh_attrs.get_objects_of_type(dw.Polyface)][0]
 
-    triangle_mesh_go = convert_duf_polyface(polyface, data_client, 4326)
+    options = ConvertOptions(combined=False)
+    triangle_mesh_go = convert_duf_polyface(polyface, data_client, crs_from_epsg_code(4326), options)
     attrs = triangle_mesh_go.parts.attributes
     assert [attr.name for attr in attrs] == ["String attr", "Double attr", "Integer attr", "DateTime attr", "Choice"]
     assert [attr.attribute_type for attr in attrs] == ["category", "scalar", "integer", "date_time", "category"]
@@ -238,7 +242,8 @@ def test_combine_polyface_attrs(simple_objects_with_attrs, data_client):
     polyface_objs = [obj for _, obj in simple_objects_with_attrs.get_objects_of_type(dw.Polyface)]
     polyface_objs = sorted(polyface_objs, key=lambda pl: pl.VertexList[0].Y)  # Ensure consistent order
 
-    triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, 4326)
+    options = ConvertOptions(combined=True)
+    triangle_mesh_go = combine_duf_polyfaces(polyface_objs, data_client, crs_from_epsg_code(4326), options)
     attrs = triangle_mesh_go.parts.attributes
     assert [attr.name for attr in attrs] == ["integer", "string", "enum"]
     # The "integer" column was converted to double (scalar) because it has None values

@@ -25,14 +25,15 @@ from evo_schemas.components import CategoryData_V1_0_1 as CategoryData
 from evo_schemas.components import Intervals_V1_0_1 as Intervals
 from evo_schemas.components import IntervalTable_V1_1_0_FromTo as IntervalTable_FromTo
 from evo_schemas.components import Locations_V1_0_1 as Locations
+from evo_schemas.components import Crs_V1_0_1
 from evo_schemas.elements import FloatArray2_V1_0_1 as FloatArray2
 from evo_schemas.elements import FloatArray3_V1_0_1 as FloatArray3
 from evo_schemas.elements import IntegerArray1_V1_0_1 as IntegerArray1
 from evo_schemas.elements import LookupTable_V1_0_1 as LookupTable
 
 import evo.logging
+from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.resqml.importer._attribute_converters import convert_resqml_properties_to_evo_attributes
-from evo.data_converters.resqml.utils import get_crs_epsg_code
 from evo.objects.utils.data import ObjectDataClient
 
 from .conversion_options import RESQMLConversionOptions
@@ -45,7 +46,7 @@ def convert_downhole_intervals_for_trajectory(
     trajectory: rqw.Trajectory,
     prefix: str,
     data_client: ObjectDataClient,
-    epsg_code: Optional[int] = None,
+    crs: Optional[Crs_V1_0_1] = None,
     options: Optional[RESQMLConversionOptions] = None,
 ) -> list[DownholeIntervals]:
     """
@@ -56,7 +57,7 @@ def convert_downhole_intervals_for_trajectory(
                    within a model. The prefix should be unique to ensure the
                    names of the generated geo science objects are unique
     :param data_client: The Evo data client
-    :param epsg_code: Optional. The EPSG code to use.
+    :param crs: Optional. The coordinate reference system to use.
     :return: A list of Evo DownholeIntervals objects
     """
     downhole_intervals_go = []
@@ -69,7 +70,7 @@ def convert_downhole_intervals_for_trajectory(
                 wellboreframe=frame,
                 trajectory=trajectory,
                 prefix=prefix,
-                epsg_code=epsg_code,
+                crs=crs,
                 data_client=data_client,
             )
             if isinstance(dhi, DownholeIntervals):
@@ -89,7 +90,7 @@ def _downhole_intervals_for_wellbore_frame(
     trajectory: rqw.Trajectory,
     prefix: str,
     data_client: ObjectDataClient,
-    epsg_code: Optional[int] = None,
+    crs: Optional[Crs_V1_0_1] = None,
 ) -> DownholeIntervals | None:
     """
     Convert properties associated with a wellbore frame to an Evo DownholeIntervals object
@@ -98,7 +99,7 @@ def _downhole_intervals_for_wellbore_frame(
     :param trajectory: The resqpy trajectory
     :param prefix: Naming prefix, object names are not guaranteed to be unique
     :param data_client: The Evo data client
-    :param epsg_code: Optional. The EPSG code to use.
+    :param crs: Optional. The coordinate reference system to use.
     :return: The Evo DownholeIntervals object
     """
 
@@ -147,13 +148,14 @@ def _downhole_intervals_for_wellbore_frame(
     mid_locations = _get_depth_locations(mid_depths, trajectory, data_client)
 
     # Get the EPSG code for the trajectory
-    trajectory_epsg_code = None
-    if epsg_code is not None:
-        trajectory_epsg_code = epsg_code
-    else:
-        if trajectory.crs_uuid is not None:
-            crs_traj = rqcrs.Crs(model, uuid=trajectory.crs_uuid)
-            trajectory_epsg_code = int(crs_traj.epsg_code)
+    if crs is None and trajectory.crs_uuid is not None:
+        crs_traj = rqcrs.Crs(model, uuid=trajectory.crs_uuid)
+        if crs_traj.epsg_code is not None:
+            crs = crs_from_epsg_code(int(crs_traj.epsg_code))
+    if crs is None:
+        crs_root = rqcrs.Crs(model, uuid=model.crs_uuid)
+        if crs_root.epsg_code is not None:
+            crs = crs_from_epsg_code(int(crs_root.epsg_code))
 
     return DownholeIntervals(
         name=prefix + well_name,
@@ -163,7 +165,7 @@ def _downhole_intervals_for_wellbore_frame(
         mid_points=mid_locations,
         from_to=intervals_from_to,
         hole_id=_build_hole_ids_for_wellbore_frame(wellboreframe, data_client),
-        coordinate_reference_system=get_crs_epsg_code(model, trajectory_epsg_code),
+        coordinate_reference_system=crs,
         bounding_box=_build_boundingbox_from_trajectory(trajectory),
         attributes=attributes_go,
         uuid=None,

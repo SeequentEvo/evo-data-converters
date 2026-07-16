@@ -37,9 +37,24 @@ class TestObjFileErrors(IsolatedAsyncioTestCase):
 
     async def test_missing_vertices_file(self) -> None:
         """
-        Attempts to load a file that's missing referenced vertices.
+        Attempts to load a file with missing referenced vertices.
         """
         obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes_corrupt.obj"
+
+        with self.assertRaises(InvalidOBJError):
+            (triangle_mesh,) = await convert_obj(
+                filepath=obj_file,
+                evo_workspace_metadata=self.metadata,
+                epsg_code=4326,
+                publish_objects=False,
+                implementation=self.implementation,
+            )
+
+    async def test_invalid_vertices(self) -> None:
+        """
+        Attempts to load a file with an invalid vertex definition (eg. non-numeric values in the vertex line).
+        """
+        obj_file = Path(__file__).parent.parent / "data" / "simple_shapes" / "simple_shapes_corrupt_2.obj"
 
         with self.assertRaises(InvalidOBJError):
             (triangle_mesh,) = await convert_obj(

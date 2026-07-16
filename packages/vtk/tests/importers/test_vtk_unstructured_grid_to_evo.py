@@ -25,6 +25,7 @@ from evo_schemas.objects import (
 from vtk.util.numpy_support import numpy_to_vtk
 from vtk_test_helpers import MockDataClient, add_ghost_value
 
+from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.vtk.importer.exceptions import GhostValueError, UnsupportedCellTypeError
 from evo.data_converters.vtk.importer.vtk_unstructured_grid_to_evo import convert_vtk_unstructured_grid
 
@@ -80,7 +81,7 @@ def test_convert_tetra_grid() -> None:
     vtk_data = _create_unstructured_grid(include_tetra=True, include_hex=False)
 
     data_client = MockDataClient()
-    result = convert_vtk_unstructured_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = convert_vtk_unstructured_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert isinstance(result, UnstructuredTetGrid_V1_2_0)
     assert result.name == "Test"
     assert result.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
@@ -109,7 +110,7 @@ def test_convert_hex_tetra() -> None:
     vtk_data = _create_unstructured_grid(include_tetra=False, include_hex=True)
 
     data_client = MockDataClient()
-    result = convert_vtk_unstructured_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = convert_vtk_unstructured_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert isinstance(result, UnstructuredHexGrid_V1_2_0)
     assert result.name == "Test"
     assert result.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
@@ -153,7 +154,7 @@ def test_convert_multiple() -> None:
     vtk_data = _create_unstructured_grid(include_tetra=True, include_hex=True)
 
     data_client = MockDataClient()
-    result = convert_vtk_unstructured_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = convert_vtk_unstructured_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert isinstance(result, UnstructuredGrid_V1_2_0)
     assert result.name == "Test"
     assert result.coordinate_reference_system == Crs_V1_0_1_EpsgCode(epsg_code=4326)
@@ -219,7 +220,7 @@ def test_ghost(caplog: pytest.LogCaptureFixture, geometry: int, ghost_value: int
 
     data_client = MagicMock()
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_unstructured_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        convert_vtk_unstructured_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert warning_message in str(ctx.value)
 
 
@@ -239,4 +240,4 @@ def test_unsupported_shape() -> None:
 
     data_client = MagicMock()
     with pytest.raises(UnsupportedCellTypeError):
-        convert_vtk_unstructured_grid("Test", unstructured_grid, epsg_code=4326, data_client=data_client)
+        convert_vtk_unstructured_grid("Test", unstructured_grid, crs=crs_from_epsg_code(4326), data_client=data_client)
