@@ -214,7 +214,7 @@ async def convert_duf(
 
     `resolve_object_name` controls how names are generated for any Evo objects that get generated. The way it works
     depends on the `combine_objects_in_layers` options.
-    - DEFAULT and combine_objects_in_layers=True -> Object gets the name of the imediately enclosing Deswik layer
+    - DEFAULT and combine_objects_in_layers=True -> Object gets the name of the immediately enclosing Deswik layer
     - CONCATENATE and combine_objects_in_layers=True -> As above, but the name includes all layers in the hierarchy
     - DEFAULT and combine_objects_in_layers=False -> Each object gets the name of the Deswik entity
     - CONCATENATE and combine_objects_in_layers=False -> As above, but the names include all layers in the hierarchy
@@ -248,6 +248,15 @@ async def convert_duf(
 
     with DUFCollectorContext(filepath) as context:
         collector: ObjectCollector = context.collector
+
+    if layers is not None:
+        available_layers = {
+            layer.Name if layer else "<No Layer>"
+            for layer in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities)
+        }
+        unmatched = layers - available_layers
+        if unmatched:
+            logger.warning(f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}")
 
     options = ConvertOptions(
         combined=combine_objects_in_layers,
