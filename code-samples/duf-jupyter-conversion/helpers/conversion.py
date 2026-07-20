@@ -19,7 +19,7 @@ async def convert_duf_to_evo(selected_file_path: str, epsg_code: int, upload_pat
 
     objects_metadata = await convert_duf(
         filepath=selected_file_path,
-        epsg_code=epsg_code,
+        coordinate_reference_system=epsg_code,
         service_manager_widget=manager,
         tags=tags,
         upload_path=upload_path,

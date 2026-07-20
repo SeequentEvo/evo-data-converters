@@ -73,7 +73,7 @@ def convert_shp(
     """
     geoscience_objects = []
 
-    if publish_objects:
+    if publish_objects or evo_workspace_metadata or service_manager_widget:
         object_service_client, data_client = create_evo_object_service_and_data_client(
             evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
         )

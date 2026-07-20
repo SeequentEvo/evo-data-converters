@@ -81,7 +81,8 @@ This creates:
 
 ## Schema Output
 
-The converter creates JSON matching your example (grayscale shown below):
+The converter creates JSON matching your example (grayscale shown below).
+When no CRS is provided, the coordinate_reference_system is set to "unspecified" to preserve data integrity:
 
 ```json
 {
@@ -91,7 +92,7 @@ The converter creates JSON matching your example (grayscale shown below):
   "origin": [572565.0, 6839415.0, 1000.0],
   "size": [128, 106],
   "cell_size": [30.0, 30.0],
-  "coordinate_reference_system": {"epsg_code": 4326},
+  "coordinate_reference_system": "unspecified",
   "rotation": {"dip": 0.0, "dip_azimuth": 0.0, "pitch": 0.0},
   "bounding_box": {
     "min_x": 572565.0,

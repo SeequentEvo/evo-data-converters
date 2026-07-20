@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -9,7 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .importer.gocad_reader import GocadDataFileIOError, GocadInvalidDataError
-from .importer.gocad_to_evo import convert_gocad
+import pyproj as pyproj
 
-__all__ = ["GocadDataFileIOError", "GocadInvalidDataError", "convert_gocad"]
+
+def is_valid_epsg(epsg_code: int) -> bool:
+    """Check if the provided EPSG code is valid."""
+    try:
+        pyproj.CRS.from_epsg(epsg_code)
+        return True
+    except pyproj.exceptions.CRSError:
+        return False

@@ -64,7 +64,7 @@ class TrimeshObjImporter(ObjImporterBase):
             is_just_points = all(isinstance(geom, trimesh.points.PointCloud) for geom in self.scene.geometry.values())
             if is_just_points:
                 raise InvalidOBJError("Input file contains no valid mesh geometry (vertices only, no faces)")
-        except IndexError as e:
+        except (IndexError, ValueError) as e:
             # this typically means bad indices
             raise InvalidOBJError(f"Invalid OBJ flie: Indexing error (probably invalid faces in file): {e}")
 

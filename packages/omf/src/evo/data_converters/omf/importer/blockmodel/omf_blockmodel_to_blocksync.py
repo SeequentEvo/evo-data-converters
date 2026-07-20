@@ -17,6 +17,7 @@ import pandas as pd
 import pyarrow as pa
 
 import evo.logging
+from evo_schemas.components import Crs_V1_0_1, Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo.data_converters.common import BlockSyncClient
 from evo.data_converters.omf.importer.blockmodel.omf_attributes_to_blocksync import (
     convert_omf_blockmodel_attributes_to_columns,
@@ -34,17 +35,26 @@ logger = evo.logging.getLogger("data_converters")
 
 
 def create_req_body(
-    orient: omf2.Orient3, grid: omf2.Grid3Regular, size_options: dict[str, Any], epsg_code: int
+    orient: omf2.Orient3, grid: omf2.Grid3Regular, size_options: dict[str, Any], crs: Crs_V1_0_1
 ) -> dict[str, Any]:
     """Create the body for the create block model API request.
 
     :param orient: The orientation of the block model.
     :param grid: The block model grid.
     :param size_options: The dictionary containing metadata about the block model blocks.
-    :param epsg_code: The EPSG code for the coordinate reference system.
+    :param crs: The coordinate reference system.
 
     :return: The body of the API request.
     """
+    if isinstance(crs, Crs_V1_0_1_EpsgCode):
+        cooridnate_reference_system = f"EPSG:{crs.epsg_code}"
+    elif isinstance(crs, Crs_V1_0_1_OgcWkt):
+        cooridnate_reference_system = crs.ogc_wkt
+    elif crs == "unspecified":
+        cooridnate_reference_system = None
+    else:
+        raise ValueError(f"Unsupported CRS type: {type(crs)}")
+
     angles = convert_orient_to_angle([orient.u, orient.v, orient.w])
     body = {
         "name": str(uuid4()),  # Block model name MUST be unique within a workspace
@@ -64,7 +74,7 @@ def create_req_body(
             },
         ],
         "size_options": size_options,
-        "coordinate_reference_system": f"EPSG:{epsg_code}",
+        "coordinate_reference_system": cooridnate_reference_system,
     }
     return body
 
@@ -253,14 +263,14 @@ def add_attribute_columns(
 
 
 def convert_omf_regular_block_model(
-    blockmodel: omf2.Element, client: BlockSyncClient, reader: omf2.Reader, epsg_code: int
+    blockmodel: omf2.Element, client: BlockSyncClient, reader: omf2.Reader, crs: Crs_V1_0_1
 ) -> tuple[str, dict[str, Any], pa.Table]:
     """Convert an OMF regular block model to a BlockSync block model.
 
     :param blockmodel: The blockmodel element.
     :param client: The BlockSync API client.
     :param reader: The OMF file reader.
-    :param epsg_code: The EPSG code for the coordinate reference system.
+    :param crs: The coordinate reference system.
 
     :return: The block model ID, the block model creation request, the block model in tabular form.
     """
@@ -283,21 +293,21 @@ def convert_omf_regular_block_model(
         "block_size": block_size,
     }
 
-    body = create_req_body(orient, grid, size_options, epsg_code)
+    body = create_req_body(orient, grid, size_options, crs)
     block_model_uuid = client.create_request(body=body)
     table = extract_regular_block_model_columns(blockmodel, reader)
     return block_model_uuid, body, table
 
 
 def convert_omf_regular_subblock_model(
-    blockmodel: omf2.Element, client: BlockSyncClient, reader: omf2.Reader, epsg_code: int
+    blockmodel: omf2.Element, client: BlockSyncClient, reader: omf2.Reader, crs: Crs_V1_0_1
 ) -> tuple[str, dict[str, Any], pa.Table]:
     """Convert an OMF regular subblock model to a BlockSync block model.
 
     :param blockmodel: The blockmodel element.
     :param client: The BlockSync API client.
     :param reader: The OMF file reader.
-    :param epsg_code: The EPSG code for the coordinate reference system.
+    :param crs: The coordinate reference system.
 
     :return: The block model ID, the block model creation request, the block model in tabular form.
     """
@@ -328,14 +338,14 @@ def convert_omf_regular_subblock_model(
         "parent_block_size": {"x": grid.size[0], "y": grid.size[1], "z": grid.size[2]},
     }
 
-    body = create_req_body(orient, grid, size_options, epsg_code)
+    body = create_req_body(orient, grid, size_options, crs)
     block_model_uuid = client.create_request(body=body)
 
     return block_model_uuid, body, table
 
 
 def convert_omf_tensor_grid_model(
-    blockmodel: omf2.Element, client: BlockSyncClient, reader: omf2.Reader, epsg_code: int
+    blockmodel: omf2.Element, client: BlockSyncClient, reader: omf2.Reader, crs: Crs_V1_0_1
 ) -> Optional[tuple[str, dict[str, Any], Any]]:
     """Convert a tensor grid model to a Block Sync blockmodel if it is a regular grid.
 
@@ -346,7 +356,7 @@ def convert_omf_tensor_grid_model(
     :param blockmodel: The block model to convert.
     :param client: The Block Model API client.
     :param reader: The OMF file reader.
-    :param epsg_code: The EPSG code for the coordinate reference system.
+    :param crs: The coordinate reference system.
     """
     geometry = blockmodel.geometry()
     grid = geometry.grid
@@ -354,7 +364,7 @@ def convert_omf_tensor_grid_model(
     v = reader.array_scalars(grid.v)
     w = reader.array_scalars(grid.w)
     if check_all_same(u) and check_all_same(v) and check_all_same(w):
-        return convert_omf_regular_block_model(blockmodel, client, reader, epsg_code)
+        return convert_omf_regular_block_model(blockmodel, client, reader, crs)
     else:
         # TODO: Add support for uploading these to evo?
         logger.warning(

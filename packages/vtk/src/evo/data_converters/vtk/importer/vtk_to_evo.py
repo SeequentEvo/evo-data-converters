@@ -12,7 +12,9 @@
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Generator, Optional, TypeAlias
+import warnings
 
+from evo.data_converters.common.crs import crs_from_any, crs_from_epsg_code
 import vtk
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 from vtk.util.data_model import ImageData, RectilinearGrid, UnstructuredGrid  # Override classes from vtk
@@ -110,24 +112,29 @@ def get_vtk_grids(filepath: str) -> list[tuple[str, BaseGridData]]:
 
 def convert_vtk(
     filepath: str,
-    epsg_code: int,
+    epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    *,
+    coordinate_reference_system: str | int | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts an VTK file into Geoscience Objects.
 
     :param filepath: Path to the VTK file.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the coordinate reference system. Use ``coordinate_reference_system`` instead.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
-    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param publish_objects: (Optional) Set False to return rather than publish objects.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+
+    Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -145,6 +152,16 @@ def convert_vtk(
     :raise VTKImportError: If the VTK file could not be read.
     """
 
+    if epsg_code is not None:
+        if coordinate_reference_system is not None:
+            raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
+        crs = crs_from_epsg_code(epsg_code)
+    else:
+        crs = crs_from_any(coordinate_reference_system)
+
     geoscience_objects = []
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
@@ -158,7 +175,7 @@ def convert_vtk(
             if convert_function is None:
                 logger.warning(f"{type(data_object).__name__} data object are not supported.")
                 continue
-            geoscience_object = convert_function(name, data_object, data_client, epsg_code)
+            geoscience_object = convert_function(name, data_object, data_client, crs)
         except VTKConversionError as e:
             logger.warning(f"{e}, skipping this grid")
             continue

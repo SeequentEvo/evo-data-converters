@@ -1,6 +1,6 @@
 [project]
 name = "evo-data-converters-shp"
-version = "0.1.4"
+version = "0.1.6"
 description = "Python data converters for ESRI shapefiles to Evo geoscience objects."
 readme = "README.md"
 authors = [

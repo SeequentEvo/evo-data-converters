@@ -61,7 +61,11 @@ class TestOMFSurfaceConverter(TestCase):
 
         epsg_code = 32650
         triangle_mesh_go = convert_omf_surface(
-            surface=surface_element, project=project, reader=reader, data_client=self.data_client, epsg_code=epsg_code
+            surface=surface_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(epsg_code),
         )
 
         self.assertIsInstance(triangle_mesh_go, TriangleMesh_V2_1_0)
@@ -119,7 +123,11 @@ class TestOMFSurfaceConverter(TestCase):
 
         epsg_code = 32650
         triangle_mesh_go = convert_omf_surface(
-            surface=surface_element, project=project, reader=reader, data_client=self.data_client, epsg_code=epsg_code
+            surface=surface_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(epsg_code),
         )
 
         self.assertIsInstance(triangle_mesh_go, TriangleMesh_V2_1_0)
@@ -176,7 +184,11 @@ class TestOMFSurfaceConverter(TestCase):
         surface_element = self._element_by_name(project, "data_vertices_surf")
 
         triangle_mesh_go = convert_omf_surface(
-            surface=surface_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            surface=surface_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(triangle_mesh_go, TriangleMesh_V2_1_0)
@@ -221,7 +233,11 @@ class TestOMFSurfaceConverter(TestCase):
         surface_element = self._element_by_name(project, "data_faces_surf")
 
         triangle_mesh_go = convert_omf_surface(
-            surface=surface_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            surface=surface_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(triangle_mesh_go, TriangleMesh_V2_1_0)
@@ -264,7 +280,11 @@ class TestOMFSurfaceConverter(TestCase):
         surface_element = self._element_by_name(project, "data_vertices_surf")
 
         triangle_mesh_go = convert_omf_surface(
-            surface=surface_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            surface=surface_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(triangle_mesh_go, TriangleMesh_V2_1_0)
@@ -309,7 +329,11 @@ class TestOMFSurfaceConverter(TestCase):
         surface_element = self._element_by_name(project, "data_faces_surf")
 
         triangle_mesh_go = convert_omf_surface(
-            surface=surface_element, project=project, reader=reader, data_client=self.data_client, epsg_code=32650
+            surface=surface_element,
+            project=project,
+            reader=reader,
+            data_client=self.data_client,
+            crs=crs_from_epsg_code(32650),
         )
 
         self.assertIsInstance(triangle_mesh_go, TriangleMesh_V2_1_0)

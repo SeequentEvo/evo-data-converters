@@ -12,12 +12,12 @@
 import omf2
 import pyarrow as pa
 from evo_schemas.elements import FloatArray3_V1_0_1
+from evo_schemas.components import Crs_V1_0_1
 from evo_schemas.objects import Pointset_V1_2_0, Pointset_V1_2_0_Locations
 
 import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 
-from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.common.utils import vertices_bounding_box
 from .omf_attributes_to_evo import convert_omf_attributes
 
@@ -25,15 +25,9 @@ logger = evo.logging.getLogger("data_converters")
 
 
 def convert_omf_pointset(
-    pointset: omf2.Element,
-    project: omf2.Project,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
-    epsg_code: int,
+    pointset: omf2.Element, project: omf2.Project, reader: omf2.Reader, data_client: ObjectDataClient, crs: Crs_V1_0_1
 ) -> Pointset_V1_2_0:
     logger.debug(f'Converting omf2 Element: "{pointset.name}" to Pointset_V1_1_0.')
-
-    coordinate_reference_system = crs_from_epsg_code(epsg_code)
 
     geometry = pointset.geometry()
 
@@ -68,7 +62,7 @@ def convert_omf_pointset(
         name=pointset.name,
         uuid=None,
         bounding_box=bounding_box_go,
-        coordinate_reference_system=coordinate_reference_system,
+        coordinate_reference_system=crs,
         locations=locations,
     )
 

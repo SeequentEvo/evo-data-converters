@@ -103,7 +103,7 @@ results = asyncio.run(
     convert_obj(
         filepath=args.filename,
         evo_workspace_metadata=workspace_metadata,
-        epsg_code=args.epsg_code,
+        coordinate_reference_system=args.epsg_code,
         tags=tags,
         upload_path=args.upload_path,
         overwrite_existing_objects=args.overwrite_existing_objects,

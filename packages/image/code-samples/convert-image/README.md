@@ -91,7 +91,7 @@ results = convert_image_to_grid(
 ### Programmatic Use (Without Publishing)
 
 ```python
-from evo.data_converters.image.image_to_grid import ImageGridConverter
+from evo.data_converters.image.importer.image_to_grid import ImageGridConverter
 from evo.objects.utils.data import ObjectDataClient
 
 # Create converter
@@ -259,7 +259,7 @@ Before committing, clear notebook outputs in `convert-image.ipynb` and keep gene
 Enable parquet file output for debugging:
 
 ```python
-from evo.data_converters.image.image_to_grid import ImageGridConverter
+from evo.data_converters.image.importer.image_to_grid import ImageGridConverter
 
 converter = ImageGridConverter(
     data_client, 
