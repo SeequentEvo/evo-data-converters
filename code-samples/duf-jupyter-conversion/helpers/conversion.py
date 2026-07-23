@@ -53,10 +53,11 @@ def read_duf_layers(filepath):
 
     layer_info = []
     for layer, objs in by_layer.items():
-        name = layer.Name if layer else "<No Layer>"
+        if layer is None:
+            continue
         layer_info.append(
             {
-                "name": name,
+                "name": layer.Name,
                 "count": len(objs),
             }
         )

@@ -110,8 +110,7 @@ def _convert_and_combine_duf_objects(
 ):
     geoscience_objects = []
     for layer, objs in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities).items():
-        layer_name = layer.Name if layer else "<No Layer>"
-        if layers is not None and layer_name not in layers:
+        if layers is not None and (layer is None or layer.Name not in layers):
             continue
         layer_by_type = defaultdict(list)
         for obj in objs:
@@ -152,23 +151,13 @@ def _convert_duf_objects(
     crs: Crs_V1_0_1,
     tags: dict[str, str],
     options: ConvertOptions,
-    layers: set[str] | None = None,
+    layers: set[str],
 ):
     geoscience_objects = []
-    if layers is not None:
-        by_layer = collector.get_objects_with_category_by_layer(dw.Category.ModelEntities)
-        filtered_by_type: dict[type, list] = defaultdict(list)
-        for layer, objs in by_layer.items():
-            layer_name = layer.Name if layer else "<No Layer>"
-            if layer_name not in layers:
-                continue
-            for obj in objs:
-                filtered_by_type[type(obj)].append(obj)
-        for klass, objs in filtered_by_type.items():
-            geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags, options))
-    else:
-        for klass, objs in collector.get_objects_with_category_by_type(dw.Category.ModelEntities).items():
-            geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags, options))
+    for klass, objs in collector.get_objects_with_category_by_type(dw.Category.ModelEntities).items():
+        if layers:
+            objs = [obj for obj in objs if obj.Layer and obj.Layer.Name in layers]
+        geoscience_objects.extend(_convert_object_list(klass, objs, data_client, crs, tags, options))
     return geoscience_objects
 
 
@@ -200,7 +189,9 @@ async def convert_duf(
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
     :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
     :param resolve_object_name: (Optional) See description below
-    :param layers: (Optional) A set of layer names to include. If None, all layers are converted. Only objects belonging to the specified layers will be processed.
+    :param layers: (Optional) A set of full layer paths to include. Each entry should be the complete
+        backslash-separated layer path as stored in the DUF file (e.g. ``{"Mining\\Stopes\\Level 1","Mining\\Stopes\\Level 2"}``).
+        If None, all layers are converted. Only objects belonging to the specified layers will be processed.
 
     Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
@@ -251,19 +242,19 @@ async def convert_duf(
 
     if layers is not None:
         available_layers = {
-            layer.Name if layer else "<No Layer>"
-            for layer in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities)
+            layer.Name for layer in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities) if layer
         }
         unmatched = layers - available_layers
         if unmatched:
             logger.warning(f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}")
+        layers = layers & available_layers
 
     options = ConvertOptions(
         combined=combine_objects_in_layers,
         resolve_object_name=resolve_object_name,
     )
     if not combine_objects_in_layers:
-        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options, layers)
+        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options, layers or set())
     else:
         geoscience_objects = _convert_and_combine_duf_objects(collector, data_client, crs, tags, options, layers)
 
