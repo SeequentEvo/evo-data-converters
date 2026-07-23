@@ -106,11 +106,11 @@ def _convert_and_combine_duf_objects(
     crs: Crs_V1_0_1,
     tags: dict[str, str],
     options: ConvertOptions,
-    layers: set[str] | None = None,
+    layers: set[str],
 ):
     geoscience_objects = []
     for layer, objs in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities).items():
-        if layers is not None and (layer is None or layer.Name not in layers):
+        if layers and (layer is None or layer.Name not in layers):
             continue
         layer_by_type = defaultdict(list)
         for obj in objs:
@@ -241,6 +241,7 @@ async def convert_duf(
         collector: ObjectCollector = context.collector
 
     if layers is not None:
+        layers = set(layers)
         available_layers = {
             layer.Name for layer in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities) if layer
         }
@@ -248,13 +249,15 @@ async def convert_duf(
         if unmatched:
             logger.warning(f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}")
         layers = layers & available_layers
+    else:
+        layers = set()
 
     options = ConvertOptions(
         combined=combine_objects_in_layers,
         resolve_object_name=resolve_object_name,
     )
     if not combine_objects_in_layers:
-        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options, layers or set())
+        geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options, layers)
     else:
         geoscience_objects = _convert_and_combine_duf_objects(collector, data_client, crs, tags, options, layers)
 
