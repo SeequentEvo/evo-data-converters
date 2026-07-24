@@ -241,7 +241,6 @@ async def convert_duf(
         collector: ObjectCollector = context.collector
 
     if layers is not None:
-        layers = set(layers)
         available_layers = {
             layer.Name for layer in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities) if layer
         }
