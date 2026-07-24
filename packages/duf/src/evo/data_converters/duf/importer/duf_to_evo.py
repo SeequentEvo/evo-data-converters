@@ -247,8 +247,9 @@ async def convert_duf(
         }
         unmatched = layers - available_layers
         if unmatched:
-            logger.warning(f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}")
-        layers = layers & available_layers
+            raise ValueError(
+                f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}"
+            )
 
     options = ConvertOptions(
         combined=combine_objects_in_layers,
