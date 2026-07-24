@@ -106,7 +106,7 @@ def _convert_and_combine_duf_objects(
     crs: Crs_V1_0_1,
     tags: dict[str, str],
     options: ConvertOptions,
-    layers: set[str],
+    layers: set[str] | None = None,
 ):
     geoscience_objects = []
     for layer, objs in collector.get_objects_with_category_by_layer(dw.Category.ModelEntities).items():
@@ -151,7 +151,7 @@ def _convert_duf_objects(
     crs: Crs_V1_0_1,
     tags: dict[str, str],
     options: ConvertOptions,
-    layers: set[str],
+    layers: set[str] | None = None,
 ):
     geoscience_objects = []
     for klass, objs in collector.get_objects_with_category_by_type(dw.Category.ModelEntities).items():
@@ -249,8 +249,6 @@ async def convert_duf(
         if unmatched:
             logger.warning(f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}")
         layers = layers & available_layers
-    else:
-        layers = set()
 
     options = ConvertOptions(
         combined=combine_objects_in_layers,
