@@ -64,9 +64,7 @@ published to Evo."
 "\n",
 "from evo.data_converters.{{converter_type}}.importer import convert_{{converter_type}}\n",
 "\n",
-"# Point this at a sample file you placed in packages/{{converter_type}}/tests/data/\n",
-"{{converter_type}}_file = os.path.join(os.getcwd(), \"..\", \"..\", \"tests\", \"data\",
-\"your-sample.{{converter_type}}\")\n",
+"{{converter_type}}_file = os.path.join(os.getcwd(), \"data/input/one_of_everything.{{converter_type}}\")\n",
 "epsg_code = 32650\n",
 "\n",
 "tags = {\"TagName\": \"Tag value\"}\n",
@@ -85,54 +83,6 @@ published to Evo."
 "\n",
 "for metadata in objects_metadata:\n",
 " pprint.pp(metadata, indent=4)"
-]
-},
-{
-"cell_type": "markdown",
-"metadata": {},
-"source": [
-"## Preview locally without publishing\n",
-"\n",
-"You don't need Evo credentials to try the converter. By passing `publish_objects=False` and an `EvoWorkspaceMetadata`
-with a local `cache_root`, `convert_{{converter_type}}` returns the built Geoscience object(s) without contacting
-Evo.\n",
-"\n",
-"Set `{{converter_type}}_file` to a sample in `packages/{{converter_type}}/tests/data/`, then run the cell below to
-build and inspect the objects. This cell is self-contained \u2014 you can run it without running the login cell above."
-]
-},
-{
-"cell_type": "code",
-"execution_count": null,
-"metadata": {},
-"outputs": [],
-"source": [
-"import os\n",
-"import tempfile\n",
-"\n",
-"from evo.data_converters.common import EvoWorkspaceMetadata\n",
-"from evo.data_converters.{{converter_type}}.importer import convert_{{converter_type}}\n",
-"\n",
-"# Point this at a sample file you placed in packages/{{converter_type}}/tests/data/\n",
-"{{converter_type}}_file = os.path.join(os.getcwd(), \"..\", \"..\", \"tests\", \"data\",
-\"your-sample.{{converter_type}}\")\n",
-"\n",
-"# A local cache is all that's needed to build objects without publishing.\n",
-"workspace_metadata = EvoWorkspaceMetadata(\n",
-" workspace_id=\"00000000-0000-0000-0000-000000000000\",\n",
-" cache_root=tempfile.mkdtemp(),\n",
-")\n",
-"\n",
-"objects = convert_{{converter_type}}(\n",
-" filepath={{converter_type}}_file,\n",
-" evo_workspace_metadata=workspace_metadata,\n",
-" coordinate_reference_system=32650,\n",
-" publish_objects=False,\n",
-")\n",
-"\n",
-"print(f\"Built {len(objects)} object(s) without publishing:\")\n",
-"for obj in objects:\n",
-" print(f\" - {type(obj).__name__}: {obj.name}\")"
 ]
 }
 ],
