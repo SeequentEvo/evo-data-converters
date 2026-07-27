@@ -1,0 +1,133 @@
+{
+"cells": [
+{
+"cell_type": "markdown",
+"metadata": {},
+"source": [
+"# Export a BlockSync block model to {{converter_type.upper()}}\n",
+"\n",
+"This notebook shows how to download and export a BlockModel object from BlockSync to a {{converter_type.upper()}}
+file.\n",
+"\n",
+"In this first cell we create a ServiceManagerWidget which will open a browser window and ask you to login.\n",
+"\n",
+"Once logged in, a widget will be displayed below allowing you to select an organisation and workspace to export objects
+from.\n",
+"\n",
+"__Required:__ You must fill in your `client_id` before running this cell."
+]
+},
+{
+"cell_type": "code",
+"execution_count": null,
+"metadata": {},
+"outputs": [],
+"source": [
+"from evo.notebooks import ServiceManagerWidget\n",
+"\n",
+"manager = await ServiceManagerWidget.with_auth_code(client_id=\"your-client-id\").login()"
+]
+},
+{
+"cell_type": "markdown",
+"metadata": {},
+"source": [
+"In the cell below we specify the Object UUID of the block model object we want to export and the output file path, and
+then call `export_blocksync_{{converter_type}}()`.\n",
+"\n",
+"__Required:__ You must fill in your `object_id` of the BlockSync Object to export before running this cell.\n",
+"\n",
+"__Note:__ At this stage only Regular block model types are supported."
+]
+},
+{
+"cell_type": "code",
+"execution_count": null,
+"metadata": {},
+"outputs": [],
+"source": [
+"import os\n",
+"from uuid import UUID\n",
+"\n",
+"from evo.data_converters.{{converter_type}}.exporter import export_blocksync_{{converter_type}}\n",
+"\n",
+"object_id = \"\"\n",
+"version_id = None\n",
+"\n",
+"output_dir = \"data/output\"\n",
+"os.makedirs(output_dir, exist_ok=True)\n",
+"\n",
+"output_file = f\"{output_dir}/{object_id}.{{converter_type}}\"\n",
+"\n",
+"export_blocksync_{{converter_type}}(\n",
+" filepath=output_file,\n",
+" object_id=UUID(object_id),\n",
+" version_id=version_id,\n",
+" service_manager_widget=manager,\n",
+")\n",
+"\n",
+"print(f\"File saved to {output_file}\")"
+]
+},
+{
+"cell_type": "markdown",
+"metadata": {},
+"source": [
+"### Optional: Download parquet file only\n",
+"\n",
+"Use the cell below if you would like to inspect the parquet file associated with the blockmodel."
+]
+},
+{
+"cell_type": "code",
+"execution_count": null,
+"metadata": {},
+"outputs": [],
+"source": [
+"import shutil\n",
+"\n",
+"import pyarrow.parquet as pq\n",
+"\n",
+"from evo.data_converters.common import BlockSyncClient, create_evo_object_service_and_data_client\n",
+"\n",
+"service_client, data_client = create_evo_object_service_and_data_client(service_manager_widget=manager)\n",
+"client = BlockSyncClient(service_client._environment, service_client._connector)\n",
+"\n",
+"object_id = \"\"\n",
+"dest_file = f\"data/output/{object_id}.parquet\"\n",
+"\n",
+"job_url = client.get_blockmodel_columns_job_url(object_id)\n",
+"download_url = client.get_blockmodel_columns_download_url(job_url)\n",
+"downloaded_file = client.download_parquet(download_url)\n",
+"\n",
+"shutil.copy(downloaded_file.name, dest_file)\n",
+"\n",
+"table = pq.read_table(dest_file)\n",
+"\n",
+"for column in table.column_names:\n",
+" print(f\"{column} is of type: {table.schema.field(column).type}\")"
+]
+}
+],
+"metadata": {
+"kernelspec": {
+"display_name": "venv",
+"language": "python",
+"name": "python3"
+},
+"language_info": {
+"codemirror_mode": {
+"name": "ipython",
+"version": 3
+},
+"file_extension": ".py",
+"mimetype": "text/x-python",
+"name": "python",
+"nbconvert_exporter": "python",
+"pygments_lexer": "ipython3",
+"version": "3.10.16"
+}
+},
+"nbformat": 4,
+"nbformat_minor": 2
+}

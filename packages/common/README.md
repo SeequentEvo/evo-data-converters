@@ -58,7 +58,8 @@ Each converter will support a subset of Evo geoscience objects.
 
 Existing converters can be extended to support additional geoscience objects depending on your data requirements.
 
-New converters can be created to support additional data file types.
+New converters can be created to support additional data file types. The easiest way to start one is with the
+[`create-converter` CLI](#creating-a-new-converter-with-the-cli), which scaffolds a new converter package for you.
 
 ## Developing converters
 
@@ -70,6 +71,46 @@ In the root directory of the project run:
 
 ```shell
 uv sync --all-packages --all-extras
+```
+
+### Creating a new converter with the CLI
+
+The quickest way to start a new converter is with the `create-converter` CLI. It scaffolds a complete, ready-to-build
+converter package from a template so you can focus on the format-specific conversion logic rather than boilerplate.
+
+From the root directory of the project run:
+
+```shell
+uv run create-converter
+```
+
+You will be prompted for:
+
+- **Converter type** – a short name for the file format, e.g. `obj`, `shp`, `xyz`. This is used for the package name
+  (`evo-data-converters-<type>`), module paths, and the `convert_<type>` / `export_<type>` function names.
+- **Export support** – whether the converter is _Import only_ or _Import and Export_. Choose _Import and Export_ to also
+  scaffold an exporter.
+
+The CLI then:
+
+- Creates a new package under `packages/<type>/` with the standard `importer/` (and `exporter/`, if selected) layout,
+  code samples, and tests.
+- Registers the package in the workspace by updating the root `Makefile` (adding a `test-<type>` target),
+  `README.md`, and `pyproject.toml`.
+
+The generated `convert_<type>` and `export_<type>` functions follow the conventions described below, with the
+format-specific parts left as `TODO` comments that raise `NotImplementedError`. These are the places where you add your
+own file parsing and geoscience object conversion. See [Structure of a converter](#structure-of-a-converter) for what to
+implement in each file.
+
+After generating a converter:
+
+```shell
+# Install the new package into the workspace
+uv sync
+
+# Run the generated tests for your converter
+make test-<type>
 ```
 
 ### General converter architecture
@@ -133,9 +174,12 @@ any other utility modules specific to this converter type:
 
 ### Structure of a converter
 
-The converters are designed to follow a consistent coding pattern to encourage reusability and commonality.  Within
+The converters are designed to follow a consistent coding pattern to encourage reusability and commonality. Within
 this pattern there is much room for flexibility, although this is expected to come at the lower level when addressing
 the needs of specific data sources.
+
+When you scaffold a converter with the [`create-converter` CLI](#creating-a-new-converter-with-the-cli), the files
+described below are generated for you with the format-specific logic left as `TODO` stubs to implement.
 
 #### Importer
 
@@ -143,20 +187,20 @@ An importer takes geoscience data from a specific file type, converts it to Evo 
 objects to Evo.
 
 As observable in the example Jupyter notebook for [converting an OMF file](../omf/code-samples/convert-omf/convert-omf.ipynb) the main interface to a convertor
-is the `convert_*` function.  This function will be in a module in the root directory of the
+is the `convert_*` function. This function will be in a module in the root directory of the
 named `yourfiletype_to_evo.py`.
 
 Within this function the following tasks must be completed:
 
-* Read the passed data file
-* Extract supported geoscience objects from the file
-* Convert source geoscience objects into Evo geoscience objects
-* Publish the geoscience objects to [the Geoscience Object API](https://developer.seequent.com/docs/guides/objects)
+- Read the passed data file
+- Extract supported geoscience objects from the file
+- Convert source geoscience objects into Evo geoscience objects
+- Publish the geoscience objects to [the Geoscience Object API](https://developer.seequent.com/docs/guides/objects)
 
 By convention the convert function should return a list, and the items in the list are either instances of the
 `BaseSpatialDataProperties_V1_0_1` class or the `ObjectMetadata` class.
 
-The return items will be `BaseSpatialDataProperties_V1_0_1` class if returning geoscience objects directly.  The
+The return items will be `BaseSpatialDataProperties_V1_0_1` class if returning geoscience objects directly. The
 purpose of this option is if you wish to use the converter to transform data into Evo geoscience objects but not
 publish directly to the Geoscience Object API.
 
@@ -219,35 +263,34 @@ def convert_yourfiletype(
 
 ```
 
-**Note:** this example only returns the `ObjectMetadata`, and will publish immediately.  Refer to the existing
+**Note:** this example only returns the `ObjectMetadata`, and will publish immediately. Refer to the existing
 converter examples to see usage for the optional return of `BaseSpatialDataProperties_V1_0_1`.
-
 
 ##### Parameters
 
-The following parameters are passed into the convert function.  By convention these are the typical minimum parameters
+The following parameters are passed into the convert function. By convention these are the typical minimum parameters
 a convert function should have, however additional ones can be added as needed for specific usage needs.
 
-| Parameter          | Description  |
-|---------------|--------|
-| `filepath`  |Path to the OMF file.  |
-| `epsg_code`        | The EPSG code to use when creating a coordinate reference system object. For information on other supported coordinate reference systems refer to [the "common data types" documentation.](https://developer.seequent.com/docs/api/fundamentals/common-data-types#coordinate-reference-systems) |
-| `evo_workspace_metadata` | (Optional) Evo workspace metadata.  |
-| `service_manager_widget` | (Optional) Service Manager Widget for use in Jupyter notebooks. |
-| `tags` | (Optional) Key value pair list of metadata tags to attach to the geoscience object. |
-| `upload_path` | (Optional) Path objects will be published under.  Defaults to the root of the workspace. |
+| Parameter                | Description                                                                                                                                                                                                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filepath`               | Path to the OMF file.                                                                                                                                                                                                                                                                           |
+| `epsg_code`              | The EPSG code to use when creating a coordinate reference system object. For information on other supported coordinate reference systems refer to [the "common data types" documentation.](https://developer.seequent.com/docs/api/fundamentals/common-data-types#coordinate-reference-systems) |
+| `evo_workspace_metadata` | (Optional) Evo workspace metadata.                                                                                                                                                                                                                                                              |
+| `service_manager_widget` | (Optional) Service Manager Widget for use in Jupyter notebooks.                                                                                                                                                                                                                                 |
+| `tags`                   | (Optional) Key value pair list of metadata tags to attach to the geoscience object.                                                                                                                                                                                                             |
+| `upload_path`            | (Optional) Path objects will be published under. Defaults to the root of the workspace.                                                                                                                                                                                                         |
 
 #### File parsing
 
 Both the OMF and RESQML converters use external libraries for parsing the file into usable Python objects by the
-converter function.  This will vary for different file types and in some cases file parsers may need to be developed
-from scratch.  Refer to OMF and RESQML converters for existing examples of this (`omf2` and `resqpy` respectively).
+converter function. This will vary for different file types and in some cases file parsers may need to be developed
+from scratch. Refer to OMF and RESQML converters for existing examples of this (`omf2` and `resqpy` respectively).
 
 #### Conversion to geoscience objects
 
 As observable in the example above, the top level convert function will then use specific conversion functions for
-each type of geoscience data.  As with file parsing, the specific method for conversion will vary depending on the
-data source.  All these functions should return an Evo supported geoscience object type ready for upload to Evo.
+each type of geoscience data. As with file parsing, the specific method for conversion will vary depending on the
+data source. All these functions should return an Evo supported geoscience object type ready for upload to Evo.
 For the point set example, this will be `Pointset_V1_2_0`.
 
 ### Exporter
@@ -263,19 +306,20 @@ Refer to [evo_to_omf.py](../omf/src/evo/data_converters/omf/exporter/evo_to_omf.
 
 #### Parameters
 
-| Parameter          | Description  |
-|---------------|--------|
-| `filepath`  | Path of the OMF file to create. |
-| `objects`        | List of `EvoObjectMetadata` objects containing the UUID and version of the Evo objects to export. |
-| `omf_metadata` | (Optional) Project metadata to embed in the OMF file. |
-| `evo_workspace_metadata` | (Optional) Evo workspace metadata. |
-| `service_manager_widget` | (Optional) `ServiceManagerWidget` for use in notebooks. |
+| Parameter                | Description                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `filepath`               | Path of the OMF file to create.                                                                   |
+| `objects`                | List of `EvoObjectMetadata` objects containing the UUID and version of the Evo objects to export. |
+| `omf_metadata`           | (Optional) Project metadata to embed in the OMF file.                                             |
+| `evo_workspace_metadata` | (Optional) Evo workspace metadata.                                                                |
+| `service_manager_widget` | (Optional) `ServiceManagerWidget` for use in notebooks.                                           |
 
 ## Code of conduct
 
 We rely on an open, friendly, inclusive environment. To help us ensure this remains possible, please familiarise yourself with our [code of conduct.](https://github.com/SeequentEvo/evo-data-converters/blob/main/CODE_OF_CONDUCT.md)
 
 ## License
+
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
 Copyright © 2026 Bentley Systems, Incorporated.
