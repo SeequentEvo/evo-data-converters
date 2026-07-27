@@ -102,6 +102,7 @@ def convert_ubc(
     overwrite_existing_objects: bool = False,
     *,
     coordinate_reference_system: str | int | None = None,
+    progress_callback: Callable[[str, int], None] | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts UBC files into Geoscience Objects.
 
@@ -114,6 +115,7 @@ def convert_ubc(
     :param publish_objects: (Optional) Set False to return rather than publish objects.
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
     :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+    :param progress_callback: (Optional) Callable invoked with a status message and percentage (0-100) to report conversion progress.
 
     Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
@@ -130,6 +132,9 @@ def convert_ubc(
     :raise UBCInvalidDataError: If an error was detected within the UBC file.
     :raise UBCOOMError: If out of memory error occurred while handling the UBC file.
     """
+
+    if progress_callback is not None:
+        progress_callback("Loading UBC parameters", 10)
 
     if (
         epsg_code is not None
@@ -168,9 +173,14 @@ def convert_ubc(
             epsg_code=epsg_code,
             coordinate_reference_system=coordinate_reference_system,
             tags=tags,
+            progress_callback=progress_callback,
         )
     else:
-        geoscience_object = utils.get_geoscience_object_from_ubc(data_client, files_path, crs, tags)
+        geoscience_object = utils.get_geoscience_object_from_ubc(data_client, files_path, crs, tags, progress_callback=progress_callback)
+
+
+    if progress_callback is not None:
+        progress_callback("UBC conversion complete, publishing results", 90)
 
     geoscience_objects = [geoscience_object]
     objects_metadata = None

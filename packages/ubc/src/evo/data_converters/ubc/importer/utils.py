@@ -96,6 +96,7 @@ def get_geoscience_object_from_ubc(
     *,
     epsg_code: Optional[int] = None,
     coordinate_reference_system: Optional[dict] = None,
+    progress_callback: Callable[[str, int], None] | None = None,
 ) -> Tensor3DGrid_V1_2_0:
     ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
     name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
@@ -111,7 +112,15 @@ def get_geoscience_object_from_ubc(
 
     n_blocks = size_of_dimensions[0] * size_of_dimensions[1] * size_of_dimensions[2]
     numerical_values = {}
+    number_of_files = len(ubc_numeric_values_files)
+    current_file_index = 0
     for value_file in ubc_numeric_values_files:
+
+        current_file_index += 1
+        if progress_callback is not None:
+            progress = int((current_file_index / number_of_files) * 70) + 10
+            progress_callback(f"Processing file {current_file_index} of {number_of_files}", progress)
+
         values = UBCPropertyFileImporter(value_file).execute(n_blocks, size_of_dimensions)
         numerical_values[os.path.splitext(os.path.basename(value_file))[0]] = values
 
