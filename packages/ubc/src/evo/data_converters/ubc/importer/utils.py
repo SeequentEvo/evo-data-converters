@@ -115,7 +115,6 @@ def get_geoscience_object_from_ubc(
     number_of_files = len(ubc_numeric_values_files)
     current_file_index = 0
     for value_file in ubc_numeric_values_files:
-
         current_file_index += 1
         if progress_callback is not None:
             progress = int((current_file_index / number_of_files) * 70) + 10

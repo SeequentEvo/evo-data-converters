@@ -176,8 +176,9 @@ def convert_ubc(
             progress_callback=progress_callback,
         )
     else:
-        geoscience_object = utils.get_geoscience_object_from_ubc(data_client, files_path, crs, tags, progress_callback=progress_callback)
-
+        geoscience_object = utils.get_geoscience_object_from_ubc(
+            data_client, files_path, crs, tags, progress_callback=progress_callback
+        )
 
     if progress_callback is not None:
         progress_callback("UBC conversion complete, publishing results", 90)

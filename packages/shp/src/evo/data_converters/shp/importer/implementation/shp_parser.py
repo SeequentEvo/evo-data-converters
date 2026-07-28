@@ -17,7 +17,8 @@ from evo.data_converters.shp.importer.implementation.mesh_builder import MeshBui
 from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1
 from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
+
 
 class ShpParser:
     """
@@ -106,7 +107,6 @@ class ShpParser:
                     current_shape += 1
                     progress = int((current_shape / total_shapes) * 70) + 10
                     self.progress_callback(f"Parsing shape {current_shape} of {total_shapes}", progress)
-
 
                 mesh_builder.add_shape_record(shape_record)
 
