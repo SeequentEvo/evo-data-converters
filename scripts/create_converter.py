@@ -1,9 +1,12 @@
+import argparse
 from datetime import date
 from pathlib import Path
 
 from copier import run_copy
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+EXPORT_CHOICES = ("Import only", "Import and Export")
 
 # ANSI escape codes for prettier terminal output.
 _BOLD = "\033[1m"
@@ -18,8 +21,38 @@ def _success(message: str) -> None:
     print(f"  {_GREEN}✓{_RESET} {message}")
 
 
-def main():
-    worker = run_copy("scripts/converter_template", "packages", {"year": date.today().year})
+def _parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="create-converter",
+        description=(
+            "Scaffold a new Evo data converter package and register it in the "
+            "Makefile, README.md, and root pyproject.toml."
+        ),
+    )
+    parser.add_argument(
+        "--converter-type",
+        help="Short, lowercase format name (e.g. obj, shp, xyz). Becomes the package and module name.",
+    )
+    parser.add_argument(
+        "--export-support",
+        choices=EXPORT_CHOICES,
+        help="Whether the converter supports exporting as well as importing.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = _parse_args(argv)
+
+    data = {"year": date.today().year}
+    if args.converter_type is not None:
+        data["converter_type"] = args.converter_type
+    if args.export_support is not None:
+        data["export_support"] = args.export_support
+
+    # When all answers are supplied on the command line, run without prompting.
+    non_interactive = args.converter_type is not None and args.export_support is not None
+    worker = run_copy("scripts/converter_template", "packages", data, defaults=non_interactive)
 
     converter_name = worker.answers.combined["converter_type"]
 

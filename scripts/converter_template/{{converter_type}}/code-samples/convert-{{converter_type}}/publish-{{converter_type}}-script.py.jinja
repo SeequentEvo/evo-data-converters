@@ -32,6 +32,15 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--no-publish",
+    action="store_false",
+    dest="publish",
+    default=True,
+    help="Build the Geoscience object(s) locally without publishing them to Evo. "
+    "Useful for trying the converter without credentials.",
+)
+
+parser.add_argument(
     "--cache-dir",
     help="Local directory to store processed files. If it doesn't exist it will be created. Defaults to a temporary directory if not provided.",
 )
@@ -99,7 +108,7 @@ if args.redirect_url:
 
 logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
 
-# Convert {{converter_type.upper()}} file, if a hub_url was provided above the objects will be published
+# Convert {{converter_type.upper()}} file. If --no-publish is not set and a hub_url is available, the objects will be published.
 results = convert_{{converter_type}}(
     filepath=args.filename,
     evo_workspace_metadata=workspace_metadata,
@@ -107,6 +116,7 @@ results = convert_{{converter_type}}(
     tags=tags,
     upload_path=args.upload_path,
     overwrite_existing_objects=args.overwrite_existing_objects,
+    publish_objects=args.publish,
 )
 
 # Results will either be a list of BaseSpatialDataProperties_V1_0_1 if not published, or a list of ObjectMetadata if they were published

@@ -112,6 +112,14 @@ uv run pre-commit install
 See [`evo-data-converters-common`'s readme](packages/common/README.md) for information on how to work on the Evo data
 converters, including both importers and exporters, and how to extend this library and build your own.
 
+### Building a converter with AI assistance
+
+This repository ships AI helpers that guide an agent through building a new converter end to end:
+discovery, scaffolding, mapping data to Evo geoscience objects, and testing. Any agent that reads
+[`AGENTS.md`](AGENTS.md) can follow the workflow; the detailed, phase-by-phase instructions live in
+[`.github/skills/`](.github/skills). Start with the `build-evo-converter` skill (or `AGENTS.md`) and
+follow the linked phase skills.
+
 ## Code of conduct
 
 We rely on an open, friendly, inclusive environment. To help us ensure this remains possible, please familiarise yourself with our [code of conduct.](./CODE_OF_CONDUCT.md)
