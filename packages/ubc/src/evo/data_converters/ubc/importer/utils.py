@@ -10,7 +10,7 @@
 #  limitations under the License.
 
 import os
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy
 import pyarrow as pa

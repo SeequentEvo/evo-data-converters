@@ -12,7 +12,7 @@
 import asyncio
 from collections import defaultdict
 from pathlib import PurePosixPath
-from typing import TYPE_CHECKING, Optional
+from typing import Callable, TYPE_CHECKING, Optional
 import warnings
 
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1_OgcWkt
