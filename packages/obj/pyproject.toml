@@ -54,4 +54,5 @@ pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
 replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/obj/\g<2>)'
 
 [tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 tinyobjloader = { git = "https://github.com/tinyobjloader/tinyobjloader.git" }

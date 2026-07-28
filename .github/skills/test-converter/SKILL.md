@@ -52,8 +52,8 @@ Replace the two placeholder files once the reader and builder are implemented.
 
 ```shell
 make test-<type>              # runs pytest for packages/<type>/tests
-uv run ruff check packages/<type>
-uv run mypy packages/<type>
+make lint                     # ruff check + format over the repo
+cd packages/common && uv run --only-dev mypy ../<type>
 ```
 
 Iterate until all three are clean. When you change behaviour, update the tests in the same pass.

@@ -72,12 +72,11 @@ packages/<type>/src/evo/data_converters/<type>/
 ## Key commands
 
 ```shell
-uv sync --all-packages --all-extras   # set up the workspace
-uv run create-converter               # scaffold a new converter (interactive)
-uv sync                               # install the newly generated package
+cd packages/<type> && uv sync         # install a converter package and its deps
+make create-converter                 # scaffold a new converter (interactive; runs from packages/common)
 make test-<type>                      # run the new converter's tests
-uv run ruff check                     # lint (line length 120)
-uv run mypy packages/<type>           # type check
+make lint                             # lint the repo (ruff, line length 120)
+cd packages/common && uv run --only-dev mypy ../<type>   # type check a converter
 ```
 
 ## Framework APIs (from `evo.data_converters.common`)

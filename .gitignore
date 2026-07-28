@@ -127,13 +127,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# uv lock files (packages are distributable libraries; locks are not committed)
+uv.lock
+
 # Custom
 .idea
 query_results.parquet
 .cache_ggshield
 
 # Object data client caches
-samples/data-converters/python/convert-omf/data/cache
 data/cache
 
 # Development tools

@@ -17,7 +17,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python 3.10, 3.11, or 3.12
+- Python 3.10, 3.11, or 3.12
 
 ## Installation
 
@@ -36,21 +36,22 @@ This framework (`evo.data_converters.common`) can be used to build custom data c
 data.
 
 For an existing set of supported data converters, see:
-* [DUF](../duf/README.md)
-* [GOCAD](../gocad/README.md)
-* [Image](../image/README.md)
-* [OBJ](../obj/README.md)
-* [OMF](../omf/README.md)
-* [RESQML](../resqml/README.md)
-* [SHP](../shp/README.md)
-* [UBC](../ubc/README.md)
-* [VTK](../vtk/README.md)
-* [XYZ](../xyz/README.md)
+
+- [DUF](../duf/README.md)
+- [GOCAD](../gocad/README.md)
+- [Image](../image/README.md)
+- [OBJ](../obj/README.md)
+- [OMF](../omf/README.md)
+- [RESQML](../resqml/README.md)
+- [SHP](../shp/README.md)
+- [UBC](../ubc/README.md)
+- [VTK](../vtk/README.md)
+- [XYZ](../xyz/README.md)
 
 Data converters can be optionally both an importer and an exporter.
 
-* The importer will load data into Seequent Evo.
-* The exporter will export data from Seequent Evo into the designated file format.
+- The importer will load data into Seequent Evo.
+- The exporter will export data from Seequent Evo into the designated file format.
 
 There are examples of both in the OMF converter.
 
@@ -67,10 +68,11 @@ New converters can be created to support additional data file types. The easiest
 
 To work on your local version of the data converters module, first follow the directions in [Setting up your environment.](https://github.com/seequentevo/evo-data-converters/blob/main/README.md)
 
-In the root directory of the project run:
+Each converter package is installed independently. Change into the package you want to work on and run:
 
 ```shell
-uv sync --all-packages --all-extras
+cd packages/<converter>
+uv sync
 ```
 
 ### Creating a new converter with the CLI
@@ -81,8 +83,11 @@ converter package from a template so you can focus on the format-specific conver
 From the root directory of the project run:
 
 ```shell
-uv run create-converter
+make create-converter
 ```
+
+This runs the CLI ([`scripts/create_converter.py`](scripts/create_converter.py)) from within
+`packages/common`, where its `copier` dependency lives (in the `dev` dependency group).
 
 You will be prompted for:
 
@@ -95,8 +100,7 @@ The CLI then:
 
 - Creates a new package under `packages/<type>/` with the standard `importer/` (and `exporter/`, if selected) layout,
   code samples, and tests.
-- Registers the package in the workspace by updating the root `Makefile` (adding a `test-<type>` target),
-  `README.md`, and `pyproject.toml`.
+- Registers the package by updating the root `Makefile` (adding a `test-<type>` target) and `README.md`.
 
 The generated `convert_<type>` and `export_<type>` functions follow the conventions described below, with the
 format-specific parts left as `TODO` comments that raise `NotImplementedError`. These are the places where you add your
@@ -106,7 +110,7 @@ implement in each file.
 After generating a converter:
 
 ```shell
-# Install the new package into the workspace
+# Install the new package (run from packages/<type>)
 uv sync
 
 # Run the generated tests for your converter
@@ -127,6 +131,7 @@ converter packages that build on the "common" library:
 ├── vtk/
 └── README.md
 ```
+
 Expanding this out, each converter type contains an `importer` directory, an `exporter` directory (if supported), and
 any other utility modules specific to this converter type:
 

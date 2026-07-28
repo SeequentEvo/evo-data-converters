@@ -21,30 +21,29 @@ later.
 
 ## 2. Run the generator
 
-From the repository root, run the CLI interactively:
+From the repository root, run the CLI interactively via the Makefile:
 
 ```shell
-uv run create-converter
+make create-converter
 ```
 
-The CLI (see [`scripts/create_converter.py`](../../../scripts/create_converter.py)) prompts for
-`converter_type` and `export_support`, runs the copier template in
-[`scripts/converter_template`](../../../scripts/converter_template), then updates the root
-`Makefile` (adds a `test-<type>` target), `README.md` (package table + code-samples list), and
-`pyproject.toml` (workspace dependency + `[tool.uv.sources]` entry).
+The CLI (see [`packages/common/scripts/create_converter.py`](../../../packages/common/scripts/create_converter.py))
+prompts for `converter_type` and `export_support`, runs the copier template in
+[`packages/common/scripts/converter_template`](../../../packages/common/scripts/converter_template), then updates the
+root `Makefile` (adds a `test-<type>` target) and `README.md` (package table + code-samples list).
 
-To run it non-interactively (recommended for agents), pass both answers as flags:
+To run it non-interactively (recommended for agents), pass both answers as flags via `ARGS`:
 
 ```shell
-uv run create-converter --converter-type <type> --export-support "Import only"
+make create-converter ARGS="--converter-type <type> --export-support 'Import only'"
 ```
 
 `--export-support` accepts `Import only` or `Import and Export`. When both flags are supplied,
-the CLI skips all prompts and still performs the Makefile/README/pyproject registrations.
+the CLI skips all prompts and still performs the Makefile/README registrations.
 
-> **Always** scaffold with `uv run create-converter`. Do **not** call `copier` directly — the
-> raw copier command only renders the template and skips the Makefile/README/pyproject
-> registrations that the CLI's `main()` applies, leaving the workspace inconsistent.
+> **Always** scaffold with `make create-converter`. Do **not** call `copier` directly — the
+> raw copier command only renders the template and skips the Makefile/README
+> registrations that the CLI's `main()` applies, leaving the repository inconsistent.
 
 ## 3. Install the new package
 
@@ -64,7 +63,7 @@ Confirm the package and its wiring exist:
 - Registration applied:
   ```shell
   grep -n "test-<type>" Makefile
-  grep -n "evo-data-converters-<type>" README.md pyproject.toml
+  grep -n "evo-data-converters-<type>" README.md
   ```
 - The generated tests pass out of the box (they assert the stubs raise `NotImplementedError`):
   ```shell

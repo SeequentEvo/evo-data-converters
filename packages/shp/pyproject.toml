@@ -43,7 +43,7 @@ include = ["src"]
 packages = ["src/evo"]
 
 [tool.uv.sources]
-evo-data-converters-common = { workspace = true }
+evo-data-converters-common = { path = "../common", editable = true }
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"

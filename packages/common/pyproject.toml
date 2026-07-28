@@ -5,9 +5,7 @@ version = "0.3.3"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
-authors = [
-    { name = "Seequent", email = "support@seequent.com" }
-]
+authors = [{ name = "Seequent", email = "support@seequent.com" }]
 
 dependencies = [
     "aiohttp",
@@ -31,13 +29,42 @@ Documentation = "https://developer.seequent.com/"
 [dependency-groups]
 dev = [
     "pytest>=8.2",
-    "ruff",
+    "ruff==0.9.1",    # keep in sync with .pre-commit-config.yaml
     "requests-mock",
+    "mypy",
+    "pre-commit>=4",
+    "copier>=9.16.0", # used by the create-converter scaffolding CLI (scripts/)
 ]
 
 [tool.ruff]
 src = ["src", "tests"]
 line-length = 120
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".git-rewrite",
+    ".mypy_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "venv",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP006"]
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_ignores = true
 
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
