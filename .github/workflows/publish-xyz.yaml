@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           uv sync
-          uv build --package evo-data-converters-xyz --out-dir dist
+          uv build packages/xyz --out-dir dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
