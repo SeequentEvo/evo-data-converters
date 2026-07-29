@@ -4,7 +4,13 @@ from evo.data_converters.duf.importer import convert_duf
 from evo.data_converters.duf.importer.utils import ResolveObjectNameOption
 
 
-async def convert_duf_to_evo(filepath: str, epsg_code: int, upload_path: str, manager, layers: list[str] | None = None):
+async def convert_duf_to_evo(
+    filepath: str,
+    epsg_code: int,
+    upload_path: str,
+    manager,
+    layers: list[str] | None = None,
+):
     """
     Convert the provided DUF file and publish objects to Evo.
 
