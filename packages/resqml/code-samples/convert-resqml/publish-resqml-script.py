@@ -31,9 +31,7 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "--all-grid-cells",
-    action="store_true",
-    help="Convert all grid cells rather than just the active cells",
+    "--all-grid-cells", action="store_true", help="Convert all grid cells rather than just the active cells"
 )
 parser.add_argument(
     "--corner-points-array-threshold",

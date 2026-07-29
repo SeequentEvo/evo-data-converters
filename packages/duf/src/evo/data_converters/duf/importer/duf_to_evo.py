@@ -43,10 +43,7 @@ if TYPE_CHECKING:
 
 CONVERTERS = {dw.Polyface: convert_duf_polyface, dw.Polyline: convert_duf_polyline}
 
-COMBINING_CONVERTERS = {
-    dw.Polyface: combine_duf_polyfaces,
-    dw.Polyline: combine_duf_polylines,
-}
+COMBINING_CONVERTERS = {dw.Polyface: combine_duf_polyfaces, dw.Polyline: combine_duf_polylines}
 
 
 def _validate_entity(entity: dw.Polyface | dw.Polyline) -> bool:
@@ -217,8 +214,7 @@ async def convert_duf(
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
     object_service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata=evo_workspace_metadata,
-        service_manager_widget=service_manager_widget,
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
     had_stage = ("Stage" in tags) if tags is not None else False
@@ -250,10 +246,7 @@ async def convert_duf(
                 f"Requested layers not found in DUF file: {unmatched}. Available layers: {available_layers}"
             )
 
-    options = ConvertOptions(
-        combined=combine_objects_in_layers,
-        resolve_object_name=resolve_object_name,
-    )
+    options = ConvertOptions(combined=combine_objects_in_layers, resolve_object_name=resolve_object_name)
     if not combine_objects_in_layers:
         geoscience_objects = _convert_duf_objects(collector, data_client, crs, tags, options, layers)
     else:

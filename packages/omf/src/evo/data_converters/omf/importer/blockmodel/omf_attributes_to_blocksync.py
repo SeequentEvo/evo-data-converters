@@ -67,24 +67,12 @@ def convert_blockmodel_attribute(
         indices, null_mask = reader.array_indices(attribute_data.values)
         names = reader.array_names(attribute_data.names)
         index_names = [None if null_mask[i] else names[value] for i, value in enumerate(indices)]
-        return pa.Table.from_arrays(
-            [pa.array(index_names)],
-            schema=pa.schema(
-                [
-                    (attribute_name, pa.string()),
-                ]
-            ),
-        )
+        return pa.Table.from_arrays([pa.array(index_names)], schema=pa.schema([(attribute_name, pa.string())]))
 
     elif isinstance(attribute_data, omf2.AttributeDataBoolean):
         booleans, null_mask = reader.array_booleans(attribute_data.values)
         return pa.Table.from_arrays(
-            [pa.array(booleans, mask=null_mask)],
-            schema=pa.schema(
-                [
-                    (attribute_name, pa.bool_()),
-                ]
-            ),
+            [pa.array(booleans, mask=null_mask)], schema=pa.schema([(attribute_name, pa.bool_())])
         )
 
     elif isinstance(attribute_data, omf2.AttributeDataNumber):
@@ -92,31 +80,17 @@ def convert_blockmodel_attribute(
         match numbers.dtype:
             case dtype if dtype == np.dtype("datetime64[D]"):
                 return pa.Table.from_arrays(
-                    [pa.array(numbers, mask=null_mask)],
-                    schema=pa.schema(
-                        [
-                            (attribute_name, pa.date32()),
-                        ]
-                    ),
+                    [pa.array(numbers, mask=null_mask)], schema=pa.schema([(attribute_name, pa.date32())])
                 )
 
             case dtype if is_datetime64_dtype(dtype):
                 return pa.Table.from_arrays(
                     [pa.array(numbers, mask=null_mask)],
-                    schema=pa.schema(
-                        [
-                            (attribute_name, pa.timestamp("us", tz="UTC")),
-                        ]
-                    ),
+                    schema=pa.schema([(attribute_name, pa.timestamp("us", tz="UTC"))]),
                 )
             case _:
                 return pa.Table.from_arrays(
-                    [pa.array(numbers, mask=null_mask)],
-                    schema=pa.schema(
-                        [
-                            (attribute_name, pa.float64()),
-                        ]
-                    ),
+                    [pa.array(numbers, mask=null_mask)], schema=pa.schema([(attribute_name, pa.float64())])
                 )
 
     else:

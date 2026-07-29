@@ -61,12 +61,7 @@ class TestTimeSeriesConverter(TestCase):
         self.model_file = model_file
 
         # Add a grid
-        self.grid = rqg.RegularGrid(
-            self.model,
-            title="test_grid",
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        self.grid = rqg.RegularGrid(self.model, title="test_grid", extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         self.grid.write_hdf5()
         self.grid.create_xml(
             add_relationships=False, write_active=False, write_geometry=False, add_cell_length_properties=False

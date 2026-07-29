@@ -122,10 +122,7 @@ def test_convert_attributes_unsupported_data_types(array: npt.NDArray) -> None:
 
 @pytest.mark.parametrize(
     "grid_is_filtered, expected_values",
-    [
-        pytest.param(False, [1, None, 3], id="not_filtered"),
-        pytest.param(True, [1, 3], id="filtered"),
-    ],
+    [pytest.param(False, [1, None, 3], id="not_filtered"), pytest.param(True, [1, 3], id="filtered")],
 )
 def test_convert_attributes_with_mask(grid_is_filtered: bool, expected_values: list[int | None]) -> None:
     vtk_data = vtk.vtkDataSetAttributes()
@@ -148,10 +145,7 @@ def test_convert_attributes_with_mask(grid_is_filtered: bool, expected_values: l
 
 @pytest.mark.parametrize(
     "grid_is_filtered, expected_values",
-    [
-        pytest.param(False, [0, None, 1, None, 0], id="not_filtered"),
-        pytest.param(True, [0, 1, 0], id="filtered"),
-    ],
+    [pytest.param(False, [0, None, 1, None, 0], id="not_filtered"), pytest.param(True, [0, 1, 0], id="filtered")],
 )
 def test_convert_string_attributes_with_mask(grid_is_filtered: bool, expected_values: list[int | None]) -> None:
     vtk_data = vtk.vtkDataSetAttributes()

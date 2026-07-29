@@ -154,39 +154,25 @@ class DUFWrapper:
 
     def LoadDocInternal(self, dufGuidReferences):
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.Document,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.Document, item),
+            dw.Category.Document, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.Document, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.Layers,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.Layers, item),
+            dw.Category.Layers, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.Layers, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.LineTypes,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.LineTypes, item),
+            dw.Category.LineTypes, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.LineTypes, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.Images,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.Images, item),
+            dw.Category.Images, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.Images, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.TextStyles,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.TextStyles, item),
+            dw.Category.TextStyles, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.TextStyles, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.DimStyles,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.DimStyles, item),
+            dw.Category.DimStyles, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.DimStyles, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.Blocks,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.Blocks, item),
+            dw.Category.Blocks, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.Blocks, item)
         )
         self.LoadTopLevelEntitiesOfType(
             dw.Category.HatchPatterns,
@@ -194,14 +180,10 @@ class DUFWrapper:
             lambda item: self._collector.Loaded(dw.Category.HatchPatterns, item),
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.Lights,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.Lights, item),
+            dw.Category.Lights, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.Lights, item)
         )
         self.LoadTopLevelEntitiesOfType(
-            dw.Category.Palette,
-            dufGuidReferences,
-            lambda item: self._collector.Loaded(dw.Category.Palette, item),
+            dw.Category.Palette, dufGuidReferences, lambda item: self._collector.Loaded(dw.Category.Palette, item)
         )
 
     def LoadTopLevelEntitiesOfType(self, category, dufGuidReferences, callback):

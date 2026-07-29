@@ -15,13 +15,8 @@ from uuid import UUID
 
 import pyarrow as pa
 
-from evo.common.test_tools import (
-    TestWithConnector,
-    TestWithStorage,
-)
-from evo.data_converters.common import (
-    EvoWorkspaceMetadata,
-)
+from evo.common.test_tools import TestWithConnector, TestWithStorage
+from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.objects.parquet import ParquetLoader
 
 

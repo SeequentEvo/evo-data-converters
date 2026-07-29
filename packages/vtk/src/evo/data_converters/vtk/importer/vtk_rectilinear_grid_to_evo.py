@@ -74,10 +74,7 @@ def get_vtk_rectilinear_grid(rectilinear_grid: vtk.vtkRectilinearGrid) -> Tensor
 
 
 def convert_vtk_rectilinear_grid(
-    name: str,
-    rectilinear_grid: vtk.vtkRectilinearGrid,
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
+    name: str, rectilinear_grid: vtk.vtkRectilinearGrid, data_client: ObjectDataClient, crs: Crs_V1_0_1
 ) -> Tensor3DGrid_V1_2_0:
     cell_data, mask, vertex_data, origin, size, x_spacings, y_spacings, z_spacings = _extract_vtk_data(rectilinear_grid)
 
@@ -94,9 +91,7 @@ def convert_vtk_rectilinear_grid(
         origin=origin,
         size=list(size),
         grid_cells_3d=Tensor3DGrid_V1_2_0_GridCells3D(
-            cell_sizes_x=list(x_spacings),
-            cell_sizes_y=list(y_spacings),
-            cell_sizes_z=list(z_spacings),
+            cell_sizes_x=list(x_spacings), cell_sizes_y=list(y_spacings), cell_sizes_z=list(z_spacings)
         ),
         rotation=Rotation_V1_1_0(dip_azimuth=0.0, dip=0.0, pitch=0.0),  # Rectilinear grids don't have rotation
         cell_attributes=cell_attributes,

@@ -17,9 +17,7 @@ import pyarrow as pa
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk
 
-_dtype_names = {
-    pa.float64(): "float64",
-}
+_dtype_names = {pa.float64(): "float64"}
 
 
 class MockDataClient:
@@ -44,11 +42,7 @@ class MockDataClient:
         else:
             data_type = column_types[0]
 
-        return {
-            "data": table_id,
-            "length": len(column),
-            "data_type": data_type,
-        }
+        return {"data": table_id, "length": len(column), "data_type": data_type}
 
 
 def add_ghost_value(vtk_data: vtk.vtkDataSet, geometry: int, ghost_value: int, index: int = 3) -> None:

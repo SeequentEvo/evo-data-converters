@@ -98,9 +98,4 @@ for obj_str in args.object:
 
 omf_metadata = OMFMetadata(name=args.name, revision=args.revision, description=args.description)
 
-export_omf(
-    args.filename,
-    objects=objects,
-    omf_metadata=omf_metadata,
-    evo_workspace_metadata=workspace_metadata,
-)
+export_omf(args.filename, objects=objects, omf_metadata=omf_metadata, evo_workspace_metadata=workspace_metadata)

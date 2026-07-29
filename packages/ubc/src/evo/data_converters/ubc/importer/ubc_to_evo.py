@@ -149,16 +149,14 @@ def convert_ubc(
         crs = crs_from_any(coordinate_reference_system)
     elif epsg_code is not None:
         warnings.warn(
-            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.",
-            DeprecationWarning,
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
         )
         crs = crs_from_epsg_code(epsg_code)
     else:
         crs = crs_from_any(coordinate_reference_system)
 
     object_service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata=evo_workspace_metadata,
-        service_manager_widget=service_manager_widget,
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
     if isinstance(coordinate_reference_system, dict) or epsg_code is not None:
@@ -177,11 +175,7 @@ def convert_ubc(
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
         objects_metadata = _publish_ubc_objects_sync(
-            geoscience_objects,
-            object_service_client,
-            data_client,
-            upload_path,
-            overwrite_existing_objects,
+            geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 
     return objects_metadata if objects_metadata else geoscience_objects

@@ -108,10 +108,7 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
     omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
     go_objects = convert_omf(
-        filepath=omf_file,
-        evo_workspace_metadata=metadata,
-        coordinate_reference_system=input_crs,
-        publish_objects=False,
+        filepath=omf_file, evo_workspace_metadata=metadata, coordinate_reference_system=input_crs, publish_objects=False
     )
     assert all(obj.coordinate_reference_system == expected_crs for obj in go_objects)
 

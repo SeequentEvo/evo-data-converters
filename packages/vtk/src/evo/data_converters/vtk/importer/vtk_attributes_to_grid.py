@@ -25,47 +25,29 @@ logger = evo.logging.getLogger("data_converters")
 
 
 def _create_continuous_attribute(
-    name: str,
-    array: vtk.vtkAbstractArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
+    name: str, array: vtk.vtkAbstractArray, mask: npt.NDArray[np.bool_] | None, grid_is_filtered: bool
 ) -> Dict[str, Any]:
     values = vtk_to_numpy(array)
     # Convert to float64, as Geoscience Objects only support float64 for continuous attributes
     table = create_table(values, mask, grid_is_filtered, np.float64)
-    return dict(
-        name=name,
-        values=table,
-    )
+    return dict(name=name, values=table)
 
 
 def _create_integer_attribute(
-    name: str,
-    array: vtk.vtkAbstractArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
+    name: str, array: vtk.vtkAbstractArray, mask: npt.NDArray[np.bool_] | None, grid_is_filtered: bool
 ) -> Dict[str, Any]:
     values = vtk_to_numpy(array)
     # Convert to int32 or int64
     dtype = np.int64 if values.dtype in [np.uint32, np.int64] else np.int32
     table = create_table(values, mask, grid_is_filtered, dtype)
-    return dict(
-        name=name,
-        values=table,
-    )
+    return dict(name=name, values=table)
 
 
-_numpy_dtype_for_pyarrow_type = {
-    pa.int32(): np.int32,
-    pa.int64(): np.int64,
-}
+_numpy_dtype_for_pyarrow_type = {pa.int32(): np.int32, pa.int64(): np.int64}
 
 
 def _create_categorical_attribute(
-    name: str,
-    array: vtk.vtkStringArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
+    name: str, array: vtk.vtkStringArray, mask: npt.NDArray[np.bool_] | None, grid_is_filtered: bool
 ) -> Dict[str, Any]:
     values = [array.GetValue(i) for i in range(array.GetNumberOfValues())]
     arrow_array = pa.array(values, mask=~mask if mask is not None else None)
@@ -84,17 +66,11 @@ def _create_categorical_attribute(
     )
 
     values_table = pa.table({"values": indices})
-    return dict(
-        name=name,
-        table=lookup_table,
-        values=values_table,
-    )
+    return dict(name=name, table=lookup_table, values=values_table)
 
 
 def convert_attributes_for_grid(
-    vtk_data: vtk.vtkDataSetAttributes,
-    mask: npt.NDArray[np.bool_] | None = None,
-    grid_is_filtered: bool = False,
+    vtk_data: vtk.vtkDataSetAttributes, mask: npt.NDArray[np.bool_] | None = None, grid_is_filtered: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Convert VTK attributes to Geoscience Objects attributes.

@@ -143,14 +143,7 @@ class AttributeSpec:
         ]
 
     def _double_to_go(self, data_client: ObjectDataClient, values: list[numpy.floating | None]):
-        table = pa.table(
-            [values],
-            schema=pa.schema(
-                [
-                    pa.field("n0", pa.float64()),
-                ]
-            ),
-        )
+        table = pa.table([values], schema=pa.schema([pa.field("n0", pa.float64())]))
         table = data_client.save_table(table)
         return ContinuousAttribute_V1_1_0(
             name=self.evo_name,
@@ -166,20 +159,9 @@ class AttributeSpec:
 
         match self.attr_type:
             case AttributeType.String if len(category_set) > 3_000:
-                table = pa.table(
-                    [values],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", pa.string()),
-                        ]
-                    ),
-                )
+                table = pa.table([values], schema=pa.schema([pa.field("n0", pa.string())]))
                 table = data_client.save_table(table)
-                return StringAttribute_V1_1_0(
-                    name=self.evo_name,
-                    key=self.name,
-                    values=StringArray_V1_0_1(**table),
-                )
+                return StringAttribute_V1_1_0(name=self.evo_name, key=self.name, values=StringArray_V1_0_1(**table))
             case AttributeType.String | AttributeType.Category:
                 options = category_set if self.options is None else self.options
 
@@ -193,22 +175,12 @@ class AttributeSpec:
                 lookup_keys_type = _lookup_pyarrow_type(len(options))
                 lookup_table = pa.table(
                     [list(reverse_lookup.values()), list(reverse_lookup.keys())],
-                    schema=pa.schema(
-                        [
-                            pa.field("key", lookup_keys_type),
-                            pa.field("value", pa.string()),
-                        ]
-                    ),
+                    schema=pa.schema([pa.field("key", lookup_keys_type), pa.field("value", pa.string())]),
                 )
                 lookup_table = data_client.save_table(lookup_table)
 
                 values_table = pa.table(
-                    [[reverse_lookup[value] for value in values]],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", lookup_keys_type),
-                        ]
-                    ),
+                    [[reverse_lookup[value] for value in values]], schema=pa.schema([pa.field("n0", lookup_keys_type)])
                 )
                 values_table = data_client.save_table(values_table)
 
@@ -227,14 +199,7 @@ class AttributeSpec:
                     return self._double_to_go(data_client, doubles)
                 nan_values = [max((v for v in values if v is not None), default=-1) + 1]
                 data_type = _lookup_pyarrow_type(nan_values[0])
-                table = pa.table(
-                    [values],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", data_type),
-                        ]
-                    ),
-                )
+                table = pa.table([values], schema=pa.schema([pa.field("n0", data_type)]))
                 column = table.column(0)
                 if column.null_count:
                     table = table.set_column(0, "n0", column.fill_null(nan_values[0]))
@@ -285,14 +250,7 @@ class AttributeSpec:
                                 nan_values = [i]
                                 break
 
-                table = pa.table(
-                    [timestamps],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", pa.timestamp("us", tz="UTC")),
-                        ]
-                    ),
-                )
+                table = pa.table([timestamps], schema=pa.schema([pa.field("n0", pa.timestamp("us", tz="UTC"))]))
                 if any_null:
                     table = table.set_column(0, "n0", table.column(0).fill_null(nan_values[0]))
 
@@ -304,20 +262,9 @@ class AttributeSpec:
                     nan_description=NanCategorical_V1_0_1(values=nan_values),
                 )
             case AttributeType.Boolean:
-                table = pa.table(
-                    [values],
-                    schema=pa.schema(
-                        [
-                            pa.field("n0", pa.bool_()),
-                        ]
-                    ),
-                )
+                table = pa.table([values], schema=pa.schema([pa.field("n0", pa.bool_())]))
                 table = data_client.save_table(table)
-                return BoolAttribute_V1_1_0(
-                    name=self.evo_name,
-                    key=self.name,
-                    values=BoolArray1_V1_0_1(**table),
-                )
+                return BoolAttribute_V1_1_0(name=self.evo_name, key=self.name, values=BoolArray1_V1_0_1(**table))
             case _:
                 logger.warning(
                     f"Skipping unsupported DUF attribute data type '{self.attr_type.name}' for attribute '{self.name}'."
@@ -377,16 +324,9 @@ def get_name(obj: dw.BaseEntity, include_layer: bool) -> str:
 
 def vertices_array_to_go_and_bbox(data_client, vertices_array, table_klass):
     bounding_box_go = vertices_bounding_box(vertices_array)
-    vertices_schema = pa.schema(
-        [
-            pa.field("x", pa.float64()),
-            pa.field("y", pa.float64()),
-            pa.field("z", pa.float64()),
-        ]
-    )
+    vertices_schema = pa.schema([pa.field("x", pa.float64()), pa.field("y", pa.float64()), pa.field("z", pa.float64())])
     vertices_table = pa.Table.from_arrays(
-        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))],
-        schema=vertices_schema,
+        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))], schema=vertices_schema
     )
     return table_klass(**data_client.save_table(vertices_table)), bounding_box_go
 
@@ -395,8 +335,7 @@ def indices_array_to_go(data_client, indices_array, table_klass):
     width = indices_array.shape[1]
     indices_schema = pa.schema([pa.field(f"n{i}", pa.uint64()) for i in range(width)])
     indices_table = pa.Table.from_arrays(
-        [pa.array(indices_array[:, i], type=pa.uint64()) for i in range(width)],
-        schema=indices_schema,
+        [pa.array(indices_array[:, i], type=pa.uint64()) for i in range(width)], schema=indices_schema
     )
     return table_klass(**data_client.save_table(indices_table))
 
@@ -417,10 +356,7 @@ def parts_to_go(
         else:
             part_attributes_go = None
 
-        return parts_klass(
-            chunks=chunks_go,
-            attributes=part_attributes_go,
-        )
+        return parts_klass(chunks=chunks_go, attributes=part_attributes_go)
     return None
 
 
@@ -525,10 +461,7 @@ class ResolveObjectNameContext:
 
     @classmethod
     def make_context(cls, entity: dw.BaseEntity, options: ConvertOptions) -> ResolveObjectNameContext:
-        result = cls(
-            combined=options.combined,
-            entity=entity,
-        )
+        result = cls(combined=options.combined, entity=entity)
         result.entity_type  # Accessing `object_type` ensures the entity is valid
         return result
 

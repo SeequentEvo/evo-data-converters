@@ -66,12 +66,7 @@ def convert_downhole_intervals_for_trajectory(
     try:
         for frame in trajectory.iter_wellbore_frames():
             dhi = _downhole_intervals_for_wellbore_frame(
-                model=model,
-                wellboreframe=frame,
-                trajectory=trajectory,
-                prefix=prefix,
-                crs=crs,
-                data_client=data_client,
+                model=model, wellboreframe=frame, trajectory=trajectory, prefix=prefix, crs=crs, data_client=data_client
             )
             if isinstance(dhi, DownholeIntervals):
                 downhole_intervals_go.append(dhi)
@@ -136,11 +131,7 @@ def _downhole_intervals_for_wellbore_frame(
     table = pa.Table.from_pandas(intervals_df, schema=schema)
     float_array_args = data_client.save_table(table)
     from_to_interval_depths_go = FloatArray2.from_dict(float_array_args)
-    intervals_from_to = IntervalTable_FromTo(
-        intervals=Intervals(
-            start_and_end=from_to_interval_depths_go,
-        )
-    )
+    intervals_from_to = IntervalTable_FromTo(intervals=Intervals(start_and_end=from_to_interval_depths_go))
 
     # Build locations: start, end, and points in-between
     start_locations = _get_depth_locations(start_depths, trajectory, data_client)
@@ -210,10 +201,7 @@ def _build_hole_ids_for_wellbore_frame(wellboreframe: rqw.WellboreFrame, data_cl
     table = pa.Table.from_pandas(data_df, schema=schema)
     int_array_args = data_client.save_table(table)
     int_array_go = IntegerArray1.from_dict(int_array_args)
-    return CategoryData(
-        table=lookup_table_go,
-        values=int_array_go,
-    )
+    return CategoryData(table=lookup_table_go, values=int_array_go)
 
 
 def _get_depth_locations(

@@ -11,12 +11,7 @@
 
 import omf2
 import pyarrow as pa
-from evo_schemas.components import (
-    Segments_V1_2_0,
-    Segments_V1_2_0_Indices,
-    Segments_V1_2_0_Vertices,
-    Crs_V1_0_1,
-)
+from evo_schemas.components import Segments_V1_2_0, Segments_V1_2_0_Indices, Segments_V1_2_0_Vertices, Crs_V1_0_1
 from evo_schemas.objects import LineSegments_V2_1_0
 
 import evo.logging
@@ -40,19 +35,12 @@ def convert_omf_lineset(
 
     bounding_box_go = vertices_bounding_box(vertices_array)
 
-    vertices_schema = pa.schema(
-        [
-            pa.field("x", pa.float64()),
-            pa.field("y", pa.float64()),
-            pa.field("z", pa.float64()),
-        ]
-    )
+    vertices_schema = pa.schema([pa.field("x", pa.float64()), pa.field("y", pa.float64()), pa.field("z", pa.float64())])
 
     segment_indices_schema = pa.schema([pa.field("n0", pa.uint64()), pa.field("n1", pa.uint64())])
 
     vertices_table = pa.Table.from_arrays(
-        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))],
-        schema=vertices_schema,
+        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))], schema=vertices_schema
     )
 
     segment_indices_table = pa.Table.from_arrays(

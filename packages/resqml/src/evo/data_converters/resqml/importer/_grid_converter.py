@@ -49,11 +49,7 @@ logger = evo.logging.getLogger("data_converters.resqml")
 
 
 def convert_grid(
-    model: Model,
-    grid: Grid,
-    epsg_code: int,
-    options: RESQMLConversionOptions,
-    data_client: ObjectDataClient,
+    model: Model, grid: Grid, epsg_code: int, options: RESQMLConversionOptions, data_client: ObjectDataClient
 ) -> UnstructuredHexGrid:
     """Convert a resqpy Grid object to an Evo UnstructuredHexGrid
 
@@ -412,11 +408,7 @@ def _build_integer_attribute(
     va = data_client.save_table(table)
     int_array = IntegerArray.from_dict(va)
 
-    return IntegerAttribute(
-        name=name,
-        values=int_array,
-        nan_description=NanCategorical(values=[]),
-    )
+    return IntegerAttribute(name=name, values=int_array, nan_description=NanCategorical(values=[]))
 
 
 def _get_metadata(grid: Grid, options: RESQMLConversionOptions) -> dict[str, dict[str, str | dict[str, str]]]:

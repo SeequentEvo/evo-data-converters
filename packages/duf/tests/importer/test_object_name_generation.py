@@ -12,12 +12,7 @@ def _custom_name_resolver(context: ResolveObjectNameContext) -> str:
     return f"{'|'.join(context.layers)} - {context.entity_type} - combined={context.combined} - {str(context.entity.Guid)[:6]}"
 
 
-expected_combined_default = {
-    "LINELAYER - polylines",
-    "MIXED - polylines",
-    "FACELAYER - polyfaces",
-    "MIXED - polyfaces",
-}
+expected_combined_default = {"LINELAYER - polylines", "MIXED - polylines", "FACELAYER - polyfaces", "MIXED - polyfaces"}
 
 expected_combined_concat = expected_names = {
     "0 - LINELAYER - polylines",

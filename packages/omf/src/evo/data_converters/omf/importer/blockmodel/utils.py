@@ -108,11 +108,7 @@ def get_max_depth(subblocks_count: list[int]) -> npt.NDArray[np.int_]:
     ny = subblocks_count[1]
     nz = subblocks_count[2]
     return np.array(
-        [
-            round(math.log(nx) / math.log(2)),
-            round(math.log(ny) / math.log(2)),
-            round(math.log(nz) / math.log(2)),
-        ]
+        [round(math.log(nx) / math.log(2)), round(math.log(ny) / math.log(2)), round(math.log(nz) / math.log(2))]
     )
 
 

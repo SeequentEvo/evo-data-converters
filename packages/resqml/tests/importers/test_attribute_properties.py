@@ -189,15 +189,13 @@ class TestConvertAttributeProperties(TestCase):
     def test_convert_discrete_property_with_masked_data(self) -> None:
         idx_valid = np.random.choice([True, False], self.grid.extent_kji)
         self.assertLess(
-            self.discrete_property.array_ref(masked=True)[idx_valid].size,
-            self.discrete_property.array_ref().size,
+            self.discrete_property.array_ref(masked=True)[idx_valid].size, self.discrete_property.array_ref().size
         )
         go = convert_discrete_property(self.discrete_property, self.data_client, idx_valid)
         self.assertIsInstance(go, IntegerAttribute)
         self.assertEqual(go.name, self.discrete_property.title)
         self.check_data_is_valid(
-            self.discrete_property.array_ref(masked=True)[idx_valid],
-            self.get_data_from_parquet_file(go.values.data),
+            self.discrete_property.array_ref(masked=True)[idx_valid], self.get_data_from_parquet_file(go.values.data)
         )
 
     def test_convert_discrete_property_with_masked_data_and_null_values(self) -> None:
@@ -206,15 +204,13 @@ class TestConvertAttributeProperties(TestCase):
         self.discrete_property.array_ref()[0][0][0] = self.DISCRETE_NULL_VALUE
         idx_valid[1] = True
         self.assertLess(
-            self.discrete_property.array_ref(masked=True)[idx_valid].size,
-            self.discrete_property.array_ref().size,
+            self.discrete_property.array_ref(masked=True)[idx_valid].size, self.discrete_property.array_ref().size
         )
         go = convert_discrete_property(self.discrete_property, self.data_client, idx_valid)
         self.assertIsInstance(go, IntegerAttribute)
         self.assertEqual(go.name, self.discrete_property.title)
         self.check_data_is_valid(
-            self.discrete_property.array_ref(masked=True)[idx_valid],
-            self.get_data_from_parquet_file(go.values.data),
+            self.discrete_property.array_ref(masked=True)[idx_valid], self.get_data_from_parquet_file(go.values.data)
         )
         null_value = self.discrete_property.array_ref()[0][0][0]
         self.assertEqual(self.DISCRETE_NULL_VALUE, null_value)
@@ -236,8 +232,7 @@ class TestConvertAttributeProperties(TestCase):
     def test_convert_continuous_property_with_masked_data(self) -> None:
         idx_valid = np.random.choice([True, False], self.grid.extent_kji)
         self.assertLess(
-            self.continuous_property.array_ref(masked=True)[idx_valid].size,
-            self.continuous_property.array_ref().size,
+            self.continuous_property.array_ref(masked=True)[idx_valid].size, self.continuous_property.array_ref().size
         )
         go = convert_continuous_property(self.continuous_property, self.data_client, idx_valid)
         self.assertIsInstance(go, ContinuousAttribute)
@@ -252,8 +247,7 @@ class TestConvertAttributeProperties(TestCase):
         idx_valid[1] = True
         self.continuous_property.array_ref()[0][0][0] = np.NaN
         self.assertLess(
-            self.continuous_property.array_ref(masked=True)[idx_valid].size,
-            self.continuous_property.array_ref().size,
+            self.continuous_property.array_ref(masked=True)[idx_valid].size, self.continuous_property.array_ref().size
         )
         go = convert_continuous_property(self.continuous_property, self.data_client, idx_valid)
         self.assertIsInstance(go, ContinuousAttribute)
@@ -287,15 +281,13 @@ class TestConvertAttributeProperties(TestCase):
     def test_categorical_property_with_masked_data(self) -> None:
         idx_valid = np.random.choice([True, False], self.grid.extent_kji)
         self.assertLess(
-            self.categorical_property.array_ref(masked=True)[idx_valid].size,
-            self.categorical_property.array_ref().size,
+            self.categorical_property.array_ref(masked=True)[idx_valid].size, self.categorical_property.array_ref().size
         )
         go = convert_categorical_property(self.model, self.categorical_property, self.data_client, idx_valid)
         self.assertIsInstance(go, CategoryAttribute)
         self.assertEqual(go.name, self.categorical_property.title)
         self.check_data_is_valid(
-            self.categorical_property.array_ref(masked=True)[idx_valid],
-            self.get_data_from_parquet_file(go.values.data),
+            self.categorical_property.array_ref(masked=True)[idx_valid], self.get_data_from_parquet_file(go.values.data)
         )
         self.check_lookup_table_is_valid(
             self.categorical_property_lookup_df, self.get_data_from_parquet_file(go.table.data)
@@ -306,15 +298,13 @@ class TestConvertAttributeProperties(TestCase):
         idx_valid[1] = True
         self.categorical_property.array_ref()[0][0][0] = self.CATEGORICAL_NULL_VALUE
         self.assertLess(
-            self.categorical_property.array_ref(masked=True)[idx_valid].size,
-            self.categorical_property.array_ref().size,
+            self.categorical_property.array_ref(masked=True)[idx_valid].size, self.categorical_property.array_ref().size
         )
         go = convert_categorical_property(self.model, self.categorical_property, self.data_client, idx_valid)
         self.assertIsInstance(go, CategoryAttribute)
         self.assertEqual(go.name, self.categorical_property.title)
         self.check_data_is_valid(
-            self.categorical_property.array_ref(masked=True)[idx_valid],
-            self.get_data_from_parquet_file(go.values.data),
+            self.categorical_property.array_ref(masked=True)[idx_valid], self.get_data_from_parquet_file(go.values.data)
         )
         self.check_lookup_table_is_valid(
             self.categorical_property_lookup_df, self.get_data_from_parquet_file(go.table.data)
@@ -343,8 +333,7 @@ class TestConvertAttributeProperties(TestCase):
     def test_convert_points_property_with_masked_data(self) -> None:
         idx_valid = np.random.choice([True, False], self.grid.extent_kji)
         self.assertLess(
-            self.points_property.array_ref(masked=True)[idx_valid].size,
-            self.points_property.array_ref().size,
+            self.points_property.array_ref(masked=True)[idx_valid].size, self.points_property.array_ref().size
         )
         go = convert_points_property(self.points_property, self.data_client, idx_valid)
         self.assertIsInstance(go, VectorAttribute)
@@ -358,8 +347,7 @@ class TestConvertAttributeProperties(TestCase):
         idx_valid[1, 1, 1] = True
         self.points_property.array_ref()[0][0][0] = (np.NaN, np.NaN, np.NaN)
         self.assertLess(
-            self.points_property.array_ref(masked=True)[idx_valid].size,
-            self.points_property.array_ref().size,
+            self.points_property.array_ref(masked=True)[idx_valid].size, self.points_property.array_ref().size
         )
         go = convert_points_property(self.points_property, self.data_client, idx_valid)
         self.assertIsInstance(go, VectorAttribute)

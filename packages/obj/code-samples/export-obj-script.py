@@ -96,10 +96,4 @@ for obj_str in args.object:
 # NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
 nest_asyncio.apply()
 
-asyncio.run(
-    export_obj(
-        args.filename,
-        objects=objects,
-        evo_workspace_metadata=workspace_metadata,
-    )
-)
+asyncio.run(export_obj(args.filename, objects=objects, evo_workspace_metadata=workspace_metadata))

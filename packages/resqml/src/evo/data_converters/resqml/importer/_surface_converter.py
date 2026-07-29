@@ -113,9 +113,7 @@ def convert_surface(
 
 
 def _convert_attributes(
-    model: Model,
-    surface: Surface,
-    data_client: ObjectDataClient,
+    model: Model, surface: Surface, data_client: ObjectDataClient
 ) -> tuple[OneOfAttribute, OneOfAttribute, OneOfAttribute]:
     """Convert the surface properties to the corresponding Evo Geoscience objects
 
@@ -256,13 +254,7 @@ def _build_vertices(
     :return: An Evo TrianglesVertices object
 
     """
-    schema = pa.schema(
-        [
-            ("x", pa.float64()),
-            ("y", pa.float64()),
-            ("z", pa.float64()),
-        ]
-    )
+    schema = pa.schema([("x", pa.float64()), ("y", pa.float64()), ("z", pa.float64())])
     table = pa.Table.from_arrays([vertices[:, 0], vertices[:, 1], vertices[:, 2]], schema=schema)
     go = data_client.save_table(table)
     tv = TrianglesVertices.from_dict(go)
@@ -281,21 +273,8 @@ def _build_indices(indices: npt.NDArray[np.intp], data_client: ObjectDataClient,
     :return: An Evo TrianglesIndices object
 
     """
-    schema = pa.schema(
-        [
-            ("n0", pa.uint64()),
-            ("n1", pa.uint64()),
-            ("n2", pa.uint64()),
-        ]
-    )
-    table = pa.Table.from_arrays(
-        [
-            indices[:, 0],
-            indices[:, 1],
-            indices[:, 2],
-        ],
-        schema=schema,
-    )
+    schema = pa.schema([("n0", pa.uint64()), ("n1", pa.uint64()), ("n2", pa.uint64())])
+    table = pa.Table.from_arrays([indices[:, 0], indices[:, 1], indices[:, 2]], schema=schema)
     go = data_client.save_table(table)
     ti = TrianglesIndices.from_dict(go)
     ti.attributes = attributes

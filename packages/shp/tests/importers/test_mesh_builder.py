@@ -64,7 +64,7 @@ def triangle_strip(tmp_path: Path) -> tuple[shapefile.Reader, int, int, int]:
                     [3, 0, 1],
                     [0, 0, 0],
                     [0, 0, 1],
-                ],  # Triangle Strip
+                ]  # Triangle Strip
             ],
             [shapefile.TRIANGLE_STRIP],
         )

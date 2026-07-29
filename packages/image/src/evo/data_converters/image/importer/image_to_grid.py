@@ -464,9 +464,7 @@ class ImageGridConverter:
                 if gdal_metadata:
                     gdal_metadata_text = str(gdal_metadata)
                     srs_match = re.search(
-                        r'<Item[^>]*name="SRS"[^>]*>(.*?)</Item>',
-                        gdal_metadata_text,
-                        flags=re.DOTALL,
+                        r'<Item[^>]*name="SRS"[^>]*>(.*?)</Item>', gdal_metadata_text, flags=re.DOTALL
                     )
                     if srs_match:
                         wkt_candidate = self._extract_wkt_candidate_from_text(srs_match.group(1))
@@ -492,10 +490,7 @@ class ImageGridConverter:
         return None
 
     def _extract_embedded_georeferencing(
-        self,
-        image_path: str,
-        width: int,
-        height: int,
+        self, image_path: str, width: int, height: int
     ) -> Optional[dict[str, list[float]]]:
         """Try to extract origin and cell size from embedded GeoTIFF metadata.
 
@@ -521,8 +516,7 @@ class ImageGridConverter:
                 transform = src.transform
                 if transform.b != 0 or transform.d != 0:
                     logger.warning(
-                        "GeoTIFF has rotated/sheared transform; using default origin/cell_size for '%s'",
-                        image_path,
+                        "GeoTIFF has rotated/sheared transform; using default origin/cell_size for '%s'", image_path
                     )
                     return None
 
@@ -537,11 +531,7 @@ class ImageGridConverter:
 
                 origin = [float(bounds.left), float(bounds.bottom), 0.0]
                 cell_size = [dx, dy]
-                logger.info(
-                    "Detected embedded GeoTIFF georeferencing origin=%s cell_size=%s",
-                    origin,
-                    cell_size,
-                )
+                logger.info("Detected embedded GeoTIFF georeferencing origin=%s cell_size=%s", origin, cell_size)
                 return {"origin": origin, "cell_size": cell_size}
         except Exception as e:  # pragma: no cover - defensive parsing path
             logger.debug(f"Failed to read embedded GeoTIFF georeferencing from '{image_path}': {e}")
@@ -615,10 +605,7 @@ class ImageGridConverter:
 
         if image_mode == "grayscale":
             # Grayscale continuous attribute
-            attribute_description = AttributeDescription_V1_0_1(
-                discipline="Imagery",
-                type="Grayscale Intensity",
-            )
+            attribute_description = AttributeDescription_V1_0_1(discipline="Imagery", type="Grayscale Intensity")
 
             nan_description = NanContinuous_V1_0_1(values=[-1.0000000331813535e32, -1e32])
 
@@ -642,11 +629,7 @@ class ImageGridConverter:
             }
             color_values = ColorArray_V1_0_1.from_dict(color_array_args)
 
-            attribute = ColorAttribute_V1_1_0(
-                name="2d-grid-data-color",
-                key=data_hash,
-                values=color_values,
-            )
+            attribute = ColorAttribute_V1_1_0(name="2d-grid-data-color", key=data_hash, values=color_values)
             return attribute
 
     def convert(
@@ -778,8 +761,7 @@ def convert_image_to_grid(
     if publish_objects:
         # Online path: real Evo clients (requires credentials)
         object_service_client, data_client = create_evo_object_service_and_data_client(
-            evo_workspace_metadata=evo_workspace_metadata,
-            service_manager_widget=service_manager_widget,
+            evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
         )
     else:
         # Offline path: local stub (no credentials); still writes a local parquet and computes hash
@@ -816,11 +798,7 @@ def convert_image_to_grid(
             obj.as_dict = as_dict_remove_none_uuid
 
         objects_metadata = publish_geoscience_objects_sync(
-            geoscience_objects,
-            object_service_client,
-            data_client,
-            upload_path,
-            overwrite_existing_objects,
+            geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
         return objects_metadata
 

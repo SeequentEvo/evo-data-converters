@@ -14,12 +14,7 @@ from typing import Optional
 
 import numpy
 import pyarrow as pa
-from evo_schemas.components import (
-    ContinuousAttribute_V1_1_0,
-    Crs_V1_0_1_OgcWkt,
-    NanContinuous_V1_0_1,
-    Rotation_V1_1_0,
-)
+from evo_schemas.components import ContinuousAttribute_V1_1_0, Crs_V1_0_1_OgcWkt, NanContinuous_V1_0_1, Rotation_V1_1_0
 from evo_schemas.elements import FloatArray1_V1_0_1
 from evo_schemas.objects import Tensor3DGrid_V1_2_0, Tensor3DGrid_V1_2_0_GridCells3D
 

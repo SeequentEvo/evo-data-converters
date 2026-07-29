@@ -117,12 +117,7 @@ class TestConverter(TestCase):
         self.assertEqual(expected_triangle_mesh_go, triangle_mesh_go)
 
         expected_bounding_box = BoundingBox_V1_0_1(
-            min_x=100.0,
-            max_x=100.0,
-            min_y=100.0,
-            max_y=100.0,
-            min_z=-50.0,
-            max_z=-50.0,
+            min_x=100.0, max_x=100.0, min_y=100.0, max_y=100.0, min_z=-50.0, max_z=-50.0
         )
         self.assertAlmostEqual(expected_bounding_box.min_x, triangle_mesh_go.bounding_box.min_x)
         self.assertAlmostEqual(expected_bounding_box.max_x, triangle_mesh_go.bounding_box.max_x)

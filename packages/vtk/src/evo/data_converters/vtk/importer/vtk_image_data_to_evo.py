@@ -82,10 +82,7 @@ def get_vtk_image_data(image_data: vtk.vtkImageData) -> RegularGridData:
 
 
 def convert_vtk_image_data(
-    name: str,
-    image_data: vtk.vtkImageData,
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
+    name: str, image_data: vtk.vtkImageData, data_client: ObjectDataClient, crs: Crs_V1_0_1
 ) -> Regular3DGrid_V1_2_0 | RegularMasked3DGrid_V1_2_0:
     """Convert a vtkImageData object to a Regular3DGrid or RegularMasked3DGrid object, depending on whether the
     vtkImageData object has any blanked cells.
@@ -98,9 +95,7 @@ def convert_vtk_image_data(
 
         cell_attributes = convert_attributes(cell_data, data_client, mask=mask, grid_is_filtered=True)
         mask_attributes = BoolAttribute_V1_1_0(
-            name="mask",
-            key="mask",
-            values=BoolArray1_V1_0_1(**data_client.save_table(pa.table({"mask": mask}))),
+            name="mask", key="mask", values=BoolArray1_V1_0_1(**data_client.save_table(pa.table({"mask": mask})))
         )
         return RegularMasked3DGrid_V1_2_0(
             **common_fields(name, crs, image_data),

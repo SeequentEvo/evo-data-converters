@@ -39,12 +39,7 @@ def test_convert_attributes_with_float_data(dtype: np.dtype) -> None:
     vtk_data.AddArray(array)
 
     data_client = MagicMock()
-    data_client.save_table.return_value = {
-        "data": uuid.uuid4(),
-        "length": 3,
-        "width": 1,
-        "data_type": "float64",
-    }
+    data_client.save_table.return_value = {"data": uuid.uuid4(), "length": 3, "width": 1, "data_type": "float64"}
 
     result = convert_attributes(vtk_data, data_client)
     assert len(result) == 1
@@ -73,12 +68,7 @@ def test_convert_attributes_with_int_data(input_dtype: np.dtype, go_dtype: pa.Da
     vtk_data.AddArray(array)
 
     data_client = MagicMock()
-    data_client.save_table.return_value = {
-        "data": uuid.uuid4(),
-        "length": 3,
-        "width": 1,
-        "data_type": str(go_dtype),
-    }
+    data_client.save_table.return_value = {"data": uuid.uuid4(), "length": 3, "width": 1, "data_type": str(go_dtype)}
 
     result = convert_attributes(vtk_data, data_client)
     assert len(result) == 1
@@ -129,10 +119,7 @@ def test_convert_attributes_unsupported_data_types(array: npt.NDArray) -> None:
 
 @pytest.mark.parametrize(
     "grid_is_filtered, expected_values",
-    [
-        pytest.param(False, [1, None, 3], id="not_filtered"),
-        pytest.param(True, [1, 3], id="filtered"),
-    ],
+    [pytest.param(False, [1, None, 3], id="not_filtered"), pytest.param(True, [1, 3], id="filtered")],
 )
 def test_convert_attributes_with_mask(grid_is_filtered: bool, expected_values: list[int | None]) -> None:
     vtk_data = vtk.vtkDataSetAttributes()
@@ -141,12 +128,7 @@ def test_convert_attributes_with_mask(grid_is_filtered: bool, expected_values: l
     vtk_data.AddArray(array)
 
     data_client = MagicMock()
-    data_client.save_table.return_value = {
-        "data": uuid.uuid4(),
-        "length": 2,
-        "width": 1,
-        "data_type": "int32",
-    }
+    data_client.save_table.return_value = {"data": uuid.uuid4(), "length": 2, "width": 1, "data_type": "int32"}
 
     result = convert_attributes(vtk_data, data_client, np.array([True, False, True]), grid_is_filtered=grid_is_filtered)
     assert len(result) == 1
@@ -159,10 +141,7 @@ def test_convert_attributes_with_mask(grid_is_filtered: bool, expected_values: l
 
 @pytest.mark.parametrize(
     "grid_is_filtered, expected_values",
-    [
-        pytest.param(False, [0, None, 1, None, 0], id="not_filtered"),
-        pytest.param(True, [0, 1, 0], id="filtered"),
-    ],
+    [pytest.param(False, [0, None, 1, None, 0], id="not_filtered"), pytest.param(True, [0, 1, 0], id="filtered")],
 )
 def test_convert_string_attributes_with_mask(grid_is_filtered: bool, expected_values: list[int | None]) -> None:
     vtk_data = vtk.vtkDataSetAttributes()

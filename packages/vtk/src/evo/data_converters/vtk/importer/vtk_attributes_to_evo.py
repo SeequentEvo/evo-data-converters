@@ -69,10 +69,7 @@ def _create_integer_attribute(
     )
 
 
-_numpy_dtype_for_pyarrow_type = {
-    pa.int32(): np.int32,
-    pa.int64(): np.int64,
-}
+_numpy_dtype_for_pyarrow_type = {pa.int32(): np.int32, pa.int64(): np.int64}
 
 
 def _create_categorical_attribute(

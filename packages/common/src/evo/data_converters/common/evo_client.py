@@ -60,10 +60,7 @@ async def _authorization_code_authorizer(
     authorizer = AuthorizationCodeAuthorizer(
         redirect_url=metadata.redirect_url,
         scopes=OAuthScopes.all_evo,
-        oauth_connector=OAuthConnector(
-            transport=transport,
-            client_id=metadata.client_id,
-        ),
+        oauth_connector=OAuthConnector(transport=transport, client_id=metadata.client_id),
     )
     await authorizer.login()
 
@@ -75,9 +72,7 @@ async def client_credentials_authorizer(
 ) -> ClientCredentialsAuthorizer:
     authorizer = ClientCredentialsAuthorizer(
         oauth_connector=OAuthConnector(
-            transport=transport,
-            client_id=metadata.client_id,
-            client_secret=metadata.client_secret,
+            transport=transport, client_id=metadata.client_id, client_secret=metadata.client_secret
         ),
         scopes=OAuthScopes.all_evo,
     )
@@ -146,11 +141,7 @@ def create_service_and_data_client_from_metadata(
 
     workspace_uuid = UUID(metadata.workspace_id) if metadata.workspace_id else metadata.workspace_id
 
-    environment = Environment(
-        hub_url=metadata.hub_url,
-        org_id=org_uuid,
-        workspace_id=workspace_uuid,
-    )
+    environment = Environment(hub_url=metadata.hub_url, org_id=org_uuid, workspace_id=workspace_uuid)
     service_client = ObjectAPIClient(environment, hub_connector)
     data_client = service_client.get_data_client(cache)
 

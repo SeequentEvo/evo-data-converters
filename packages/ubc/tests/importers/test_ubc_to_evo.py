@@ -152,8 +152,7 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
             "evo.data_converters.ubc.importer.ubc_to_evo.create_evo_object_service_and_data_client"
         ) as mock_create_client,
         patch(
-            "evo.data_converters.ubc.importer.utils.get_geoscience_object_from_ubc",
-            return_value=mock_geoscience_object,
+            "evo.data_converters.ubc.importer.utils.get_geoscience_object_from_ubc", return_value=mock_geoscience_object
         ) as mock_get_obj,
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
@@ -174,10 +173,4 @@ def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
 
     with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
-        convert_ubc(
-            files_path,
-            4326,
-            evo_workspace_metadata,
-            coordinate_reference_system=4326,
-            publish_objects=False,
-        )
+        convert_ubc(files_path, 4326, evo_workspace_metadata, coordinate_reference_system=4326, publish_objects=False)

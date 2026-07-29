@@ -101,10 +101,7 @@ def indices_from_polyface(dw_facelist) -> NDArray[np.uint64]:
 
 
 def combine_duf_polyfaces(
-    polyfaces: list[dw.Polyface],
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
-    options: ConvertOptions,
+    polyfaces: list[dw.Polyface], data_client: ObjectDataClient, crs: Crs_V1_0_1, options: ConvertOptions
 ) -> TriangleMesh_V2_1_0 | None:
     if not polyfaces:
         logger.warning("No polyfaces to combine.")
@@ -127,10 +124,7 @@ def combine_duf_polyfaces(
 
 
 def convert_duf_polyface(
-    polyface: dw.Polyface,
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
-    options: ConvertOptions,
+    polyface: dw.Polyface, data_client: ObjectDataClient, crs: Crs_V1_0_1, options: ConvertOptions
 ) -> TriangleMesh_V2_1_0:
     object_name = ResolveObjectNameContext.get_name(polyface, options)
     logger.debug(f'Converting polyface: "{object_name}" to TriangleMesh_V2_1_0.')

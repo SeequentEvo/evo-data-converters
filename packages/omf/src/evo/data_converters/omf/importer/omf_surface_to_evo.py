@@ -11,12 +11,7 @@
 
 import omf2
 import pyarrow as pa
-from evo_schemas.components import (
-    Triangles_V1_2_0,
-    Triangles_V1_2_0_Indices,
-    Triangles_V1_2_0_Vertices,
-    Crs_V1_0_1,
-)
+from evo_schemas.components import Triangles_V1_2_0, Triangles_V1_2_0_Indices, Triangles_V1_2_0_Vertices, Crs_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_1_0
 
 import evo.logging
@@ -41,24 +36,16 @@ def convert_omf_surface(
 
     bounding_box_go = vertices_bounding_box(vertices_array)
 
-    vertices_schema = pa.schema(
-        [
-            pa.field("x", pa.float64()),
-            pa.field("y", pa.float64()),
-            pa.field("z", pa.float64()),
-        ]
-    )
+    vertices_schema = pa.schema([pa.field("x", pa.float64()), pa.field("y", pa.float64()), pa.field("z", pa.float64())])
 
     indices_schema = pa.schema([pa.field("x", pa.uint64()), pa.field("y", pa.uint64()), pa.field("z", pa.uint64())])
 
     vertices_table = pa.Table.from_arrays(
-        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))],
-        schema=vertices_schema,
+        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))], schema=vertices_schema
     )
 
     indices_table = pa.Table.from_arrays(
-        [pa.array(indices_array[:, i], type=pa.uint64()) for i in range(len(indices_schema))],
-        schema=indices_schema,
+        [pa.array(indices_array[:, i], type=pa.uint64()) for i in range(len(indices_schema))], schema=indices_schema
     )
 
     vertex_attributes_go = convert_omf_attributes(surface, reader, data_client, omf2.Location.Vertices)

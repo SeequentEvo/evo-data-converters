@@ -11,6 +11,4 @@
 
 from .shp_to_evo import convert_shp
 
-__all__ = [
-    "convert_shp",
-]
+__all__ = ["convert_shp"]

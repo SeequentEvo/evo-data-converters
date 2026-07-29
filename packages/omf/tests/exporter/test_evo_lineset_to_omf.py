@@ -158,16 +158,10 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
         number_of_segments = 10
 
         chunks_schema = pa.schema(
-            [
-                pa.field("start_segment_index", pa.uint64()),
-                pa.field("number_of_segments", pa.uint64()),
-            ]
+            [pa.field("start_segment_index", pa.uint64()), pa.field("number_of_segments", pa.uint64())]
         )
         chunks_table = pa.Table.from_pydict(
-            {
-                "start_segment_index": [start_segment_index],
-                "number_of_segments": [number_of_segments],
-            },
+            {"start_segment_index": [start_segment_index], "number_of_segments": [number_of_segments]},
             schema=chunks_schema,
         )
         chunks_data = self.data_client.save_table(chunks_table)

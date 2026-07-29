@@ -27,13 +27,7 @@ class TestGeneratePaths(TestCase):
 
     def test_paths_are_generated(self) -> None:
         paths = generate_paths(self.go_objects)
-        expected_paths = [
-            "mypoints.json",
-            "mylines_1.json",
-            "mysurface.json",
-            "mypoints2.json",
-            "mylines_2.json",
-        ]
+        expected_paths = ["mypoints.json", "mylines_1.json", "mysurface.json", "mypoints2.json", "mylines_2.json"]
 
         self.assertEqual(expected_paths, paths)
 

@@ -45,14 +45,7 @@ def test_should_convert_duf_polyface_geometry(polyface_obj, data_client):
     )
     assert triangle_mesh_go == expected_triangle_mesh_go
 
-    expected_bounding_box = BoundingBox_V1_0_1(
-        min_x=0.0,
-        max_x=10.0,
-        min_y=0.0,
-        max_y=10.0,
-        min_z=0.0,
-        max_z=0.0,
-    )
+    expected_bounding_box = BoundingBox_V1_0_1(min_x=0.0, max_x=10.0, min_y=0.0, max_y=10.0, min_z=0.0, max_z=0.0)
     assert triangle_mesh_go.bounding_box == expected_bounding_box
 
     vertices_parquet_file = path.join(str(data_client.cache_location), triangle_mesh_go.triangles.vertices.data)
@@ -64,12 +57,7 @@ def test_should_convert_duf_polyface_geometry(polyface_obj, data_client):
     expected_vertices = np.array([[0.0, 0.0, 0.0], [0, 10.0, 0.0], [10.0, 0.0, 0.0], [10.0, 10.0, 0.0]])
     np.testing.assert_allclose(vertices.to_pandas(), expected_vertices)
 
-    expected_indices = np.array(
-        [
-            [1, 0, 2],
-            [2, 3, 1],
-        ]
-    )
+    expected_indices = np.array([[1, 0, 2], [2, 3, 1]])
     np.testing.assert_equal(indices.to_pandas(), expected_indices)
 
 
@@ -98,14 +86,7 @@ def test_combining_duf_polyface_geometry(multiple_objects, data_client):
     )
     assert triangle_mesh_go == expected_triangle_mesh_go
 
-    expected_bounding_box = BoundingBox_V1_0_1(
-        min_x=0.0,
-        max_x=10.0,
-        min_y=0.0,
-        max_y=30.0,
-        min_z=0.0,
-        max_z=0.0,
-    )
+    expected_bounding_box = BoundingBox_V1_0_1(min_x=0.0, max_x=10.0, min_y=0.0, max_y=30.0, min_z=0.0, max_z=0.0)
     assert triangle_mesh_go.bounding_box == expected_bounding_box
 
     assert triangle_mesh_go.parts is not None
@@ -122,12 +103,7 @@ def test_combining_duf_polyface_geometry(multiple_objects, data_client):
     indices = pq.read_table(indices_parquet_file)
 
     # Two chunks, each with 2 triangles
-    expected_chunks = np.array(
-        [
-            [0, 2],
-            [2, 2],
-        ]
-    )
+    expected_chunks = np.array([[0, 2], [2, 2]])
     np.testing.assert_equal(chunks.to_pandas(), expected_chunks)
 
     # Two polyfaces, each with two triangles, the second polyface has its vertices offset by 20 in Y
@@ -146,14 +122,7 @@ def test_combining_duf_polyface_geometry(multiple_objects, data_client):
     np.testing.assert_allclose(vertices.to_pandas(), expected_vertices)
 
     # The second polyface has its indices offset by 4 (the number of indices in the first polyface)
-    expected_indices = np.array(
-        [
-            [1, 0, 2],
-            [2, 3, 1],
-            [5, 4, 6],
-            [6, 7, 5],
-        ]
-    )
+    expected_indices = np.array([[1, 0, 2], [2, 3, 1], [5, 4, 6], [6, 7, 5]])
     np.testing.assert_equal(indices.to_pandas(), expected_indices)
 
 

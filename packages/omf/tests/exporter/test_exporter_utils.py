@@ -119,14 +119,7 @@ class TestIndexedData(PackedDataBaseTestCase):
     def test_indexed_data_with_attributes(self) -> None:
         indices = np.array([0, 2, 4])
         expected = [[0, 2], [5, 6], [45, 46]]
-        attributes = self.mock_attributes(
-            [
-                [1, 2, 3, 4, 5],
-                [0, 2, 4, 6, 8],
-                [1, 3, 5, 7, 9],
-                [5, 6, 7, 8, 9],
-            ]
-        )
+        attributes = self.mock_attributes([[1, 2, 3, 4, 5], [0, 2, 4, 6, 8], [1, 3, 5, 7, 9], [5, 6, 7, 8, 9]])
 
         indexed_data = IndexedData(data=self.vertices, indices=indices, attributes=attributes)
         result = indexed_data.unpack()

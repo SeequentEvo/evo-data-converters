@@ -18,10 +18,7 @@ import pytest
 
 from pathlib import Path
 
-from evo.data_converters.common import (
-    create_evo_object_service_and_data_client,
-    EvoWorkspaceMetadata,
-)
+from evo.data_converters.common import create_evo_object_service_and_data_client, EvoWorkspaceMetadata
 
 
 def pytest_ignore_collect(collection_path: Path, config) -> bool:
@@ -32,10 +29,7 @@ def pytest_ignore_collect(collection_path: Path, config) -> bool:
 @pytest.fixture(scope="session")
 def evo_metadata(tmp_path_factory):
     cache_root_dir = tmp_path_factory.mktemp("temp", numbered=False)
-    return EvoWorkspaceMetadata(
-        workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae",
-        cache_root=cache_root_dir.name,
-    )
+    return EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
 
 
 class TestDataClient:
@@ -79,7 +73,7 @@ def cleanup():
         # TODO Getting permission error when trying to clean these
         # os.path.join(test_dir, 'importer', 'temp'),
         # os.path.join(test_dir, 'exporter', 'temp'),
-        os.path.join(test_dir, "exporter", "test_out.duf"),
+        os.path.join(test_dir, "exporter", "test_out.duf")
     ]
 
     yield

@@ -119,9 +119,7 @@ def _update_readme(converter_name: str) -> None:
     )
     if package not in "".join(lines):
         lines = _insert_sorted(
-            lines,
-            new_line=table_row,
-            is_member=lambda line: line.startswith("| [evo-data-converters-"),
+            lines, new_line=table_row, is_member=lambda line: line.startswith("| [evo-data-converters-")
         )
 
     sample_line = f"   * [{converter_name.upper()}](packages/{converter_name}/code-samples)\n"

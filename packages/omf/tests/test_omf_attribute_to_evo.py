@@ -160,12 +160,7 @@ class TestOMFAttributeConverter(TestCase):
         dates_parquet_file = path.join(str(self.data_client.cache_location), attribute_go.values.data)
         dates = pq.read_table(dates_parquet_file)
 
-        expected_dates = [
-            "1995-05-01",
-            "1996-06-01",
-            "1997-07-01",
-            "1998-08-01",
-        ]
+        expected_dates = ["1995-05-01", "1996-06-01", "1997-07-01", "1998-08-01"]
         self.assertEqual(expected_dates, dates.column("data").to_pylist())
 
     def test_should_convert_omf_v2_f32_number_attribute(self) -> None:
@@ -477,12 +472,7 @@ class TestOMFAttributeConverter(TestCase):
         dates_parquet_file = path.join(str(self.data_client.cache_location), attribute_go.values.data)
         dates = pq.read_table(dates_parquet_file)
 
-        expected_dates = [
-            "1995-05-01",
-            "1996-06-01",
-            None,
-            "1998-08-01",
-        ]
+        expected_dates = ["1995-05-01", "1996-06-01", None, "1998-08-01"]
         self.assertEqual(expected_dates, dates.column("data").to_pylist())
 
     def test_should_convert_omf_v2_null_datetime_number_attribute(self) -> None:
@@ -598,12 +588,7 @@ class TestOMFAttributeConverter(TestCase):
 
         rgba_colors = list(map(int_to_rgba_optional, uint32_colors.column("data").to_pylist()))
 
-        expected_rgba_colors = [
-            [0, 0, 255, 255],
-            [0, 255, 0, 255],
-            None,
-            [255, 0, 0, 255],
-        ]
+        expected_rgba_colors = [[0, 0, 255, 255], [0, 255, 0, 255], None, [255, 0, 0, 255]]
         self.assertEqual(expected_rgba_colors, rgba_colors)
 
     def test_should_convert_omf_v2_2d_vector_attribute(self) -> None:

@@ -61,12 +61,7 @@ def check_for_ghosts(dataset: vtk.vtkDataSet) -> npt.NDArray[np.bool_] | None:
 
 def common_fields(name: str, crs: Crs_V1_0_1, dataset: vtk.vtkDataSet) -> dict:
     bounding_box = get_bounding_box(dataset)
-    return {
-        "name": name,
-        "coordinate_reference_system": crs,
-        "bounding_box": bounding_box,
-        "uuid": None,
-    }
+    return {"name": name, "coordinate_reference_system": crs, "bounding_box": bounding_box, "uuid": None}
 
 
 def is_float_array(array: vtk.vtkAbstractArray) -> bool:
@@ -93,10 +88,7 @@ def is_string_array(array: vtk.vtkAbstractArray) -> bool:
 
 
 def create_table(
-    values: npt.NDArray,
-    mask: npt.NDArray[np.bool_] | None,
-    grid_is_filtered: bool,
-    dtype: npt.DTypeLike,
+    values: npt.NDArray, mask: npt.NDArray[np.bool_] | None, grid_is_filtered: bool, dtype: npt.DTypeLike
 ) -> pa.Table:
     if grid_is_filtered and mask is not None:
         values = values[mask]

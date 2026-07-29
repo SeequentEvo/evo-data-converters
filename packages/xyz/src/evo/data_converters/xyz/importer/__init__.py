@@ -11,6 +11,4 @@
 
 from .xyz_main import convert_xyz
 
-__all__ = [
-    "convert_xyz",
-]
+__all__ = ["convert_xyz"]

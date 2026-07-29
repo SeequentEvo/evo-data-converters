@@ -26,11 +26,7 @@ from evo_schemas.components import (
     Crs_V1_0_1,
 )
 from evo_schemas.elements import IndexArray1_V1_0_1
-from evo_schemas.objects import (
-    UnstructuredGrid_V1_2_0,
-    UnstructuredHexGrid_V1_2_0,
-    UnstructuredTetGrid_V1_2_0,
-)
+from evo_schemas.objects import UnstructuredGrid_V1_2_0, UnstructuredHexGrid_V1_2_0, UnstructuredTetGrid_V1_2_0
 from vtk.util.numpy_support import vtk_to_numpy
 
 from evo.objects.utils.data import ObjectDataClient
@@ -73,14 +69,8 @@ def _create_tetrahedron_grid(
     return UnstructuredTetGrid_V1_2_0(
         **common_fields(name, crs, unstructured_grid),
         tetrahedra=Tetrahedra_V1_2_0(
-            vertices=Tetrahedra_V1_2_0_Vertices(
-                attributes=vertex_attributes,
-                **data_client.save_table(points_table),
-            ),
-            indices=Tetrahedra_V1_2_0_Indices(
-                attributes=cell_attributes,
-                **data_client.save_table(indices_tables),
-            ),
+            vertices=Tetrahedra_V1_2_0_Vertices(attributes=vertex_attributes, **data_client.save_table(points_table)),
+            indices=Tetrahedra_V1_2_0_Indices(attributes=cell_attributes, **data_client.save_table(indices_tables)),
         ),
     )
 
@@ -98,10 +88,7 @@ def _create_hexahedron_grid(
     return UnstructuredHexGrid_V1_2_0(
         **common_fields(name, crs, unstructured_grid),
         hexahedrons=Hexahedrons_V1_2_0(
-            vertices=Hexahedrons_V1_2_0_Vertices(
-                attributes=vertex_attributes,
-                **data_client.save_table(points_table),
-            ),
+            vertices=Hexahedrons_V1_2_0_Vertices(attributes=vertex_attributes, **data_client.save_table(points_table)),
             indices=Hexahedrons_V1_2_0_Indices(attributes=cell_attributes, **data_client.save_table(indices_tables)),
         ),
     )
@@ -124,11 +111,7 @@ def _create_generic_unstructured_grid(
 
     offsets = vtk_to_numpy(unstructured_grid.GetCells().GetOffsetsArray())
     cell_table = pa.table(
-        {
-            "shape": go_shapes,
-            "offset": offsets[:-1].astype("uint64"),
-            "n_vertices": np.diff(offsets).astype("int32"),
-        }
+        {"shape": go_shapes, "offset": offsets[:-1].astype("uint64"), "n_vertices": np.diff(offsets).astype("int32")}
     )
 
     index_array = vtk_to_numpy(unstructured_grid.GetCells().GetConnectivityArray())
@@ -148,10 +131,7 @@ def _create_generic_unstructured_grid(
 
 
 def convert_vtk_unstructured_grid(
-    name: str,
-    unstructured_grid: vtk.vtkUnstructuredGrid,
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
+    name: str, unstructured_grid: vtk.vtkUnstructuredGrid, data_client: ObjectDataClient, crs: Crs_V1_0_1
 ) -> UnstructuredGrid_V1_2_0 | UnstructuredHexGrid_V1_2_0 | UnstructuredTetGrid_V1_2_0:
     # Unstructured grids don't support blank cells/points, so no mask should be returned here.
     _ = check_for_ghosts(unstructured_grid)

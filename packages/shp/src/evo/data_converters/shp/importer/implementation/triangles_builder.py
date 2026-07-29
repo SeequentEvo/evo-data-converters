@@ -18,9 +18,7 @@ from evo_schemas.components import (
     Triangles_V1_2_0_Indices,
     Triangles_V1_2_0_Vertices,
 )
-from evo_schemas.elements import (
-    FloatArray1_V1_0_1,
-)
+from evo_schemas.elements import FloatArray1_V1_0_1
 
 
 class TrianglesBuilder:

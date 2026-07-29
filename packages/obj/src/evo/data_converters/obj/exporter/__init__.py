@@ -11,7 +11,4 @@
 
 from .evo_to_obj import UnsupportedObjectError, export_obj
 
-__all__ = [
-    "export_obj",
-    "UnsupportedObjectError",
-]
+__all__ = ["export_obj", "UnsupportedObjectError"]

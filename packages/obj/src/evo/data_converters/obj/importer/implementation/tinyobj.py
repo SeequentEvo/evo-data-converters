@@ -102,15 +102,9 @@ class TinyobjObjImporter(ObjImporterBase):
         indices_table_obj = self.data_client.save_table(indices_table)
         parts_table_obj = self.data_client.save_table(parts_table)
 
-        vertices_go = Triangles_V1_2_0_Vertices(
-            **vertices_table_obj,
-            attributes=None,
-        )
+        vertices_go = Triangles_V1_2_0_Vertices(**vertices_table_obj, attributes=None)
 
-        indices_go = Triangles_V1_2_0_Indices(
-            **indices_table_obj,
-            attributes=None,
-        )
+        indices_go = Triangles_V1_2_0_Indices(**indices_table_obj, attributes=None)
 
         chunks_go = IndexArray2_V1_0_1(**parts_table_obj)
         parts_go = EmbeddedTriangulatedMesh_V2_1_0_Parts(attributes=None, chunks=chunks_go, triangle_indices=None)

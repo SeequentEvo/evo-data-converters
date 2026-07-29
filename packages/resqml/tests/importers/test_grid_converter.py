@@ -162,12 +162,7 @@ class TestGridConverter(TestCase):
 
     def test_get_crs_crs_on_grid_with_no_crs(self) -> None:
         # Given a grid without a CRS
-        grid = rqg.RegularGrid(
-            self.model,
-            title=None,
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title=None, extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.crs = None  # pyright: ignore
 
         # Then the grid default EPSG code is used
@@ -205,12 +200,7 @@ class TestGridConverter(TestCase):
 
     def test_convert_attributes_grid_with_no_properties(self) -> None:
         # Given a grid with no properties
-        grid = rqg.RegularGrid(
-            self.model,
-            title=None,
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title=None, extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.property_collection = None  # pyright: ignore
 
         # Then _convert_attributes returns an empty list
@@ -219,13 +209,7 @@ class TestGridConverter(TestCase):
 
     def test_get_metadata_no_title_uuid_originator_default_options(self) -> None:
         # Given a grid with no title or uuid or originator
-        grid = rqg.RegularGrid(
-            self.model,
-            title=None,
-            uuid=None,
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title=None, uuid=None, extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         # Suppress the default of "ROOT"
         grid.title = None  # pyright: ignore
         # Suppress the generation of a UUID
@@ -246,11 +230,7 @@ class TestGridConverter(TestCase):
         TITLE = "The grid title"
         ORIGINATOR = "The grid originator"
         grid = rqg.RegularGrid(
-            self.model,
-            title=TITLE,
-            originator=ORIGINATOR,
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
+            self.model, title=TITLE, originator=ORIGINATOR, extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0)
         )
         # and active_cells_only set false
         options = RESQMLConversionOptions(active_cells_only=False)
@@ -271,12 +251,7 @@ class TestGridConverter(TestCase):
 
     def test_is_discrete_signed_discrete_property(self) -> None:
         # Given a grid
-        grid = rqg.RegularGrid(
-            self.model,
-            title="test_grid",
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title="test_grid", extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.write_hdf5()
         grid.create_xml(
             add_relationships=False, write_active=False, write_geometry=False, add_cell_length_properties=False
@@ -289,12 +264,7 @@ class TestGridConverter(TestCase):
 
     def test_is_discrete_unsigned_discrete_property(self) -> None:
         # Given a grid
-        grid = rqg.RegularGrid(
-            self.model,
-            title="test_grid",
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title="test_grid", extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.write_hdf5()
         grid.create_xml(
             add_relationships=False, write_active=False, write_geometry=False, add_cell_length_properties=False
@@ -306,12 +276,7 @@ class TestGridConverter(TestCase):
 
     def test_is_discrete_continuous_property(self) -> None:
         # Given a grid
-        grid = rqg.RegularGrid(
-            self.model,
-            title="test_grid",
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title="test_grid", extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.write_hdf5()
         grid.create_xml(
             add_relationships=False, write_active=False, write_geometry=False, add_cell_length_properties=False
@@ -323,12 +288,7 @@ class TestGridConverter(TestCase):
 
     def test_is_discrete_categorical_property(self) -> None:
         # Given a grid
-        grid = rqg.RegularGrid(
-            self.model,
-            title="test_grid",
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title="test_grid", extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.write_hdf5()
         grid.create_xml(
             add_relationships=False, write_active=False, write_geometry=False, add_cell_length_properties=False
@@ -341,12 +301,7 @@ class TestGridConverter(TestCase):
 
     def test_convert_properties(self) -> None:
         # Given a grid
-        grid = rqg.RegularGrid(
-            self.model,
-            title="test_grid",
-            extent_kji=(10, 20, 25),
-            dxyz=(100.0, 125.0, 10.0),
-        )
+        grid = rqg.RegularGrid(self.model, title="test_grid", extent_kji=(10, 20, 25), dxyz=(100.0, 125.0, 10.0))
         grid.write_hdf5()
         grid.create_xml(
             add_relationships=False, write_active=False, write_geometry=False, add_cell_length_properties=False

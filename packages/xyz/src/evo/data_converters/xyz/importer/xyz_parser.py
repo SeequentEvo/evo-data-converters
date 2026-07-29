@@ -64,10 +64,7 @@ def parse_xyz_file(
         data_values = FloatArray1_V1_0_1(data=data_hash, length=len(xyz.data))
         attributes = [
             ContinuousAttribute_V1_1_0(
-                name="data",
-                key="data",
-                nan_description=NanContinuous_V1_0_1(values=[-1.0e32]),
-                values=data_values,
+                name="data", key="data", nan_description=NanContinuous_V1_0_1(values=[-1.0e32]), values=data_values
             )
         ]
 
@@ -78,12 +75,7 @@ def parse_xyz_file(
         crs = Crs_EpsgCode(epsg_code=epsg)
 
     pointset = Pointset_V1_3_0(
-        name=name,
-        uuid=None,
-        description=None,
-        bounding_box=bb,
-        coordinate_reference_system=crs,
-        locations=location,
+        name=name, uuid=None, description=None, bounding_box=bb, coordinate_reference_system=crs, locations=location
     )
 
     return pointset

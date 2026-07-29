@@ -14,11 +14,7 @@ from typing import Optional
 
 import numpy
 import pyarrow as pa
-from evo_schemas.components import (
-    ContinuousAttribute_V1_1_0,
-    NanContinuous_V1_0_1,
-    Crs_V1_0_1,
-)
+from evo_schemas.components import ContinuousAttribute_V1_1_0, NanContinuous_V1_0_1, Crs_V1_0_1
 from evo_schemas.elements import FloatArray1_V1_0_1
 from evo_schemas.objects import Regular3DGrid_V1_2_0
 from scipy.spatial.transform import Rotation

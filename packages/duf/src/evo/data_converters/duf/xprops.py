@@ -192,11 +192,7 @@ class AttributesSpecXProperties(XPropertiesWrapper):
     DefaultValue = XBindings("DefaultValue", "String", default="")
     DisplayInProperties = XBindings("DisplayInProperties", "Boolean", default=True)
     Group = XBindings("Group", "String", default="")
-    Prompt = XBindings(
-        "Prompt",
-        "Boolean",
-        default=False,
-    )
+    Prompt = XBindings("Prompt", "Boolean", default=False)
     Description = XBindings("Description", "String", default="")
     ValuesList = XBindings("ValuesList", "String", default="")  # TODO check type
     LimitToList = XBindings("LimitToList", "Boolean", default=False)

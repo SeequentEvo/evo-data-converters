@@ -18,9 +18,7 @@ from uuid import uuid4
 import omf
 from evo_schemas.objects import LineSegments_V2_1_0, Pointset_V1_2_0, TriangleMesh_V2_1_0
 
-from evo.data_converters.common import (
-    EvoObjectMetadata,
-)
+from evo.data_converters.common import EvoObjectMetadata
 from evo.data_converters.omf import OMFMetadata
 from evo.data_converters.omf.exporter import UnsupportedObjectError, export_omf
 from evo.data_converters.omf.importer import convert_omf
@@ -51,11 +49,7 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
         mock_download_evo_object_by_id.return_value = self.evo_object.as_dict()
 
-        export_omf(
-            temp_omf_file.name,
-            objects=[object],
-            evo_workspace_metadata=self.workspace_metadata,
-        )
+        export_omf(temp_omf_file.name, objects=[object], evo_workspace_metadata=self.workspace_metadata)
 
         reader = omf.OMFReader(temp_omf_file.name)
         project = reader.get_project()
@@ -126,11 +120,7 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
         objects = [EvoObjectMetadata(object_id=object_id) for object_id in object_id_dict_map.keys()]
 
-        export_omf(
-            temp_omf_file.name,
-            objects=objects,
-            evo_workspace_metadata=self.workspace_metadata,
-        )
+        export_omf(temp_omf_file.name, objects=objects, evo_workspace_metadata=self.workspace_metadata)
 
         reader = omf.OMFReader(temp_omf_file.name)
         project = reader.get_project()

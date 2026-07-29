@@ -24,15 +24,9 @@ import resqpy.property as rqp
 import resqpy.property.property_common as rqp_c
 import resqpy.well as rqw
 from evo_schemas import DownholeIntervals_V1_1_0 as DownholeIntervals
-from evo_schemas.components import (
-    BoundingBox_V1_0_1 as BoundingBox,
-)
-from evo_schemas.components import (
-    CategoryData_V1_0_1 as CategoryData,
-)
-from evo_schemas.components import (
-    Locations_V1_0_1 as Locations,
-)
+from evo_schemas.components import BoundingBox_V1_0_1 as BoundingBox
+from evo_schemas.components import CategoryData_V1_0_1 as CategoryData
+from evo_schemas.components import Locations_V1_0_1 as Locations
 
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.resqml.importer._downhole_intervals_to_evo import (
@@ -285,10 +279,7 @@ class TestDownholeIntervals(TestCase):
         """
         Check that the data in the DownholeIntervals object matches the source RESQML data
         """
-        self.assertEqual(
-            go_intervals.hole_id,
-            _build_hole_ids_for_wellbore_frame(wellboreframe, self.data_client),
-        )
+        self.assertEqual(go_intervals.hole_id, _build_hole_ids_for_wellbore_frame(wellboreframe, self.data_client))
         for attribute in go_intervals.attributes:
             self.assertTrue(
                 attribute.name

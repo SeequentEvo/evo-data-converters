@@ -17,11 +17,7 @@ import pyarrow as pa
 import pytest
 import vtk
 from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1_EpsgCode
-from evo_schemas.objects import (
-    UnstructuredGrid_V1_2_0,
-    UnstructuredHexGrid_V1_2_0,
-    UnstructuredTetGrid_V1_2_0,
-)
+from evo_schemas.objects import UnstructuredGrid_V1_2_0, UnstructuredHexGrid_V1_2_0, UnstructuredTetGrid_V1_2_0
 from vtk.util.numpy_support import numpy_to_vtk
 from vtk_test_helpers import MockDataClient, add_ghost_value
 
@@ -120,17 +116,7 @@ def test_convert_hex_tetra() -> None:
     points = _convert_md_table(points_table)
     # The removal of unused points changed the order of the points slightly
     numpy.testing.assert_array_equal(
-        points,
-        [
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 1, 0],
-            [1, 1, 0],
-            [0, 0, -1],
-            [0, 1, -1],
-            [1, 0, -1],
-            [1, 1, -1],
-        ],
+        points, [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, -1], [0, 1, -1], [1, 0, -1], [1, 1, -1]]
     )
     vertex_attributes = result.hexahedrons.vertices.attributes
     assert len(vertex_attributes) == 1
@@ -163,18 +149,7 @@ def test_convert_multiple() -> None:
     points_table = data_client.tables[result.geometry.vertices.data]
     points = _convert_md_table(points_table)
     numpy.testing.assert_array_equal(
-        points,
-        [
-            [0, 0, 0],
-            [1, 0, 0],
-            [1, 1, 0],
-            [0, 0, 2],
-            [0, 1, 0],
-            [0, 0, -1],
-            [0, 1, -1],
-            [1, 0, -1],
-            [1, 1, -1],
-        ],
+        points, [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 0, 2], [0, 1, 0], [0, 0, -1], [0, 1, -1], [1, 0, -1], [1, 1, -1]]
     )
     vertex_attributes = result.geometry.vertices.attributes
     assert len(vertex_attributes) == 1

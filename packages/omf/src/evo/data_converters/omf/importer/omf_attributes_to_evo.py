@@ -51,10 +51,7 @@ logger = evo.logging.getLogger("data_converters")
 
 
 def convert_omf_attributes(
-    element: omf2.Element,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
-    attribute_location: omf2.Location,
+    element: omf2.Element, reader: omf2.Reader, data_client: ObjectDataClient, attribute_location: omf2.Location
 ) -> OneOfAttribute_V1_2_0:
     attributes_go = []
 
@@ -99,10 +96,7 @@ def int_to_rgba_optional(color: Optional[int]) -> Optional[list[int]]:
 
 
 def convert_omf_number_attribute(
-    attribute_name: str,
-    attribute_data: omf2.AttributeDataNumber,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
+    attribute_name: str, attribute_data: omf2.AttributeDataNumber, reader: omf2.Reader, data_client: ObjectDataClient
 ) -> OneOfAttribute_V1_2_0_Item:
     numbers, null_mask = reader.array_numbers(attribute_data.values)
     match numbers.dtype:
@@ -114,10 +108,7 @@ def convert_omf_number_attribute(
             array = FloatArray1_V1_0_1.from_dict(array_args)
 
             return ContinuousAttribute_V1_1_0(
-                name=attribute_name,
-                key=str(uuid4()),
-                nan_description=NanContinuous_V1_0_1(values=[]),
-                values=array,
+                name=attribute_name, key=str(uuid4()), nan_description=NanContinuous_V1_0_1(values=[]), values=array
             )
         case np.int64:
             table = pa.Table.from_arrays([pa.array(numbers, mask=null_mask)], names=["data"])
@@ -125,69 +116,39 @@ def convert_omf_number_attribute(
             array = IntegerArray1_V1_0_1.from_dict(array_args)
 
             return IntegerAttribute_V1_1_0(
-                name=attribute_name,
-                key=str(uuid4()),
-                nan_description=NanCategorical_V1_0_1(values=[]),
-                values=array,
+                name=attribute_name, key=str(uuid4()), nan_description=NanCategorical_V1_0_1(values=[]), values=array
             )
         case dtype if dtype == np.dtype("datetime64[D]"):
             # Evo lacks a type to represent Dates, so convert them to strings.
-            table = pa.Table.from_arrays(
-                [pa.array(numbers, mask=null_mask)],
-                schema=pa.schema(
-                    [
-                        ("data", pa.string()),
-                    ]
-                ),
-            )
+            table = pa.Table.from_arrays([pa.array(numbers, mask=null_mask)], schema=pa.schema([("data", pa.string())]))
             array_args = data_client.save_table(table)
             array = StringArray_V1_0_1.from_dict(array_args)
 
-            return StringAttribute_V1_1_0(
-                name=attribute_name,
-                key=str(uuid4()),
-                values=array,
-            )
+            return StringAttribute_V1_1_0(name=attribute_name, key=str(uuid4()), values=array)
         case dtype if is_datetime64_dtype(dtype):
             # Other datetimes can be represented with DateTimeAttribute.
             table = pa.Table.from_arrays(
-                [pa.array(numbers, mask=null_mask)],
-                schema=pa.schema(
-                    [
-                        ("data", pa.timestamp("us", tz="UTC")),
-                    ]
-                ),
+                [pa.array(numbers, mask=null_mask)], schema=pa.schema([("data", pa.timestamp("us", tz="UTC"))])
             )
             array_args = data_client.save_table(table)
             array = DateTimeArray_V1_0_1.from_dict(array_args)
 
             return DateTimeAttribute_V1_1_0(
-                name=attribute_name,
-                key=str(uuid4()),
-                nan_description=NanCategorical_V1_0_1(values=[]),
-                values=array,
+                name=attribute_name, key=str(uuid4()), nan_description=NanCategorical_V1_0_1(values=[]), values=array
             )
         case _:
             raise AssertionError(f"unknown dtype {numbers.dtype}!")
 
 
 def convert_omf_category_attribute(
-    attribute_name: str,
-    attribute_data: omf2.AttributeDataCategory,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
+    attribute_name: str, attribute_data: omf2.AttributeDataCategory, reader: omf2.Reader, data_client: ObjectDataClient
 ) -> CategoryAttribute_V1_1_0:
     indices, null_mask = reader.array_indices(attribute_data.values)
 
     names = reader.array_names(attribute_data.names)
     table_df = pd.DataFrame({"value": names}).reset_index(names="key")
 
-    schema = pa.schema(
-        [
-            ("key", pa.int64()),
-            ("value", pa.string()),
-        ]
-    )
+    schema = pa.schema([("key", pa.int64()), ("value", pa.string())])
     table = pa.Table.from_pandas(table_df, schema=schema)
     lookup_table_args = data_client.save_table(table)
     lookup_table_go = LookupTable_V1_0_1.from_dict(lookup_table_args)
@@ -207,64 +168,35 @@ def convert_omf_category_attribute(
 
 
 def convert_omf_text_attribute(
-    attribute_name: str,
-    attribute_data: omf2.AttributeDataText,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
+    attribute_name: str, attribute_data: omf2.AttributeDataText, reader: omf2.Reader, data_client: ObjectDataClient
 ) -> StringAttribute_V1_1_0:
     schema_dtype = pa.string()
-    schema = pa.schema(
-        [
-            ("data", schema_dtype),
-        ]
-    )
+    schema = pa.schema([("data", schema_dtype)])
     table = pa.Table.from_arrays([pa.array(reader.array_text(attribute_data.values))], schema=schema)
     string_array_args = data_client.save_table(table)
     string_array = StringArray_V1_0_1.from_dict(string_array_args)
 
-    return StringAttribute_V1_1_0(
-        name=attribute_name,
-        key=str(uuid4()),
-        values=string_array,
-    )
+    return StringAttribute_V1_1_0(name=attribute_name, key=str(uuid4()), values=string_array)
 
 
 def convert_omf_boolean_attribute(
-    attribute_name: str,
-    attribute_data: omf2.AttributeDataBoolean,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
+    attribute_name: str, attribute_data: omf2.AttributeDataBoolean, reader: omf2.Reader, data_client: ObjectDataClient
 ) -> BoolAttribute_V1_1_0:
     booleans, null_mask = reader.array_booleans(attribute_data.values)
     schema_dtype = pa.bool_()
-    schema = pa.schema(
-        [
-            ("data", schema_dtype),
-        ]
-    )
+    schema = pa.schema([("data", schema_dtype)])
     table = pa.Table.from_arrays([pa.array(booleans, mask=null_mask)], schema=schema)
     boolean_array_args = data_client.save_table(table)
     boolean_array = BoolArray1_V1_0_1.from_dict(boolean_array_args)
 
-    return BoolAttribute_V1_1_0(
-        name=attribute_name,
-        key=str(uuid4()),
-        values=boolean_array,
-    )
+    return BoolAttribute_V1_1_0(name=attribute_name, key=str(uuid4()), values=boolean_array)
 
 
 def convert_omf_color_attribute(
-    attribute_name: str,
-    attribute_data: omf2.AttributeDataColor,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
+    attribute_name: str, attribute_data: omf2.AttributeDataColor, reader: omf2.Reader, data_client: ObjectDataClient
 ) -> ColorAttribute_V1_1_0:
     schema_dtype = pa.uint32()
-    schema = pa.schema(
-        [
-            ("data", schema_dtype),
-        ]
-    )
+    schema = pa.schema([("data", schema_dtype)])
 
     # Convert RGBA colors to 0xAABBGGRR unsigned integers
     rgba_colors, null_mask = reader.array_color(attribute_data.values)
@@ -274,18 +206,11 @@ def convert_omf_color_attribute(
     color_array_args = data_client.save_table(table)
     color_array = ColorArray_V1_0_1.from_dict(color_array_args)
 
-    return ColorAttribute_V1_1_0(
-        name=attribute_name,
-        key=str(uuid4()),
-        values=color_array,
-    )
+    return ColorAttribute_V1_1_0(name=attribute_name, key=str(uuid4()), values=color_array)
 
 
 def convert_omf_vector_attribute(
-    attribute_name: str,
-    attribute_data: omf2.AttributeDataVector,
-    reader: omf2.Reader,
-    data_client: ObjectDataClient,
+    attribute_name: str, attribute_data: omf2.AttributeDataVector, reader: omf2.Reader, data_client: ObjectDataClient
 ) -> VectorAttribute_V1_0_0:
     schema_dtype = pa.float64()
 
@@ -294,36 +219,21 @@ def convert_omf_vector_attribute(
     dimensions = vectors.shape[1]
 
     if dimensions == 2:
-        schema = pa.schema(
-            [
-                pa.field("x", schema_dtype),
-                pa.field("y", schema_dtype),
-            ]
-        )
+        schema = pa.schema([pa.field("x", schema_dtype), pa.field("y", schema_dtype)])
     elif dimensions == 3:
-        schema = pa.schema(
-            [
-                pa.field("x", schema_dtype),
-                pa.field("y", schema_dtype),
-                pa.field("z", schema_dtype),
-            ]
-        )
+        schema = pa.schema([pa.field("x", schema_dtype), pa.field("y", schema_dtype), pa.field("z", schema_dtype)])
     else:
         raise AssertionError(f"unexpected number of vector dimensions {dimensions}!")
 
     vectors_table = pa.Table.from_arrays(
-        [pa.array(vectors[:, i], type=schema_dtype, mask=null_vectors_mask) for i in range(dimensions)],
-        schema=schema,
+        [pa.array(vectors[:, i], type=schema_dtype, mask=null_vectors_mask) for i in range(dimensions)], schema=schema
     )
 
     float_array_md_args = data_client.save_table(vectors_table)
     float_array_md = FloatArrayMd_V1_0_1.from_dict(float_array_md_args)
 
     return VectorAttribute_V1_0_0(
-        name=attribute_name,
-        key=str(uuid4()),
-        nan_description=NanContinuous_V1_0_1(values=[]),
-        values=float_array_md,
+        name=attribute_name, key=str(uuid4()), nan_description=NanContinuous_V1_0_1(values=[]), values=float_array_md
     )
 
 

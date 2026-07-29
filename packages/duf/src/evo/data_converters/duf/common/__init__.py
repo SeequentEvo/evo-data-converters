@@ -9,16 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .duf_wrapper import (
-    DUFFileNotFoundException,
-    DUFWrapper,
-    InvalidDUFFileException,
-    ObjectCollector,
-)
+from .duf_wrapper import DUFFileNotFoundException, DUFWrapper, InvalidDUFFileException, ObjectCollector
 
-__all__ = [
-    "DUFFileNotFoundException",
-    "DUFWrapper",
-    "InvalidDUFFileException",
-    "ObjectCollector",
-]
+__all__ = ["DUFFileNotFoundException", "DUFWrapper", "InvalidDUFFileException", "ObjectCollector"]

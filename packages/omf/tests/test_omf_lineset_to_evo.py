@@ -16,11 +16,7 @@ from unittest import TestCase
 
 import omf2
 import pyarrow.parquet as pq
-from evo_schemas.components import (
-    BoundingBox_V1_0_1,
-    ContinuousAttribute_V1_1_0,
-    NanContinuous_V1_0_1,
-)
+from evo_schemas.components import BoundingBox_V1_0_1, ContinuousAttribute_V1_1_0, NanContinuous_V1_0_1
 from evo_schemas.elements.float_array_1 import FloatArray1_V1_0_1
 from evo_schemas.objects import LineSegments_V2_1_0
 

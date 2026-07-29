@@ -13,10 +13,4 @@ from .common import DUFFileNotFoundException, InvalidDUFFileException, ObjectCol
 from .duf_reader_context import DUFCollectorContext
 from .utils import is_duf
 
-__all__ = [
-    "DUFCollectorContext",
-    "DUFFileNotFoundException",
-    "InvalidDUFFileException",
-    "ObjectCollector",
-    "is_duf",
-]
+__all__ = ["DUFCollectorContext", "DUFFileNotFoundException", "InvalidDUFFileException", "ObjectCollector", "is_duf"]

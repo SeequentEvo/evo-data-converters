@@ -83,8 +83,7 @@ def open_duf_file_dialog() -> str | None:
     root.withdraw()
     root.attributes("-topmost", True)
     file_path = filedialog.askopenfilename(
-        title="Select DUF File",
-        filetypes=[("DUF Files", "*.duf"), ("All Files", "*.*")],
+        title="Select DUF File", filetypes=[("DUF Files", "*.duf"), ("All Files", "*.*")]
     )
     root.destroy()
     return file_path or None
@@ -109,9 +108,7 @@ def create_file_selection_widgets():
 def create_epsg_widgets():
     """Create EPSG input, info label, link, and containing box."""
     epsg_input = widgets.Text(
-        description="EPSG code:",
-        placeholder="(required), eg. 4326",
-        style={"description_width": "initial"},
+        description="EPSG code:", placeholder="(required), eg. 4326", style={"description_width": "initial"}
     )
     epsg_info = widgets.Label(value="Enter EPSG code and press Enter to validate")
     epsg_link = widgets.HTML(
@@ -135,28 +132,18 @@ def create_object_path_widgets():
 def create_convert_section(button_description="Convert", button_tooltip="Start the DUF conversion process"):
     """Create convert button, timer, status, workspace link, and containing box."""
     convert_button = widgets.Button(
-        description=button_description,
-        tooltip=button_tooltip,
-        style={"button_color": "#265C7F", "text_color": "white"},
+        description=button_description, tooltip=button_tooltip, style={"button_color": "#265C7F", "text_color": "white"}
     )
     timer_label = widgets.HTML(value="", layout=status_layout())
     status_message = widgets.HTML(value="", layout=status_layout())
     workspace_link = widgets.HTML(value="", layout=status_layout())
     box = widgets.VBox(
-        [convert_button, timer_label, status_message, workspace_link],
-        layout=hidden_bordered_box_layout(),
+        [convert_button, timer_label, status_message, workspace_link], layout=hidden_bordered_box_layout()
     )
     return convert_button, timer_label, status_message, workspace_link, box
 
 
-def run_timed_conversion(
-    event_loop,
-    timer_label,
-    status_message,
-    workspace_link,
-    disable_widgets: list,
-    async_task,
-):
+def run_timed_conversion(event_loop, timer_label, status_message, workspace_link, disable_widgets: list, async_task):
     """Run an async conversion task with a timer and disable/enable widgets around it.
 
     Args:
@@ -236,15 +223,7 @@ async def run_with_retry(coroutine_fn, status_message, max_retries=3):
     return None
 
 
-def apply_preload_state(
-    env_vars,
-    env_file_path,
-    output_label,
-    status_label,
-    epsg_input,
-    epsg_info,
-    object_path_input,
-):
+def apply_preload_state(env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, object_path_input):
     """Apply saved environment state to widgets. Returns (selected_file_path, epsg_valid, show_advanced)."""
     selected_file_path = None
     epsg_valid = False
@@ -352,13 +331,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     object_path_input.observe(on_object_path_change, names="value")
 
     selected, epsg_valid, show_advanced = apply_preload_state(
-        env_vars,
-        env_file_path,
-        output_label,
-        status_label,
-        epsg_input,
-        epsg_info,
-        object_path_input,
+        env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, object_path_input
     )
     state["selected_file_path"] = selected
     state["epsg_valid"] = epsg_valid
@@ -395,10 +368,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
 
     convert_button.on_click(on_convert_click)
 
-    ui = widgets.VBox(
-        [file_selection_box, advanced_box, convert_section],
-        layout=widgets.Layout(margin="0px"),
-    )
+    ui = widgets.VBox([file_selection_box, advanced_box, convert_section], layout=widgets.Layout(margin="0px"))
     return ui
 
 
@@ -413,8 +383,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     epsg_input, epsg_info, _, epsg_box = create_epsg_widgets()
     object_path_input, object_path_box = create_object_path_widgets()
     convert_button, timer_label, status_message, workspace_link, convert_section = create_convert_section(
-        button_description="Convert & Publish",
-        button_tooltip="Convert selected layers and publish to Evo",
+        button_description="Convert & Publish", button_tooltip="Convert selected layers and publish to Evo"
     )
 
     read_layers_button = widgets.Button(
@@ -428,8 +397,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     select_all_layers_cb = widgets.Checkbox(value=False, description="Select All Layers", indent=False)
     layer_checkboxes_container = widgets.VBox()
     layer_selection_section = widgets.VBox(
-        [select_all_layers_cb, layer_checkboxes_container],
-        layout=hidden_bordered_box_layout(),
+        [select_all_layers_cb, layer_checkboxes_container], layout=hidden_bordered_box_layout()
     )
 
     advanced_box = widgets.VBox([epsg_box, object_path_box])
@@ -518,10 +486,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
 
                 for info in layer_info:
                     cb = widgets.Checkbox(
-                        value=False,
-                        description=f"{info['name']}",
-                        indent=False,
-                        layout=widgets.Layout(width="auto"),
+                        value=False, description=f"{info['name']}", indent=False, layout=widgets.Layout(width="auto")
                     )
                     cb.observe(on_layer_change, names="value")
                     layer_cbs.append(cb)
@@ -556,13 +521,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     read_layers_button.on_click(on_read_layers_click)
 
     selected, epsg_valid, show_advanced = apply_preload_state(
-        env_vars,
-        env_file_path,
-        output_label,
-        status_label,
-        epsg_input,
-        epsg_info,
-        object_path_input,
+        env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, object_path_input
     )
     state["selected_file_path"] = selected
     state["epsg_valid"] = epsg_valid
@@ -578,11 +537,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
                 upload_path = object_path_input.value.strip() or ""
 
                 objects_metadata = await convert_duf_to_evo(
-                    state["selected_file_path"],
-                    epsg_code,
-                    upload_path,
-                    manager,
-                    layers=selected_layer_names,
+                    state["selected_file_path"], epsg_code, upload_path, manager, layers=selected_layer_names
                 )
 
                 if objects_metadata:
@@ -611,13 +566,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     convert_button.on_click(on_convert_click)
 
     ui = widgets.VBox(
-        [
-            file_selection_box,
-            read_layers_section,
-            layer_selection_section,
-            advanced_box,
-            convert_section,
-        ],
+        [file_selection_box, read_layers_section, layer_selection_section, advanced_box, convert_section],
         layout=widgets.Layout(margin="0px"),
     )
     return ui

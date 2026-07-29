@@ -18,10 +18,7 @@ from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo_schemas.objects import TriangleMesh_V2_2_0
 from pyproj import CRS
 
-from evo.data_converters.common import (
-    EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
-)
+from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 
 this_dir = Path(__file__).parent
@@ -93,10 +90,7 @@ async def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
     obj_file = this_dir.parent / "data" / "simple_shapes" / "simple_shapes.obj"
     go_objects = await convert_obj(
-        filepath=obj_file,
-        evo_workspace_metadata=metadata,
-        coordinate_reference_system=input_crs,
-        publish_objects=False,
+        filepath=obj_file, evo_workspace_metadata=metadata, coordinate_reference_system=input_crs, publish_objects=False
     )
     assert all(obj.coordinate_reference_system == expected_crs for obj in go_objects)
 

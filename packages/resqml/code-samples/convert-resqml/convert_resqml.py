@@ -26,9 +26,7 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "--all-grid-cells",
-    action="store_true",
-    help="Convert all grid cells rather than just the active cells",
+    "--all-grid-cells", action="store_true", help="Convert all grid cells rather than just the active cells"
 )
 args = parser.parse_args()
 

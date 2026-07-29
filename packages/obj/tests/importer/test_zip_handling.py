@@ -19,10 +19,7 @@ from unittest import IsolatedAsyncioTestCase
 
 import pytest
 
-from evo.data_converters.common import (
-    EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
-)
+from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.obj.importer.obj_to_evo import convert_obj
 
 

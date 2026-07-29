@@ -24,10 +24,7 @@ from evo_schemas.components import (
     Triangles_V1_1_0_Vertices,
 )
 from evo_schemas.elements import IndexArray1_V1_0_1, IndexArray2_V1_0_1
-from evo_schemas.objects import (
-    TriangleMesh_V2_0_0,
-    TriangleMesh_V2_1_0,
-)
+from evo_schemas.objects import TriangleMesh_V2_0_0, TriangleMesh_V2_1_0
 
 from evo.data_converters.common import create_evo_object_service_and_data_client
 from evo.data_converters.omf.exporter import export_omf_surface
@@ -156,16 +153,10 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
         number_of_segments = 10
 
         chunks_schema = pa.schema(
-            [
-                pa.field("start_segment_index", pa.uint64()),
-                pa.field("number_of_segments", pa.uint64()),
-            ]
+            [pa.field("start_segment_index", pa.uint64()), pa.field("number_of_segments", pa.uint64())]
         )
         chunks_table = pa.Table.from_pydict(
-            {
-                "start_segment_index": [start_segment_index],
-                "number_of_segments": [number_of_segments],
-            },
+            {"start_segment_index": [start_segment_index], "number_of_segments": [number_of_segments]},
             schema=chunks_schema,
         )
         chunks_data = self.data_client.save_table(chunks_table)
@@ -185,30 +176,17 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
         number_of_segments = 5
 
         chunks_schema = pa.schema(
-            [
-                pa.field("start_segment_index", pa.uint64()),
-                pa.field("number_of_segments", pa.uint64()),
-            ]
+            [pa.field("start_segment_index", pa.uint64()), pa.field("number_of_segments", pa.uint64())]
         )
         chunks_table = pa.Table.from_pydict(
-            {
-                "start_segment_index": [start_segment_index],
-                "number_of_segments": [number_of_segments],
-            },
+            {"start_segment_index": [start_segment_index], "number_of_segments": [number_of_segments]},
             schema=chunks_schema,
         )
         chunks_data = self.data_client.save_table(chunks_table)
         chunks = IndexArray2_V1_0_1(**chunks_data)
 
-        indices_schema = pa.schema(
-            [
-                pa.field("index", pa.uint64()),
-            ]
-        )
-        indices_table = pa.Table.from_pydict(
-            {"index": [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]},
-            schema=indices_schema,
-        )
+        indices_schema = pa.schema([pa.field("index", pa.uint64())])
+        indices_table = pa.Table.from_pydict({"index": [0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}, schema=indices_schema)
         indices_data = self.data_client.save_table(indices_table)
         indices = IndexArray1_V1_0_1(**indices_data)
 

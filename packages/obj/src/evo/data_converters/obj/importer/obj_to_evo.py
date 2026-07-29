@@ -73,8 +73,7 @@ async def convert_obj(
     :raise InvalidCRSError: If the input CRS information is invalid.
     """
     object_service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata=evo_workspace_metadata,
-        service_manager_widget=service_manager_widget,
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
     if epsg_code is not None:

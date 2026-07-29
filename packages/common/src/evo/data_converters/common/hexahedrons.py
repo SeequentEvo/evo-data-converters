@@ -32,13 +32,7 @@ def build_vertices(vertices: npt.NDArray[np.float64], data_client: ObjectDataCli
     :return: An Evo HexahedronsVertices object
 
     """
-    schema = pa.schema(
-        [
-            ("x", pa.float64()),
-            ("y", pa.float64()),
-            ("z", pa.float64()),
-        ]
-    )
+    schema = pa.schema([("x", pa.float64()), ("y", pa.float64()), ("z", pa.float64())])
     table = pa.Table.from_arrays([vertices[:, 0], vertices[:, 1], vertices[:, 2]], schema=schema)
     go = data_client.save_table(table)
     return HexahedronsVertices.from_dict(go)

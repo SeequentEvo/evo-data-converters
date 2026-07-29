@@ -29,23 +29,9 @@ def main():
     parser.add_argument("--client-secret", required=True, help="Evo client secret")
     parser.add_argument("--hub-url", required=True, help="Evo hub URL")
     parser.add_argument("--user-agent", required=True, help="User agent string")
-    parser.add_argument(
-        "--epsg-code",
-        type=int,
-        required=True,
-        help="EPSG code for coordinate reference system",
-    )
-    parser.add_argument(
-        "--upload-path",
-        default="",
-        help="Upload path in the workspace (default: root level)",
-    )
-    parser.add_argument(
-        "--combine-layers",
-        action="store_true",
-        default=True,
-        help="Combine objects in layers",
-    )
+    parser.add_argument("--epsg-code", type=int, required=True, help="EPSG code for coordinate reference system")
+    parser.add_argument("--upload-path", default="", help="Upload path in the workspace (default: root level)")
+    parser.add_argument("--combine-layers", action="store_true", default=True, help="Combine objects in layers")
 
     args = parser.parse_args()
 

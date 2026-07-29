@@ -113,12 +113,7 @@ class TestBlockSyncClient(TestCase):
             blockmodel_req_url = f"{self.metadata.hub_url}/blockmodel/orgs/{self.metadata.org_id}/workspaces/{self.metadata.workspace_id}/block-models/{test_blockmodel_id}"
             blockmodel_response = {"bm_uuid": test_blockmodel_id}
 
-            mock.register_uri(
-                method="GET",
-                url=blockmodel_req_url,
-                json=blockmodel_response,
-                status_code=200,
-            )
+            mock.register_uri(method="GET", url=blockmodel_req_url, json=blockmodel_response, status_code=200)
 
             response = self.client.get_blockmodel_request(block_model_id=test_blockmodel_id)
             self.assertIsInstance(response, requests.Response)
@@ -135,12 +130,7 @@ class TestBlockSyncClient(TestCase):
             versions_req_url = f"{self.metadata.hub_url}/blockmodel/orgs/{self.metadata.org_id}/workspaces/{self.metadata.workspace_id}/block-models/{test_blockmodel_id}/versions"
             mock_versions_response = {"results": [1, 2, 3]}
 
-            mock.register_uri(
-                method="GET",
-                url=versions_req_url,
-                json=mock_versions_response,
-                status_code=200,
-            )
+            mock.register_uri(method="GET", url=versions_req_url, json=mock_versions_response, status_code=200)
 
             response = self.client.get_blockmodel_versions(
                 block_model_id=test_blockmodel_id, offset=0, filter_param="latest"
@@ -165,12 +155,7 @@ class TestBlockSyncClient(TestCase):
             blocks_job_url_req_url = f"{self.metadata.hub_url}/blockmodel/orgs/{self.metadata.org_id}/workspaces/{self.metadata.workspace_id}/block-models/{test_blockmodel_id}/blocks"
             blocks_job_url_response = {"job_url": "dummy_url"}
 
-            mock.register_uri(
-                method="POST",
-                url=blocks_job_url_req_url,
-                json=blocks_job_url_response,
-                status_code=200,
-            )
+            mock.register_uri(method="POST", url=blocks_job_url_req_url, json=blocks_job_url_response, status_code=200)
 
             job_url1 = self.client.get_blockmodel_columns_job_url(block_model_id=test_blockmodel_id)
             self.assertEqual(mock.call_count, 1)

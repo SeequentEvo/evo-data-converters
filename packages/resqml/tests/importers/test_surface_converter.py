@@ -26,11 +26,7 @@ from resqpy.surface import PointSet, Surface
 
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.resqml.importer._attribute_converters import create_category_lookup_and_data
-from evo.data_converters.resqml.importer._surface_converter import (
-    _convert_attributes,
-    _get_crs,
-    _get_surface_name,
-)
+from evo.data_converters.resqml.importer._surface_converter import _convert_attributes, _get_crs, _get_surface_name
 from evo.data_converters.resqml.importer._utils import get_metadata
 from evo.data_converters.resqml.importer.conversion_options import RESQMLConversionOptions
 
@@ -62,10 +58,7 @@ class TestSurfaceConverter(TestCase):
     def test_get_surface_name_citation_title_present(self) -> None:
         # Given a surface with a citation title
         EXPECTED = "A test grid"
-        grid = Surface(
-            self.model,
-            title=EXPECTED,
-        )
+        grid = Surface(self.model, title=EXPECTED)
 
         # Then the surface name will be the grid citation title
         name = _get_surface_name(grid)
@@ -73,9 +66,7 @@ class TestSurfaceConverter(TestCase):
 
     def test_get_surface_name_citation_title_not_present(self) -> None:
         # Given a surface without a citation title
-        surface = Surface(
-            self.model,
-        )
+        surface = Surface(self.model)
         EXPECTED = f"Surface-{surface.uuid}"
 
         # Then the surface name will be "Surface-<uuid>"
@@ -84,9 +75,7 @@ class TestSurfaceConverter(TestCase):
 
     def test_get_crs_no_model_CRS_and_no_surface_CRS(self) -> None:
         # Given a surface and a model without an epsg_code on the root CRS
-        surface = Surface(
-            self.model,
-        )
+        surface = Surface(self.model)
         self.model.crs_uuid = None
         surface.crs_uuid = None
 
@@ -98,10 +87,7 @@ class TestSurfaceConverter(TestCase):
         # Given a surface with a CRS
         surface_crs = Crs(self.model, epsg_code="3788")
         surface_crs.create_xml()
-        surface = Surface(
-            self.model,
-            crs_uuid=surface_crs.uuid,
-        )
+        surface = Surface(self.model, crs_uuid=surface_crs.uuid)
         surface.create_xml()
 
         # Then the surface CRS will be returned
@@ -110,9 +96,7 @@ class TestSurfaceConverter(TestCase):
 
     def test_get_crs_surface_has_no_crs(self) -> None:
         # Given a surface with no CRS
-        surface = Surface(
-            self.model,
-        )
+        surface = Surface(self.model)
         surface.crs_uuid = None
         # Don't call create_xml, otherwise an empty CRS will be created
 
@@ -129,11 +113,7 @@ class TestSurfaceConverter(TestCase):
         # Given a surface with a citation title and an originator
         TITLE = "A test surface"
         ORIGINATOR = "The source of the information"
-        surface = Surface(
-            self.model,
-            title=TITLE,
-            originator=ORIGINATOR,
-        )
+        surface = Surface(self.model, title=TITLE, originator=ORIGINATOR)
         RESQMLConversionOptions(active_cells_only=True)
 
         # Then get_metadata returns
@@ -147,9 +127,7 @@ class TestSurfaceConverter(TestCase):
 
     def test_get_metadata_empty_values(self) -> None:
         # Given a surface with NO citation title and NO originator
-        surface = Surface(
-            self.model,
-        )
+        surface = Surface(self.model)
         RESQMLConversionOptions(active_cells_only=True)
 
         # Then get_metadata returns

@@ -19,10 +19,7 @@ import pyarrow.parquet as pq
 import trimesh
 from evo_schemas.objects import TriangleMesh_V2_1_0, TriangleMesh_V2_2_0
 
-from evo.data_converters.common import (
-    EvoObjectMetadata,
-    create_evo_object_service_and_data_client,
-)
+from evo.data_converters.common import EvoObjectMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 from evo.data_converters.obj.exporter import UnsupportedObjectError, export_obj
 from evo.data_converters.obj.importer import convert_obj
@@ -87,11 +84,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         mock_download_evo_object_by_id.return_value = self.evo_object.as_dict()
 
-        await export_obj(
-            temp_obj_file.name,
-            objects=[object],
-            evo_workspace_metadata=self.workspace_metadata,
-        )
+        await export_obj(temp_obj_file.name, objects=[object], evo_workspace_metadata=self.workspace_metadata)
 
         epsg_code = self.evo_object.coordinate_reference_system.epsg_code
         expected_header = f"# Evo Data Converters; Object ID={object_id}, EPSG={epsg_code}\n"
@@ -174,10 +167,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
     async def test_can_handle_multiple_parts(self, mock_download_evo_object_by_id: MagicMock) -> None:
         obj_file = path.join(path.dirname(__file__), "../data/simple_shapes/simple_shapes.obj")
         self.evo_objects = await convert_obj(
-            filepath=obj_file,
-            evo_workspace_metadata=self.workspace_metadata,
-            epsg_code=32650,
-            publish_objects=False,
+            filepath=obj_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )
         self.assertEqual(len(self.evo_objects), 1)
 
@@ -192,11 +182,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
 
-        await export_obj(
-            temp_obj_file.name,
-            objects=[object],
-            evo_workspace_metadata=self.workspace_metadata,
-        )
+        await export_obj(temp_obj_file.name, objects=[object], evo_workspace_metadata=self.workspace_metadata)
 
         scene = trimesh.load_scene(temp_obj_file.name)
 
@@ -225,10 +211,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
     ) -> None:
         obj_file = path.join(path.dirname(__file__), "../data/cube.obj")
         self.evo_objects = await convert_obj(
-            filepath=obj_file,
-            evo_workspace_metadata=self.workspace_metadata,
-            epsg_code=32650,
-            publish_objects=False,
+            filepath=obj_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )
         self.assertEqual(len(self.evo_objects), 1)
 
@@ -251,11 +234,7 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
 
-        await export_obj(
-            temp_obj_file.name,
-            objects=[object],
-            evo_workspace_metadata=self.workspace_metadata,
-        )
+        await export_obj(temp_obj_file.name, objects=[object], evo_workspace_metadata=self.workspace_metadata)
 
         scene = trimesh.load_scene(temp_obj_file.name)
 

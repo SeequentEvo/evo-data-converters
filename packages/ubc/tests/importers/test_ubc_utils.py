@@ -131,10 +131,7 @@ def test_get_geoscience_object_from_ubc_with_coordinate_reference_system_epsg(
 
     tags = {"First tag": "first tag value"}
     result = get_geoscience_object_from_ubc(
-        mock_data_client,
-        files_path,
-        coordinate_reference_system={"epsg_code": 28355},
-        tags=tags,
+        mock_data_client, files_path, coordinate_reference_system={"epsg_code": 28355}, tags=tags
     )
 
     assert isinstance(result, Tensor3DGrid_V1_2_0)
@@ -162,11 +159,7 @@ def test_get_geoscience_object_from_ubc_with_coordinate_reference_system_wkt(
     mock_property_importer.return_value.execute.return_value = np.array([1.0])
 
     wkt = 'GEOGCRS["WGS 84",DATUM["WGS_1984"]]'
-    result = get_geoscience_object_from_ubc(
-        mock_data_client,
-        files_path,
-        coordinate_reference_system={"ogc_wkt": wkt},
-    )
+    result = get_geoscience_object_from_ubc(mock_data_client, files_path, coordinate_reference_system={"ogc_wkt": wkt})
 
     assert isinstance(result, Tensor3DGrid_V1_2_0)
     assert result.coordinate_reference_system.ogc_wkt == wkt

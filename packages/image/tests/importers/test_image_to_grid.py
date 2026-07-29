@@ -105,10 +105,7 @@ def test_read_image_as_grayscale(sample_image: Tuple[Path, int, int], mock_data_
 
 @pytest.mark.parametrize("mode,dtype", [("F", np.float32), ("I", np.int32)])
 def test_read_image_tiff_single_band_numeric_modes_are_grayscale(
-    tmp_path: Path,
-    mock_data_client: _MockDataClient,
-    mode: str,
-    dtype,
+    tmp_path: Path, mock_data_client: _MockDataClient, mode: str, dtype
 ):
     """Single-band TIFF numeric modes (F/I) must be handled as grayscale."""
     width, height = 7, 5
@@ -246,20 +243,7 @@ def test_no_crs_when_not_provided(sample_image: Tuple[Path, int, int], mock_data
 def test_extract_epsg_from_geokey_directory_projected(mock_data_client: _MockDataClient):
     """ProjectedCSTypeGeoKey (3072) should be preferred when present."""
     converter = ImageGridConverter(mock_data_client, output_parquet=False)
-    geokey = (
-        1,
-        1,
-        0,
-        2,
-        2048,
-        0,
-        1,
-        4326,
-        3072,
-        0,
-        1,
-        32614,
-    )
+    geokey = (1, 1, 0, 2, 2048, 0, 1, 4326, 3072, 0, 1, 32614)
     assert converter._extract_epsg_from_geokey_directory(geokey) == 32614
 
 
@@ -289,19 +273,13 @@ def test_extract_wkt_candidate_from_text(mock_data_client: _MockDataClient):
 
 
 def test_auto_crs_from_embedded_geotiff_when_not_provided(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """If input CRS is not provided, embedded GeoTIFF CRS should be used when detected."""
     image_path, _, _ = sample_image
     converter = ImageGridConverter(mock_data_client, output_parquet=False)
 
-    monkeypatch.setattr(
-        converter,
-        "_extract_embedded_coordinate_reference_system",
-        lambda _: {"epsg_code": 32614},
-    )
+    monkeypatch.setattr(converter, "_extract_embedded_coordinate_reference_system", lambda _: {"epsg_code": 32614})
 
     from evo_schemas.components import Crs_V1_0_1_EpsgCode
 
@@ -311,20 +289,14 @@ def test_auto_crs_from_embedded_geotiff_when_not_provided(
 
 
 def test_auto_wkt_crs_from_embedded_geotiff_when_epsg_missing(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """If embedded EPSG is unavailable, embedded WKT should be used as CRS."""
     image_path, _, _ = sample_image
     converter = ImageGridConverter(mock_data_client, output_parquet=False)
 
     wkt = CRS.from_epsg(32614).to_wkt(version="WKT2_2019")
-    monkeypatch.setattr(
-        converter,
-        "_extract_embedded_coordinate_reference_system",
-        lambda _: {"ogc_wkt": wkt},
-    )
+    monkeypatch.setattr(converter, "_extract_embedded_coordinate_reference_system", lambda _: {"ogc_wkt": wkt})
 
     from evo_schemas.components import Crs_V1_0_1_OgcWkt
 
@@ -334,19 +306,13 @@ def test_auto_wkt_crs_from_embedded_geotiff_when_epsg_missing(
 
 
 def test_explicit_crs_overrides_embedded_geotiff_crs(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """Explicit coordinate_reference_system input should take precedence over embedded CRS."""
     image_path, _, _ = sample_image
     converter = ImageGridConverter(mock_data_client, output_parquet=False)
 
-    monkeypatch.setattr(
-        converter,
-        "_extract_embedded_coordinate_reference_system",
-        lambda _: {"epsg_code": 4326},
-    )
+    monkeypatch.setattr(converter, "_extract_embedded_coordinate_reference_system", lambda _: {"epsg_code": 4326})
 
     from evo_schemas.components import Crs_V1_0_1_EpsgCode
 
@@ -356,9 +322,7 @@ def test_explicit_crs_overrides_embedded_geotiff_crs(
 
 
 def test_auto_georeferencing_from_embedded_geotiff_when_origin_and_cell_size_not_provided(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """If origin/cell_size are not provided, embedded GeoTIFF georeferencing should be used."""
     image_path, width, height = sample_image
@@ -367,10 +331,7 @@ def test_auto_georeferencing_from_embedded_geotiff_when_origin_and_cell_size_not
     monkeypatch.setattr(
         converter,
         "_extract_embedded_georeferencing",
-        lambda _image_path, _width, _height: {
-            "origin": [1000.0, 2000.0, 0.0],
-            "cell_size": [30.0, 40.0],
-        },
+        lambda _image_path, _width, _height: {"origin": [1000.0, 2000.0, 0.0], "cell_size": [30.0, 40.0]},
     )
 
     grid = converter.convert(str(image_path))
@@ -383,9 +344,7 @@ def test_auto_georeferencing_from_embedded_geotiff_when_origin_and_cell_size_not
 
 
 def test_explicit_origin_and_cell_size_override_embedded_georeferencing(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """Explicit origin/cell_size should take precedence over embedded georeferencing."""
     image_path, _, _ = sample_image
@@ -394,26 +353,17 @@ def test_explicit_origin_and_cell_size_override_embedded_georeferencing(
     monkeypatch.setattr(
         converter,
         "_extract_embedded_georeferencing",
-        lambda _image_path, _width, _height: {
-            "origin": [1000.0, 2000.0, 0.0],
-            "cell_size": [30.0, 40.0],
-        },
+        lambda _image_path, _width, _height: {"origin": [1000.0, 2000.0, 0.0], "cell_size": [30.0, 40.0]},
     )
 
-    grid = converter.convert(
-        str(image_path),
-        origin=[10.0, 20.0, 0.0],
-        cell_size=[2.0, 3.0],
-    )
+    grid = converter.convert(str(image_path), origin=[10.0, 20.0, 0.0], cell_size=[2.0, 3.0])
 
     assert grid.origin == [10.0, 20.0, 0.0]
     assert grid.cell_size == [2.0, 3.0]
 
 
 def test_partial_override_origin_uses_embedded_cell_size(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """If only origin is explicit, cell_size should come from embedded georeferencing."""
     image_path, _, _ = sample_image
@@ -422,10 +372,7 @@ def test_partial_override_origin_uses_embedded_cell_size(
     monkeypatch.setattr(
         converter,
         "_extract_embedded_georeferencing",
-        lambda _image_path, _width, _height: {
-            "origin": [1000.0, 2000.0, 0.0],
-            "cell_size": [30.0, 40.0],
-        },
+        lambda _image_path, _width, _height: {"origin": [1000.0, 2000.0, 0.0], "cell_size": [30.0, 40.0]},
     )
 
     grid = converter.convert(str(image_path), origin=[10.0, 20.0, 0.0])
@@ -434,9 +381,7 @@ def test_partial_override_origin_uses_embedded_cell_size(
 
 
 def test_partial_override_cell_size_uses_embedded_origin(
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
-    monkeypatch: pytest.MonkeyPatch,
+    sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient, monkeypatch: pytest.MonkeyPatch
 ):
     """If only cell_size is explicit, origin should come from embedded georeferencing."""
     image_path, _, _ = sample_image
@@ -445,10 +390,7 @@ def test_partial_override_cell_size_uses_embedded_origin(
     monkeypatch.setattr(
         converter,
         "_extract_embedded_georeferencing",
-        lambda _image_path, _width, _height: {
-            "origin": [1000.0, 2000.0, 0.0],
-            "cell_size": [30.0, 40.0],
-        },
+        lambda _image_path, _width, _height: {"origin": [1000.0, 2000.0, 0.0], "cell_size": [30.0, 40.0]},
     )
 
     grid = converter.convert(str(image_path), cell_size=[2.0, 3.0])
@@ -462,9 +404,7 @@ def test_parquet_file_output(sample_image: Tuple[Path, int, int], mock_data_clie
 
     # Recreate converter with output_parquet=True to force a local file write
     converter = ImageGridConverter(
-        data_client=mock_data_client,
-        output_dir=str(mock_data_client.output_dir),
-        output_parquet=True,
+        data_client=mock_data_client, output_dir=str(mock_data_client.output_dir), output_parquet=True
     )
     grid = converter.convert(str(image_path))
 
@@ -639,9 +579,7 @@ def test_color_grid_conversion(color_image_rgb: Tuple[Path, int, int], mock_data
 
 
 def test_color_attribute_vs_grayscale_attribute(
-    color_image_rgb: Tuple[Path, int, int],
-    sample_image: Tuple[Path, int, int],
-    mock_data_client: _MockDataClient,
+    color_image_rgb: Tuple[Path, int, int], sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient
 ):
     """Verify that color and grayscale produce different attribute types."""
     color_path, _, _ = color_image_rgb
@@ -960,12 +898,7 @@ def test_convert_uses_embedded_georeferencing_for_geotiff(tmp_path: Path, mock_d
 
         width, height = 4, 3
         r_data = np.array(
-            [
-                [-10.0, 0.0, 100.0, np.nan],
-                [200.0, 300.0, 400.0, 500.0],
-                [600.0, 700.0, 800.0, 900.0],
-            ],
-            dtype=np.float32,
+            [[-10.0, 0.0, 100.0, np.nan], [200.0, 300.0, 400.0, 500.0], [600.0, 700.0, 800.0, 900.0]], dtype=np.float32
         )
         g_data = r_data + 5.0
         b_data = r_data + 10.0

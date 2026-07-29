@@ -16,11 +16,7 @@ from unittest import TestCase
 
 import omf2
 import pyarrow.parquet as pq
-from evo_schemas.components import (
-    BoundingBox_V1_0_1,
-    ContinuousAttribute_V1_1_0,
-    NanContinuous_V1_0_1,
-)
+from evo_schemas.components import BoundingBox_V1_0_1, ContinuousAttribute_V1_1_0, NanContinuous_V1_0_1
 from evo_schemas.elements.float_array_1 import FloatArray1_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_1_0
 
@@ -258,7 +254,7 @@ class TestOMFSurfaceConverter(TestCase):
                     data=triangle_attributes[0].values.data, length=50, width=1, data_type="float64"
                 ),
                 attribute_type="scalar",
-            ),
+            )
         ]
 
         self.assertListEqual(expected_vertex_attributes, vertex_attributes)
@@ -354,7 +350,7 @@ class TestOMFSurfaceConverter(TestCase):
                     data=triangle_attributes[0].values.data, length=50, width=1, data_type="float64"
                 ),
                 attribute_type="scalar",
-            ),
+            )
         ]
 
         self.assertListEqual(expected_vertex_attributes, vertex_attributes)

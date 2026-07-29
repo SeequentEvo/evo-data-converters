@@ -23,10 +23,7 @@ def _set_model_author(model: rqm.Model, author: str) -> None:
     # resqpy seems to lack a way to specify the originator on some parts of the model
     # so the name of the user gets embedded in the .epc file. This updates those references
     # to the desired author.
-    namespaces = {
-        "eml": "http://www.energistics.org/energyml/data/commonv2",
-        "dc": "http://purl.org/dc/elements/1.1/",
-    }
+    namespaces = {"eml": "http://www.energistics.org/energyml/data/commonv2", "dc": "http://purl.org/dc/elements/1.1/"}
 
     for forest in (model.parts_forest, model.rels_forest, model.other_forest):
         for part_name in forest:

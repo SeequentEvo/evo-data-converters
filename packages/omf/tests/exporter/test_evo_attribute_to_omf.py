@@ -468,10 +468,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
         self.assertIsInstance(attribute_go, ContinuousAttribute_V1_1_0)
 
         # Test handling attribute description
-        attribute_go.attribute_description = AttributeDescription_V1_0_1(
-            discipline="Geotechnical",
-            type="Gold",
-        )
+        attribute_go.attribute_description = AttributeDescription_V1_0_1(discipline="Geotechnical", type="Gold")
         string_description = "discipline: Geotechnical, type: Gold"
         location = "vertices"
         omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)

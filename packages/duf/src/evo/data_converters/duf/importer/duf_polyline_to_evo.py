@@ -10,12 +10,7 @@
 #  limitations under the License.
 
 import numpy as np
-from evo_schemas.components import (
-    Segments_V1_2_0,
-    Segments_V1_2_0_Indices,
-    Segments_V1_2_0_Vertices,
-    Crs_V1_0_1,
-)
+from evo_schemas.components import Segments_V1_2_0, Segments_V1_2_0_Indices, Segments_V1_2_0_Vertices, Crs_V1_0_1
 from evo_schemas.objects import LineSegments_V2_1_0, LineSegments_V2_1_0_Parts
 
 import evo.logging
@@ -55,19 +50,11 @@ def _create_line_segments_obj(name, vertices_array, indices_array, parts, crs: C
 
 
 def _polyline_indices_array(num_vertices):
-    return np.column_stack(
-        (
-            np.arange(0, num_vertices - 1, dtype="uint64"),
-            np.arange(1, num_vertices, dtype="uint64"),
-        )
-    )
+    return np.column_stack((np.arange(0, num_vertices - 1, dtype="uint64"), np.arange(1, num_vertices, dtype="uint64")))
 
 
 def combine_duf_polylines(
-    polylines: list[dw.Polyline],
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
-    options: ConvertOptions,
+    polylines: list[dw.Polyline], data_client: ObjectDataClient, crs: Crs_V1_0_1, options: ConvertOptions
 ) -> LineSegments_V2_1_0 | None:
     if not polylines:
         logger.warning("No polylines to combine.")
@@ -92,10 +79,7 @@ def combine_duf_polylines(
 
 
 def convert_duf_polyline(
-    polyline: dw.Polyline,
-    data_client: ObjectDataClient,
-    crs: Crs_V1_0_1,
-    options: ConvertOptions,
+    polyline: dw.Polyline, data_client: ObjectDataClient, crs: Crs_V1_0_1, options: ConvertOptions
 ) -> LineSegments_V2_1_0:
     object_name = ResolveObjectNameContext.get_name(polyline, options)
     logger.debug(f'Converting polyline: "{object_name}" to LineSegments_V2_1_0.')

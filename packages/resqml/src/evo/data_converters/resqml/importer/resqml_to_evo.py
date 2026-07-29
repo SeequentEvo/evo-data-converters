@@ -164,12 +164,7 @@ def _convert_grids(
         if estimate > options.memory_threshold:
             logger.warning(
                 "Ignoring grid %s %s, as the size of the corner_points array would be %s, which exceeds the threshold of %s"
-                % (
-                    grid.citation_title,
-                    str(grid.uuid),
-                    convert_size(estimate),
-                    convert_size(options.memory_threshold),
-                )
+                % (grid.citation_title, str(grid.uuid), convert_size(estimate), convert_size(options.memory_threshold))
             )
             continue
         go = convert_grid(model, grid, crs, options, data_client)
@@ -202,12 +197,7 @@ def _convert_downhole_intervals(
         trajectory = rqw.Trajectory(model, uuid=uuid)
         prefix = f"{stem}/downhole_intervals/{i}/"
         go = convert_downhole_intervals_for_trajectory(
-            model=model,
-            trajectory=trajectory,
-            prefix=prefix,
-            data_client=data_client,
-            crs=crs,
-            options=options,
+            model=model, trajectory=trajectory, prefix=prefix, data_client=data_client, crs=crs, options=options
         )
         if go is not None:
             downhole_intervals += go

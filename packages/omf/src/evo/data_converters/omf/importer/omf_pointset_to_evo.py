@@ -36,27 +36,17 @@ def convert_omf_pointset(
 
     bounding_box_go = vertices_bounding_box(vertices_array)
 
-    vertices_schema = pa.schema(
-        [
-            pa.field("x", pa.float64()),
-            pa.field("y", pa.float64()),
-            pa.field("z", pa.float64()),
-        ]
-    )
+    vertices_schema = pa.schema([pa.field("x", pa.float64()), pa.field("y", pa.float64()), pa.field("z", pa.float64())])
 
     coordinates_table = pa.Table.from_arrays(
-        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))],
-        schema=vertices_schema,
+        [pa.array(vertices_array[:, i], type=pa.float64()) for i in range(len(vertices_schema))], schema=vertices_schema
     )
     coordinates_args = data_client.save_table(coordinates_table)
     coordinates_go = FloatArray3_V1_0_1.from_dict(coordinates_args)
 
     attributes_go = convert_omf_attributes(pointset, reader, data_client, omf2.Location.Vertices)
 
-    locations = Pointset_V1_2_0_Locations(
-        coordinates=coordinates_go,
-        attributes=attributes_go,
-    )
+    locations = Pointset_V1_2_0_Locations(coordinates=coordinates_go, attributes=attributes_go)
 
     pointset_go = Pointset_V1_2_0(
         name=pointset.name,

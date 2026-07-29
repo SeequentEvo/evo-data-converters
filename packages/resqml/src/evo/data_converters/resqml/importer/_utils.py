@@ -30,5 +30,5 @@ def get_metadata(object: Surface | Grid) -> dict[str, dict[str, str | dict[str, 
             "name": name,
             "uuid": uuid,
             "originator": originator,
-        },
+        }
     }

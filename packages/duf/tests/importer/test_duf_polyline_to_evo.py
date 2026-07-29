@@ -45,14 +45,7 @@ def test_should_convert_duf_polyline_geometry(polyline_obj, data_client):
     )
     assert line_segments_go == expected_line_segments_go
 
-    expected_bounding_box = BoundingBox_V1_0_1(
-        min_x=2.0,
-        max_x=5.0,
-        min_y=2.0,
-        max_y=5.0,
-        min_z=2.0,
-        max_z=5.0,
-    )
+    expected_bounding_box = BoundingBox_V1_0_1(min_x=2.0, max_x=5.0, min_y=2.0, max_y=5.0, min_z=2.0, max_z=5.0)
     assert line_segments_go.bounding_box == expected_bounding_box
 
     vertices_parquet_file = path.join(str(data_client.cache_location), line_segments_go.segments.vertices.data)
@@ -64,12 +57,7 @@ def test_should_convert_duf_polyline_geometry(polyline_obj, data_client):
     expected_vertices = np.array([[2.0, 2.0, 2.0], [2.0, 4.0, 5.0], [5.0, 5.0, 5.0]])
     np.testing.assert_allclose(vertices.to_pandas(), expected_vertices)
 
-    expected_indices = np.array(
-        [
-            [0, 1],
-            [1, 2],
-        ]
-    )
+    expected_indices = np.array([[0, 1], [1, 2]])
     np.testing.assert_equal(indices.to_pandas(), expected_indices)
 
 
@@ -98,14 +86,7 @@ def test_combining_duf_polyline_geometry(multiple_objects, data_client):
     )
     assert line_segments_go == expected_line_segments_go
 
-    expected_bounding_box = BoundingBox_V1_0_1(
-        min_x=2.0,
-        max_x=15.0,
-        min_y=2.0,
-        max_y=5.0,
-        min_z=2.0,
-        max_z=5.0,
-    )
+    expected_bounding_box = BoundingBox_V1_0_1(min_x=2.0, max_x=15.0, min_y=2.0, max_y=5.0, min_z=2.0, max_z=5.0)
     assert line_segments_go.bounding_box == expected_bounding_box
 
     assert line_segments_go.parts is not None
@@ -122,36 +103,17 @@ def test_combining_duf_polyline_geometry(multiple_objects, data_client):
     indices = pq.read_table(indices_parquet_file)
 
     # Two chunks, each with 2 segments
-    expected_chunks = np.array(
-        [
-            [0, 2],
-            [2, 2],
-        ]
-    )
+    expected_chunks = np.array([[0, 2], [2, 2]])
     np.testing.assert_equal(chunks.to_pandas(), expected_chunks)
 
     # Two polylines, each with two segments, the second polyline has its vertices offset by 10 in X
     expected_vertices = np.array(
-        [
-            [2.0, 2.0, 2.0],
-            [2.0, 4.0, 5.0],
-            [5.0, 5.0, 5.0],
-            [12.0, 2.0, 2.0],
-            [12.0, 4.0, 5.0],
-            [15.0, 5.0, 5.0],
-        ]
+        [[2.0, 2.0, 2.0], [2.0, 4.0, 5.0], [5.0, 5.0, 5.0], [12.0, 2.0, 2.0], [12.0, 4.0, 5.0], [15.0, 5.0, 5.0]]
     )
     np.testing.assert_allclose(vertices.to_pandas(), expected_vertices)
 
     # The second polyline has its indices offset by 3 (the number of indices in the first polyline)
-    expected_indices = np.array(
-        [
-            [0, 1],
-            [1, 2],
-            [3, 4],
-            [4, 5],
-        ]
-    )
+    expected_indices = np.array([[0, 1], [1, 2], [3, 4], [4, 5]])
     np.testing.assert_equal(indices.to_pandas(), expected_indices)
 
 

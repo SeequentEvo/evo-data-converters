@@ -114,8 +114,7 @@ def get_private_field(obj, field_name: str):
 
     while current_type is not None:
         field_info = current_type.GetField(
-            field_name,
-            dw.BindingFlags.NonPublic | dw.BindingFlags.Instance | dw.BindingFlags.DeclaredOnly,
+            field_name, dw.BindingFlags.NonPublic | dw.BindingFlags.Instance | dw.BindingFlags.DeclaredOnly
         )
         if field_info is not None:
             return field_info.GetValue(obj)

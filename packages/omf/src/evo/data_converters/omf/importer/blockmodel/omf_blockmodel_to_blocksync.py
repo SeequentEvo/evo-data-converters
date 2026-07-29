@@ -60,18 +60,9 @@ def create_req_body(
         "name": str(uuid4()),  # Block model name MUST be unique within a workspace
         "model_origin": {"x": orient.origin[0], "y": orient.origin[1], "z": orient.origin[2]},
         "block_rotation": [
-            {
-                "axis": "z",
-                "angle": angles[0],
-            },
-            {
-                "axis": "x",
-                "angle": angles[1],
-            },
-            {
-                "axis": "z",
-                "angle": angles[2],
-            },
+            {"axis": "z", "angle": angles[0]},
+            {"axis": "x", "angle": angles[1]},
+            {"axis": "z", "angle": angles[2]},
         ],
         "size_options": size_options,
         "coordinate_reference_system": cooridnate_reference_system,
@@ -97,9 +88,7 @@ def extract_regular_block_model_columns(blockmodel: omf2.Element, reader: omf2.R
 
 
 def extract_variable_octree_block_model_columns(
-    blockmodel: omf2.Element,
-    reader: omf2.Reader,
-    subblocks: omf2.RegularSubblocks,
+    blockmodel: omf2.Element, reader: omf2.Reader, subblocks: omf2.RegularSubblocks
 ) -> pa.Table:
     subblock_parent_array, subblock_corner_array = reader.array_regular_subblocks(subblocks.subblocks)
 
@@ -147,9 +136,7 @@ def extract_variable_octree_block_model_columns(
 
 
 def extract_flexible_block_model_columns(
-    blockmodel: omf2.Element,
-    reader: omf2.Reader,
-    subblocks: omf2.RegularSubblocks,
+    blockmodel: omf2.Element, reader: omf2.Reader, subblocks: omf2.RegularSubblocks
 ) -> pa.Table:
     subblock_parent_array, subblock_corner_array = reader.array_regular_subblocks(subblocks.subblocks)
 
@@ -194,9 +181,7 @@ def extract_flexible_block_model_columns(
 
 
 def extract_fully_sub_blocked_block_model_columns(
-    blockmodel: omf2.Element,
-    reader: omf2.Reader,
-    subblocks: omf2.RegularSubblocks,
+    blockmodel: omf2.Element, reader: omf2.Reader, subblocks: omf2.RegularSubblocks
 ) -> pa.Table:
     grid_count = blockmodel.geometry().grid.count()
 
@@ -241,10 +226,7 @@ def extract_fully_sub_blocked_block_model_columns(
 
 
 def add_attribute_columns(
-    blockmodel: omf2.Element,
-    reader: omf2.Reader,
-    df: pd.DataFrame,
-    subblocks: Optional[omf2.RegularSubblocks] = None,
+    blockmodel: omf2.Element, reader: omf2.Reader, df: pd.DataFrame, subblocks: Optional[omf2.RegularSubblocks] = None
 ) -> pa.Table:
     # Evo expects block model indices to be uint32 data type, unless they are the flexible subblock columns
     schema_list = []
@@ -399,23 +381,13 @@ def add_blocks_and_columns(
 
     if is_octree:
         add_col_body = {
-            "columns": {
-                "new": new_cols,
-                "delete": [],
-                "update": [],
-                "rename": [],
-            },
+            "columns": {"new": new_cols, "delete": [], "update": [], "rename": []},
             "comment": "Added during OMF to BlockSync conversion.",
             "geometry_change": True,  # subblocks will be created
         }
     else:
         add_col_body = {
-            "columns": {
-                "new": new_cols,
-                "delete": [],
-                "update": [],
-                "rename": [],
-            },
+            "columns": {"new": new_cols, "delete": [], "update": [], "rename": []},
             "comment": "Added during OMF to BlockSync conversion.",
         }
 

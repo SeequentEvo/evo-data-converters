@@ -82,9 +82,7 @@ async def export_obj(
 
 
 async def _download_evo_object_by_id(
-    service_client: ObjectAPIClient,
-    object_id: UUID,
-    version_id: Optional[str] = None,
+    service_client: ObjectAPIClient, object_id: UUID, version_id: Optional[str] = None
 ) -> dict[str, Any]:
     downloaded_object = await service_client.download_object_by_id(object_id, version_id)
     result: dict[str, Any] = downloaded_object.as_dict()
@@ -92,9 +90,7 @@ async def _download_evo_object_by_id(
 
 
 async def _evo_object_to_trimesh(
-    object_metadata: EvoObjectMetadata,
-    service_client: ObjectAPIClient,
-    data_client: ObjectDataClient,
+    object_metadata: EvoObjectMetadata, service_client: ObjectAPIClient, data_client: ObjectDataClient
 ) -> tuple[trimesh.Trimesh, str]:
     object_id = object_metadata.object_id
     version_id = object_metadata.version_id
