@@ -21,12 +21,8 @@ from evo.data_converters.duf.importer import convert_duf
 
 def main():
     """Main function to handle command line execution."""
-    parser = argparse.ArgumentParser(
-        description="Convert DUF files and publish to Evo workspace"
-    )
-    parser.add_argument(
-        "--duf-file", "-f", required=True, help="Path to the DUF file to convert"
-    )
+    parser = argparse.ArgumentParser(description="Convert DUF files and publish to Evo workspace")
+    parser.add_argument("--duf-file", "-f", required=True, help="Path to the DUF file to convert")
     parser.add_argument("--org-id", required=True, help="Evo organization ID")
     parser.add_argument("--workspace-id", required=True, help="Evo workspace ID")
     parser.add_argument("--client-id", required=True, help="Evo client ID")

@@ -5,14 +5,9 @@ version = "0.2.0"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
-authors = [
-    { name = "Seequent", email = "support@seequent.com" }
-]
+authors = [{ name = "Seequent", email = "support@seequent.com" }]
 
-dependencies = [
-    "evo-data-converters-common>=0.3.1",
-    "vtk",
-]
+dependencies = ["evo-data-converters-common>=0.3.1", "vtk"]
 
 [project.urls]
 Source = "https://github.com/SeequentEvo/evo-data-converters"
@@ -21,13 +16,7 @@ Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
-dev = [
-    "pytest",
-]
-
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+dev = ["pytest"]
 
 [tool.uv.sources]
 evo-data-converters-common = { path = "../common", editable = true }

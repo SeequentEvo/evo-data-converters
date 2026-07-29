@@ -19,9 +19,7 @@ def bordered_box_layout():
 
 
 def hidden_bordered_box_layout():
-    return widgets.Layout(
-        border="1px solid #ccc", padding="10px", margin="5px 0px", display="none"
-    )
+    return widgets.Layout(border="1px solid #ccc", padding="10px", margin="5px 0px", display="none")
 
 
 def status_layout():
@@ -134,9 +132,7 @@ def create_object_path_widgets():
     return object_path_input, box
 
 
-def create_convert_section(
-    button_description="Convert", button_tooltip="Start the DUF conversion process"
-):
+def create_convert_section(button_description="Convert", button_tooltip="Start the DUF conversion process"):
     """Create convert button, timer, status, workspace link, and containing box."""
     convert_button = widgets.Button(
         description=button_description,
@@ -176,16 +172,16 @@ def run_timed_conversion(
 
     start_time = time.time()
     stop_event = threading.Event()
-    timer_label.value = (
-        "<span style='color:#0b74de;font-weight:600'>Converting... 00:00:00</span>"
-    )
+    timer_label.value = "<span style='color:#0b74de;font-weight:600'>Converting... 00:00:00</span>"
     status_message.value = ""
     workspace_link.value = ""
 
     def tick():
         while not stop_event.is_set():
             elapsed = time.time() - start_time
-            timer_label.value = f"<span style='color:#0b74de;font-weight:600'>Converting... {format_hms(elapsed)}</span>"
+            timer_label.value = (
+                f"<span style='color:#0b74de;font-weight:600'>Converting... {format_hms(elapsed)}</span>"
+            )
             time.sleep(0.25)
 
     t = threading.Thread(target=tick, daemon=True)
@@ -229,14 +225,10 @@ async def run_with_retry(coroutine_fn, status_message, max_retries=3):
                     f"Please restart the kernel and try again.</div>"
                 )
         except ValueError as e:
-            status_message.value = (
-                f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
-            )
+            status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
             break
         except ConnectionError as e:
-            status_message.value = (
-                f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
-            )
+            status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {str(e)}</div>"
             break
         except Exception as e:
             status_message.value = f"<div style='color:red;font-weight:600'>ERROR: {type(e).__name__} - {str(e)}</div>"
@@ -292,14 +284,10 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     os.makedirs(cache_location, exist_ok=True)
     env_vars = read_env_vars(env_file_path)
 
-    select_button, output_label, status_label, file_selection_box = (
-        create_file_selection_widgets()
-    )
+    select_button, output_label, status_label, file_selection_box = create_file_selection_widgets()
     epsg_input, epsg_info, _, epsg_box = create_epsg_widgets()
     object_path_input, object_path_box = create_object_path_widgets()
-    convert_button, timer_label, status_message, workspace_link, convert_section = (
-        create_convert_section()
-    )
+    convert_button, timer_label, status_message, workspace_link, convert_section = create_convert_section()
 
     advanced_box = widgets.VBox([epsg_box, object_path_box])
     advanced_box.layout.display = "none"
@@ -341,9 +329,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             return
         file_path = Path(file_path)
         if file_path.suffix.lower() != ".duf":
-            status_label.value = (
-                "ERROR: Invalid file type. Only .duf files are allowed."
-            )
+            status_label.value = "ERROR: Invalid file type. Only .duf files are allowed."
             status_label.style = {"text_color": "red"}
             output_label.value = "No file selected"
             advanced_box.layout.display = "none"
@@ -385,19 +371,11 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             async def task():
                 epsg_code = int(epsg_input.value.strip())
                 upload_path = object_path_input.value.strip() or ""
-                object_metadata = await convert_duf_to_evo(
-                    state["selected_file_path"], epsg_code, upload_path, manager
-                )
+                object_metadata = await convert_duf_to_evo(state["selected_file_path"], epsg_code, upload_path, manager)
                 if object_metadata:
-                    num_objects = (
-                        len(object_metadata) if isinstance(object_metadata, list) else 1
-                    )
+                    num_objects = len(object_metadata) if isinstance(object_metadata, list) else 1
                     status_message.value = f"<div style='color:green;font-weight:600'>✓ Published {num_objects} object(s) successfully</div>"
-                    obj = (
-                        object_metadata[0]
-                        if isinstance(object_metadata, list)
-                        else object_metadata
-                    )
+                    obj = object_metadata[0] if isinstance(object_metadata, list) else object_metadata
                     workspace_url = build_portal_url(obj)
                     workspace_link.value = f'<a href="{workspace_url}" target="_blank">Open Evo workspace</a>'
                 else:
@@ -431,16 +409,12 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     os.makedirs(cache_location, exist_ok=True)
     env_vars = read_env_vars(env_file_path)
 
-    select_button, output_label, status_label, file_selection_box = (
-        create_file_selection_widgets()
-    )
+    select_button, output_label, status_label, file_selection_box = create_file_selection_widgets()
     epsg_input, epsg_info, _, epsg_box = create_epsg_widgets()
     object_path_input, object_path_box = create_object_path_widgets()
-    convert_button, timer_label, status_message, workspace_link, convert_section = (
-        create_convert_section(
-            button_description="Convert & Publish",
-            button_tooltip="Convert selected layers and publish to Evo",
-        )
+    convert_button, timer_label, status_message, workspace_link, convert_section = create_convert_section(
+        button_description="Convert & Publish",
+        button_tooltip="Convert selected layers and publish to Evo",
     )
 
     read_layers_button = widgets.Button(
@@ -449,13 +423,9 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
         style={"button_color": "#265C7F", "text_color": "white"},
     )
     read_layers_status = widgets.HTML(value="", layout=status_layout())
-    read_layers_section = widgets.VBox(
-        [read_layers_button, read_layers_status], layout=hidden_bordered_box_layout()
-    )
+    read_layers_section = widgets.VBox([read_layers_button, read_layers_status], layout=hidden_bordered_box_layout())
 
-    select_all_layers_cb = widgets.Checkbox(
-        value=False, description="Select All Layers", indent=False
-    )
+    select_all_layers_cb = widgets.Checkbox(value=False, description="Select All Layers", indent=False)
     layer_checkboxes_container = widgets.VBox()
     layer_selection_section = widgets.VBox(
         [select_all_layers_cb, layer_checkboxes_container],
@@ -503,9 +473,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
             return
         file_path = Path(file_path)
         if file_path.suffix.lower() != ".duf":
-            status_label.value = (
-                "ERROR: Invalid file type. Only .duf files are allowed."
-            )
+            status_label.value = "ERROR: Invalid file type. Only .duf files are allowed."
             status_label.style = {"text_color": "red"}
             output_label.value = "No file selected"
             advanced_box.layout.display = "none"
@@ -532,9 +500,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     def on_read_layers_click(b):
         read_layers_button.disabled = True
         select_button.disabled = True
-        read_layers_status.value = (
-            "<span style='color:#0b74de;font-weight:600'>Reading DUF file...</span>"
-        )
+        read_layers_status.value = "<span style='color:#0b74de;font-weight:600'>Reading DUF file...</span>"
 
         layer_selection_section.layout.display = "none"
         advanced_box.layout.display = "none"
@@ -543,9 +509,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
         async def do_read():
             try:
                 loop = asyncio.get_running_loop()
-                layer_info = await loop.run_in_executor(
-                    None, read_duf_layers, state["selected_file_path"]
-                )
+                layer_info = await loop.run_in_executor(None, read_duf_layers, state["selected_file_path"])
 
                 layer_cbs = []
 
@@ -580,7 +544,9 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
                 update_summary()
 
             except Exception as e:
-                read_layers_status.value = f"<div style='color:red;font-weight:600'>ERROR: {type(e).__name__} - {str(e)}</div>"
+                read_layers_status.value = (
+                    f"<div style='color:red;font-weight:600'>ERROR: {type(e).__name__} - {str(e)}</div>"
+                )
             finally:
                 read_layers_button.disabled = False
                 select_button.disabled = False
@@ -608,9 +574,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
         async def do_convert():
             async def task():
                 epsg_code = int(epsg_input.value.strip())
-                selected_layer_names = [
-                    cb.description for cb in state["layer_checkboxes"] if cb.value
-                ]
+                selected_layer_names = [cb.description for cb in state["layer_checkboxes"] if cb.value]
                 upload_path = object_path_input.value.strip() or ""
 
                 objects_metadata = await convert_duf_to_evo(
@@ -622,21 +586,15 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
                 )
 
                 if objects_metadata:
-                    num_published = (
-                        len(objects_metadata)
-                        if isinstance(objects_metadata, list)
-                        else 1
-                    )
+                    num_published = len(objects_metadata) if isinstance(objects_metadata, list) else 1
                     status_message.value = f"<div style='color:green;font-weight:600'>✓ Published {num_published} object(s) successfully</div>"
-                    obj = (
-                        objects_metadata[0]
-                        if isinstance(objects_metadata, list)
-                        else objects_metadata
-                    )
+                    obj = objects_metadata[0] if isinstance(objects_metadata, list) else objects_metadata
                     workspace_url = build_portal_url(obj)
                     workspace_link.value = f'<a href="{workspace_url}" target="_blank">Open Evo workspace</a>'
                 else:
-                    status_message.value = "<div style='color:orange;font-weight:600'>⚠ No objects were converted.</div>"
+                    status_message.value = (
+                        "<div style='color:orange;font-weight:600'>⚠ No objects were converted.</div>"
+                    )
                 return objects_metadata
 
             await run_with_retry(task, status_message)

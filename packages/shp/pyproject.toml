@@ -3,9 +3,7 @@ name = "evo-data-converters-shp"
 version = "0.1.6"
 description = "Python data converters for ESRI shapefiles to Evo geoscience objects."
 readme = "README.md"
-authors = [
-    { name = "Seequent", email = "support@seequent.com" }
-]
+authors = [{ name = "Seequent", email = "support@seequent.com" }]
 requires-python = ">=3.10"
 dependencies = [
     "evo-data-converters-common",
@@ -21,13 +19,7 @@ Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
-dev = [
-    "pytest"
-]
-
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+dev = ["pytest"]
 
 [project.scripts]
 evo-data-converters-shp = "evo_data_converters_shp:main"
