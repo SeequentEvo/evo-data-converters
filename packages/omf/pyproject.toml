@@ -29,9 +29,10 @@ dev = [
     "requests-mock",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
+omf2 = { git = "https://github.com/gmggroup/omf-rust", subdirectory = "omf-python" }
+
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"

@@ -25,10 +25,6 @@ dev = [
     "pytest"
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
-
 [project.scripts]
 evo-data-converters-shp = "evo_data_converters_shp:main"
 
@@ -43,7 +39,7 @@ include = ["src"]
 packages = ["src/evo"]
 
 [tool.uv.sources]
-evo-data-converters-common = { workspace = true }
+evo-data-converters-common = { path = "../common", editable = true }
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"

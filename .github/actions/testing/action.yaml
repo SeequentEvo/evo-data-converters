@@ -19,4 +19,5 @@ runs:
     - name: Pytest
       shell: bash
       run: |
-        uv run --all-extras --package evo-data-converters-${{ inputs.package }} pytest packages/${{ inputs.package }}/tests/
+        cd packages/${{ inputs.package }}
+        uv run --all-extras pytest tests/

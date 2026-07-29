@@ -20,13 +20,6 @@ dev = [
     "pytest-asyncio>=1.3.0",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
-
-[tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "UP006"]
-
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
@@ -54,4 +47,5 @@ pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
 replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/obj/\g<2>)'
 
 [tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 tinyobjloader = { git = "https://github.com/tinyobjloader/tinyobjloader.git" }

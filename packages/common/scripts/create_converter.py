@@ -4,7 +4,9 @@ from pathlib import Path
 
 from copier import run_copy
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+# This file lives at <repo>/packages/common/scripts/create_converter.py
+REPO_ROOT = Path(__file__).resolve().parents[3]
+TEMPLATE_DIR = Path(__file__).resolve().parent / "converter_template"
 
 EXPORT_CHOICES = ("Import only", "Import and Export")
 
@@ -24,10 +26,7 @@ def _success(message: str) -> None:
 def _parse_args(argv=None):
     parser = argparse.ArgumentParser(
         prog="create-converter",
-        description=(
-            "Scaffold a new Evo data converter package and register it in the "
-            "Makefile, README.md, and root pyproject.toml."
-        ),
+        description=("Scaffold a new Evo data converter package and register it in the Makefile and README.md."),
     )
     parser.add_argument(
         "--converter-type",
@@ -52,7 +51,7 @@ def main(argv=None):
 
     # When all answers are supplied on the command line, run without prompting.
     non_interactive = args.converter_type is not None and args.export_support is not None
-    worker = run_copy("scripts/converter_template", "packages", data, defaults=non_interactive)
+    worker = run_copy(str(TEMPLATE_DIR), str(REPO_ROOT / "packages"), data, defaults=non_interactive)
 
     converter_name = worker.answers.combined["converter_type"]
 
@@ -64,9 +63,6 @@ def main(argv=None):
     _update_readme(converter_name)
     _success(f"Updated {_BOLD}README.md{_RESET} with the package listing and code samples")
 
-    _update_pyproject(converter_name)
-    _success(f"Updated {_BOLD}pyproject.toml{_RESET} with the workspace dependency")
-
     _print_next_steps(converter_name)
 
 
@@ -75,7 +71,7 @@ def _print_next_steps(converter_name: str) -> None:
     print(f"\n{_BOLD}{_GREEN}Done!{_RESET} Your new converter {_CYAN}{package}{_RESET} is ready.\n")
     print(f"{_BOLD}Next steps:{_RESET}")
     print(f"  {_YELLOW}1.{_RESET} Review the generated package in {_DIM}packages/{converter_name}{_RESET}")
-    print(f"  {_YELLOW}2.{_RESET} Sync the workspace:            {_DIM}uv sync{_RESET}")
+    print(f"  {_YELLOW}2.{_RESET} Install the package:           {_DIM}cd packages/{converter_name} && uv sync{_RESET}")
     print(f"  {_YELLOW}3.{_RESET} Implement your converter in    {_DIM}packages/{converter_name}/src{_RESET}")
     print(f"  {_YELLOW}4.{_RESET} Run the tests:                 {_DIM}make test-{converter_name}{_RESET}")
     print()
@@ -88,7 +84,7 @@ def _update_makefile(converter_name: str) -> None:
     if any(line.startswith(f"test-{converter_name}:") for line in lines):
         return
 
-    command = f"\tuv run --package evo-data-converters-{converter_name} pytest packages/{converter_name}/tests\n"
+    command = f"\tcd packages/{converter_name} && uv sync && uv run pytest tests\n"
 
     # Find the first test-* target that is alphabetically after the new one.
     insert_at = None
@@ -137,31 +133,6 @@ def _update_readme(converter_name: str) -> None:
         )
 
     readme_path.write_text("".join(lines))
-
-
-def _update_pyproject(converter_name: str) -> None:
-    pyproject_path = REPO_ROOT / "pyproject.toml"
-    lines = pyproject_path.read_text().splitlines(keepends=True)
-
-    package = f"evo-data-converters-{converter_name}"
-
-    dependency_line = f'  "{package}",\n'
-    if not any(line.strip().strip('"').startswith(package) for line in lines):
-        lines = _insert_sorted(
-            lines,
-            new_line=dependency_line,
-            is_member=lambda line: line.lstrip().startswith('"evo-data-converters-'),
-        )
-
-    source_line = f"{package} = {{ workspace = true }}\n"
-    if source_line not in lines:
-        lines = _insert_sorted(
-            lines,
-            new_line=source_line,
-            is_member=lambda line: line.startswith("evo-data-converters-") and "workspace = true" in line,
-        )
-
-    pyproject_path.write_text("".join(lines))
 
 
 def _insert_sorted(lines, new_line, is_member):

@@ -1,43 +1,51 @@
 lint:
-	uv run --only-dev ruff check
-	uv run --only-dev ruff format --check
+	cd packages/common && uv run --only-dev ruff check ../..
+	cd packages/common && uv run --only-dev ruff format --check ../..
 
 lint-fix:
-	uv run --only-dev ruff format
+	cd packages/common && uv run --only-dev ruff check --fix ../..
+	cd packages/common && uv run --only-dev ruff format ../..
+# e.g. make create-converter ARGS="--converter-type foo --export-support 'Import only'"
+create-converter:
+	cd packages/common && uv run --only-dev python scripts/create_converter.py $(ARGS)
 
 test:
-	uv run pytest .
+	@set -e; \
+	for pkg in packages/*/; do \
+		echo "=== $$pkg ==="; \
+		( cd "$$pkg" && uv sync && uv run pytest tests; ec=$$?; [ $$ec -eq 0 ] || [ $$ec -eq 5 ] ); \
+	done
 
 test-common:
-	uv run --package evo-data-converters-common pytest packages/common/tests
+	cd packages/common && uv sync && uv run pytest tests
 
 test-duf:
-	uv run --package evo-data-converters-duf pytest packages/duf/tests
+	cd packages/duf && uv sync && uv run pytest tests
 
 test-gocad:
-	uv run --package evo-data-converters-gocad pytest packages/gocad/tests
+	cd packages/gocad && uv sync && uv run pytest tests
 
 test-image:
-	uv run --package evo-data-converters-image pytest packages/image/tests
+	cd packages/image && uv sync && uv run pytest tests
 
 test-obj:
-	uv run --package evo-data-converters-obj pytest packages/obj/tests
+	cd packages/obj && uv sync && uv run pytest tests
 
 test-omf:
-	uv run --package evo-data-converters-omf pytest packages/omf/tests
+	cd packages/omf && uv sync && uv run pytest tests
 
 test-resqml:
-	uv run --package evo-data-converters-resqml pytest packages/resqml/tests
+	cd packages/resqml && uv sync && uv run pytest tests
 
 test-shp:
-	uv run --package evo-data-converters-shp pytest packages/shp/tests
+	cd packages/shp && uv sync && uv run pytest tests
 
 test-ubc:
-	uv run --package evo-data-converters-ubc pytest packages/ubc/tests
+	cd packages/ubc && uv sync && uv run pytest tests
 
 test-vtk:
-	uv run --package evo-data-converters-vtk pytest packages/vtk/tests
+	cd packages/vtk && uv sync && uv run pytest tests
 
 test-xyz:
-	uv run --package evo-data-converters-xyz pytest packages/xyz/tests
+	cd packages/xyz && uv sync && uv run pytest tests
 

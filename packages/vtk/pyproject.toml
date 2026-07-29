@@ -25,9 +25,8 @@ dev = [
     "pytest",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
