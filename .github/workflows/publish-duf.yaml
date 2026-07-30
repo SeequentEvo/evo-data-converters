@@ -25,9 +25,7 @@ jobs:
 
       - name: Build package
         shell: bash
-        run: |
-          uv sync
-          uv build packages/duf --out-dir dist
+        run: uv build packages/duf --out-dir dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

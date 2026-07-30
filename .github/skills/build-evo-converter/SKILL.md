@@ -16,13 +16,13 @@ criteria of each phase before moving on.
 
 Skill: [`scaffold-converter`](../scaffold-converter/SKILL.md)
 
-Run `make create-converter` (pass `ARGS="--converter-type <type> --export-support 'Import only'"`
-to run it non-interactively), `uv sync`, and verify registration. **Always** use the
-`create-converter` CLI — never call `copier` directly, or the Makefile/README
-registrations are skipped. The template generates `packages/<type>/tests/data/`; ask the user to
-drop their sample file there. **Exit:** `packages/<type>/` exists, is registered in
-Makefile/README, `make test-<type>` passes on the placeholder stubs, and any sample
-data is in `packages/<type>/tests/data/`.
+Run `uv run create-converter` from `packages/common` (pass
+`--converter-type <type> --export-support 'Import only'` to run it non-interactively), `uv sync`,
+and verify registration. **Always** use the `create-converter` CLI — never call `copier`
+directly, or the pyproject.toml/README registrations are skipped. The template generates
+`packages/<type>/tests/data/`; ask the user to drop their sample file there. **Exit:**
+`packages/<type>/` exists, is registered in pyproject.toml/README, `uv run test-<type>` passes on
+the placeholder stubs, and any sample data is in `packages/<type>/tests/data/`.
 
 ## Phase 2 — Discovery
 
@@ -46,7 +46,7 @@ from a real sample (validated with `publish_objects=False`); `ruff` and `mypy` a
 Skill: [`test-converter`](../test-converter/SKILL.md)
 
 Replace placeholder tests with real ones, then run tests, lint, and type checks. **Exit:**
-`make test-<type>`, `uv run ruff check`, and `uv run mypy packages/<type>` all pass.
+`uv run test-<type>`, `uv run ruff check`, and `uv run mypy packages/<type>` all pass.
 
 ## After import works
 

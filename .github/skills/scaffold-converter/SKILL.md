@@ -1,12 +1,12 @@
 ---
 name: scaffold-converter
-description: "Use when creating the package skeleton for a new Evo data converter with the create-converter CLI. Runs the scaffolding generator, chooses the converter type and import/export mode, syncs the workspace, and verifies the package was registered. Use for: 'scaffold a converter', 'set up a new converter package', 'run create-converter', generating importer/exporter stubs. First phase of building a converter."
+description: "Use when creating the package skeleton for a new Evo data converter with the create-converter CLI. Runs the scaffolding generator, chooses the converter type and import/export mode, installs the package, and verifies it was registered. Use for: 'scaffold a converter', 'set up a new converter package', 'run create-converter', generating importer/exporter stubs. First phase of building a converter."
 ---
 
 # Scaffold a converter
 
 Goal: generate a ready-to-implement `packages/<type>/` package with the `create-converter` CLI
-and confirm it is wired into the workspace. Do this **first**, before discovery: the generated
+and confirm it is wired into the repo. Do this **first**, before discovery: the generated
 package gives the user a home for their sample data and gives you the stub files you'll fill in
 later.
 
@@ -21,33 +21,36 @@ later.
 
 ## 2. Run the generator
 
-From the repository root, run the CLI interactively via the Makefile:
+From `packages/common`, run the CLI interactively:
 
 ```shell
-make create-converter
+uv run create-converter
 ```
 
 The CLI (see [`packages/common/scripts/create_converter.py`](../../../packages/common/scripts/create_converter.py))
 prompts for `converter_type` and `export_support`, runs the copier template in
-[`packages/common/scripts/converter_template`](../../../packages/common/scripts/converter_template), then updates the
-root `Makefile` (adds a `test-<type>` target) and `README.md` (package table + code-samples list).
+[`packages/common/scripts/converter_template`](../../../packages/common/scripts/converter_template), then updates
+`packages/common/pyproject.toml` (adds a `test-<type>` script) and `README.md` (package table + code-samples list).
+It also creates the CI workflow `.github/workflows/publish-<type>.yaml` and adds the package to
+the test matrix in `.github/workflows/run-all-tests.yaml`.
 
-To run it non-interactively (recommended for agents), pass both answers as flags via `ARGS`:
+To run it non-interactively (recommended for agents), pass both answers as flags:
 
 ```shell
-make create-converter ARGS="--converter-type <type> --export-support 'Import only'"
+uv run create-converter --converter-type <type> --export-support 'Import only'
 ```
 
 `--export-support` accepts `Import only` or `Import and Export`. When both flags are supplied,
-the CLI skips all prompts and still performs the Makefile/README registrations.
+the CLI skips all prompts and still performs the pyproject.toml/README/workflow registrations.
 
-> **Always** scaffold with `make create-converter`. Do **not** call `copier` directly — the
-> raw copier command only renders the template and skips the Makefile/README
+> **Always** scaffold with `uv run create-converter`. Do **not** call `copier` directly — the
+> raw copier command only renders the template and skips the pyproject.toml/README
 > registrations that the CLI's `main()` applies, leaving the repository inconsistent.
 
 ## 3. Install the new package
 
 ```shell
+cd packages/<type>
 uv sync
 ```
 
@@ -59,15 +62,17 @@ Confirm the package and its wiring exist:
   `utils.py`, and `<type>_to_evo.py`.
 - `tests/importers/` contains the placeholder tests, and `tests/data/` exists (with a
   `.gitkeep`) ready for the sample file.
+- `.github/workflows/publish-<type>.yaml` exists and `<type>` appears in the `package:` matrix
+  in `.github/workflows/run-all-tests.yaml`.
 - If `Import and Export` was chosen, `exporter/` and export code-samples exist.
 - Registration applied:
   ```shell
-  grep -n "test-<type>" Makefile
+  grep -n "test-<type>" packages/common/pyproject.toml
   grep -n "evo-data-converters-<type>" README.md
   ```
 - The generated tests pass out of the box (they assert the stubs raise `NotImplementedError`):
   ```shell
-  make test-<type>
+  uv run test-<type>
   ```
 
 ## 5. Add the sample data

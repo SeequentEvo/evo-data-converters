@@ -75,15 +75,30 @@ cd packages/<converter>
 uv sync
 ```
 
+### Developer tasks (`uv run`)
+
+Common developer tasks are exposed as scripts on the `evo-data-converters-common` package. Run
+them from `packages/common`:
+
+```shell
+cd packages/common
+
+uv run lint            # ruff check + format --check over the repo
+uv run lint-fix        # ruff check --fix + format over the repo
+uv run test            # sync and run the tests for every package
+uv run test-<type>     # sync and run the tests for a single package, e.g. test-xyz
+uv run create-converter  # scaffold a new converter (see below)
+```
+
 ### Creating a new converter with the CLI
 
 The quickest way to start a new converter is with the `create-converter` CLI. It scaffolds a complete, ready-to-build
 converter package from a template so you can focus on the format-specific conversion logic rather than boilerplate.
 
-From the root directory of the project run:
+From within `packages/common` run:
 
 ```shell
-make create-converter
+uv run create-converter
 ```
 
 This runs the CLI ([`scripts/create_converter.py`](scripts/create_converter.py)) from within
@@ -100,7 +115,8 @@ The CLI then:
 
 - Creates a new package under `packages/<type>/` with the standard `importer/` (and `exporter/`, if selected) layout,
   code samples, and tests.
-- Registers the package by updating the root `Makefile` (adding a `test-<type>` target) and `README.md`.
+- Registers the package by adding a `test-<type>` script to `packages/common/pyproject.toml` and
+  updating `README.md`.
 
 The generated `convert_<type>` and `export_<type>` functions follow the conventions described below, with the
 format-specific parts left as `TODO` comments that raise `NotImplementedError`. These are the places where you add your
@@ -113,8 +129,8 @@ After generating a converter:
 # Install the new package (run from packages/<type>)
 uv sync
 
-# Run the generated tests for your converter
-make test-<type>
+# Run the generated tests for your converter (run from packages/common)
+uv run test-<type>
 ```
 
 ### General converter architecture

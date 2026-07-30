@@ -1,4 +1,4 @@
-name: Build and publish evo-data-converters-image
+name: Build and publish evo-data-converters-{{ converter_type }}
 
 permissions:
   # Required for publishing release artifacts
@@ -11,11 +11,11 @@ on:
     types: [released]
 
 env:
-  GH_TOKEN: ${{ github.token }}
+  GH_TOKEN: {% raw %}${{ github.token }}{% endraw %}
 
 jobs:
   run-tests:
-    if: startsWith(github.event.release.tag_name, 'evo-data-converters-image@')
+    if: startsWith(github.event.release.tag_name, 'evo-data-converters-{{ converter_type }}@')
     name: Test
     strategy:
       fail-fast: false
@@ -30,14 +30,14 @@ jobs:
           - "3.12"
         package:
           - common
-          - image
-    runs-on: ${{ matrix.os }}
+          - {{ converter_type }}
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/testing
         with:
-          PACKAGE: ${{ matrix.package }}
-          PYTHON_VERSION: ${{ matrix.python-version }}
+          PACKAGE: {% raw %}${{ matrix.package }}{% endraw %}
+          PYTHON_VERSION: {% raw %}${{ matrix.python-version }}{% endraw %}
 
   build-and-publish:
     name: Build and publish package
@@ -50,11 +50,11 @@ jobs:
 
       - name: Build package
         shell: bash
-        run: uv build packages/image --out-dir dist
+        run: uv build packages/{{ converter_type }} --out-dir dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Upload artifact to GitHub Release
         shell: bash
-        run: gh release upload ${{ github.event.release.tag_name }} dist/*
+        run: gh release upload {% raw %}${{ github.event.release.tag_name }}{% endraw %} dist/*
