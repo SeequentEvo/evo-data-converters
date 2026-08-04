@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-xyz"
 description = "Python data converters for XYZ files to Evo geoscience objects"
-version = "0.0.3"
+version = "0.0.4"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
