@@ -1,0 +1,58 @@
+#  Copyright © {{year}} Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+import os
+from typing import Optional
+
+from evo_schemas.components import Crs_V1_0_1
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+
+from evo.data_converters.{{converter_type}}.importer.{{converter_type}}_reader import read_{{converter_type}}_file
+from evo.objects.utils.data import ObjectDataClient
+
+
+def get_geoscience_object_from_{{converter_type}}(
+    data_client: ObjectDataClient,
+    filepath: str,
+    coordinate_reference_system: Crs_V1_0_1,
+    tags: Optional[dict[str, str]] = None,
+) -> BaseSpatialDataProperties_V1_0_1:
+    """Build a Geoscience Object from a {{converter_type.upper()}} file.
+
+    :param data_client: Client used to upload referenced data (e.g. attribute arrays via
+        ``data_client.save_table``).
+    :param filepath: Path to the {{converter_type.upper()}} file to convert.
+    :param coordinate_reference_system: The CRS to assign to the created Geoscience Object.
+    :param tags: (Optional) Additional tags to attach to the Geoscience Object.
+    :return: The converted Geoscience Object.
+    """
+    # Read the file into an intermediate representation.
+    _data = read_{{converter_type}}_file(filepath)
+
+    # Build the standard tags for the object. Extend or override these as needed.
+    object_tags = {
+        "Source": f"{os.path.basename(filepath)} (via Evo Data Converters)",
+        "Stage": "Experimental",
+        "InputType": "{{converter_type.upper()}}",
+    }
+    if tags:
+        object_tags.update(tags)
+
+    # TODO: Convert the intermediate representation into a Geoscience Object.
+    #   1. Extract the geometry / values you need from ``_data``.
+    #   2. Upload any large arrays with ``data_client.save_table(...)`` and wrap them in the
+    #      appropriate evo_schemas element/attribute types.
+    #   3. Construct and return the relevant evo_schemas object (a subclass of
+    #      BaseSpatialDataProperties_V1_0_1), passing ``coordinate_reference_system``,
+    #      ``tags=object_tags`` and ``uuid=None``.
+    raise NotImplementedError(
+        "Implement get_geoscience_object_from_{{converter_type}} to build a Geoscience Object."
+    )

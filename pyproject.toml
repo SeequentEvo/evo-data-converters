@@ -6,6 +6,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE.md", content-type = "text/markdown" }
 version = "0.1.0"
 dependencies = [
+  "copier>=9.16.0",
   "evo-data-converters-common",
   "evo-data-converters-duf ; platform_system == \"Windows\"",
   "evo-data-converters-gocad",
@@ -91,3 +92,6 @@ include = ["packages"]
 
 [tool.hatch.build.targets.wheel]
 include = ["packages"]
+
+[project.scripts]
+create-converter = "scripts.create_converter:main"

@@ -1,0 +1,12 @@
+# questions
+
+converter_type:
+    type: str
+    help: What type of converter are you creating? (e.g. obj, shp, xyz, etc.)
+
+export_support:
+    type: str
+    help: Will this converter support exporting as well as importing? (Import only/Import and Export)
+    choices:
+        - Import only
+        - Import and Export
