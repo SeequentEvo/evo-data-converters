@@ -50,7 +50,7 @@ jobs:
 
       - name: Build package
         shell: bash
-        run: uv build --package evo-data-converters-vtk
+        run: uv build packages/vtk --out-dir dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

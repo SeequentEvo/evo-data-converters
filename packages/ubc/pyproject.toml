@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-ubc"
 description = "Python data converters for UBC to Evo geoscience objects"
-version = "0.2.1"
+version = "0.2.2"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
@@ -24,9 +24,8 @@ dev = [
     "pytest",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]

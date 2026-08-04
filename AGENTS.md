@@ -8,8 +8,10 @@ detailed, step-by-step workflows.
 
 ## What this repo is
 
-- A `uv` workspace. Each supported format is a package under `packages/<type>/` that builds on
-  the shared framework in [`packages/common`](packages/common/README.md).
+- A collection of independently built and published `uv` packages under `packages/<type>/`.
+  Each supported format is its own package that builds on the shared framework in
+  [`packages/common`](packages/common/README.md); run commands from within each package
+  directory (there is no root-level workspace or lockfile).
 - Existing converters to learn from: `xyz` (point set from CSV/text), `omf` (multiple object
   types + export + block model), `gocad` (binary), `resqml`, `vtk`, `shp`, `image`, `ubc`,
   `obj`, `duf`.
@@ -21,8 +23,9 @@ Building a converter has four phases. Each has a dedicated skill — open the li
 for the full procedure, checklists, and examples.
 
 1. **Scaffold** — [`.github/skills/scaffold-converter/SKILL.md`](.github/skills/scaffold-converter/SKILL.md)
-   Run `create-converter` to generate the package and wire it into the workspace. The template
-   creates `packages/<type>/tests/data/`; have the user drop their sample file there.
+   Run `create-converter` to generate the package and wire it into the repo (test script,
+   README, and publish workflow). The template creates `packages/<type>/tests/data/`; have the
+   user drop their sample file there.
 2. **Discovery** — [`.github/skills/converter-discovery/SKILL.md`](.github/skills/converter-discovery/SKILL.md)
    Inspect the sample data in `packages/<type>/tests/data/`, identify the input format, choose an
    open-source reader library (license-checked), and decide which Evo geoscience object type(s)
@@ -72,12 +75,11 @@ packages/<type>/src/evo/data_converters/<type>/
 ## Key commands
 
 ```shell
-uv sync --all-packages --all-extras   # set up the workspace
-uv run create-converter               # scaffold a new converter (interactive)
-uv sync                               # install the newly generated package
-make test-<type>                      # run the new converter's tests
-uv run ruff check                     # lint (line length 120)
-uv run mypy packages/<type>           # type check
+cd packages/<type> && uv sync         # install a converter package and its deps
+cd packages/common && uv run create-converter   # scaffold a new converter (interactive)
+cd packages/common && uv run test-<type>         # run the new converter's tests
+cd packages/common && uv run lint                # lint the repo (ruff, line length 120)
+cd packages/common && uv run --only-dev mypy ../<type>   # type check a converter
 ```
 
 ## Framework APIs (from `evo.data_converters.common`)
@@ -104,4 +106,4 @@ uv run mypy packages/<type>           # type check
 - **Keep the Apache 2.0 license header** on every new source file (the template includes it).
 - **Prefer small, real sample data** committed under the package's `code-samples`/`tests` for
   reproducible tests; confirm licensing before committing third-party data.
-- **Run `make test-<type>`, `ruff`, and `mypy`** before considering a converter done.
+- **Run `uv run test-<type>`, `ruff`, and `mypy`** before considering a converter done.
