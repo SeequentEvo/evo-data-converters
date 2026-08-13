@@ -10,7 +10,7 @@
 
 ## Evo
 
-Evo is a unified platform for geoscience teams. It enables access, connection, computation, and management of subsurface data. This empowers better decision-making, simplified collaboration, and accelerated innovation. Evo is built on open APIs, allowing developers to build custom integrations and applications. Our open schemas, code examples, and SDK are available for the community to use and extend. 
+Evo is a unified platform for geoscience teams. It enables access, connection, computation, and management of subsurface data. This empowers better decision-making, simplified collaboration, and accelerated innovation. Evo is built on open APIs, allowing developers to build custom integrations and applications. Our open schemas, code examples, and SDK are available for the community to use and extend.
 
 Evo is powered by Seequent, a Bentley organisation.
 
@@ -23,7 +23,7 @@ When running a converter, data is imported from a supported file format, convert
 The existing data converters can be used without modification or used as a template for your own integration.
 
 | Package                                                 | Version                                                                                                                                                        |
-|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [evo-data-converters-common](packages/common/README.md) | <a href="https://pypi.org/project/evo-data-converters-common/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-common" /></a> |
 | [evo-data-converters-duf](packages/duf/README.md)       | <a href="https://pypi.org/project/evo-data-converters-duf/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" /></a>       |
 | [evo-data-converters-gocad](packages/gocad/README.md)   | <a href="https://pypi.org/project/evo-data-converters-gocad/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-gocad" /></a>   |
@@ -38,20 +38,22 @@ The existing data converters can be used without modification or used as a templ
 
 ## Pre-requisites
 
-* Python 3.10, 3.11, or 3.12
+- Python 3.10, 3.11, or 3.12
 
 ### Evo authorisation and discovery
 
 Whether using the converters or undertaking development work on the modules themselves, integration with Evo will require that you are granted access as an Evo Partner or Customer, along with access to a specific Evo Workspace. Access is granted via a token. For more information on getting started, see the [Seequent Evo Developer Portal.](https://developer.seequent.com/)
 
 ### Using the data converters
+
 See the documentation for each converter for information on how to use the data converters to upload or download geoscience objects from Seequent Evo.
 
 For the data converter's common framework package, see [`evo-data-converters-common`](packages/common/README.md).
 
 To use any of the data converters, you will need a few things:
-  * An *access token* for your user
-  * The *organisation ID*, *hub URL* and *workspace ID* that you would like to import your data to, or export it from.
+
+- An _access token_ for your user
+- The _organisation ID_, _hub URL_ and _workspace ID_ that you would like to import your data to, or export it from.
 
 To get an access token, see [Apps and Tokens](https://developer.seequent.com/docs/guides/getting-started/apps-and-tokens/) in the Seequent Evo Developer portal.
 
@@ -66,13 +68,14 @@ There is more information in the [Welcome to Seequent Evo](https://developer.see
 To get up and running with this repository, including all Jupyter notebook examples in it, you will first need to
 [install UV.](https://docs.astral.sh/uv/)
 
-Notebooks can be run in your tool of choice (e.g. VS Code). To use Jupyter (the default):
+Notebooks can be run in your tool of choice (e.g. VS Code). To use Jupyter (the default), change into
+the package or code-sample directory containing the notebook(s) you want to run and install it:
 
 ```shell
-uv sync --all-packages --all-extras
+uv sync --all-extras
 ```
 
-Then in the directory of the notebook(s) you want to run, type:
+Then, in that same directory, type:
 
 ```shell
 uv run jupyter notebook
@@ -84,16 +87,16 @@ It should open a browser where you can open the notebooks for the current direct
 
 For examples of how to use Evo data converters, please refer to the samples in each convertor of the `packages` directory.
 
-   * [DUF](packages/duf/code-samples)
-   * [GOCAD](packages/gocad/code-samples)
-   * [Image](packages/image/code-samples)
-   * [OBJ](packages/obj/code-samples)
-   * [OMF](packages/omf/code-samples)
-   * [RESQML](packages/resqml/code-samples)
-   * [SHP](packages/shp/code-samples)
-   * [UBC](packages/ubc/code-samples)
-   * [VTK](packages/vtk/code-samples)
-   * [XYZ](packages/xyz/code-samples)
+- [DUF](packages/duf/code-samples)
+- [GOCAD](packages/gocad/code-samples)
+- [Image](packages/image/code-samples)
+- [OBJ](packages/obj/code-samples)
+- [OMF](packages/omf/code-samples)
+- [RESQML](packages/resqml/code-samples)
+- [SHP](packages/shp/code-samples)
+- [UBC](packages/ubc/code-samples)
+- [VTK](packages/vtk/code-samples)
+- [XYZ](packages/xyz/code-samples)
 
 ## Contributing
 
@@ -104,7 +107,7 @@ Thank you for your interest in contributing to Seequent software. Please have a 
 Once you've installed UV, install pre-commit hooks. These are used to standardise development workflows for all contributors:
 
 ```shell
-uv run pre-commit install
+cd packages/common && uv run --only-dev pre-commit install
 ```
 
 ### Developing converters
@@ -125,6 +128,7 @@ follow the linked phase skills.
 We rely on an open, friendly, inclusive environment. To help us ensure this remains possible, please familiarise yourself with our [code of conduct.](./CODE_OF_CONDUCT.md)
 
 ## License
+
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
 Copyright © 2026 Bentley Systems, Incorporated.

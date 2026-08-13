@@ -9,13 +9,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from pyproj import CRS
-from pyproj._crs import is_wkt
-from pyproj.exceptions import CRSError
-
 from evo_schemas.components import Crs_V1_0_1 as Crs
 from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from evo_schemas.components import Crs_V1_0_1_OgcWkt as Crs_OgcWkt
+from pyproj import CRS
+from pyproj._crs import is_wkt
+from pyproj.exceptions import CRSError
 
 
 class InvalidCRSError(ValueError):

@@ -1,6 +1,6 @@
 ---
 name: test-converter
-description: "Use when writing and running tests for an Evo data converter, and validating it with linting and type checks. Replaces the generated placeholder tests with real ones using sample data, then runs make test-<type>, ruff, and mypy until green. Use for: 'test the converter', 'write converter tests', 'the converter tests fail', 'run ruff/mypy on the converter'. Final phase of building a converter."
+description: "Use when writing and running tests for an Evo data converter, and validating it with linting and type checks. Replaces the generated placeholder tests with real ones using sample data, then runs uv run test-<type>, ruff, and mypy until green. Use for: 'test the converter', 'write converter tests', 'the converter tests fail', 'run ruff/mypy on the converter'. Final phase of building a converter."
 ---
 
 # Test a converter
@@ -51,9 +51,9 @@ Replace the two placeholder files once the reader and builder are implemented.
 ## 4. Run tests and checks
 
 ```shell
-make test-<type>              # runs pytest for packages/<type>/tests
-uv run ruff check packages/<type>
-uv run mypy packages/<type>
+uv run test-<type>           # runs pytest for packages/<type>/tests (from packages/common)
+uv run lint                  # ruff check + format over the repo (from packages/common)
+cd packages/common && uv run --only-dev mypy ../<type>
 ```
 
 Iterate until all three are clean. When you change behaviour, update the tests in the same pass.
@@ -67,7 +67,7 @@ their own workspace details — never commit those.
 
 ## Done criteria
 
-- `make test-<type>` passes with real reader/builder tests (no remaining `NotImplementedError`
+- `uv run test-<type>` passes with real reader/builder tests (no remaining `NotImplementedError`
   placeholders).
 - `ruff` and `mypy` are clean for the package.
 - Sample test data is small and appropriately licensed.

@@ -1,13 +1,11 @@
 [project]
 name = "evo-data-converters-common"
 description = "Python framework for building data converters between common geoscience data formats"
-version = "0.3.3"
+version = "0.3.4"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
-authors = [
-    { name = "Seequent", email = "support@seequent.com" }
-]
+authors = [{ name = "Seequent", email = "support@seequent.com" }]
 
 dependencies = [
     "aiohttp",
@@ -28,16 +26,64 @@ Tracker = "https://github.com/SeequentEvo/evo-data-converters/issues"
 Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
+# Developer task entry points, run from packages/common with `uv run <name>`
+# (e.g. `uv run lint`, `uv run test-xyz`). Backed by evo.data_converters.common._dev_tasks.
+[project.scripts]
+lint = "evo.data_converters.common._dev_tasks:lint"
+lint-fix = "evo.data_converters.common._dev_tasks:lint_fix"
+create-converter = "evo.data_converters.common._dev_tasks:create_converter"
+test = "evo.data_converters.common._dev_tasks:test_all"
+test-common = "evo.data_converters.common._dev_tasks:test_package"
+test-duf = "evo.data_converters.common._dev_tasks:test_package"
+test-gocad = "evo.data_converters.common._dev_tasks:test_package"
+test-image = "evo.data_converters.common._dev_tasks:test_package"
+test-obj = "evo.data_converters.common._dev_tasks:test_package"
+test-omf = "evo.data_converters.common._dev_tasks:test_package"
+test-resqml = "evo.data_converters.common._dev_tasks:test_package"
+test-shp = "evo.data_converters.common._dev_tasks:test_package"
+test-ubc = "evo.data_converters.common._dev_tasks:test_package"
+test-vtk = "evo.data_converters.common._dev_tasks:test_package"
+test-xyz = "evo.data_converters.common._dev_tasks:test_package"
+
 [dependency-groups]
 dev = [
     "pytest>=8.2",
-    "ruff",
+    "ruff==0.9.1",    # keep in sync with .pre-commit-config.yaml
     "requests-mock",
+    "mypy",
+    "pre-commit>=4",
+    "copier>=9.16.0", # used by the create-converter scaffolding CLI (scripts/)
 ]
 
 [tool.ruff]
 src = ["src", "tests"]
 line-length = 120
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".git-rewrite",
+    ".mypy_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "venv",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP006"]
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_ignores = true
 
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
