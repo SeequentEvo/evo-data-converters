@@ -18,6 +18,9 @@ Documentation = "https://developer.seequent.com/"
 [dependency-groups]
 dev = ["pytest"]
 
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
+
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
