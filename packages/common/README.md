@@ -78,15 +78,19 @@ uv sync
 ### Developer tasks (`uv run`)
 
 Common developer tasks are exposed as scripts on the `evo-data-converters-common` package. Run
-them from `packages/common`:
+lint and test commands from the converter package you want to check; run `create-converter` from
+`packages/common`:
 
 ```shell
-cd packages/common
+cd packages/<converter>
 
-uv run lint            # ruff check + format --check over the repo
-uv run lint-fix        # ruff check --fix + format over the repo
-uv run test            # sync and run the tests for every package
-uv run test-<type>     # sync and run the tests for a single package, e.g. test-xyz
+uv run lint            # ruff check + format --check for this package
+uv run lint-fix        # ruff check --fix + format for this package
+uv run test            # sync and run the tests for this package
+uv run test-<type>     # sync and run the tests for a named package, e.g. test-xyz
+
+cd ../common
+
 uv run create-converter  # scaffold a new converter (see below)
 ```
 
@@ -244,6 +248,7 @@ from evo.data_converters.common import (
 # depending on the type of file
 from yourfileparsermodule import yourfileparser
 
+
 # Define the main convert function
 def convert_yourfiletype(
     filepath: str,
@@ -251,7 +256,7 @@ def convert_yourfiletype(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     upload_path: str = "",
-    overwrite_existing_objects: bool = False
+    overwrite_existing_objects: bool = False,
 ) -> list[ObjectMetadata]:
     geoscience_objects = []
 
@@ -281,7 +286,6 @@ def convert_yourfiletype(
 
     # Return the publishing response
     return objects_metadata
-
 ```
 
 **Note:** this example only returns the `ObjectMetadata`, and will publish immediately. Refer to the existing
