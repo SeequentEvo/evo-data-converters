@@ -10,3 +10,14 @@ export_support:
     choices:
         - Import only
         - Import and Export
+
+# These paths are calculated here to avoid creating filenames which are too long for Windows - when the repo is extracted from a zip.
+exporter_dir:
+    type: str
+    when: false
+    default: "{% if export_support == 'Import and Export' %}exporter{% endif %}"
+
+sample_export_dir:
+    type: str
+    when: false
+    default: "{% if export_support == 'Import and Export' %}export-{{ converter_type }}{% endif %}"
