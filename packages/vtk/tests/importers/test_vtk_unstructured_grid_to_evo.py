@@ -33,6 +33,7 @@ from evo.data_converters.vtk.importer.vtk_unstructured_grid_to_evo import conver
 def _remove_unused_points(unstructured_grid: vtk.vtkUnstructuredGrid) -> vtk.vtkUnstructuredGrid:
     clean_filter = vtk.vtkRemoveUnusedPoints()
     clean_filter.SetInputData(unstructured_grid)
+    clean_filter.SetGenerateOriginalPointIds(False)
     clean_filter.Update()
     return clean_filter.GetOutput()
 

@@ -11,7 +11,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+**/dist/
 downloads/
 eggs/
 .eggs/
@@ -136,7 +136,7 @@ query_results.parquet
 .cache_ggshield
 
 # Object data client caches
-data/cache
+**/data/cache
 
 # Development tools
 .vscode/
