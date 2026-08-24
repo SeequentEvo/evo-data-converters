@@ -74,17 +74,17 @@ def is_float_array(array: vtk.vtkAbstractArray) -> bool:
 
 
 def is_integer_array(array: vtk.vtkAbstractArray) -> bool:
-    return array.GetDataType() in [
-        vtk.VTK_SIGNED_CHAR,
-        vtk.VTK_UNSIGNED_CHAR,
-        vtk.VTK_SHORT,
-        vtk.VTK_UNSIGNED_SHORT,
-        vtk.VTK_INT,
-        vtk.VTK_UNSIGNED_INT,
-        vtk.VTK_LONG,
-        vtk.VTK_UNSIGNED_LONG,
-        vtk.VTK_LONG_LONG,
-    ]
+    if array.GetDataType() == vtk.VTK_STRING:
+        return False
+    return vtk_to_numpy(array).dtype in {
+        np.dtype(np.int8),
+        np.dtype(np.uint8),
+        np.dtype(np.int16),
+        np.dtype(np.uint16),
+        np.dtype(np.int32),
+        np.dtype(np.uint32),
+        np.dtype(np.int64),
+    }
 
 
 def is_string_array(array: vtk.vtkAbstractArray) -> bool:
