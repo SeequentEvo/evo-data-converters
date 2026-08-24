@@ -27,9 +27,9 @@ From `packages/common`, run the CLI interactively:
 uv run create-converter
 ```
 
-The CLI (see [`packages/common/scripts/create_converter.py`](../../../packages/common/scripts/create_converter.py))
+The CLI (see [`scripts/create_converter.py`](../../../scripts/create_converter.py))
 prompts for `converter_type` and `export_support`, runs the copier template in
-[`packages/common/scripts/converter_template`](../../../packages/common/scripts/converter_template), then updates
+[`scripts/converter_template`](../../../scripts/converter_template), then updates
 `packages/common/pyproject.toml` (adds a `test-<type>` script) and `README.md` (package table + code-samples list).
 It also creates the CI workflow `.github/workflows/publish-<type>.yaml` and adds the package to
 the test matrix in `.github/workflows/run-all-tests.yaml`.
