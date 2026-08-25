@@ -62,9 +62,9 @@ def lint_fix() -> None:
 
 
 def create_converter() -> None:
-    """Scaffold a new converter package (delegates to scripts/create_converter.py)."""
+    """Scaffold a new converter package with the repository-level CLI."""
     root = _repo_root()
-    script = root / "packages" / "common" / "scripts" / "create_converter.py"
+    script = root / "scripts" / "create_converter.py"
     _run([sys.executable, str(script), *sys.argv[1:]], cwd=root)
 
 

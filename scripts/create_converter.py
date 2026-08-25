@@ -15,8 +15,8 @@ from pathlib import Path
 
 from copier import run_copy
 
-# This file lives at <repo>/packages/common/scripts/create_converter.py
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# This file lives at <repo>/scripts/create_converter.py.
+REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_DIR = Path(__file__).resolve().parent / "converter_template"
 WORKFLOW_TEMPLATE_DIR = Path(__file__).resolve().parent / "workflow_template"
 
@@ -150,8 +150,8 @@ def _create_publish_workflow(converter_name: str) -> None:
     if workflow_path.exists():
         return
 
-    # Render the workflow copier template (packages/common/scripts/workflow_template) into the
-    # repository root, producing .github/workflows/publish-<type>.yaml.
+    # Render the workflow template into the repository root, producing
+    # .github/workflows/publish-<type>.yaml.
     run_copy(
         str(WORKFLOW_TEMPLATE_DIR),
         str(REPO_ROOT),

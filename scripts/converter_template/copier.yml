@@ -1,0 +1,23 @@
+# questions
+
+converter_type:
+    type: str
+    help: What type of converter are you creating? (e.g. obj, shp, xyz, etc.)
+
+export_support:
+    type: str
+    help: Will this converter support exporting as well as importing? (Import only/Import and Export)
+    choices:
+        - Import only
+        - Import and Export
+
+# These paths are calculated here to avoid creating filenames which are too long for Windows - when the repo is extracted from a zip.
+exporter_dir:
+    type: str
+    when: false
+    default: "{% if export_support == 'Import and Export' %}exporter{% endif %}"
+
+sample_export_dir:
+    type: str
+    when: false
+    default: "{% if export_support == 'Import and Export' %}export-{{ converter_type }}{% endif %}"

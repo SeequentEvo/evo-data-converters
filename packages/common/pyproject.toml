@@ -52,7 +52,7 @@ dev = [
     "requests-mock",
     "mypy",
     "pre-commit>=4",
-    "copier>=9.16.0", # used by the create-converter scaffolding CLI (scripts/)
+    "copier>=9.16.0", # used by the repository-level create-converter scaffolding CLI
 ]
 
 [tool.ruff]

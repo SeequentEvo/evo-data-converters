@@ -105,7 +105,7 @@ From within `packages/common` run:
 uv run create-converter
 ```
 
-This runs the CLI ([`scripts/create_converter.py`](scripts/create_converter.py)) from within
+This runs the CLI ([`../../scripts/create_converter.py`](../../scripts/create_converter.py)) from within
 `packages/common`, where its `copier` dependency lives (in the `dev` dependency group).
 
 You will be prompted for:
