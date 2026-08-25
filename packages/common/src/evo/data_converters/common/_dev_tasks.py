@@ -48,17 +48,17 @@ def _run(command: list[str], cwd: Path) -> None:
 
 
 def lint() -> None:
-    """Check formatting and lint rules across the repository."""
-    root = _repo_root()
-    _run(["ruff", "check", str(root)], cwd=root)
-    _run(["ruff", "format", "--check", str(root)], cwd=root)
+    """Check formatting and lint rules in the invoking package."""
+    package_dir = Path.cwd()
+    _run(["ruff", "check", str(package_dir)], cwd=package_dir)
+    _run(["ruff", "format", "--check", str(package_dir)], cwd=package_dir)
 
 
 def lint_fix() -> None:
-    """Apply lint and formatting fixes across the repository."""
-    root = _repo_root()
-    _run(["ruff", "check", "--fix", str(root)], cwd=root)
-    _run(["ruff", "format", str(root)], cwd=root)
+    """Apply lint and formatting fixes in the invoking package."""
+    package_dir = Path.cwd()
+    _run(["ruff", "check", "--fix", str(package_dir)], cwd=package_dir)
+    _run(["ruff", "format", str(package_dir)], cwd=package_dir)
 
 
 def create_converter() -> None:
@@ -80,13 +80,12 @@ def _test_package(package: str) -> int:
 
 
 def test_all() -> None:
-    """Run the tests for every package under packages/."""
-    packages_dir = _repo_root() / "packages"
-    for package_dir in sorted(p for p in packages_dir.iterdir() if p.is_dir()):
-        returncode = _test_package(package_dir.name)
-        # Exit code 5 means "no tests collected", which is not a failure here.
-        if returncode not in (0, 5):
-            sys.exit(returncode)
+    """Run the tests for the package from which the command is invoked."""
+    package_dir = Path.cwd()
+    returncode = _test_package(package_dir.name)
+    # Exit code 5 means "no tests collected", which is not a failure here.
+    if returncode not in (0, 5):
+        sys.exit(returncode)
 
 
 def test_package() -> None:

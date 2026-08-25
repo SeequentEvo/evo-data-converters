@@ -53,16 +53,14 @@ from evo.data_converters.image import convert_image_to_grid
 from evo.notebooks import ServiceManagerWidget
 
 # Authenticate
-manager = await ServiceManagerWidget.with_auth_code(
-    client_id="your-client-id"
-).login()
+manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
 
 # Convert and publish
 results = convert_image_to_grid(
     image_path="path/to/image.jpg",
     service_manager_widget=manager,
     upload_path="grids/image_imports",
-    tags={"Source": "Jupyter Notebook"}
+    tags={"Source": "Jupyter Notebook"},
 )
 
 print(f"Published: {results[0].name}")
@@ -84,7 +82,7 @@ results = convert_image_to_grid(
     service_manager_widget=manager,
     upload_path="grids",
     publish_objects=True,
-    overwrite_existing_objects=False
+    overwrite_existing_objects=False,
 )
 ```
 
@@ -99,11 +97,7 @@ data_client = ObjectDataClient(...)
 converter = ImageGridConverter(data_client, output_parquet=True)
 
 # Convert to grid object
-grid = converter.convert(
-    image_path="image.jpg",
-    origin=[0, 0, 0],
-    cell_size=[1, 1]
-)
+grid = converter.convert(image_path="image.jpg", origin=[0, 0, 0], cell_size=[1, 1])
 
 # Access grid properties
 print(f"Size: {grid.size}")  # [width, height]
@@ -183,9 +177,7 @@ crs = {"epsg_code": 32618}  # UTM Zone 18N
 
 ### WKT String
 ```python
-crs = {
-    "ogc_wkt": 'PROJCS["NAD27 / UTM zone 18N",...]'
-}
+crs = {"ogc_wkt": 'PROJCS["NAD27 / UTM zone 18N",...]'}
 ```
 
 ## Example Output
@@ -262,9 +254,9 @@ Enable parquet file output for debugging:
 from evo.data_converters.image.importer.image_to_grid import ImageGridConverter
 
 converter = ImageGridConverter(
-    data_client, 
+    data_client,
     output_dir="./debug_parquet",
-    output_parquet=True  # Write files to disk
+    output_parquet=True,  # Write files to disk
 )
 ```
 
