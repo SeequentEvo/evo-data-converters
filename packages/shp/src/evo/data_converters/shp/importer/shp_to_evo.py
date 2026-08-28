@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import os
-from typing import TYPE_CHECKING, Optional
 
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
@@ -21,6 +20,7 @@ from evo.data_converters.shp.importer.implementation.prj_parser import prj_to_cr
 from evo.data_converters.shp.importer.implementation.shp_parser import ShpParser
 from evo.objects.data import ObjectMetadata
 from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
+from typing import TYPE_CHECKING, Callable, Optional
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
@@ -41,6 +41,7 @@ def convert_shp(
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    progress_callback: Callable[[str, int], None] | None = None,
 ) -> list[TriangleMesh_V2_2_0] | list[ObjectMetadata]:
     """
     Convert an ESRI shapefile (.shp, .shx, and .dbf) to a triangle-mesh geoscience object.
@@ -61,6 +62,7 @@ def convert_shp(
     :param upload_path: (Optional) Path objects will be published under.
     :param publish_objects: (Optional) Set False to prevent publishing and instead return Geoscience models.
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the destiation path.
+    :param progress_callback: (Optional) Callable invoked with a status message and percentage (0-100) to report conversion progress.
 
     :return: list[ObjectMetadata] if publish_objects is true, otherwise list[TriangleMesh_V2_2_0]
 
@@ -100,10 +102,14 @@ def convert_shp(
         sbn_path=filepath_sbn,
         sbx_path=filepath_sbx,
         xml_path=filepath_xml,
+        progress_callback=progress_callback,
     )
     mesh = parser.parse_shp()
 
     geoscience_objects.append(mesh)
+
+    if progress_callback is not None:
+        progress_callback("Publishing geoscience objects", 90)
 
     objects_metadata = None
     if publish_objects:

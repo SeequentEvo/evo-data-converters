@@ -17,6 +17,7 @@ from evo.data_converters.shp.importer.implementation.mesh_builder import MeshBui
 from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1
 from evo_schemas.objects.triangle_mesh import TriangleMesh_V2_2_0
+from typing import Callable
 
 
 class ShpParser:
@@ -37,6 +38,7 @@ class ShpParser:
         sbn_path: str | None = None,
         sbx_path: str | None = None,
         xml_path: str | None = None,
+        progress_callback: Callable[[str, int], None] | None = None,
     ):
         """
         Initialize the shapefile to triangle mesh converter.
@@ -63,6 +65,7 @@ class ShpParser:
         self.sbn_path = sbn_path
         self.sbx_path = sbx_path
         self.xml_path = xml_path
+        self.progress_callback = progress_callback
 
     def parse_shp(self) -> TriangleMesh_V2_2_0:
         """
@@ -76,6 +79,9 @@ class ShpParser:
         if self.cpg_path is not None:
             with open(self.cpg_path) as f:
                 reader_kwargs["encoding"] = f.read().strip()
+
+        if self.progress_callback is not None:
+            self.progress_callback("Loading file", 10)
 
         with shapefile.Reader(**reader_kwargs) as sf:
             if sf.shapeType != shapefile.MULTIPATCH:
@@ -94,8 +100,18 @@ class ShpParser:
                 max_z=sf.zbox[1] or 0.0,
             )
 
+            total_shapes = len(sf)
+            current_shape = 0
             for shape_record in sf.iterShapeRecords():
+                if self.progress_callback is not None:
+                    current_shape += 1
+                    progress = int((current_shape / total_shapes) * 70) + 10
+                    self.progress_callback(f"Parsing shape {current_shape} of {total_shapes}", progress)
+
                 mesh_builder.add_shape_record(shape_record)
+
+            if self.progress_callback is not None:
+                self.progress_callback("Saving mesh", 80)
 
             embedded_mesh = mesh_builder.build()
 

@@ -78,6 +78,7 @@ def test_convert_ubc_success() -> None:
             epsg_code=epsg_code,
             coordinate_reference_system=coordinate_reference_system,
             tags=tags,
+            progress_callback=None,
         )
         mock_publish.assert_called_once_with(
             [mock_geoscience_object],

@@ -23,7 +23,7 @@ import io
 import hashlib
 import re
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
@@ -658,6 +658,7 @@ class ImageGridConverter:
         tags: Optional[dict[str, str]] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        progress_callback: Callable[[str, int], None] | None = None,
     ) -> Regular2DGrid_V1_3_0:
         """Convert an image file to a Regular 2D Grid object.
 
@@ -665,8 +666,14 @@ class ImageGridConverter:
         Grayscale images returned as float64 intensity (ContinuousAttribute_V1_1_0).
         """
 
+        if progress_callback is not None:
+            progress_callback("Reading image", 10)
+
         # Read and preprocess image (detect grayscale vs color)
         cell_values, width, height, image_mode = self._read_image(image_path)
+
+        if progress_callback is not None:
+            progress_callback("Reading geoscience object properties", 80)
 
         # Defaults
         grid_name = name or Path(image_path).stem
@@ -763,6 +770,7 @@ def convert_image_to_grid(
     output_dir: str = "./parquet_arrays",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    progress_callback: Callable[[str, int], None] | None = None,
 ) -> list:
     """
     Convert an image (JPEG, PNG, TIFF, etc.) to a Regular 2D Grid Geoscience Object.
@@ -796,9 +804,13 @@ def convert_image_to_grid(
         tags=tags,
         name=name,
         description=description,
+        progress_callback=progress_callback,
     )
 
     geoscience_objects = [grid_object]
+
+    if progress_callback is not None:
+        progress_callback("Publishing geoscience objects", 90)
 
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
