@@ -36,6 +36,31 @@ The existing data converters can be used without modification or used as a templ
 | [evo-data-converters-vtk](packages/vtk/README.md)       | <a href="https://pypi.org/project/evo-data-converters-vtk/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-vtk" /></a>       |
 | [evo-data-converters-xyz](packages/xyz/README.md)       | <a href="https://pypi.org/project/evo-data-converters-xyz/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-xyz" /></a>       |
 
+## Converter capabilities matrix
+
+For a stakeholder-friendly summary of what each converter supports (import/export status, object mappings, and known limitations), see:
+
+* [Capability matrix (Markdown)](docs/converter-capabilities.md)
+* [Capability matrix (HTML)](docs/converter-capabilities.html)
+
+The source of truth is [`converter-capabilities.json`](converter-capabilities.json). Regenerate both reports with:
+
+```shell
+make converter-capabilities
+```
+
+Contributor workflow:
+
+* [How to edit safely](docs/converter-capabilities-editing.md)
+
+```shell
+# Optional: keep formatting/order stable
+make converter-capabilities-normalize
+
+# Required: fail fast if there are data-shape mistakes
+make converter-capabilities-validate
+```
+
 ## Pre-requisites
 
 - Python 3.10, 3.11, or 3.12
