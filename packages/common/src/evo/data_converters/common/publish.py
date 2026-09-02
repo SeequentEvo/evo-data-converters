@@ -61,16 +61,16 @@ async def publish_geoscience_objects(
     """
     Publishes a list of Geoscience Objects.
     """
-    objects_metadata = []
     paths = generate_paths(object_models, path_prefix)
 
     logger.debug(f"Preparing to publish {len(object_models)} objects to paths: {paths}")
-    for obj, obj_path in zip(object_models, paths):
-        object_metadata = await publish_geoscience_object(
-            obj_path, obj, object_service_client, data_client, overwrite_existing_objects
+    objects_metadata = await asyncio.gather(
+        *(
+            publish_geoscience_object(obj_path, obj, object_service_client, data_client, overwrite_existing_objects)
+            for obj, obj_path in zip(object_models, paths)
         )
-        logger.debug(f"Got object metadata: {object_metadata}")
-        objects_metadata.append(object_metadata)
+    )
+    logger.debug(f"Got object metadata: {objects_metadata}")
 
     return objects_metadata
 
