@@ -35,6 +35,16 @@ To work with RESQML files [the `resqpy` Python package](https://pypi.org/project
 
 ## Usage
 
+`convert_resqml` is asynchronous and must be awaited:
+
+```python
+geoscience_objects = await convert_resqml(
+    filepath,
+    evo_workspace_metadata=workspace_metadata,
+    publish_objects=False,
+)
+```
+
 For examples of using this package, see the [Jupyter notebooks.](code-samples/convert-resqml)
 
 ### Limitations
