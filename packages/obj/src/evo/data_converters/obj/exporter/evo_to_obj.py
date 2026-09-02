@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID
 
@@ -78,7 +79,7 @@ async def export_obj(
     if len(objects) == 1:
         header += f"; {obj_description}"
 
-    export_scene(scene, filepath, file_type="obj", header=header)
+    await asyncio.to_thread(export_scene, scene, filepath, file_type="obj", header=header)
 
 
 async def _download_evo_object_by_id(

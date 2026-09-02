@@ -12,7 +12,7 @@
 import tempfile
 from os import path
 from shutil import copy
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pyarrow.parquet as pq
@@ -77,8 +77,12 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
         self.evo_object = self._load_triangle_mesh_v2_1_0_evo_object()
         self.assertIsInstance(self.evo_object, TriangleMesh_V2_1_0)
 
+    @patch("evo.data_converters.obj.exporter.evo_to_obj.asyncio.to_thread", new_callable=AsyncMock)
     @patch("evo.data_converters.obj.exporter.evo_to_obj._download_evo_object_by_id")
-    async def test_should_create_expected_obj_file(self, mock_download_evo_object_by_id: MagicMock) -> None:
+    async def test_should_create_expected_obj_file(
+        self, mock_download_evo_object_by_id: MagicMock, mock_to_thread: AsyncMock
+    ) -> None:
+        mock_to_thread.side_effect = lambda function, *args, **kwargs: function(*args, **kwargs)
         temp_obj_file = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
 
         object_id = uuid4()
@@ -93,6 +97,9 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
             evo_workspace_metadata=self.workspace_metadata,
         )
 
+        mock_to_thread.assert_awaited_once()
+        assert mock_to_thread.await_args is not None
+        self.assertEqual(mock_to_thread.await_args.args[0].__name__, "export_scene")
         epsg_code = self.evo_object.coordinate_reference_system.epsg_code
         expected_header = f"# Evo Data Converters; Object ID={object_id}, EPSG={epsg_code}\n"
         with open(temp_obj_file.name) as f:

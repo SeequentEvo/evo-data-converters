@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import gc
 import warnings
 from pathlib import Path
@@ -101,7 +102,7 @@ async def convert_obj(
 
     importer = impl_class(obj_file=filepath, crs=crs, data_client=data_client)
 
-    triangle_mesh_go = importer.convert_file()
+    triangle_mesh_go = await asyncio.to_thread(importer.convert_file)
 
     # Deallocate the parser's memory to shorten the memory peak during a conversion.
     del importer
