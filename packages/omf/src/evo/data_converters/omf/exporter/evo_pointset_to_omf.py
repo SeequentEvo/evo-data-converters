@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import asyncio
 from typing import Optional
 from uuid import UUID
 
@@ -22,17 +21,18 @@ from evo.objects.utils.data import ObjectDataClient
 from .evo_attributes_to_omf import export_omf_attributes
 
 
-def export_omf_pointset(
+async def export_omf_pointset(
     object_id: UUID,
     version_id: Optional[str],
     pointset_go: Pointset_V1_1_0 | Pointset_V1_2_0,
     data_client: ObjectDataClient,
 ) -> PointSetElement:
-    vertices_table = asyncio.run(
-        data_client.download_table(object_id, version_id, pointset_go.locations.coordinates.as_dict())
+    version_id = version_id or ""
+    vertices_table = await data_client.download_table(
+        object_id, version_id, pointset_go.locations.coordinates.as_dict()
     )
     vertices = np.asarray(vertices_table)
-    vertex_attribute_data = export_omf_attributes(
+    vertex_attribute_data = await export_omf_attributes(
         object_id, version_id, pointset_go.locations.attributes, "vertices", data_client
     )
 

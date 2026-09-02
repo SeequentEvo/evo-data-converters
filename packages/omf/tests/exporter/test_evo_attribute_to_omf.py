@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from datetime import datetime, timezone
 from os import path
 from typing import Any
@@ -58,8 +59,13 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
-        self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        self.evo_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )
 
     def _set_parquet_file_value(self, data: str, row_index: int, value: Any) -> None:
@@ -93,7 +99,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         location = "vertices"
         string_description = "NaN values: [-999.0, -1234.0]"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, ScalarData)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -136,7 +142,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
         self._set_parquet_file_value(attribute_go.values.data, 0, None)
 
         location = "faces"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, ColorData)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -182,7 +188,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         location = "vertices"
         string_description = "NaN values: [-999, -1234]"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, MappedData)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -234,8 +240,13 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
     def test_should_convert_integer_attribute_to_scalar_data(self) -> None:
         omf_file = path.join(path.dirname(__file__), "../data/null_attribute_values.omf")
-        evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        evo_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )
 
         triangle_mesh_go = evo_objects[0]
@@ -250,7 +261,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         location = "vertices"
         string_description = "NaN values: [-999.0, -1234.0]"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, ScalarData)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -280,7 +291,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
         self.assertIsInstance(attribute_go, StringAttribute_V1_1_0)
 
         location = "segments"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, StringData)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -313,7 +324,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         location = "vertices"
         string_description = "NaN values: [-999.0, -1234.0]"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, Vector2Data)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -359,7 +370,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         location = "vertices"
         string_description = "NaN values: [-999.0, -1234.0]"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, Vector3Data)
 
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -412,7 +423,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
         self._set_parquet_file_value(attribute_go.values.data, 1, -999)
 
         location = "vertices"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
         self.assertIsInstance(omf_element_data, DateTimeData)
         self.assertIsInstance(omf_element_data.array, DateTimeArray)
 
@@ -454,7 +465,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
         )
         string_description = "discipline: Geotechnical, type: Gold, unit: ct/t, scale: log10, tags: {'color': 'red-yellow', 'alloy': 'true'}, NaN values: [-999, -1234]"
         location = "vertices"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
 
         self.assertEqual(omf_element_data.description, string_description)
         self.assertEqual(attribute_go.name, omf_element_data.name)
@@ -474,7 +485,7 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
         )
         string_description = "discipline: Geotechnical, type: Gold"
         location = "vertices"
-        omf_element_data = export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client)
+        omf_element_data = asyncio.run(export_attribute_to_omf(uuid4(), None, attribute_go, location, self.data_client))
 
         self.assertEqual(omf_element_data.description, string_description)
         self.assertEqual(attribute_go.name, omf_element_data.name)

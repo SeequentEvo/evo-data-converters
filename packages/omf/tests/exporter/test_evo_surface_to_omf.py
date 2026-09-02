@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from os import path
 from unittest import TestCase
 from uuid import uuid4
@@ -43,8 +44,13 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/surface_v1.omf")
-        self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        self.evo_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )
 
     def test_should_create_expected_omf_surface_element(self) -> None:
@@ -52,7 +58,7 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
         self.assertIsInstance(evo_object, TriangleMesh_V2_1_0)
 
         evo_object.description = "any description"
-        element = export_omf_surface(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_surface(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(element.name, evo_object.name)
         self.assertEqual(element.description, evo_object.description)
@@ -70,7 +76,7 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
         evo_object = self.evo_objects[5]
         self.assertIsInstance(evo_object, TriangleMesh_V2_1_0)
 
-        element = export_omf_surface(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_surface(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.data), 1)
 
@@ -88,7 +94,7 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
         evo_object = self.evo_objects[6]
         self.assertIsInstance(evo_object, TriangleMesh_V2_1_0)
 
-        element = export_omf_surface(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_surface(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.data), 1)
 
@@ -131,7 +137,7 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
             ),
         )
 
-        element = export_omf_surface(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_surface(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(element.name, evo_object.name)
         self.assertEqual(element.description, evo_object.description)
@@ -173,7 +179,7 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
 
         evo_object.parts = EmbeddedTriangulatedMesh_V2_0_0_Parts(chunks=chunks)
 
-        element = export_omf_surface(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_surface(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.geometry.vertices), 100)
         self.assertEqual(len(element.geometry.triangles), number_of_segments)
@@ -214,7 +220,7 @@ class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
 
         evo_object.parts = EmbeddedTriangulatedMesh_V2_0_0_Parts(chunks=chunks, triangle_indices=indices)
 
-        element = export_omf_surface(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_surface(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.geometry.vertices), 100)
         self.assertEqual(len(element.geometry.triangles), number_of_segments)

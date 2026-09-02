@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from os import path
 from pathlib import Path
@@ -229,7 +230,7 @@ class TestOMFToBlockSyncConverter(TestCase):
             org_id="bf1a040c-8c58-4bc2-bec2-c5ae7de8bd84",
         )
 
-    @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects_sync")
+    @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects")
     @patch.object(BlockSyncClient, "get_auth_header")
     def test_should_convert_blockmodels(
         self, mock_publish_geoscience_objects: MagicMock, mock_get_auth_header: MagicMock
@@ -307,8 +308,10 @@ class TestOMFToBlockSyncConverter(TestCase):
                 },
             )
 
-            objects = convert_omf(
-                filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=True
+            objects = asyncio.run(
+                convert_omf(
+                    filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=True
+                )
             )
             self.assertListEqual(
                 [

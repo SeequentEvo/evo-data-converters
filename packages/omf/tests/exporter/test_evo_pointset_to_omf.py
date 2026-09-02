@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from os import path
 from uuid import uuid4
 
@@ -30,14 +31,19 @@ class TestExportOMFPointSet(EvoDataConvertersTestCase):
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
-        self.evo_object = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        self.evo_object = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )[1]
         self.evo_object.description = "any description"
         self.assertIsInstance(self.evo_object, Pointset_V1_2_0)
 
     def test_should_create_expected_omf_pointset_element(self) -> None:
-        element = export_omf_pointset(uuid4(), None, self.evo_object, self.data_client)
+        element = asyncio.run(export_omf_pointset(uuid4(), None, self.evo_object, self.data_client))
 
         self.assertEqual(element.name, self.evo_object.name)
         self.assertEqual(element.description, self.evo_object.description)
@@ -52,7 +58,7 @@ class TestExportOMFPointSet(EvoDataConvertersTestCase):
         self.assertAlmostEqual(vertex[2], 0.0)
 
     def test_should_create_expected_omf_vertex_attributes(self) -> None:
-        element = export_omf_pointset(uuid4(), None, self.evo_object, self.data_client)
+        element = asyncio.run(export_omf_pointset(uuid4(), None, self.evo_object, self.data_client))
 
         self.assertEqual(len(element.data), 3)
 
@@ -113,7 +119,7 @@ class TestExportOMFPointSet(EvoDataConvertersTestCase):
             ),
         )
 
-        element = export_omf_pointset(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_pointset(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(element.name, evo_object.name)
         self.assertEqual(element.description, evo_object.description)

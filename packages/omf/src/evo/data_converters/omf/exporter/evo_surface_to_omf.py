@@ -9,7 +9,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import asyncio
 from typing import Optional
 from uuid import UUID
 
@@ -24,35 +23,32 @@ from .evo_attributes_to_omf import export_omf_attributes
 from .utils import ChunkedData, IndexedData
 
 
-def export_omf_surface(
+async def export_omf_surface(
     object_id: UUID,
     version_id: Optional[str],
     surface_go: TriangleMesh_V2_0_0 | TriangleMesh_V2_1_0,
     data_client: ObjectDataClient,
 ) -> SurfaceElement:
-    vertices_table = asyncio.run(
-        data_client.download_table(object_id, version_id, surface_go.triangles.vertices.as_dict())
-    )
+    version_id = version_id or ""
+    vertices_table = await data_client.download_table(object_id, version_id, surface_go.triangles.vertices.as_dict())
     vertices = np.asarray(vertices_table)
 
-    vertex_attribute_data = export_omf_attributes(
+    vertex_attribute_data = await export_omf_attributes(
         object_id, version_id, surface_go.triangles.vertices.attributes, "vertices", data_client
     )
 
-    triangles_table = asyncio.run(
-        data_client.download_table(object_id, version_id, surface_go.triangles.indices.as_dict())
-    )
+    triangles_table = await data_client.download_table(object_id, version_id, surface_go.triangles.indices.as_dict())
     triangles = np.asarray(triangles_table)
 
-    triangles_attribute_data = export_omf_attributes(
+    triangles_attribute_data = await export_omf_attributes(
         object_id, version_id, surface_go.triangles.indices.attributes, "faces", data_client
     )
 
     if parts := surface_go.parts:
         if parts.triangle_indices:
             # parse optional triangle_indices data as a preprocessing step
-            triangle_indices_table = asyncio.run(
-                data_client.download_table(object_id, version_id, parts.triangle_indices.as_dict())
+            triangle_indices_table = await data_client.download_table(
+                object_id, version_id, parts.triangle_indices.as_dict()
             )
             triangle_indices = np.asarray(triangle_indices_table).flatten()
 
@@ -60,10 +56,12 @@ def export_omf_surface(
             indexed_data = IndexedData(data=triangles, indices=triangle_indices, attributes=triangles_attribute_data)
             triangles = indexed_data.unpack()
 
-        chunks_table = asyncio.run(data_client.download_table(object_id, version_id, parts.chunks.as_dict()))
+        chunks_table = await data_client.download_table(object_id, version_id, parts.chunks.as_dict())
         chunks = np.asarray(chunks_table)
 
-        chunks_attribute_data = export_omf_attributes(object_id, version_id, parts.attributes, "segments", data_client)
+        chunks_attribute_data = await export_omf_attributes(
+            object_id, version_id, parts.attributes, "segments", data_client
+        )
 
         # compute the new triangles and their attributes, if available
         chunked_data = ChunkedData(data=triangles, chunks=chunks, attributes=chunks_attribute_data)

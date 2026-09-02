@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import re
 import tempfile
 from os import path
@@ -49,7 +50,9 @@ class TestOMFToEvoProblems:
         )
         omf_file = path.join(path.dirname(__file__), "data/duplicate_element_name.omf")
 
-        convert_omf(filepath=omf_file, evo_workspace_metadata=metadata, epsg_code=32650, publish_objects=False)
+        asyncio.run(
+            convert_omf(filepath=omf_file, evo_workspace_metadata=metadata, epsg_code=32650, publish_objects=False)
+        )
 
         expected_log_message = r"WARNING  evo.data_converters:omf_to_evo.py:\d+ Problems returned reading OMF project:"
         assert any(re.search(expected_log_message, line) for line in caplog.text.splitlines())
@@ -72,8 +75,14 @@ class TestOMFToEvoConverter(TestCase):
 
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
-        go_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, tags=tags, publish_objects=False
+        go_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.metadata,
+                epsg_code=32650,
+                tags=tags,
+                publish_objects=False,
+            )
         )
 
         expected_tags = {
@@ -86,8 +95,8 @@ class TestOMFToEvoConverter(TestCase):
 
     def test_should_convert_expected_geometry_types(self) -> None:
         omf_file = path.join(path.dirname(__file__), "data/one_of_everything.omf")
-        go_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=False
+        go_objects = asyncio.run(
+            convert_omf(filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=False)
         )
 
         expected_go_object_types = [TriangleMesh_V2_1_0, Pointset_V1_2_0, LineSegments_V2_1_0, TriangleMesh_V2_1_0]
@@ -107,11 +116,13 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     cache_root_dir = tempfile.TemporaryDirectory()
     metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
     omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
-    go_objects = convert_omf(
-        filepath=omf_file,
-        evo_workspace_metadata=metadata,
-        coordinate_reference_system=input_crs,
-        publish_objects=False,
+    go_objects = asyncio.run(
+        convert_omf(
+            filepath=omf_file,
+            evo_workspace_metadata=metadata,
+            coordinate_reference_system=input_crs,
+            publish_objects=False,
+        )
     )
     assert all(obj.coordinate_reference_system == expected_crs for obj in go_objects)
 
@@ -121,10 +132,12 @@ def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
     metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
     omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
     with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
-        convert_omf(
-            filepath=omf_file,
-            evo_workspace_metadata=metadata,
-            epsg_code=32650,
-            coordinate_reference_system=32650,
-            publish_objects=False,
+        asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=metadata,
+                epsg_code=32650,
+                coordinate_reference_system=32650,
+                publish_objects=False,
+            )
         )
