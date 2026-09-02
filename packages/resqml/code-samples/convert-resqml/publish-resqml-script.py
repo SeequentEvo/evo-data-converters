@@ -12,6 +12,7 @@
 #  limitations under the License.
 
 import argparse
+import asyncio
 import logging
 import pprint
 import tempfile
@@ -116,13 +117,15 @@ if args.corner_points_array_threshold:
 logger.debug(f"Using RESQML conversion options: {options}")
 
 # Convert RESQML file, if a hub_url was provided above the objects will be published
-results = convert_resqml(
-    filepath=args.filename,
-    evo_workspace_metadata=workspace_metadata,
-    coordinate_reference_system=args.epsg_code,
-    tags=tags,
-    upload_path=args.upload_path,
-    options=options,
+results = asyncio.run(
+    convert_resqml(
+        filepath=args.filename,
+        evo_workspace_metadata=workspace_metadata,
+        coordinate_reference_system=args.epsg_code,
+        tags=tags,
+        upload_path=args.upload_path,
+        options=options,
+    )
 )
 
 # Results will either be a list of BaseSpatialDataProperties_V1_0_1 if not published, or a list of ObjectMetadata if they were published
