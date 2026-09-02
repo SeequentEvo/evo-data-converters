@@ -22,6 +22,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 from typing import Tuple
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
@@ -29,9 +30,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from PIL import Image
 from pyproj import CRS
+from evo_schemas.objects import Regular2DGrid_V1_3_0
 
 from evo.data_converters.image.importer.image_to_grid import (
     ImageGridConverter,
+    convert_image_to_grid,
     geoscience_object_data_options,
     _normalize_array_data_type,
 )
@@ -85,6 +88,47 @@ def sample_image(tmp_path: Path) -> Tuple[Path, int, int]:
 def mock_data_client(tmp_path: Path) -> _MockDataClient:
     """Provide a mock data client that mimics save_table(...)."""
     return _MockDataClient(output_dir=tmp_path / "parquet")
+
+
+@pytest.mark.asyncio
+async def test_convert_image_to_grid_returns_grid_without_publishing(
+    sample_image: Tuple[Path, int, int], tmp_path: Path
+) -> None:
+    """The public async API should return the converted grid in offline mode."""
+    image_path, width, height = sample_image
+
+    result = await convert_image_to_grid(
+        str(image_path),
+        output_dir=str(tmp_path / "parquet"),
+        publish_objects=False,
+    )
+
+    assert len(result) == 1
+    assert isinstance(result[0], Regular2DGrid_V1_3_0)
+    assert result[0].size == [width, height]
+
+
+@pytest.mark.asyncio
+async def test_convert_image_to_grid_awaits_publication(
+    sample_image: Tuple[Path, int, int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The public async API should await and return publication metadata."""
+    image_path, _, _ = sample_image
+    data_client = _MockDataClient(output_dir=image_path.parent / "parquet")
+    object_service_client = MagicMock()
+    published_metadata = [MagicMock()]
+    publish = AsyncMock(return_value=published_metadata)
+
+    monkeypatch.setattr(
+        "evo.data_converters.image.importer.image_to_grid.create_evo_object_service_and_data_client",
+        lambda **_: (object_service_client, data_client),
+    )
+    monkeypatch.setattr("evo.data_converters.image.importer.image_to_grid.publish_geoscience_objects", publish)
+
+    result = await convert_image_to_grid(str(image_path))
+
+    assert result == published_metadata
+    publish.assert_awaited_once()
 
 
 def test_read_image_as_grayscale(sample_image: Tuple[Path, int, int], mock_data_client: _MockDataClient):

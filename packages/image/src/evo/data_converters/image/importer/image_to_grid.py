@@ -23,7 +23,7 @@ import io
 import hashlib
 import re
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import cast, Optional, TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
@@ -42,14 +42,17 @@ import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
+    publish_geoscience_objects,
     crs_from_ogc_wkt,
     crs_unspecified,
 )
 
+from evo.objects import ObjectAPIClient
+from evo.objects.data import ObjectMetadata
 from evo.objects.utils.data import ObjectDataClient
 from evo_schemas.objects import Regular2DGrid_V1_3_0
 from evo_schemas.components import (
+    BaseSpatialDataProperties_V1_0_1,
     BoundingBox_V1_0_1,
     Rotation_V1_1_0,
     OneOfAttribute_V1_2_0,
@@ -791,7 +794,7 @@ class ImageGridConverter:
 # -----------------------------------------------------------------------------
 # Convenience function that supports both offline (no publish) and online publish
 # -----------------------------------------------------------------------------
-def convert_image_to_grid(
+async def convert_image_to_grid(
     image_path: str,
     origin: Optional[list[float]] = None,
     cell_size: Optional[list[float]] = None,
@@ -805,7 +808,7 @@ def convert_image_to_grid(
     output_dir: str = "./parquet_arrays",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
-) -> list:
+) -> list[Regular2DGrid_V1_3_0 | ObjectMetadata]:
     """
     Convert an image (JPEG, PNG, TIFF, etc.) to a Regular 2D Grid Geoscience Object.
 
@@ -817,15 +820,16 @@ def convert_image_to_grid(
     """
 
     # Choose data client per mode
+    object_service_client: ObjectAPIClient | None = None
     if publish_objects:
         # Online path: real Evo clients (requires credentials)
-        object_service_client, data_client = create_evo_object_service_and_data_client(
+        object_service_client, online_data_client = create_evo_object_service_and_data_client(
             evo_workspace_metadata=evo_workspace_metadata,
             service_manager_widget=service_manager_widget,
         )
+        data_client: ObjectDataClient | _LocalObjectDataClientStub = online_data_client
     else:
         # Offline path: local stub (no credentials); still writes a local parquet and computes hash
-        object_service_client = None
         data_client = _LocalObjectDataClientStub(output_dir=output_dir)
 
     # Convert (this will write parquet via data_client: real or stub)
@@ -857,14 +861,14 @@ def convert_image_to_grid(
 
             obj.as_dict = as_dict_remove_none_uuid
 
-        objects_metadata = publish_geoscience_objects_sync(
-            geoscience_objects,
-            object_service_client,
-            data_client,
+        objects_metadata = await publish_geoscience_objects(
+            cast(list[BaseSpatialDataProperties_V1_0_1], geoscience_objects),
+            cast(ObjectAPIClient, object_service_client),
+            cast(ObjectDataClient, data_client),
             upload_path,
             overwrite_existing_objects,
         )
-        return objects_metadata
+        return cast(list[Regular2DGrid_V1_3_0 | ObjectMetadata], objects_metadata)
 
     # Offline: return objects for inspection
-    return geoscience_objects
+    return cast(list[Regular2DGrid_V1_3_0 | ObjectMetadata], geoscience_objects)
