@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from os import path
 from uuid import uuid4
 
@@ -37,8 +38,13 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "..", "data", "lineset_v1.omf")
-        self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        self.evo_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )
 
     def test_should_create_expected_omf_lineset_element(self) -> None:
@@ -46,7 +52,7 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
         self.assertIsInstance(evo_object, LineSegments_V2_1_0)
 
         evo_object.description = "any description"
-        element = export_omf_lineset(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_lineset(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(element.name, evo_object.name)
         self.assertEqual(element.description, evo_object.description)
@@ -71,7 +77,7 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
         self.assertIsInstance(evo_object, LineSegments_V2_1_0)
         self.assertEqual(evo_object.name, "data_vertices_lines")
 
-        element = export_omf_lineset(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_lineset(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.data), 1)
 
@@ -89,7 +95,7 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
         self.assertIsInstance(evo_object, LineSegments_V2_1_0)
         self.assertEqual(evo_object.name, "data_segments_lines")
 
-        element = export_omf_lineset(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_lineset(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.data), 1)
 
@@ -132,7 +138,7 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
             ),
         )
 
-        element = export_omf_lineset(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_lineset(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(element.name, evo_object.name)
         self.assertEqual(element.description, evo_object.description)
@@ -175,7 +181,7 @@ class TestExportOMFLineSet(EvoDataConvertersTestCase):
 
         evo_object.parts = LineSegments_V2_0_0_Parts(chunks=chunks)
 
-        element = export_omf_lineset(uuid4(), None, evo_object, self.data_client)
+        element = asyncio.run(export_omf_lineset(uuid4(), None, evo_object, self.data_client))
 
         self.assertEqual(len(element.geometry.vertices), 100)
         self.assertEqual(len(element.geometry.segments), number_of_segments)

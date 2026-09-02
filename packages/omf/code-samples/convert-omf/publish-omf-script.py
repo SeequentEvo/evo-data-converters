@@ -105,7 +105,6 @@ logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
 # NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
 nest_asyncio.apply()
 
-
 async def run_conversion():
     return convert_omf(
         filepath=args.filename,

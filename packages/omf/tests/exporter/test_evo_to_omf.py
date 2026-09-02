@@ -9,10 +9,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from os import path
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import omf
@@ -33,8 +34,13 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
-        self.evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        self.evo_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )[1:]
         self.evo_object = self.evo_objects[0]
         self.assertIsInstance(self.evo_objects[0], Pointset_V1_2_0)
@@ -42,7 +48,7 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
         self.assertIsInstance(self.evo_objects[2], TriangleMesh_V2_1_0)
 
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
-    def test_should_create_expected_omf_file(self, mock_download_evo_object_by_id: MagicMock) -> None:
+    def test_should_create_expected_omf_file(self, mock_download_evo_object_by_id: AsyncMock) -> None:
         temp_omf_file = tempfile.NamedTemporaryFile(suffix=".omf", delete=False)
 
         object_id = uuid4()
@@ -51,10 +57,12 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
         mock_download_evo_object_by_id.return_value = self.evo_object.as_dict()
 
-        export_omf(
-            temp_omf_file.name,
-            objects=[object],
-            evo_workspace_metadata=self.workspace_metadata,
+        asyncio.run(
+            export_omf(
+                temp_omf_file.name,
+                objects=[object],
+                evo_workspace_metadata=self.workspace_metadata,
+            )
         )
 
         reader = omf.OMFReader(temp_omf_file.name)
@@ -69,7 +77,7 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
     def test_should_raise_expected_exception_for_unknown_object_schema(
-        self, mock_download_evo_object_by_id: MagicMock
+        self, mock_download_evo_object_by_id: AsyncMock
     ) -> None:
         temp_omf_file = tempfile.NamedTemporaryFile(suffix=".omf", delete=False)
 
@@ -79,16 +87,18 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
         mock_download_evo_object_by_id.return_value = evo_object_dict
 
         with self.assertRaises(UnsupportedObjectError) as context:
-            export_omf(
-                temp_omf_file.name,
-                objects=[EvoObjectMetadata(object_id=uuid4())],
-                evo_workspace_metadata=self.workspace_metadata,
+            asyncio.run(
+                export_omf(
+                    temp_omf_file.name,
+                    objects=[EvoObjectMetadata(object_id=uuid4())],
+                    evo_workspace_metadata=self.workspace_metadata,
+                )
             )
         self.assertEqual(str(context.exception), f"Unknown Geoscience Object schema '{schema}'")
 
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
     def test_should_raise_expected_exception_for_unsupported_object(
-        self, mock_download_evo_object_by_id: MagicMock
+        self, mock_download_evo_object_by_id: AsyncMock
     ) -> None:
         temp_omf_file = tempfile.NamedTemporaryFile(suffix=".omf", delete=False)
 
@@ -108,17 +118,19 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
         mock_download_evo_object_by_id.return_value = evo_object_dict
 
         with self.assertRaises(UnsupportedObjectError) as context:
-            export_omf(
-                temp_omf_file.name,
-                objects=[EvoObjectMetadata(object_id=uuid4())],
-                evo_workspace_metadata=self.workspace_metadata,
+            asyncio.run(
+                export_omf(
+                    temp_omf_file.name,
+                    objects=[EvoObjectMetadata(object_id=uuid4())],
+                    evo_workspace_metadata=self.workspace_metadata,
+                )
             )
         self.assertEqual(
             str(context.exception), f"Exporting {evo_object_name} Geoscience Objects to OMF is not supported"
         )
 
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
-    def test_can_export_multiple_objects(self, mock_download_evo_object_by_id: MagicMock) -> None:
+    def test_can_export_multiple_objects(self, mock_download_evo_object_by_id: AsyncMock) -> None:
         temp_omf_file = tempfile.NamedTemporaryFile(suffix=".omf", delete=False)
 
         object_id_dict_map = {uuid4(): evo_object.as_dict() for evo_object in self.evo_objects}
@@ -126,10 +138,12 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
         objects = [EvoObjectMetadata(object_id=object_id) for object_id in object_id_dict_map.keys()]
 
-        export_omf(
-            temp_omf_file.name,
-            objects=objects,
-            evo_workspace_metadata=self.workspace_metadata,
+        asyncio.run(
+            export_omf(
+                temp_omf_file.name,
+                objects=objects,
+                evo_workspace_metadata=self.workspace_metadata,
+            )
         )
 
         reader = omf.OMFReader(temp_omf_file.name)
@@ -150,7 +164,7 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
         self.assertIsInstance(project.elements[2], omf.SurfaceElement)
 
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
-    def test_metadata_overrides_defaults(self, mock_download_evo_object_by_id: MagicMock) -> None:
+    def test_metadata_overrides_defaults(self, mock_download_evo_object_by_id: AsyncMock) -> None:
         temp_omf_file = tempfile.NamedTemporaryFile(suffix=".omf", delete=False)
 
         object_id = uuid4()
@@ -164,11 +178,13 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
 
         mock_download_evo_object_by_id.return_value = self.evo_object.as_dict()
 
-        export_omf(
-            temp_omf_file.name,
-            objects=[object],
-            omf_metadata=omf_metadata,
-            evo_workspace_metadata=self.workspace_metadata,
+        asyncio.run(
+            export_omf(
+                temp_omf_file.name,
+                objects=[object],
+                omf_metadata=omf_metadata,
+                evo_workspace_metadata=self.workspace_metadata,
+            )
         )
 
         reader = omf.OMFReader(temp_omf_file.name)

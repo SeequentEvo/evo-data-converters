@@ -125,7 +125,7 @@ Choose an EPSG code to use for the Coordinate Reference System.
 
 You can also specify tags to add to the created geoscience objects.
 
-Then call `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectAPIClient` from above, and finally a path you want the published objects to appear under in your workspace.
+Then await `convert_omf`, passing it the OMF file path, EPSG code, the `ObjectAPIClient` from above, and finally a path you want the published objects to appear under in your workspace.
 
 **Note:** Some geometry types are not yet supported. A warning will be shown for each element that could not be converted.
 
@@ -178,7 +178,7 @@ async with hub_connector:
 
     tags = {"TagName": "Tag value"}
 
-    objects_metadata = convert_omf(
+    objects_metadata = await convert_omf(
         filepath=omf_file,
         epsg_code=epsg_code,
         object_service_client=service_client,
@@ -193,7 +193,7 @@ async with hub_connector:
 
 ### Export objects to OMF
 
-To export an object from Evo to an OMF file, specify the Evo object UUID of the object you want to export and the output file path, and then call `export_omf()`.
+To export an object from Evo to an OMF file, specify the Evo object UUID of the object you want to export and the output file path, and then await `export_omf()`.
 See documentation on the `ObjectAPIClient` for listing objects and getting their IDs and versions.
 
 You may also specify the version of this object to export. If not specified, so it will export the latest version.
@@ -217,7 +217,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 output_file = f"{output_dir}/object.omf"
 
-export_omf(
+await export_omf(
     filepath=output_file,
     objects=objects,
     service_client=service_client,

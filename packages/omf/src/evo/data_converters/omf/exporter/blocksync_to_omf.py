@@ -14,7 +14,6 @@ from datetime import datetime, time, timezone
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
-import nest_asyncio
 import numpy as np
 import numpy.typing as npt
 import omf
@@ -46,8 +45,6 @@ def export_blocksync_omf(
     evo_workspace_metadata: EvoWorkspaceMetadata = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
 ) -> None:
-    nest_asyncio.apply()
-
     logger.info("Creating service and data clients for interacting with BlockSync.")
     service_client, data_client = create_evo_object_service_and_data_client(
         evo_workspace_metadata, service_manager_widget

@@ -14,7 +14,6 @@ import dataclasses
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID
 
-import nest_asyncio
 import omf
 from evo_schemas import schema_lookup
 from evo_schemas.objects import (
@@ -56,17 +55,17 @@ class UnsupportedObjectError(OMFExporterException):
 logger = evo.logging.getLogger("data_converters")
 
 
-def _download_evo_object_by_id(
+async def _download_evo_object_by_id(
     service_client: ObjectAPIClient,
     object_id: UUID,
     version_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    downloaded_object = asyncio.run(service_client.download_object_by_id(object_id, version_id))
+    downloaded_object = await service_client.download_object_by_id(object_id, version_id)
     result: dict[str, Any] = downloaded_object.as_dict()
     return result
 
 
-def _export_element(
+async def _export_element(
     object_metadata: EvoObjectMetadata,
     service_client: ObjectAPIClient,
     data_client: ObjectDataClient,
@@ -75,7 +74,7 @@ def _export_element(
     version_id = object_metadata.version_id
 
     # Download object
-    geoscience_object_dict = _download_evo_object_by_id(service_client, object_id, version_id)
+    geoscience_object_dict = await _download_evo_object_by_id(service_client, object_id, version_id)
 
     # Check if this is a known geoscience object schema type
     schema = ObjectSchema.from_id(geoscience_object_dict["schema"])
@@ -89,11 +88,11 @@ def _export_element(
     # Convert to OMF element
     match geoscience_object:
         case TriangleMesh_V2_0_0() | TriangleMesh_V2_1_0():
-            element = export_omf_surface(object_id, version_id, geoscience_object, data_client)
+            element = await export_omf_surface(object_id, version_id, geoscience_object, data_client)
         case LineSegments_V2_0_0() | LineSegments_V2_1_0():
-            element = export_omf_lineset(object_id, version_id, geoscience_object, data_client)
+            element = await export_omf_lineset(object_id, version_id, geoscience_object, data_client)
         case Pointset_V1_1_0() | Pointset_V1_2_0():
-            element = export_omf_pointset(object_id, version_id, geoscience_object, data_client)
+            element = await export_omf_pointset(object_id, version_id, geoscience_object, data_client)
         case _:
             raise UnsupportedObjectError(
                 f"Exporting {geoscience_object.__class__.__name__} Geoscience Objects to OMF is not supported"
@@ -102,7 +101,7 @@ def _export_element(
     return element, schema
 
 
-def export_omf(
+async def export_omf(
     filepath: str,
     objects: list[EvoObjectMetadata],
     omf_metadata: Optional[OMFMetadata] = None,
@@ -128,13 +127,11 @@ def export_omf(
         evo_workspace_metadata, service_manager_widget
     )
 
-    nest_asyncio.apply()
-
     omf_metadata = dataclasses.replace(omf_metadata) if omf_metadata else OMFMetadata()
 
     if len(objects) == 1:
         object_metadata = objects[0]
-        element, schema = _export_element(object_metadata, service_client, data_client)
+        element, schema = await _export_element(object_metadata, service_client, data_client)
         elements = [element]
 
         # infer project attributes from data
@@ -145,7 +142,10 @@ def export_omf(
             or f"{schema.sub_classification.capitalize()} object with ID {object_metadata.object_id}"
         )
     else:
-        elements = [_export_element(object_metadata, service_client, data_client)[0] for object_metadata in objects]
+        exported_elements = await asyncio.gather(
+            *(_export_element(object_metadata, service_client, data_client) for object_metadata in objects)
+        )
+        elements = [element for element, _ in exported_elements]
 
         omf_metadata.name = omf_metadata.name or "EvoObjects"
         omf_metadata.description = omf_metadata.description or "Objects with IDs " + ", ".join(
@@ -155,4 +155,4 @@ def export_omf(
     project = omf_metadata.to_project(elements)
 
     # Write file
-    omf.OMFWriter(project, filepath)
+    await asyncio.to_thread(omf.OMFWriter, project, filepath)
