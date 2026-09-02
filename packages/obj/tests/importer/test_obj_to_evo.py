@@ -12,6 +12,7 @@
 import tempfile
 from pathlib import Path
 from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
@@ -68,12 +69,17 @@ class TestObjToEvoConverter(IsolatedAsyncioTestCase):
         }
         self.assertEqual(go_objects[0].tags, expected_tags)
 
-    async def test_should_convert_expected_geometry_types(self) -> None:
+    @patch("evo.data_converters.obj.importer.obj_to_evo.asyncio.to_thread", new_callable=AsyncMock)
+    async def test_should_convert_expected_geometry_types(self, mock_to_thread: AsyncMock) -> None:
+        mock_to_thread.side_effect = lambda function, *args, **kwargs: function(*args, **kwargs)
         obj_file = this_dir.parent / "data" / "simple_shapes" / "simple_shapes.obj"
         go_objects = await convert_obj(
             filepath=obj_file, evo_workspace_metadata=self.metadata, epsg_code=4326, publish_objects=False
         )
 
+        mock_to_thread.assert_awaited_once()
+        assert mock_to_thread.await_args is not None
+        self.assertEqual(mock_to_thread.await_args.args[0].__name__, "convert_file")
         expected_go_object_types = [TriangleMesh_V2_2_0]
         self.assertListEqual(expected_go_object_types, [type(obj) for obj in go_objects])
 
