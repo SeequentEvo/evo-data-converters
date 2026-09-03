@@ -43,7 +43,20 @@ The SHP converter currently only supports importing multipatch shapefiles which 
 
 [The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-shp`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/shp) to convert your file.
 
-Have a look at the `code-samples/convert-shp.ipynb` notebook for an example of how to publish shapefiles.
+The importer is asynchronous and must be awaited:
+
+```python
+from evo.data_converters.shp.importer.shp_to_evo import convert_shp
+
+objects = await convert_shp(
+    filepath="example.shp",
+    filepath_shx="example.shx",
+    filepath_dbf="example.dbf",
+    service_manager_widget=manager,
+)
+```
+
+Have a look at the [`code-samples/convert-shp-mesh/convert-shp-mesh.ipynb`](code-samples/convert-shp-mesh/convert-shp-mesh.ipynb) notebook for a complete example of how to publish shapefiles.
 
 ## Code of conduct
 
