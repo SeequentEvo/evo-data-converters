@@ -1,6 +1,6 @@
 # Changelog
 
-## evo-data-converters-image@v0.3.0
+## evo-data-converters-image@v0.2.0
 Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
 
 ## evo-data-converters-gocad@v0.3.0
