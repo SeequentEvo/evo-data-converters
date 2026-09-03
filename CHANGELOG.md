@@ -1,5 +1,8 @@
 # Changelog
 
+## evo-data-converters-ubc@v0.2.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
 ## evo-data-converters-shp@v0.2.0
 Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
 

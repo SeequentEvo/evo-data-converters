@@ -31,7 +31,19 @@ See https://help.seequent.com/Geo/5.0/en-GB/Content/block-models/ubc-grids.htm.
 
 ## Usage
 
-For examples of using this package, see the [Jupyter notebooks.](code-samples/convert-ubc)
+The importer is asynchronous and must be awaited:
+
+```python
+from evo.data_converters.ubc.importer import convert_ubc
+
+objects = await convert_ubc(
+    files_path=["model.msh", "model.mod"],
+    coordinate_reference_system=32650,
+    service_manager_widget=manager,
+)
+```
+
+For a complete example, see the [Jupyter notebook.](code-samples/convert-ubc)
 
 ## Code of conduct
 
