@@ -18,7 +18,7 @@ from .evo_client import (
     create_evo_object_service_and_data_client_async,
 )
 from .grid_data import BaseGridData, RegularGridData, TensorGridData
-from .publish import publish_geoscience_objects, publish_geoscience_objects_sync
+from .publish import publish_geoscience_objects
 
 __all__ = [
     "create_evo_object_service_and_data_client",
@@ -27,7 +27,6 @@ __all__ = [
     "BlockSyncClient",
     "EvoObjectMetadata",
     "publish_geoscience_objects",
-    "publish_geoscience_objects_sync",
     "BaseGridData",
     "RegularGridData",
     "TensorGridData",
