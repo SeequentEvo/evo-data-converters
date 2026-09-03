@@ -22,8 +22,8 @@ from evo_schemas.components.nan_continuous import NanContinuous_V1_0_1
 def build_pointset(
     data_client: ObjectDataClient,
     name: str,
-    points: np.ndarray,        # shape (N, 3)
-    values: np.ndarray | None, # shape (N,) or None
+    points: np.ndarray,  # shape (N, 3)
+    values: np.ndarray | None,  # shape (N,) or None
     crs: Crs_V1_0_1,
     tags: dict[str, str],
 ) -> Pointset_V1_3_0:
@@ -35,9 +35,12 @@ def build_pointset(
 
     # 2. Bounding box.
     bb = BoundingBox_V1_0_1(
-        min_x=float(np.min(points[:, 0])), max_x=float(np.max(points[:, 0])),
-        min_y=float(np.min(points[:, 1])), max_y=float(np.max(points[:, 1])),
-        min_z=float(np.min(points[:, 2])), max_z=float(np.max(points[:, 2])),
+        min_x=float(np.min(points[:, 0])),
+        max_x=float(np.max(points[:, 0])),
+        min_y=float(np.min(points[:, 1])),
+        max_y=float(np.max(points[:, 1])),
+        min_z=float(np.min(points[:, 2])),
+        max_z=float(np.max(points[:, 2])),
     )
 
     # 3. Optional continuous attribute.
@@ -47,7 +50,8 @@ def build_pointset(
         save_1d_array_to_parquet(values, os.path.join(str(data_client.cache_location), values_hash))
         attributes = [
             ContinuousAttribute_V1_1_0(
-                name="value", key="value",
+                name="value",
+                key="value",
                 nan_description=NanContinuous_V1_0_1(values=[-1.0e32]),
                 values=FloatArray1_V1_0_1(data=values_hash, length=len(values)),
             )
@@ -55,8 +59,11 @@ def build_pointset(
 
     # 4. Assemble.
     return Pointset_V1_3_0(
-        name=name, uuid=None, description=None,
-        bounding_box=bb, coordinate_reference_system=crs,
+        name=name,
+        uuid=None,
+        description=None,
+        bounding_box=bb,
+        coordinate_reference_system=crs,
         locations=Pointset_V1_3_0_Locations(coordinates=coordinates, attributes=attributes),
         tags=tags,
     )
@@ -70,7 +77,7 @@ For new converters, prefer PyArrow + `save_table` over hand-rolled parquet write
 import pyarrow as pa
 
 table = pa.table({"x": points[:, 0], "y": points[:, 1], "z": points[:, 2]})
-reference = data_client.save_table(table)   # embed `reference` in the element
+reference = data_client.save_table(table)  # embed `reference` in the element
 ```
 
 Inspect the exact `save_table` return/signature in your installed version:

@@ -52,7 +52,7 @@ element type). In that case:
   with an explicitly typed assignment so `mypy` doesn't flag `no-any-return`:
   ```python
   geoscience_objects: list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata] = list(
-      utils.get_geoscience_object_from_<type>(data_client, filepath, crs, tags)
+      utils.get_geoscience_object_from_ < type > (data_client, filepath, crs, tags)
   )
   ```
 - Update the generated `test_<type>_to_evo.py` mocks: `get_geoscience_object_from_<type>` must
