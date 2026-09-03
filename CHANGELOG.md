@@ -1,6 +1,6 @@
 # Changelog
 
-## evo-data-converters-xyz@v0.1.0
+## evo-data-converters-xyz@v0.2.0
 Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
 
 ## evo-data-converters-vtk@v0.3.0
