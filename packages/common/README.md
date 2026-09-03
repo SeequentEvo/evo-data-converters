@@ -249,8 +249,8 @@ from evo.data_converters.common import (
 from yourfileparsermodule import yourfileparser
 
 
-# Define the main convert function
-def convert_yourfiletype(
+# Define the main async convert function
+async def convert_yourfiletype(
     filepath: str,
     epsg_code: int,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
@@ -280,7 +280,7 @@ def convert_yourfiletype(
             geoscience_objects.append(geoscience_object)
 
     # Publish the found geoscience objects to Evo
-    objects_metadata = publish_geoscience_objects(
+    objects_metadata = await publish_geoscience_objects(
         geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
     )
 
@@ -293,7 +293,7 @@ converter examples to see usage for the optional return of `BaseSpatialDataPrope
 
 ##### Parameters
 
-The following parameters are passed into the convert function. By convention these are the typical minimum parameters
+The following parameters are passed into the async convert function. By convention these are the typical minimum parameters
 a convert function should have, however additional ones can be added as needed for specific usage needs.
 
 | Parameter                | Description                                                                                                                                                                                                                                                                                     |
