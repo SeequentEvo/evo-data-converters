@@ -21,6 +21,7 @@ from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.vtk.importer import VTKImportError, convert_vtk
 
 this_dir = Path(__file__).parent
+pytestmark = pytest.mark.asyncio
 
 
 _WKT2_EXAMPLE = """\
@@ -40,20 +41,20 @@ GEOGCRS["WGS 84",
     ID["EPSG", 4326]]"""
 
 
-def test_failed_to_read_file() -> None:
+async def test_failed_to_read_file() -> None:
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / "not_file.vtk"
     with pytest.raises(VTKImportError):
-        convert_vtk(str(file_name), evo_workspace_metadata=workspace_metadata)
+        await convert_vtk(str(file_name), evo_workspace_metadata=workspace_metadata)
 
 
 @pytest.mark.parametrize("test_file, n_messages", [("unsupported.vtp", 1), ("all_unsupported.vtm", 2)])
-def test_unsupported(caplog: pytest.LogCaptureFixture, test_file: str, n_messages: int) -> None:
+async def test_unsupported(caplog: pytest.LogCaptureFixture, test_file: str, n_messages: int) -> None:
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / test_file
-    result = convert_vtk(str(file_name), evo_workspace_metadata=workspace_metadata, publish_objects=False)
+    result = await convert_vtk(str(file_name), evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert result == []
 
     messages = caplog.text.splitlines()
@@ -61,10 +62,10 @@ def test_unsupported(caplog: pytest.LogCaptureFixture, test_file: str, n_message
     assert all(("PolyData data object are not supported." in line) for line in messages)
 
 
-def test_data_with_ghosts(caplog: pytest.LogCaptureFixture) -> None:
+async def test_data_with_ghosts(caplog: pytest.LogCaptureFixture) -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "image_data_with_ghosts.vti"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+    result = await convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 0
 
     messages = caplog.text.splitlines()
@@ -72,12 +73,12 @@ def test_data_with_ghosts(caplog: pytest.LogCaptureFixture) -> None:
     assert "Grid with ghost cells are not supported, skipping this grid" in messages[0]
 
 
-def test_convert_object() -> None:
+async def test_convert_object() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
     file_name = this_dir / "data" / "image_data.vti"
-    result = convert_vtk(
+    result = await convert_vtk(
         str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags, publish_objects=False
     )
     assert len(result) == 1
@@ -92,26 +93,26 @@ def test_convert_object() -> None:
     assert result[0].tags == expected_tags
 
 
-def test_convert_rectilinear_grid() -> None:
+async def test_convert_rectilinear_grid() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "rectilinear_grid.vtr"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+    result = await convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 1
     assert isinstance(result[0], Tensor3DGrid_V1_2_0)
 
 
-def test_convert_unstructured_grid() -> None:
+async def test_convert_unstructured_grid() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "unstructured_grid.vtu"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+    result = await convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 1
     assert isinstance(result[0], UnstructuredTetGrid_V1_2_0)
 
 
-def test_convert_multiple() -> None:
+async def test_convert_multiple() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "collection.vtm"
-    result = convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+    result = await convert_vtk(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
     assert len(result) == 3
     assert isinstance(result[0], Regular3DGrid_V1_2_0)
     assert isinstance(result[1], Tensor3DGrid_V1_2_0)
@@ -127,10 +128,10 @@ def test_convert_multiple() -> None:
         (None, "unspecified"),
     ],
 )
-def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+async def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "image_data.vti"
-    result = convert_vtk(
+    result = await convert_vtk(
         str(file_name),
         evo_workspace_metadata=workspace_metadata,
         coordinate_reference_system=input_crs,
@@ -140,11 +141,11 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     assert result[0].coordinate_reference_system == expected_crs
 
 
-def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+async def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "image_data.vti"
     with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
-        convert_vtk(
+        await convert_vtk(
             str(file_name),
             4326,
             evo_workspace_metadata=workspace_metadata,
