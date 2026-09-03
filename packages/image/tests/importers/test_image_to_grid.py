@@ -770,6 +770,52 @@ class TestBigTiffDetection:
 
 
 @pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
+def test_read_image_tiff_falls_back_to_rasterio_when_pillow_fails(
+    tmp_path: Path,
+    mock_data_client: _MockDataClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Valid TIFFs should still load through rasterio when Pillow rejects the file."""
+    import rasterio
+    from rasterio.transform import Affine
+
+    width, height = 5, 4
+    data = np.arange(width * height, dtype=np.uint16).reshape(height, width)
+    tif_path = tmp_path / "fallback_rasterio.tif"
+    with rasterio.open(
+        str(tif_path),
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype=data.dtype,
+        transform=Affine.identity(),
+    ) as dst:
+        dst.write(data, 1)
+
+    import evo.data_converters.image.importer.image_to_grid as image_module
+
+    original_open = image_module.Image.open
+
+    def failing_open(*args, **kwargs):
+        if args and str(args[0]).lower().endswith((".tif", ".tiff")):
+            raise OSError("Pillow rejected valid TIFF")
+        return original_open(*args, **kwargs)
+
+    monkeypatch.setattr(image_module.Image, "open", failing_open)
+
+    converter = ImageGridConverter(mock_data_client, output_parquet=False)
+    cell_values, read_width, read_height, mode = converter._read_image(str(tif_path))
+
+    assert mode == "grayscale"
+    assert read_width == width
+    assert read_height == height
+    assert cell_values.dtype == np.float64
+    assert len(cell_values) == width * height
+
+
+@pytest.mark.skipif(not HAS_RASTERIO, reason="rasterio not installed")
 def test_extract_embedded_georeferencing_from_geotiff(tmp_path: Path, mock_data_client: _MockDataClient):
     """GeoTIFF transform should map to bottom-left origin and positive cell sizes."""
     import rasterio
