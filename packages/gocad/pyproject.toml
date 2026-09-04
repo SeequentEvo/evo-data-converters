@@ -19,7 +19,12 @@ Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
-dev = ["pytest", "pytest-asyncio>=1.3.0"]
+dev = [
+    "evo-sdk-common[notebooks]>=0.4.2",
+    "notebook>=7.4.3",
+    "pytest",
+    "pytest-asyncio>=1.3.0",
+]
 
 [project.optional-dependencies]
 "notebooks" = [
