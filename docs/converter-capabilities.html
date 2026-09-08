@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Converter Capability Matrix</title>
+  <style>
+    :root {
+      --bg: #f4f7f9;
+      --card: #ffffff;
+      --ink: #0f2430;
+      --muted: #47606d;
+      --line: #d7e1e8;
+      --head: #e9f0f5;
+      --accent: #006d77;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 100% -10%, #d6e9f2 0%, transparent 60%),
+        radial-gradient(700px 360px at -5% 110%, #dcefe8 0%, transparent 58%),
+        var(--bg);
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem 3rem;
+    }
+    .hero {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.1rem 1.2rem;
+      box-shadow: 0 8px 22px rgba(15, 36, 48, 0.06);
+      margin-bottom: 1rem;
+    }
+    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+    .meta { color: var(--muted); font-size: 0.95rem; }
+    .controls {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin: 0.9rem 0 1rem;
+    }
+    input, select {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.55rem 0.65rem;
+      font-size: 0.95rem;
+      background: #fff;
+      min-width: 180px;
+    }
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: auto;
+      box-shadow: 0 8px 22px rgba(15, 36, 48, 0.06);
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 0.65rem; text-align: left; vertical-align: top; }
+    th { background: var(--head); font-weight: 600; }
+    tr:hover td { background: #f8fbfd; }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 0.12rem 0.5rem;
+      font-size: 0.8rem;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: #fbfdff;
+    }
+    .yes { color: #0a6a40; font-weight: 600; }
+    .no { color: #8e2a2a; font-weight: 600; }
+    .footer-note { margin-top: 0.85rem; color: var(--muted); font-size: 0.9rem; }
+    @media (max-width: 700px) {
+      h1 { font-size: 1.25rem; }
+      .hero { padding: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Evo Data Converter Capability Matrix</h1>
+      <div class="meta">Generated (UTC): 2026-09-08 21:55:00</div>
+      <div class="controls">
+        <input id="search" type="search" placeholder="Filter converters, objects, limitations..." />
+        <select id="importFilter">
+          <option value="all">Import: All</option>
+          <option value="yes">Import: Yes</option>
+          <option value="no">Import: No</option>
+        </select>
+        <select id="exportFilter">
+          <option value="all">Export: All</option>
+          <option value="yes">Export: Yes</option>
+          <option value="no">Export: No</option>
+        </select>
+      </div>
+      <span class="pill">Source of truth: converter-capabilities.json</span>
+    </section>
+
+    <section class="table-card">
+      <table id="capabilityTable">
+        <thead>
+          <tr>
+            <th>Converter</th>
+            <th>Status</th>
+            <th>Import</th>
+            <th>Export</th>
+            <th>Formats</th>
+            <th>Import Objects</th>
+            <th>Limitations</th>
+          </tr>
+        </thead>
+        <tbody>
+<tr><td>DUF</td><td>implemented</td><td>Yes</td><td>No</td><td>.duf</td><td>TriangleMesh, LineSegments</td><td>Some DUF geometry types are not supported., TriangleMesh: Per-face colour data is ignored on import., TriangleMesh: Negative face index visibility semantics are ignored; all faces are forced visible.</td></tr>
+<tr><td>GOCAD</td><td>implemented</td><td>Yes</td><td>No</td><td>.vo</td><td>Regular3DGrid</td><td>Current converter path is focused on voxel grid data.</td></tr>
+<tr><td>Image</td><td>implemented</td><td>Yes</td><td>No</td><td>.jpeg, .jpg, .png, .tif, .tiff, .bmp, .gif</td><td>Regular2DGrid</td><td>No Evo-to-image exporter is currently provided.</td></tr>
+<tr><td>OBJ</td><td>implemented</td><td>Yes</td><td>Yes</td><td>.obj</td><td>TriangleMesh</td><td>Export currently supports only triangle-mesh objects., TinyOBJ support depends on a pinned Git installation path., TriangleMesh: Texture/material data on import is ignored., TriangleMesh: Export does not include texture/material payloads.</td></tr>
+<tr><td>OMF</td><td>implemented</td><td>Yes</td><td>Yes</td><td>.omf</td><td>Pointset, TriangleMesh, LineSegments, BlockSync block model metadata</td><td>Some geometry types and geoscience object types are not yet supported., LineSegments: OMF LineSet is mapped to LineSegments; other interpretations such as drillholes or wireframe mesh are not produced.</td></tr>
+<tr><td>RESQML</td><td>implemented</td><td>Yes</td><td>No</td><td>.epc, .xml</td><td>UnstructuredHexGrid, TriangleMesh, DownholeIntervals</td><td>Large grid conversion can be skipped when estimated corner_points memory exceeds configured threshold., UnstructuredHexGrid: Grid properties indexed by non-cell elements (e.g. nodes or faces) are ignored., UnstructuredHexGrid: Grid properties of unknown or unsupported type are ignored.</td></tr>
+<tr><td>SHP</td><td>implemented</td><td>Yes</td><td>No</td><td>.shp, .shx, .dbf, .prj</td><td>TriangleMesh</td><td>TriangleMesh: Ring-based multipatch parts (OUTER_RING, INNER_RING, etc.) are not supported., TriangleMesh: NULL shapes (records with associated data but no geometry) are discarded.</td></tr>
+<tr><td>UBC</td><td>implemented</td><td>Yes</td><td>No</td><td>.msh, .mod, .sus, .den</td><td>Tensor3DGrid</td><td>Requires exactly one .msh mesh file per conversion call.</td></tr>
+<tr><td>VTK</td><td>implemented</td><td>Yes</td><td>No</td><td>.vti, .vtr, .vtu, .vtm, .xml</td><td>Regular3DGrid, RegularMasked3DGrid, Tensor3DGrid, UnstructuredTetGrid, UnstructuredHexGrid, UnstructuredGrid</td><td>Only XML VTK files are supported., VTK data object types outside the supported set are skipped with a warning., Individual grid conversion errors are caught per-grid and skipped.</td></tr>
+<tr><td>XYZ</td><td>implemented</td><td>Yes</td><td>No</td><td>.xyz, .XYZ</td><td>Pointset</td><td>No Evo-to-XYZ exporter is currently provided., For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <div class="footer-note">Regenerate with: uv run python scripts/render_converter_capabilities.py</div>
+  </div>
+
+  <script>
+    const search = document.getElementById('search');
+    const importFilter = document.getElementById('importFilter');
+    const exportFilter = document.getElementById('exportFilter');
+    const table = document.getElementById('capabilityTable');
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+    function applyFilters() {
+      const q = search.value.trim().toLowerCase();
+      const iVal = importFilter.value;
+      const eVal = exportFilter.value;
+
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll('td');
+        const text = row.textContent.toLowerCase();
+        const iText = cells[2].textContent.trim().toLowerCase();
+        const eText = cells[3].textContent.trim().toLowerCase();
+        const iMatch = iVal === 'all' || iText === iVal;
+        const eMatch = eVal === 'all' || eText === eVal;
+        const qMatch = !q || text.includes(q);
+        row.style.display = (iMatch && eMatch && qMatch) ? '' : 'none';
+
+        cells[2].className = iText === 'yes' ? 'yes' : 'no';
+        cells[3].className = eText === 'yes' ? 'yes' : 'no';
+      });
+    }
+
+    search.addEventListener('input', applyFilters);
+    importFilter.addEventListener('change', applyFilters);
+    exportFilter.addEventListener('change', applyFilters);
+    applyFilters();
+  </script>
+</body>
+</html>

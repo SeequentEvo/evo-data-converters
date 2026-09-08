@@ -46,7 +46,7 @@ For a stakeholder-friendly summary of what each converter supports (import/expor
 The source of truth is [`converter-capabilities.json`](converter-capabilities.json). Regenerate both reports with:
 
 ```shell
-make converter-capabilities
+uv run python scripts/render_converter_capabilities.py
 ```
 
 Contributor workflow:
@@ -55,10 +55,10 @@ Contributor workflow:
 
 ```shell
 # Optional: keep formatting/order stable
-make converter-capabilities-normalize
+uv run python scripts/manage_converter_capabilities.py normalize
 
 # Required: fail fast if there are data-shape mistakes
-make converter-capabilities-validate
+uv run python scripts/manage_converter_capabilities.py validate
 ```
 
 ## Pre-requisites
@@ -110,7 +110,7 @@ It should open a browser where you can open the notebooks for the current direct
 
 ## Getting started with Evo data converters samples
 
-For examples of how to use Evo data converters, please refer to the samples in each convertor of the `packages` directory.
+For examples of how to use Evo data converters, please refer to the samples in each converter of the `packages` directory.
 
 - [DUF](packages/duf/code-samples)
 - [GOCAD](packages/gocad/code-samples)

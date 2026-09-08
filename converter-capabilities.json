@@ -1,0 +1,349 @@
+{
+  "$schema": "./converter-capabilities.schema.json",
+  "schema_version": "1.0",
+  "maintainers_note": "Update this file when converter behavior changes, then regenerate docs with: uv run python scripts/render_converter_capabilities.py",
+  "converters": [
+    {
+      "id": "duf",
+      "name": "DUF",
+      "package": "evo-data-converters-duf",
+      "status": "implemented",
+      "formats": [
+        ".duf"
+      ],
+      "platform": [
+        "Windows only",
+        "Requires Deswik Spatial and compatible .NET runtime"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "Polyface",
+          "Polyline"
+        ],
+        "produces_evo_objects": [
+          "TriangleMesh",
+          "LineSegments"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "Some DUF geometry types are not supported.",
+        "TriangleMesh: Per-face colour data is ignored on import.",
+        "TriangleMesh: Negative face index visibility semantics are ignored; all faces are forced visible."
+      ]
+    },
+    {
+      "id": "gocad",
+      "name": "GOCAD",
+      "package": "evo-data-converters-gocad",
+      "status": "implemented",
+      "formats": [
+        ".vo"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "GOCAD voxel grid"
+        ],
+        "produces_evo_objects": [
+          "Regular3DGrid"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "Current converter path is focused on voxel grid data."
+      ]
+    },
+    {
+      "id": "image",
+      "name": "Image",
+      "package": "evo-data-converters-image",
+      "status": "implemented",
+      "formats": [
+        ".jpeg",
+        ".jpg",
+        ".png",
+        ".tif",
+        ".tiff",
+        ".bmp",
+        ".gif"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "Grayscale images",
+          "Colour images"
+        ],
+        "produces_evo_objects": [
+          "Regular2DGrid"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "No Evo-to-image exporter is currently provided."
+      ]
+    },
+    {
+      "id": "obj",
+      "name": "OBJ",
+      "package": "evo-data-converters-obj",
+      "status": "implemented",
+      "formats": [
+        ".obj"
+      ],
+      "platform": [
+        "Cross-platform (Python)",
+        "TinyOBJ backend requires optional extra installation"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "Polygon mesh (via trimesh or tinyobj backend)"
+        ],
+        "produces_evo_objects": [
+          "TriangleMesh"
+        ]
+      },
+      "export": {
+        "supported": true,
+        "supports_evo_objects": [
+          "TriangleMesh (schema classification objects/triangle-mesh, major version 2)"
+        ]
+      },
+      "limitations": [
+        "Export currently supports only triangle-mesh objects.",
+        "TinyOBJ support depends on a pinned Git installation path.",
+        "TriangleMesh: Texture/material data on import is ignored.",
+        "TriangleMesh: Export does not include texture/material payloads."
+      ]
+    },
+    {
+      "id": "omf",
+      "name": "OMF",
+      "package": "evo-data-converters-omf",
+      "status": "implemented",
+      "formats": [
+        ".omf"
+      ],
+      "platform": [
+        "Cross-platform with native build tool requirements"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "OMF PointSet",
+          "OMF Surface",
+          "OMF LineSet",
+          "OMF BlockModel"
+        ],
+        "produces_evo_objects": [
+          "Pointset",
+          "TriangleMesh",
+          "LineSegments",
+          "BlockSync block model metadata"
+        ]
+      },
+      "export": {
+        "supported": true,
+        "supports_evo_objects": [
+          "TriangleMesh",
+          "LineSegments",
+          "Pointset",
+          "BlockSync block models"
+        ]
+      },
+      "limitations": [
+        "Some geometry types and geoscience object types are not yet supported.",
+        "LineSegments: OMF LineSet is mapped to LineSegments; other interpretations such as drillholes or wireframe mesh are not produced."
+      ]
+    },
+    {
+      "id": "resqml",
+      "name": "RESQML",
+      "package": "evo-data-converters-resqml",
+      "status": "implemented",
+      "formats": [
+        ".epc",
+        ".xml"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "IjkGridRepresentation",
+          "TriangulatedSetRepresentation",
+          "WellboreTrajectoryRepresentation"
+        ],
+        "produces_evo_objects": [
+          "UnstructuredHexGrid",
+          "TriangleMesh",
+          "DownholeIntervals"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "Large grid conversion can be skipped when estimated corner_points memory exceeds configured threshold.",
+        "UnstructuredHexGrid: Grid properties indexed by non-cell elements (e.g. nodes or faces) are ignored.",
+        "UnstructuredHexGrid: Grid properties of unknown or unsupported type are ignored."
+      ]
+    },
+    {
+      "id": "shp",
+      "name": "SHP",
+      "package": "evo-data-converters-shp",
+      "status": "implemented",
+      "formats": [
+        ".shp",
+        ".shx",
+        ".dbf",
+        ".prj"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "Multipatch shapefiles without rings"
+        ],
+        "produces_evo_objects": [
+          "TriangleMesh"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "TriangleMesh: Ring-based multipatch parts (OUTER_RING, INNER_RING, etc.) are not supported.",
+        "TriangleMesh: NULL shapes (records with associated data but no geometry) are discarded."
+      ]
+    },
+    {
+      "id": "ubc",
+      "name": "UBC",
+      "package": "evo-data-converters-ubc",
+      "status": "implemented",
+      "formats": [
+        ".msh",
+        ".mod",
+        ".sus",
+        ".den"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "UBC mesh + numeric property files"
+        ],
+        "produces_evo_objects": [
+          "Tensor3DGrid"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "Requires exactly one .msh mesh file per conversion call."
+      ]
+    },
+    {
+      "id": "vtk",
+      "name": "VTK",
+      "package": "evo-data-converters-vtk",
+      "status": "implemented",
+      "formats": [
+        ".vti",
+        ".vtr",
+        ".vtu",
+        ".vtm",
+        ".xml"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "vtkImageData / vtkUniformGrid / vtkStructuredPoints",
+          "vtkRectilinearGrid",
+          "vtkUnstructuredGrid"
+        ],
+        "produces_evo_objects": [
+          "Regular3DGrid",
+          "RegularMasked3DGrid",
+          "Tensor3DGrid",
+          "UnstructuredTetGrid",
+          "UnstructuredHexGrid",
+          "UnstructuredGrid"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "Only XML VTK files are supported.",
+        "VTK data object types outside the supported set are skipped with a warning.",
+        "Individual grid conversion errors are caught per-grid and skipped."
+      ]
+    },
+    {
+      "id": "xyz",
+      "name": "XYZ",
+      "package": "evo-data-converters-xyz",
+      "status": "implemented",
+      "formats": [
+        ".xyz",
+        ".XYZ"
+      ],
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "Points",
+          "Binary",
+          "Geochemistry (comma/space)",
+          "Geosoft Binary/Triplet variants"
+        ],
+        "produces_evo_objects": [
+          "Pointset"
+        ]
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "No Evo-to-XYZ exporter is currently provided.",
+        "For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection."
+      ]
+    }
+  ]
+}
