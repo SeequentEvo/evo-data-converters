@@ -32,10 +32,6 @@ dev = [
     "notebook>=7.4.3",
 ]
 
-[[tool.uv.index]]
-url = "https://pypi.org/simple"
-default = true
-
 [tool.uv.sources]
 evo-data-converters-common = { path = "../common", editable = true }
 
