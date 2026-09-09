@@ -20,6 +20,13 @@ dev = [
     "pytest-asyncio>=1.3.0",
 ]
 
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "nest_asyncio",
+    "notebook>=7.4.3",
+]
+
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"

@@ -23,6 +23,12 @@ dev = [
     "requests-mock",
 ]
 
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
 [tool.uv.sources]
 evo-data-converters-common = { path = "../common", editable = true }
 
