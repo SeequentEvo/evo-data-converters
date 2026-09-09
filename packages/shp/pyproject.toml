@@ -25,6 +25,12 @@ dev = [
     "pytest"
 ]
 
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
 [project.scripts]
 evo-data-converters-shp = "evo_data_converters_shp:main"
 
