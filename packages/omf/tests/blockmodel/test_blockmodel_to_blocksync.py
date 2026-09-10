@@ -233,12 +233,18 @@ class TestOMFToBlockSyncConverter(TestCase):
     @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects")
     @patch.object(BlockSyncClient, "get_auth_header")
     def test_should_convert_blockmodels(
-        self, mock_publish_geoscience_objects: MagicMock, mock_get_auth_header: MagicMock
+        self, mock_get_auth_header: MagicMock, mock_publish_geoscience_objects: MagicMock
     ) -> None:
         omf_file = path.join(path.dirname(__file__), "data/bunny_blocks.omf")
 
         mock_publish_geoscience_objects.return_value = None
-        mock_get_auth_header.return_value = {}
+
+        def get_auth_header_outside_event_loop() -> dict:
+            with self.assertRaises(RuntimeError):
+                asyncio.get_running_loop()
+            return {}
+
+        mock_get_auth_header.side_effect = get_auth_header_outside_event_loop
 
         with requests_mock.Mocker() as mock:
             # Note the JSON argument is the response output

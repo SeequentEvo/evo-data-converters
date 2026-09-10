@@ -39,11 +39,11 @@ parser.add_argument(
     help="Local directory to store processed files. If it doesn't exist it will be created. Defaults to a temporary directory if not provided.",
 )
 
-parser.add_argument("--hub-url", help="The URL of the hub the workspace resides in.", default="")
-parser.add_argument("--org-id", help="UUID of the organization the workspace belongs to.", default="")
-parser.add_argument("--workspace-id", help="The workspace UUID.")
+parser.add_argument("--hub-url", help="The URL of the hub the workspace resides in.", required=True)
+parser.add_argument("--org-id", help="UUID of the organization the workspace belongs to.", required=True)
+parser.add_argument("--workspace-id", help="The workspace UUID.", required=True)
 
-parser.add_argument("--client-id", help="The OAuth client ID, as registered with the OAuth provider.", default="")
+parser.add_argument("--client-id", help="The OAuth client ID, as registered with the OAuth provider.", required=True)
 parser.add_argument("--redirect-url", help="The local URL to redirect the user back to after authorisation", default="")
 
 parser.add_argument(
@@ -105,8 +105,9 @@ logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
 # NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
 nest_asyncio.apply()
 
+
 async def run_conversion():
-    return convert_omf(
+    return await convert_omf(
         filepath=args.filename,
         evo_workspace_metadata=workspace_metadata,
         coordinate_reference_system=args.epsg_code,

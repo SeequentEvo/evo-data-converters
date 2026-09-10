@@ -9,11 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import json
 import tempfile
 from os import path
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 import requests
 import requests_mock
@@ -21,10 +23,49 @@ from omf import VolumeElement, VolumeGridGeometry
 from omf.data import DateTimeData, MappedData, ScalarData
 
 from evo.data_converters.common import BlockSyncClient, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
-from evo.data_converters.omf.exporter.blocksync_to_omf import blocksync_to_omf_element, export_blocksync_columns
+from evo.data_converters.omf.exporter.blocksync_to_omf import (
+    blocksync_to_omf_element,
+    export_blocksync_columns,
+    export_blocksync_omf,
+)
 
 
 class TestBlockSyncToOMF(TestCase):
+    @patch("evo.data_converters.omf.exporter.blocksync_to_omf.omf.OMFWriter")
+    @patch("evo.data_converters.omf.exporter.blocksync_to_omf.omf.Project")
+    @patch("evo.data_converters.omf.exporter.blocksync_to_omf.blocksync_to_omf_element")
+    @patch("evo.data_converters.omf.exporter.blocksync_to_omf._create_block_sync_client")
+    @patch("evo.data_converters.omf.exporter.blocksync_to_omf.create_evo_object_service_and_data_client")
+    def test_should_export_from_running_event_loop(
+        self,
+        mock_create_clients: MagicMock,
+        mock_create_block_sync_client: MagicMock,
+        mock_blocksync_to_omf_element: MagicMock,
+        mock_project_class: MagicMock,
+        mock_writer: MagicMock,
+    ) -> None:
+        service_client = MagicMock()
+        mock_create_clients.return_value = service_client, MagicMock()
+        block_sync_client = mock_create_block_sync_client.return_value
+        project = mock_project_class.return_value
+        project.validate.return_value = True
+
+        def convert_without_running_event_loop(*args: object) -> MagicMock:
+            with self.assertRaises(RuntimeError):
+                asyncio.get_running_loop()
+            return MagicMock()
+
+        mock_blocksync_to_omf_element.side_effect = convert_without_running_event_loop
+        object_id = UUID("bca38684-831f-4350-9a3f-68705bb69e84")
+
+        async def export() -> None:
+            export_blocksync_omf("output.omf", object_id)
+
+        asyncio.run(export())
+
+        mock_blocksync_to_omf_element.assert_called_once_with(str(object_id), block_sync_client, None)
+        mock_writer.assert_called_once_with(project, "output.omf")
+
     @patch("evo.data_converters.omf.exporter.blocksync_to_omf.export_blocksync_columns")
     def test_should_convert_blocksync_to_omf(self, mock_export_blocksync_columns: MagicMock) -> None:
         mock_export_blocksync_columns.return_value = []

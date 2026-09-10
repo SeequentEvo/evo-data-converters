@@ -9,9 +9,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import os
-from typing import TYPE_CHECKING, Optional
 import warnings
+from typing import TYPE_CHECKING, Optional
 
 import omf2
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
@@ -127,7 +128,9 @@ async def convert_omf(
                 geoscience_object = convert_omf_lineset(element, project, reader, data_client, crs)
             case omf2.BlockModel():
                 if publish_objects:
-                    block_models = convert_omf_blockmodel(object_service_client, element, reader, crs)
+                    block_models = await asyncio.to_thread(
+                        convert_omf_blockmodel, object_service_client, element, reader, crs
+                    )
                 else:
                     logger.warning("Skipping block models due to publish_objects=False")
             case _:

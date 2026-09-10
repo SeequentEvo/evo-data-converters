@@ -13,6 +13,7 @@ import asyncio
 import json
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Optional
@@ -42,7 +43,17 @@ class BlockSyncClient:
 
         :return: The authorisation headers in dictionary form.
         """
-        header_dict: HTTPHeaderDict = asyncio.run(self.api_connector._authorizer.get_default_headers())
+        def get_default_headers() -> HTTPHeaderDict:
+            return asyncio.run(self.api_connector._authorizer.get_default_headers())
+
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            header_dict = get_default_headers()
+        else:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                header_dict = executor.submit(get_default_headers).result()
+
         header_dict["API-Preview"] = "opt-in"  # This must be set in the headers to support CRS
         return header_dict
 
