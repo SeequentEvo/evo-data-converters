@@ -9,7 +9,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, time, timezone
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
@@ -38,6 +40,16 @@ def _create_block_sync_client(environment: Environment, api_connector: APIConnec
     return BlockSyncClient(environment, api_connector)
 
 
+def _get_blocksync_element(object_id: UUID, client: BlockSyncClient, version_id: Optional[int]) -> VolumeElement:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return blocksync_to_omf_element(str(object_id), client, version_id)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(blocksync_to_omf_element, str(object_id), client, version_id).result()
+
+
 def export_blocksync_omf(
     filepath: str,
     object_id: UUID,
@@ -61,7 +73,7 @@ def export_blocksync_omf(
 
     project = omf.Project(name=project_name, description=description, revision=revision)
 
-    project.elements = [blocksync_to_omf_element(str(object_id), client, version_id)]
+    project.elements = [_get_blocksync_element(object_id, client, version_id)]
     assert project.validate()
 
     logger.info("Writing OMF project to {filepath}")

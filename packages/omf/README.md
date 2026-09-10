@@ -280,7 +280,7 @@ job_url = blocksync_client.get_blockmodel_columns_job_url(object_id)
 download_url = blocksync_client.get_blockmodel_columns_download_url(job_url)
 downloaded_file = blocksync_client.download_parquet(download_url)
 
-shutil.copy(downloaded_file.name, dest_file)
+shutil.copy(downloaded_file, dest_file)
 
 table = pq.read_table(dest_file)
 
