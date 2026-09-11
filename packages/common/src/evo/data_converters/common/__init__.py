@@ -11,12 +11,18 @@
 
 from .blockmodel_client import BlockSyncClient
 from .crs import InvalidCRSError, crs_from_any, crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified
-from .evo_client import EvoObjectMetadata, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from .evo_client import (
+    EvoObjectMetadata,
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+    create_evo_object_service_and_data_client_async,
+)
 from .grid_data import BaseGridData, RegularGridData, TensorGridData
 from .publish import publish_geoscience_objects, publish_geoscience_objects_sync
 
 __all__ = [
     "create_evo_object_service_and_data_client",
+    "create_evo_object_service_and_data_client_async",
     "EvoWorkspaceMetadata",
     "BlockSyncClient",
     "EvoObjectMetadata",

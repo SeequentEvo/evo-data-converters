@@ -24,7 +24,6 @@ dev = [
 [project.optional-dependencies]
 "notebooks" = [
     "evo-sdk-common[notebooks]",
-    "nest_asyncio",
     "notebook>=7.4.3",
 ]
 
