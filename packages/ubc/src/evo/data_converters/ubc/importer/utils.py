@@ -55,7 +55,7 @@ def _resolve_coordinate_reference_system(
 
 
 def _create_continuous_attributes(
-    data_client: ObjectDataClient, label_to_values: dict
+    data_client: ObjectDataClient, label_to_values: dict, nan_values: list[float]
 ) -> list[ContinuousAttribute_V1_1_0]:
     cell_attributes = []
     for name, values in label_to_values.items():
@@ -64,7 +64,7 @@ def _create_continuous_attributes(
             ContinuousAttribute_V1_1_0(
                 name=name,
                 key=name,
-                nan_description=NanContinuous_V1_0_1(values=[]),
+                nan_description=NanContinuous_V1_0_1(values=nan_values),
                 values=FloatArray1_V1_0_1(**data_client.save_table(table)),
             )
         )
@@ -96,6 +96,7 @@ def get_geoscience_object_from_ubc(
     *,
     epsg_code: Optional[int] = None,
     coordinate_reference_system: Optional[dict] = None,
+    NaNList: list[float] = [],
 ) -> Tensor3DGrid_V1_2_0:
     ubc_mesh_file, ubc_numeric_values_files = _handle_ubc_files_list(files_path)
     name = os.path.splitext(os.path.basename(ubc_mesh_file))[0]
@@ -116,7 +117,7 @@ def get_geoscience_object_from_ubc(
         numerical_values[os.path.splitext(os.path.basename(value_file))[0]] = values
 
     bbox = grid_bounding_box(origin, numpy.identity(3), numpy.array([numpy.sum(d) for d in spacings]))
-    cell_attributes = _create_continuous_attributes(data_client, numerical_values)
+    cell_attributes = _create_continuous_attributes(data_client, numerical_values, NaNList)
 
     grid_cells_3d = Tensor3DGrid_V1_2_0_GridCells3D(
         cell_sizes_x=spacings[0].tolist(), cell_sizes_y=spacings[1].tolist(), cell_sizes_z=spacings[2].tolist()
