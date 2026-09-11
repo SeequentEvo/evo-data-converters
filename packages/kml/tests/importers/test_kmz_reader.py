@@ -18,12 +18,14 @@ from evo.data_converters.kml.importer.implementation.kml_or_kmz_reader import Km
 
 this_dir = Path(__file__).resolve().parent.parent / "data"
 
+
 def test_read_kmz_file() -> None:
     # Read a valid .kmz sample and verify that the reader extracts the embedded KML and returns a <kml> root element.
     source = KmlOrKmzReader(this_dir / "KML_Test.kmz").read()
 
     assert source.source_format == "kmz"
     assert source.root.tag.endswith("kml")
+
 
 def test_kmz_reader_rejects_missing_file() -> None:
     # A missing .kmz file should raise nvalidKMLError instead of a raw filesystem or archive exception.

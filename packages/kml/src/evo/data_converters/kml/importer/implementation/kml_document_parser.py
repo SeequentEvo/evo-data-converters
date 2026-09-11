@@ -27,8 +27,9 @@ _logger = logging.getLogger(__name__)
 KmlCoordinate = tuple[float, float, float]
 KmlGeometryKind = Literal["point", "line"]
 
-_KML_NS = "http://www.opengis.net/kml/2.2"      # standard KML namespace
-_NS = {"kml": _KML_NS}                          # namespace map passed to ElementTree XPath calls
+_KML_NS = "http://www.opengis.net/kml/2.2"  # standard KML namespace
+_NS = {"kml": _KML_NS}  # namespace map passed to ElementTree XPath calls
+
 
 # store the KML <Point> geometry for a placemark.
 @dataclass(slots=True)
@@ -36,13 +37,16 @@ class KmlPointGeometry:
     kind: Literal["point"] = "point"
     coordinates: KmlCoordinate = (0.0, 0.0, 0.0)
 
+
 # store the KML <LineString> geometry for a placemark.
 @dataclass(slots=True)
 class KmlLineGeometry:
     kind: Literal["line"] = "line"
     coordinates: list[KmlCoordinate] = field(default_factory=list)
 
+
 KmlGeometry = KmlPointGeometry | KmlLineGeometry
+
 
 @dataclass(slots=True)
 class KmlPlacemark:
@@ -50,6 +54,7 @@ class KmlPlacemark:
     description: str | None
     folder_path: tuple[str, ...]
     geometries: list[KmlGeometry]
+
 
 @dataclass(slots=True)
 class KmlDocument:
@@ -59,6 +64,7 @@ class KmlDocument:
     document_description: str | None
     folder_names: list[tuple[str, ...]]
     placemarks: list[KmlPlacemark]
+
 
 class KmlDocumentParser:
     """
@@ -216,4 +222,3 @@ class KmlDocumentParser:
     def _local_name(self, tag: str) -> str:
         """Return the namespace-free local XML tag name."""
         return tag.split("}", maxsplit=1)[-1]
-

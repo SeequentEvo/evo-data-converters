@@ -69,10 +69,10 @@ def convert_kml_kmz(
         "Source": f"{os.path.basename(filepath)} (via Evo Data Converters)",
         "Stage": "Experimental",
         "InputType": "KML/KMZ",
-        **(tags or {}),        
+        **(tags or {}),
     }
 
-    crs: Crs_V1_0_1 = Crs_V1_0_1_EpsgCode(epsg_code=4326) # KML/KMZ coordinates are lon/lat in WGS84 by default
+    crs: Crs_V1_0_1 = Crs_V1_0_1_EpsgCode(epsg_code=4326)  # KML/KMZ coordinates are lon/lat in WGS84 by default
 
     document_parser = KmlDocumentParser(
         path=filepath,

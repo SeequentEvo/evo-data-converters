@@ -59,7 +59,7 @@ def test_convert_kmz_mixed_point_line_polygon_skips_polygon_with_warning(
     # ------ Point object assertions ------
     # Extract the generated point and line objects so their saved coordinate tables can be checked.
     point_object = next(item for item in result if isinstance(item, Pointset_V1_3_0))
-    
+
     # Assert that the point object has the expected name, CRS, and tags.
     assert point_object.name == "AGS_office - points"
     assert point_object.coordinate_reference_system == WGS84_CRS
@@ -75,8 +75,8 @@ def test_convert_kmz_mixed_point_line_polygon_skips_polygon_with_warning(
     # ------ Line object assertions ------
     # Extract the generated line object
     line_object = next(item for item in result if isinstance(item, LineSegments_V2_2_0))
-    
-    # Assert that the line object has the expected name, CRS, and tags.    
+
+    # Assert that the line object has the expected name, CRS, and tags.
     assert line_object.name == "TestLine - lines 2"
     assert line_object.coordinate_reference_system == WGS84_CRS
     _assert_common_tags(line_object.tags, "KMZ Test case")

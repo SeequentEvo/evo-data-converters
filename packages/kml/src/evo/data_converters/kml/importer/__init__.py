@@ -14,4 +14,3 @@ from .kml_kmz_to_evo import convert_kml_kmz
 __all__ = [
     "convert_kml_kmz",
 ]
-

@@ -13,7 +13,13 @@ from dataclasses import dataclass
 
 import pyarrow as pa
 from evo.objects.utils.data import ObjectDataClient
-from evo_schemas.components import BoundingBox_V1_0_1, Crs_V1_0_1, Segments_V1_2_0, Segments_V1_2_0_Indices, Segments_V1_2_0_Vertices
+from evo_schemas.components import (
+    BoundingBox_V1_0_1,
+    Crs_V1_0_1,
+    Segments_V1_2_0,
+    Segments_V1_2_0_Indices,
+    Segments_V1_2_0_Vertices,
+)
 from evo_schemas.elements import FloatArray3_V1_0_1, IndexArray2_V1_0_1
 from evo_schemas.objects.line_segments import LineSegments_V2_2_0, LineSegments_V2_2_0_Parts
 from evo_schemas.objects.pointset import Pointset_V1_3_0, Pointset_V1_3_0_Locations
