@@ -43,6 +43,7 @@ class BlockSyncClient:
 
         :return: The authorisation headers in dictionary form.
         """
+
         def get_default_headers() -> HTTPHeaderDict:
             return asyncio.run(self.api_connector._authorizer.get_default_headers())
 
