@@ -1,6 +1,6 @@
 <p align="center"><a href="https://seequent.com" target="_blank"><picture><source media="(prefers-color-scheme: dark)" srcset="https://developer.seequent.com/img/seequent-logo-dark.svg" alt="Seequent logo" width="400" /><img src="https://developer.seequent.com/img/seequent-logo.svg" alt="Seequent logo" width="400" /></picture></a></p>
 <p align="center">
-    <a href="https://pypi.org/project/evo-data-converters-shp/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-shp" /></a>
+    <a href="https://pypi.org/project/evo-data-converters-kml/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-kml" /></a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml"><img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt="" /></a>
 </p>
 <p align="center">
@@ -22,28 +22,30 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Installation
 
-`pip install evo-data-converters-shp`
+`pip install evo-data-converters-kml`
 
-## Shapefiles
+## KML and KMZ files
 
-A shapefile is a set of files which can contain points, lines, and polygons with associated attributes. At minimum, it consists of a main .shp file, an index .shx file, and a dBASE .dbf file.
+KML (Keyhole Markup Language) is an XML format for geographic features such as points, paths, and polygons. KMZ is the compressed ZIP variant that contains KML content.
 
-Refer to this page for more information: https://desktop.arcgis.com/en/arcmap/latest/manage-data/shapefiles/what-is-a-shapefile.htm or view the technical specification here: https://www.esri.com/content/dam/esrisites/sitecore-archive/Files/Pdfs/library/whitepapers/pdfs/shapefile.pdf
+Refer to the OGC KML standard for details: https://www.ogc.org/standards/kml/
 
-### Multipatch Shapefiles
-There are multiple shape types which can be used to define a shapefile, though all (non-null) shapes in a given file must be of the same type. Multipatch shapes consist of triangles (defined as 'triangle strips' or 'triangle fans') and rings.
+### Supported KML geometries
+The KML converter currently supports importing placemarks that contain `Point` and `LineString` geometries from `.kml` and `.kmz` files.
 
 ### Implementations
 
-The python [pyshp](https://pypi.org/project/pyshp/) package is used to work with shapefiles.
+The converter reads KML XML content using Python's built-in `xml.etree.ElementTree` module. KMZ archives are opened with Python's built-in `zipfile` module.
 
-The SHP converter currently only supports importing multipatch shapefiles which do not contain any rings. These are translated to the triangle-mesh schema and published to an Evo workspace. NULL shapes are discarded.
+Parsed placemarks are translated to Evo objects as follows:
+- `Point` geometries are converted to pointset objects.
+- `LineString` geometries are converted to line segments objects.
 
-### Publish geoscience objects from ESRI Shapefile files
+### Publish geoscience objects from KML/KMZ files
 
-[The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-shp`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/shp) to convert your file.
+[The `evo-sdk-common` Python library](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/common) can be used to sign in. After successfully signing in, the user can select an organisation, an Evo hub, and a workspace. Use [`evo-objects`](https://github.com/SeequentEvo/evo-python-sdk/tree/main/packages/evo-objects) to get an `ObjectAPIClient`, and [`evo-data-converters-kml`](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/kml) to convert your file.
 
-Have a look at the `code-samples/convert-shp.ipynb` notebook for an example of how to publish shapefiles.
+Have a look at the `code-samples/convert-kml/convert-kml.ipynb` notebook for an example of how to publish KML/KMZ data.
 
 ## Code of conduct
 
@@ -63,3 +65,4 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
+limitations under the License.
