@@ -85,7 +85,7 @@ async def client_credentials_authorizer(
 
     return authorizer
 
-
+# This will be updated when nest_asyncio is removed
 def create_evo_object_service_and_data_client(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
@@ -97,6 +97,23 @@ def create_evo_object_service_and_data_client(
     elif evo_workspace_metadata:
         return create_service_and_data_client_from_metadata(evo_workspace_metadata)
     elif service_manager_widget:
+        return create_service_and_data_client_from_manager(service_manager_widget)
+    raise MissingConnectionDetailsError(
+        "Missing one of EvoWorkspaceMetadata or ServiceManagerWidget needed to construct an ObjectAPIClient."
+    )
+
+
+async def create_evo_object_service_and_data_client_async(
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
+    service_manager_widget: Optional["ServiceManagerWidget"] = None,
+) -> tuple[ObjectAPIClient, ObjectDataClient]:
+    if evo_workspace_metadata and service_manager_widget:
+        raise ConflictingConnectionDetailsError(
+            "Please provide only one of EvoWorkspaceMetadata or ServiceManagerWidget."
+        )
+    if evo_workspace_metadata:
+        return await create_service_and_data_client_from_metadata_async(evo_workspace_metadata)
+    if service_manager_widget:
         return create_service_and_data_client_from_manager(service_manager_widget)
     raise MissingConnectionDetailsError(
         "Missing one of EvoWorkspaceMetadata or ServiceManagerWidget needed to construct an ObjectAPIClient."
@@ -127,7 +144,6 @@ def create_service_and_data_client_from_metadata(
     transport = AioTransport(user_agent="evo-data-converters")
     authorizer = NoAuth
 
-    org_uuid = UUID(metadata.org_id) if metadata.org_id else metadata.org_id
     if metadata.has_client_credentials_params():
         authorizer = asyncio.run(client_credentials_authorizer(transport, metadata))
         hub_connector = APIConnector(
@@ -144,6 +160,47 @@ def create_service_and_data_client_from_metadata(
 
         hub_connector = APIConnector(base_url=metadata.hub_url, transport=transport, authorizer=authorizer)
 
+    return _create_service_and_data_client(metadata, hub_connector, cache)
+
+
+async def create_service_and_data_client_from_metadata_async(
+    metadata: EvoWorkspaceMetadata,
+) -> tuple[ObjectAPIClient, ObjectDataClient]:
+    logger.debug(
+        "Creating evo.objects.ObjectAPIClient and evo.objects.utils.data.ObjectDataClient with "
+        f"EvoWorkspaceMetadata={metadata}"
+    )
+
+    cache = Cache(root=metadata.cache_root, mkdir=True)
+    transport = AioTransport(user_agent="evo-data-converters")
+    authorizer = NoAuth
+
+    if metadata.has_client_credentials_params():
+        authorizer = await client_credentials_authorizer(transport, metadata)
+        hub_connector = APIConnector(
+            base_url=metadata.hub_url,
+            transport=transport,
+            authorizer=authorizer,
+            additional_headers={"s2s-org-info": metadata.org_id, "s2s-user-info": metadata.user_id},
+        )
+    else:
+        if metadata.has_authentication_code_params():
+            authorizer = await _authorization_code_authorizer(transport, metadata)
+        else:
+            logger.debug("Skipping authentication due to missing required parameters.")
+
+        hub_connector = APIConnector(base_url=metadata.hub_url, transport=transport, authorizer=authorizer)
+
+    return _create_service_and_data_client(metadata, hub_connector, cache)
+
+
+def _create_service_and_data_client(
+    metadata: EvoWorkspaceMetadata,
+    hub_connector: APIConnector,
+    cache: Cache,
+) -> tuple[ObjectAPIClient, ObjectDataClient]:
+
+    org_uuid = UUID(metadata.org_id) if metadata.org_id else metadata.org_id
     workspace_uuid = UUID(metadata.workspace_id) if metadata.workspace_id else metadata.workspace_id
 
     environment = Environment(
