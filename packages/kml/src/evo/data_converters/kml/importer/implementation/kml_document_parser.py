@@ -137,7 +137,7 @@ class KmlDocumentParser:
                 if placemark is not None:
                     placemarks.append(placemark)
 
-     def _parse_placemark(
+    def _parse_placemark(
         self,
         placemark_element: ET.Element,
         folder_path: tuple[str, ...],
