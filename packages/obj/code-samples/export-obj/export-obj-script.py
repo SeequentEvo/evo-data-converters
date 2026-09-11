@@ -60,6 +60,7 @@ args = parser.parse_args()
 
 # Configure our desired logging configuration
 logging.basicConfig(level=args.log_level)
+logging.getLogger("evo.types").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Create temporary cache dir if needed
