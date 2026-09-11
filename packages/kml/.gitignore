@@ -1,0 +1,3 @@
+tmp_parquet/
+.pytest_cache/
+.venv/
