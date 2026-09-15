@@ -154,8 +154,8 @@ class ImageGridConverter:
         """Read image file and preserve its color mode (grayscale or RGB).
 
         Supports JPEG, PNG, TIFF, BMP, GIF, BigTIFF, and other formats.
-        For BigTIFF files (multi-band GeoTIFF), uses rasterio.
-        For standard images, uses PIL/Pillow.
+        TIFF/GeoTIFF inputs are read via rasterio when PIL fails or when the file is a BigTIFF,
+        because Pillow is brittle for some large/ER-Mapper GeoTIFF variants.
 
         For grayscale images (mode L, LA): returns single float64 array.
         For color images (mode RGB, RGBA): returns uint8 RGB array (flattened, one value per pixel = 3 bytes RGB).
@@ -168,9 +168,13 @@ class ImageGridConverter:
         """
         logger.info(f"Reading image file: {image_path}")
 
-        # Check for BigTIFF first
-        if self._is_bigtiff(image_path):
-            return self._read_bigtiff(image_path)
+        suffix = Path(image_path).suffix.lower()
+        if self._is_bigtiff(image_path) or suffix in {".tif", ".tiff", ".cog"}:
+            if HAS_RASTERIO:
+                try:
+                    return self._read_tiff_via_rasterio(image_path)
+                except Exception as exc:
+                    logger.warning("Failed to read TIFF '%s' via rasterio; falling back to Pillow: %s", image_path, exc)
 
         with Image.open(image_path) as img:
             width, height = img.size
@@ -209,6 +213,44 @@ class ImageGridConverter:
                 cell_values = pixel_array_flipped.reshape(-1, 3).astype(np.uint8)
                 logger.info(f"Image is color (RGB), returning uint8 array of shape {cell_values.shape}")
                 return cell_values, width, height, "color"
+
+    @staticmethod
+    def _read_tiff_via_rasterio(image_path: str) -> tuple[np.ndarray, int, int, str]:
+        """Read TIFF/GeoTIFF data via Rasterio, including large or non-standard variants."""
+        if not HAS_RASTERIO:
+            raise ImportError("rasterio is required for TIFF/GeoTIFF support")
+
+        with rasterio.open(image_path) as src:
+            width = src.width
+            height = src.height
+            band_count = src.count
+
+            if band_count == 1:
+                data = src.read(1).astype(np.float64)
+                pixel_array = np.flipud(data)
+                return pixel_array.ravel(order="C"), width, height, "grayscale"
+
+            if band_count == 3:
+                r = ImageGridConverter._normalize_band_to_uint8(src.read(1))
+                g = ImageGridConverter._normalize_band_to_uint8(src.read(2))
+                b = ImageGridConverter._normalize_band_to_uint8(src.read(3))
+                rgb_array = np.dstack((r, g, b))
+                rgb_flipped = np.flipud(rgb_array)
+                return rgb_flipped.reshape(-1, 3).astype(np.uint8), width, height, "color"
+
+            if band_count >= 4:
+                r = ImageGridConverter._normalize_band_to_uint8(src.read(1))
+                g = ImageGridConverter._normalize_band_to_uint8(src.read(2))
+                b = ImageGridConverter._normalize_band_to_uint8(src.read(3))
+                rgb_array = np.dstack((r, g, b))
+                rgb_flipped = np.flipud(rgb_array)
+                return rgb_flipped.reshape(-1, 3).astype(np.uint8), width, height, "color"
+
+            band1 = src.read(1).astype(np.float64)
+            band2 = src.read(2).astype(np.float64)
+            avg = (band1 + band2) / 2.0
+            avg_flipped = np.flipud(avg)
+            return avg_flipped.ravel(order="C"), width, height, "grayscale"
 
     @staticmethod
     def _extract_epsg_from_geokey_directory(geokey_directory: tuple) -> int | None:
