@@ -31,9 +31,7 @@ from evo.data_converters.image import convert_image_to_grid
 from evo.notebooks import ServiceManagerWidget
 
 # Authenticate
-manager = await ServiceManagerWidget.with_auth_code(
-    client_id="your-client-id"
-).login()
+manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
 
 # Convert and publish
 results = convert_image_to_grid(
@@ -41,7 +39,7 @@ results = convert_image_to_grid(
     origin=[572565.0, 6839415.0, 1000.0],
     cell_size=[30.0, 30.0],
     service_manager_widget=manager,
-    upload_path="grids/image_imports"
+    upload_path="grids/image_imports",
 )
 ```
 

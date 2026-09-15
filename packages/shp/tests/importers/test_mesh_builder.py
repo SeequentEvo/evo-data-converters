@@ -146,6 +146,7 @@ def shapefile_with_point_data(tmp_path: Path) -> shapefile.Reader:
 def test_add_triangle_strip(triangle_strip: tuple[shapefile.Reader, int, int, int], data_client: LocalDataClient):
     reader, expected_field_num, expected_triangle_num, expected_vertex_num = triangle_strip
     fields = reader.fields[1:]
+    expected_shape_num = reader.numShapes
     mesh_builder = MeshBuilder(data_client=data_client, fields=fields)
 
     for sr in reader.iterShapeRecords():
@@ -153,7 +154,7 @@ def test_add_triangle_strip(triangle_strip: tuple[shapefile.Reader, int, int, in
 
     mesh = mesh_builder.build()
 
-    assert mesh.parts.chunks.length == reader.numShapes
+    assert mesh.parts.chunks.length == expected_shape_num
     assert len(mesh.parts.attributes) == expected_field_num
     assert mesh.triangles.vertices.length == expected_vertex_num
     assert mesh.triangles.vertices.attributes is None
@@ -172,6 +173,7 @@ def test_add_triangle_fan(triangle_fan: tuple[shapefile.Reader, int, int, int], 
     reader, expected_field_num, expected_triangle_num, expected_vertex_num = triangle_fan
     # Skip DeletionFlag field
     fields = reader.fields[1:]
+    expected_shape_num = reader.numShapes
     mesh_builder = MeshBuilder(data_client=data_client, fields=fields)
 
     for sr in reader.iterShapeRecords():
@@ -179,7 +181,7 @@ def test_add_triangle_fan(triangle_fan: tuple[shapefile.Reader, int, int, int], 
 
     mesh = mesh_builder.build()
 
-    assert mesh.parts.chunks.length == reader.numShapes
+    assert mesh.parts.chunks.length == expected_shape_num
     assert len(mesh.parts.attributes) == expected_field_num
     assert mesh.triangles.vertices.length == expected_vertex_num
     assert mesh.triangles.vertices.attributes is None

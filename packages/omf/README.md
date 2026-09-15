@@ -183,7 +183,7 @@ async with hub_connector:
         epsg_code=epsg_code,
         object_service_client=service_client,
         tags=tags,
-        upload_path="path/to/my/object"
+        upload_path="path/to/my/object",
     )
 
     print("These objects have now been published:")
@@ -210,10 +210,7 @@ from evo.data_converters.common import EvoObjectMetadata
 from evo.data_converters.omf.exporter import export_omf
 
 objects = []
-objects.append(
-    EvoObjectMetadata(
-        object_id=UUID("<object_id>"),
-        version_id="<version_id>"))
+objects.append(EvoObjectMetadata(object_id=UUID("<object_id>"), version_id="<version_id>"))
 
 output_dir = "data/output"
 os.makedirs(output_dir, exist_ok=True)

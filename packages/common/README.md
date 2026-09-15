@@ -17,7 +17,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python 3.10, 3.11, or 3.12
+- Python 3.10, 3.11, or 3.12
 
 ## Installation
 
@@ -36,21 +36,22 @@ This framework (`evo.data_converters.common`) can be used to build custom data c
 data.
 
 For an existing set of supported data converters, see:
-* [DUF](../duf/README.md)
-* [GOCAD](../gocad/README.md)
-* [Image](../image/README.md)
-* [OBJ](../obj/README.md)
-* [OMF](../omf/README.md)
-* [RESQML](../resqml/README.md)
-* [SHP](../shp/README.md)
-* [UBC](../ubc/README.md)
-* [VTK](../vtk/README.md)
-* [XYZ](../xyz/README.md)
+
+- [DUF](../duf/README.md)
+- [GOCAD](../gocad/README.md)
+- [Image](../image/README.md)
+- [OBJ](../obj/README.md)
+- [OMF](../omf/README.md)
+- [RESQML](../resqml/README.md)
+- [SHP](../shp/README.md)
+- [UBC](../ubc/README.md)
+- [VTK](../vtk/README.md)
+- [XYZ](../xyz/README.md)
 
 Data converters can be optionally both an importer and an exporter.
 
-* The importer will load data into Seequent Evo.
-* The exporter will export data from Seequent Evo into the designated file format.
+- The importer will load data into Seequent Evo.
+- The exporter will export data from Seequent Evo into the designated file format.
 
 There are examples of both in the OMF converter.
 
@@ -67,10 +68,30 @@ New converters can be created to support additional data file types. The easiest
 
 To work on your local version of the data converters module, first follow the directions in [Setting up your environment.](https://github.com/seequentevo/evo-data-converters/blob/main/README.md)
 
-In the root directory of the project run:
+Each converter package is installed independently. Change into the package you want to work on and run:
 
 ```shell
-uv sync --all-packages --all-extras
+cd packages/<converter>
+uv sync
+```
+
+### Developer tasks (`uv run`)
+
+Common developer tasks are exposed as scripts on the `evo-data-converters-common` package. Run
+lint and test commands from the converter package you want to check; run `create-converter` from
+`packages/common`:
+
+```shell
+cd packages/<converter>
+
+uv run lint            # ruff check + format --check for this package
+uv run lint-fix        # ruff check --fix + format for this package
+uv run test            # sync and run the tests for this package
+uv run test-<type>     # sync and run the tests for a named package, e.g. test-xyz
+
+cd ../common
+
+uv run create-converter  # scaffold a new converter (see below)
 ```
 
 ### Creating a new converter with the CLI
@@ -78,11 +99,14 @@ uv sync --all-packages --all-extras
 The quickest way to start a new converter is with the `create-converter` CLI. It scaffolds a complete, ready-to-build
 converter package from a template so you can focus on the format-specific conversion logic rather than boilerplate.
 
-From the root directory of the project run:
+From within `packages/common` run:
 
 ```shell
 uv run create-converter
 ```
+
+This runs the CLI ([`../../scripts/create_converter.py`](../../scripts/create_converter.py)) from within
+`packages/common`, where its `copier` dependency lives (in the `dev` dependency group).
 
 You will be prompted for:
 
@@ -95,8 +119,8 @@ The CLI then:
 
 - Creates a new package under `packages/<type>/` with the standard `importer/` (and `exporter/`, if selected) layout,
   code samples, and tests.
-- Registers the package in the workspace by updating the root `Makefile` (adding a `test-<type>` target),
-  `README.md`, and `pyproject.toml`.
+- Registers the package by adding a `test-<type>` script to `packages/common/pyproject.toml` and
+  updating `README.md`.
 
 The generated `convert_<type>` and `export_<type>` functions follow the conventions described below, with the
 format-specific parts left as `TODO` comments that raise `NotImplementedError`. These are the places where you add your
@@ -106,11 +130,11 @@ implement in each file.
 After generating a converter:
 
 ```shell
-# Install the new package into the workspace
+# Install the new package (run from packages/<type>)
 uv sync
 
-# Run the generated tests for your converter
-make test-<type>
+# Run the generated tests for your converter (run from packages/common)
+uv run test-<type>
 ```
 
 ### General converter architecture
@@ -127,6 +151,7 @@ converter packages that build on the "common" library:
 ├── vtk/
 └── README.md
 ```
+
 Expanding this out, each converter type contains an `importer` directory, an `exporter` directory (if supported), and
 any other utility modules specific to this converter type:
 
@@ -223,6 +248,7 @@ from evo.data_converters.common import (
 # depending on the type of file
 from yourfileparsermodule import yourfileparser
 
+
 # Define the main convert function
 def convert_yourfiletype(
     filepath: str,
@@ -230,7 +256,7 @@ def convert_yourfiletype(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     upload_path: str = "",
-    overwrite_existing_objects: bool = False
+    overwrite_existing_objects: bool = False,
 ) -> list[ObjectMetadata]:
     geoscience_objects = []
 
@@ -260,7 +286,6 @@ def convert_yourfiletype(
 
     # Return the publishing response
     return objects_metadata
-
 ```
 
 **Note:** this example only returns the `ObjectMetadata`, and will publish immediately. Refer to the existing

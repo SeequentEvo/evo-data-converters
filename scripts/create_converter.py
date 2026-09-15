@@ -1,10 +1,24 @@
+#  Copyright © 2026 Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import argparse
 from datetime import date
 from pathlib import Path
 
 from copier import run_copy
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+# This file lives at <repo>/scripts/create_converter.py.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+TEMPLATE_DIR = Path(__file__).resolve().parent / "converter_template"
+WORKFLOW_TEMPLATE_DIR = Path(__file__).resolve().parent / "workflow_template"
 
 EXPORT_CHOICES = ("Import only", "Import and Export")
 
@@ -24,10 +38,7 @@ def _success(message: str) -> None:
 def _parse_args(argv=None):
     parser = argparse.ArgumentParser(
         prog="create-converter",
-        description=(
-            "Scaffold a new Evo data converter package and register it in the "
-            "Makefile, README.md, and root pyproject.toml."
-        ),
+        description=("Scaffold a new Evo data converter package and register it in pyproject.toml and README.md."),
     )
     parser.add_argument(
         "--converter-type",
@@ -52,20 +63,29 @@ def main(argv=None):
 
     # When all answers are supplied on the command line, run without prompting.
     non_interactive = args.converter_type is not None and args.export_support is not None
-    worker = run_copy("scripts/converter_template", "packages", data, defaults=non_interactive)
+    worker = run_copy(str(TEMPLATE_DIR), str(REPO_ROOT / "packages"), data, defaults=non_interactive)
 
     converter_name = worker.answers.combined["converter_type"]
 
     print(f"\n{_BOLD}Updating repository configuration for {_CYAN}{converter_name}{_RESET}{_BOLD}...{_RESET}")
 
-    _update_makefile(converter_name)
-    _success(f"Updated {_BOLD}Makefile{_RESET} with the {_DIM}test-{converter_name}{_RESET} target")
+    _update_pyproject_scripts(converter_name)
+    _success(
+        f"Updated {_BOLD}packages/common/pyproject.toml{_RESET} with the {_DIM}test-{converter_name}{_RESET} script"
+    )
 
     _update_readme(converter_name)
     _success(f"Updated {_BOLD}README.md{_RESET} with the package listing and code samples")
 
-    _update_pyproject(converter_name)
-    _success(f"Updated {_BOLD}pyproject.toml{_RESET} with the workspace dependency")
+    _create_publish_workflow(converter_name)
+    _success(
+        f"Created {_BOLD}.github/workflows/publish-{converter_name}.yaml{_RESET} for building and publishing the package"
+    )
+
+    _update_run_all_tests(converter_name)
+    _success(
+        f"Updated {_BOLD}.github/workflows/run-all-tests.yaml{_RESET} with the {_DIM}{converter_name}{_RESET} package"
+    )
 
     _print_next_steps(converter_name)
 
@@ -75,39 +95,25 @@ def _print_next_steps(converter_name: str) -> None:
     print(f"\n{_BOLD}{_GREEN}Done!{_RESET} Your new converter {_CYAN}{package}{_RESET} is ready.\n")
     print(f"{_BOLD}Next steps:{_RESET}")
     print(f"  {_YELLOW}1.{_RESET} Review the generated package in {_DIM}packages/{converter_name}{_RESET}")
-    print(f"  {_YELLOW}2.{_RESET} Sync the workspace:            {_DIM}uv sync{_RESET}")
+    print(f"  {_YELLOW}2.{_RESET} Install the package:           {_DIM}cd packages/{converter_name} && uv sync{_RESET}")
     print(f"  {_YELLOW}3.{_RESET} Implement your converter in    {_DIM}packages/{converter_name}/src{_RESET}")
-    print(f"  {_YELLOW}4.{_RESET} Run the tests:                 {_DIM}make test-{converter_name}{_RESET}")
+    print(f"  {_YELLOW}4.{_RESET} Run the tests (from packages/common): {_DIM}uv run test-{converter_name}{_RESET}")
     print()
 
 
-def _update_makefile(converter_name: str) -> None:
-    makefile_path = REPO_ROOT / "Makefile"
-    lines = makefile_path.read_text().splitlines(keepends=True)
+def _update_pyproject_scripts(converter_name: str) -> None:
+    pyproject_path = REPO_ROOT / "packages" / "common" / "pyproject.toml"
+    lines = pyproject_path.read_text().splitlines(keepends=True)
 
-    if any(line.startswith(f"test-{converter_name}:") for line in lines):
+    new_line = f'test-{converter_name} = "evo.data_converters.common._dev_tasks:test_package"\n'
+    if any(line.startswith(f"test-{converter_name} =") for line in lines):
         return
 
-    command = f"\tuv run --package evo-data-converters-{converter_name} pytest packages/{converter_name}/tests\n"
+    def is_test_script(line: str) -> bool:
+        return line.startswith("test-") and "_dev_tasks:test_package" in line
 
-    # Find the first test-* target that is alphabetically after the new one.
-    insert_at = None
-    for i, line in enumerate(lines):
-        if line.startswith("test-") and line.rstrip().endswith(":"):
-            existing_name = line[len("test-") :].rstrip()[:-1]
-            if existing_name > converter_name:
-                insert_at = i
-                break
-
-    if insert_at is None:
-        content = "".join(lines).rstrip("\n") + "\n\n"
-        content += f"test-{converter_name}:\n" + command
-        makefile_path.write_text(content)
-        return
-
-    new_block = [f"test-{converter_name}:\n", command, "\n"]
-    lines = lines[:insert_at] + new_block + lines[insert_at:]
-    makefile_path.write_text("".join(lines))
+    lines = _insert_sorted(lines, new_line=new_line, is_member=is_test_script)
+    pyproject_path.write_text("".join(lines))
 
 
 def _update_readme(converter_name: str) -> None:
@@ -139,29 +145,51 @@ def _update_readme(converter_name: str) -> None:
     readme_path.write_text("".join(lines))
 
 
-def _update_pyproject(converter_name: str) -> None:
-    pyproject_path = REPO_ROOT / "pyproject.toml"
-    lines = pyproject_path.read_text().splitlines(keepends=True)
+def _create_publish_workflow(converter_name: str) -> None:
+    workflow_path = REPO_ROOT / ".github" / "workflows" / f"publish-{converter_name}.yaml"
+    if workflow_path.exists():
+        return
 
-    package = f"evo-data-converters-{converter_name}"
+    # Render the workflow template into the repository root, producing
+    # .github/workflows/publish-<type>.yaml.
+    run_copy(
+        str(WORKFLOW_TEMPLATE_DIR),
+        str(REPO_ROOT),
+        {"converter_type": converter_name},
+        defaults=True,
+        overwrite=True,
+        quiet=True,
+    )
 
-    dependency_line = f'  "{package}",\n'
-    if not any(line.strip().strip('"').startswith(package) for line in lines):
-        lines = _insert_sorted(
-            lines,
-            new_line=dependency_line,
-            is_member=lambda line: line.lstrip().startswith('"evo-data-converters-'),
-        )
 
-    source_line = f"{package} = {{ workspace = true }}\n"
-    if source_line not in lines:
-        lines = _insert_sorted(
-            lines,
-            new_line=source_line,
-            is_member=lambda line: line.startswith("evo-data-converters-") and "workspace = true" in line,
-        )
+def _update_run_all_tests(converter_name: str) -> None:
+    workflow_path = REPO_ROOT / ".github" / "workflows" / "run-all-tests.yaml"
+    lines = workflow_path.read_text().splitlines(keepends=True)
 
-    pyproject_path.write_text("".join(lines))
+    new_line = f"          - {converter_name}\n"
+    if new_line in lines:
+        return
+
+    # Locate the "package:" key in the test matrix and the block of entries beneath it.
+    try:
+        start = lines.index("        package:\n") + 1
+    except ValueError:
+        return
+
+    entry_prefix = "          - "
+    end = start
+    while end < len(lines) and lines[end].startswith(entry_prefix):
+        end += 1
+
+    # Keep the block sorted, leaving "common" first.
+    insert_at = end
+    for i in range(start, end):
+        if lines[i] > new_line:
+            insert_at = i
+            break
+
+    lines = lines[:insert_at] + [new_line] + lines[insert_at:]
+    workflow_path.write_text("".join(lines))
 
 
 def _insert_sorted(lines, new_line, is_member):

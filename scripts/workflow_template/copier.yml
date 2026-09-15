@@ -1,0 +1,7 @@
+# Copier template for the per-package publish workflow. It is rendered into the
+# repository root by create_converter.py, producing
+# .github/workflows/publish-<converter_type>.yaml.
+
+converter_type:
+    type: str
+    help: The converter type / short, lowercase format name (e.g. obj, shp, xyz).

@@ -49,7 +49,7 @@ jobs:
 
       - name: Build package
         shell: bash
-        run: uv build --package evo-data-converters-common
+        run: uv build packages/common --out-dir dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
