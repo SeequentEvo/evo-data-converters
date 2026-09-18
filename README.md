@@ -36,6 +36,12 @@ The existing data converters can be used without modification or used as a templ
 | [evo-data-converters-vtk](packages/vtk/README.md)       | <a href="https://pypi.org/project/evo-data-converters-vtk/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-vtk" /></a>       |
 | [evo-data-converters-xyz](packages/xyz/README.md)       | <a href="https://pypi.org/project/evo-data-converters-xyz/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-xyz" /></a>       |
 
+### Converter capabilities
+
+See the [converter capability matrix](docs/converter-capabilities.md) for supported source
+ extensions, import/export support, Evo object types, and known limitations.
+Contributors can update the registry using the [capability editing guide](docs/converter-capabilities-editing.md).
+
 ## Pre-requisites
 
 - Python 3.10, 3.11, or 3.12
