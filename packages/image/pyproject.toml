@@ -21,6 +21,7 @@ dependencies = [
   "pydantic",
   "pillow",
   "rasterio>=1.3.0",
+  "pandas>=2.3.3",
 ]
 
 [project.urls]
@@ -34,6 +35,16 @@ dev = [
     "pytest",
     "requests-mock",
 ]
+
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
 
 [tool.uv.sources]
 evo-data-converters-common = { path = "../common", editable = true }

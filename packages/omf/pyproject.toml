@@ -2,7 +2,7 @@
 name = "evo-data-converters-omf"
 description = "Python data converters for OMF to Evo geoscience objects"
 version = "0.2.1"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
@@ -14,7 +14,8 @@ dependencies = [
     "pandas",
     "omf>=1.0.1",
     # Dependency is unstable. Provide a constraint when we have some published.
-    "omf2"
+    "omf2",
+    "nest-asyncio>=1.6.0",
 ]
 
 [project.urls]
@@ -28,6 +29,16 @@ dev = [
     "pytest",
     "requests-mock",
 ]
+
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
 
 [tool.uv.sources]
 evo-data-converters-common = { path = "../common", editable = true }

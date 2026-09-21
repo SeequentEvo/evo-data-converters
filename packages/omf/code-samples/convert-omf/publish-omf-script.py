@@ -10,10 +10,13 @@
 #  limitations under the License.
 
 import argparse
+import asyncio
 import logging
 import pprint
 import tempfile
 import uuid
+
+import nest_asyncio
 
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.omf.importer import convert_omf
@@ -99,15 +102,23 @@ if args.redirect_url:
 
 logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
 
+# NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
+nest_asyncio.apply()
+
+
+async def run_conversion():
+    return convert_omf(
+        filepath=args.filename,
+        evo_workspace_metadata=workspace_metadata,
+        coordinate_reference_system=args.epsg_code,
+        tags=tags,
+        upload_path=args.upload_path,
+        overwrite_existing_objects=args.overwrite_existing_objects,
+    )
+
+
 # Convert OMF file, if a hub_url was provided above the objects will be published
-results = convert_omf(
-    filepath=args.filename,
-    evo_workspace_metadata=workspace_metadata,
-    coordinate_reference_system=args.epsg_code,
-    tags=tags,
-    upload_path=args.upload_path,
-    overwrite_existing_objects=args.overwrite_existing_objects,
-)
+results = asyncio.run(run_conversion())
 
 # Results will either be a list of BaseSpatialDataProperties_V1_0_1 if not published, or a list of ObjectMetadata if they were published
 for result in results:
