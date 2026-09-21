@@ -102,6 +102,7 @@ def convert_ubc(
     overwrite_existing_objects: bool = False,
     *,
     coordinate_reference_system: str | int | None = None,
+    NaNList: list[float] = [],
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts UBC files into Geoscience Objects.
 
@@ -114,6 +115,7 @@ def convert_ubc(
     :param publish_objects: (Optional) Set False to return rather than publish objects.
     :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
     :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+    :param NaNList: (Optional) List of float values to treat as not-a-number (NaN) for the continuous cell attributes. Defaults to an empty list.
 
     Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
@@ -168,9 +170,10 @@ def convert_ubc(
             epsg_code=epsg_code,
             coordinate_reference_system=coordinate_reference_system,
             tags=tags,
+            NaNList=NaNList,
         )
     else:
-        geoscience_object = utils.get_geoscience_object_from_ubc(data_client, files_path, crs, tags)
+        geoscience_object = utils.get_geoscience_object_from_ubc(data_client, files_path, crs, tags, NaNList=NaNList)
 
     geoscience_objects = [geoscience_object]
     objects_metadata = None
