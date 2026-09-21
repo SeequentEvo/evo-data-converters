@@ -29,7 +29,7 @@ import evo.logging
 from evo.data_converters.common import (
     EvoObjectMetadata,
     EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
+    create_evo_object_service_and_data_client_async,
 )
 from evo.objects.client import ObjectAPIClient
 from evo.objects.data import ObjectSchema
@@ -123,7 +123,7 @@ async def export_omf(
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
 
-    service_client, data_client = create_evo_object_service_and_data_client(
+    service_client, data_client = await create_evo_object_service_and_data_client_async(
         evo_workspace_metadata, service_manager_widget
     )
 

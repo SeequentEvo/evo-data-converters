@@ -85,7 +85,7 @@ async def client_credentials_authorizer(
 
     return authorizer
 
-# This will be updated when nest_asyncio is removed
+
 def create_evo_object_service_and_data_client(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
@@ -199,7 +199,6 @@ def _create_service_and_data_client(
     hub_connector: APIConnector,
     cache: Cache,
 ) -> tuple[ObjectAPIClient, ObjectDataClient]:
-
     org_uuid = UUID(metadata.org_id) if metadata.org_id else metadata.org_id
     workspace_uuid = UUID(metadata.workspace_id) if metadata.workspace_id else metadata.workspace_id
 

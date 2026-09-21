@@ -21,6 +21,7 @@ from evo_schemas.objects import LineSegments_V2_1_0, Pointset_V1_2_0, TriangleMe
 
 from evo.data_converters.common import (
     EvoObjectMetadata,
+    create_evo_object_service_and_data_client_async,
 )
 from evo.data_converters.omf import OMFMetadata
 from evo.data_converters.omf.exporter import UnsupportedObjectError, export_omf
@@ -47,8 +48,16 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
         self.assertIsInstance(self.evo_objects[1], LineSegments_V2_1_0)
         self.assertIsInstance(self.evo_objects[2], TriangleMesh_V2_1_0)
 
+    @patch(
+        "evo.data_converters.omf.exporter.evo_to_omf.create_evo_object_service_and_data_client_async",
+        wraps=create_evo_object_service_and_data_client_async,
+    )
     @patch("evo.data_converters.omf.exporter.evo_to_omf._download_evo_object_by_id")
-    def test_should_create_expected_omf_file(self, mock_download_evo_object_by_id: AsyncMock) -> None:
+    def test_should_create_expected_omf_file(
+        self,
+        mock_download_evo_object_by_id: AsyncMock,
+        mock_create_clients: AsyncMock,
+    ) -> None:
         temp_omf_file = tempfile.NamedTemporaryFile(suffix=".omf", delete=False)
 
         object_id = uuid4()
@@ -64,6 +73,7 @@ class TestEvoToOMFExporter(EvoDataConvertersTestCase, TestCase):
                 evo_workspace_metadata=self.workspace_metadata,
             )
         )
+        mock_create_clients.assert_awaited_once_with(self.workspace_metadata, None)
 
         reader = omf.OMFReader(temp_omf_file.name)
         project = reader.get_project()

@@ -20,7 +20,7 @@ from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
-    create_evo_object_service_and_data_client,
+    create_evo_object_service_and_data_client_async,
     publish_geoscience_objects,
     crs_from_epsg_code,
     crs_from_any,
@@ -97,7 +97,7 @@ async def convert_omf(
     geoscience_objects = []
     block_models = []
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client_async(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 

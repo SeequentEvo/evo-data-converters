@@ -16,8 +16,6 @@ import pprint
 import tempfile
 import uuid
 
-import nest_asyncio
-
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.omf.importer import convert_omf
 
@@ -101,9 +99,6 @@ if args.redirect_url:
     workspace_metadata.redirect_url = args.redirect_url
 
 logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
-
-# NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
-nest_asyncio.apply()
 
 
 async def run_conversion():

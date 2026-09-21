@@ -16,8 +16,6 @@ import logging
 import tempfile
 import uuid
 
-import nest_asyncio
-
 from evo.data_converters.common import EvoObjectMetadata, EvoWorkspaceMetadata
 from evo.data_converters.omf import OMFMetadata
 from evo.data_converters.omf.exporter import export_omf
@@ -100,9 +98,6 @@ for obj_str in args.object:
     logger.debug(f"Exporting Evo object '{object_metadata.object_id}' to OMF file '{args.filename}'")
 
 omf_metadata = OMFMetadata(name=args.name, revision=args.revision, description=args.description)
-
-# NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
-nest_asyncio.apply()
 
 asyncio.run(
     export_omf(
