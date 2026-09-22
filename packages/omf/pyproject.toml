@@ -15,7 +15,6 @@ dependencies = [
     "omf>=1.0.1",
     # Dependency is unstable. Provide a constraint when we have some published.
     "omf2",
-    "nest-asyncio>=1.6.0",
 ]
 
 [project.urls]
