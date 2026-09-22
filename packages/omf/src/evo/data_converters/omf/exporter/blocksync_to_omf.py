@@ -13,7 +13,7 @@ import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, time, timezone
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 from uuid import UUID
 
 import numpy as np
@@ -29,6 +29,8 @@ from scipy.spatial.transform import Rotation as R
 import evo.logging
 from evo.common import APIConnector, Environment
 from evo.data_converters.common import BlockSyncClient, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.objects import ObjectAPIClient
+from evo.objects.utils.data import ObjectDataClient
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -38,6 +40,25 @@ if TYPE_CHECKING:
 
 def _create_block_sync_client(environment: Environment, api_connector: APIConnector) -> BlockSyncClient:
     return BlockSyncClient(environment, api_connector)
+
+
+def _create_evo_clients(
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata],
+    service_manager_widget: Optional["ServiceManagerWidget"],
+) -> tuple[ObjectAPIClient, ObjectDataClient]:
+    def create_clients() -> tuple[ObjectAPIClient, ObjectDataClient]:
+        return cast(
+            tuple[ObjectAPIClient, ObjectDataClient],
+            asyncio.run(create_evo_object_service_and_data_client(evo_workspace_metadata, service_manager_widget)),
+        )
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return create_clients()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(create_clients).result()
 
 
 def _get_blocksync_element(object_id: UUID, client: BlockSyncClient, version_id: Optional[int]) -> VolumeElement:
@@ -58,9 +79,7 @@ def export_blocksync_omf(
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
 ) -> None:
     logger.info("Creating service and data clients for interacting with BlockSync.")
-    service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata, service_manager_widget
-    )
+    service_client, _ = _create_evo_clients(evo_workspace_metadata, service_manager_widget)
 
     environment = service_client._environment
     api_connector = service_client._connector

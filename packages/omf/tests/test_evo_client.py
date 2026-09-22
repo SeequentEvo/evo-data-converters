@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from unittest import TestCase
 
@@ -23,7 +24,7 @@ class TestEvoClient(TestCase):
 
     def test_should_create_objects_with_minimal_metadata(self) -> None:
         metadata = EvoWorkspaceMetadata(cache_root=self.cache_root_dir.name)
-        object_service_client, data_client = create_evo_object_service_and_data_client(metadata)
+        object_service_client, data_client = asyncio.run(create_evo_object_service_and_data_client(metadata))
 
         self.assertIsInstance(object_service_client, ObjectAPIClient)
         self.assertIsInstance(data_client, ObjectDataClient)
@@ -35,7 +36,7 @@ class TestEvoClient(TestCase):
             workspace_id="2cf1697f-2771-485e-848d-e6674d2ac63f",  # randomly generated
             cache_root=self.cache_root_dir.name,
         )
-        object_service_client, data_client = create_evo_object_service_and_data_client(metadata)
+        object_service_client, data_client = asyncio.run(create_evo_object_service_and_data_client(metadata))
 
         self.assertIsInstance(object_service_client, ObjectAPIClient)
         self.assertIsInstance(data_client, ObjectDataClient)

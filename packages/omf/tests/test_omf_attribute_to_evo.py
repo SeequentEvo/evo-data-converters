@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from datetime import datetime, timezone
 from os import path
@@ -55,7 +56,7 @@ class TestOMFAttributeConverter(TestCase):
         metadata = EvoWorkspaceMetadata(
             workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
         )
-        _, data_client = create_evo_object_service_and_data_client(metadata)
+        _, data_client = asyncio.run(create_evo_object_service_and_data_client(metadata))
         self.data_client = data_client
 
     def _element_by_name(self, project: omf2.Project, element_name: str) -> omf2.Element:

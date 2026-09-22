@@ -67,7 +67,7 @@ class TestOMFToEvoConverter(TestCase):
         self.metadata = EvoWorkspaceMetadata(
             workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
         )
-        _, data_client = create_evo_object_service_and_data_client(self.metadata)
+        _, data_client = asyncio.run(create_evo_object_service_and_data_client(self.metadata))
         self.data_client = data_client
 
     def test_should_add_expected_tags(self) -> None:

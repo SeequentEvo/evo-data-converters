@@ -117,11 +117,12 @@ async def test_convert_image_to_grid_awaits_publication(
     data_client = _MockDataClient(output_dir=image_path.parent / "parquet")
     object_service_client = MagicMock()
     published_metadata = [MagicMock()]
+    create_clients = AsyncMock(return_value=(object_service_client, data_client))
     publish = AsyncMock(return_value=published_metadata)
 
     monkeypatch.setattr(
         "evo.data_converters.image.importer.image_to_grid.create_evo_object_service_and_data_client",
-        lambda **_: (object_service_client, data_client),
+        create_clients,
     )
     monkeypatch.setattr("evo.data_converters.image.importer.image_to_grid.publish_geoscience_objects", publish)
 

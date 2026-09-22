@@ -34,7 +34,7 @@ from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 class TestExportOMFLineSet(EvoDataConvertersTestCase):
     def setUp(self) -> None:
         EvoDataConvertersTestCase.setUp(self)
-        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+        _, self.data_client = asyncio.run(create_evo_object_service_and_data_client(self.workspace_metadata))
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "..", "data", "lineset_v1.omf")

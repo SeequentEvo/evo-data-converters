@@ -823,7 +823,7 @@ async def convert_image_to_grid(
     object_service_client: ObjectAPIClient | None = None
     if publish_objects:
         # Online path: real Evo clients (requires credentials)
-        object_service_client, online_data_client = create_evo_object_service_and_data_client(
+        object_service_client, online_data_client = await create_evo_object_service_and_data_client(
             evo_workspace_metadata=evo_workspace_metadata,
             service_manager_widget=service_manager_widget,
         )

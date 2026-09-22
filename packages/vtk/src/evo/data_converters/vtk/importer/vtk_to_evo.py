@@ -164,7 +164,7 @@ async def convert_vtk(
 
     geoscience_objects = []
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 

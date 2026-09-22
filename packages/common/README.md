@@ -261,7 +261,7 @@ async def convert_yourfiletype(
     geoscience_objects = []
 
     # create a service and data clients to handle upload to the Seequent Evo API
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 

@@ -109,7 +109,7 @@ from evo.data_converters.<type>.importer.utils import get_geoscience_object_from
 
 # workspace_id must be a valid UUID — data_client.save_table derives the cache scope from it,
 # and a bare cache_root (without workspace_id) raises AttributeError on save_table.
-_, data_client = create_evo_object_service_and_data_client(
+_, data_client = await create_evo_object_service_and_data_client(
     evo_workspace_metadata=EvoWorkspaceMetadata(
         workspace_id="00000000-0000-0000-0000-000000000000",
         cache_root=tempfile.mkdtemp(),

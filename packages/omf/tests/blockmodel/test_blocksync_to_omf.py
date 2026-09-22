@@ -140,7 +140,7 @@ class TestBlockSyncClient(TestCase):
             cache_root=self.cache_root_dir.name,
             org_id="bf1a040c-8c58-4bc2-bec2-c5ae7de8bd84",
         )
-        service_client, _ = create_evo_object_service_and_data_client(evo_workspace_metadata=self.metadata)
+        service_client, _ = asyncio.run(create_evo_object_service_and_data_client(evo_workspace_metadata=self.metadata))
         environment = service_client._environment
         api_connector = service_client._connector
         self.client = BlockSyncClient(environment, api_connector)

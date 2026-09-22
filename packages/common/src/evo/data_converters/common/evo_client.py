@@ -86,24 +86,7 @@ async def client_credentials_authorizer(
     return authorizer
 
 
-def create_evo_object_service_and_data_client(
-    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
-    service_manager_widget: Optional["ServiceManagerWidget"] = None,
-) -> tuple[ObjectAPIClient, ObjectDataClient]:
-    if evo_workspace_metadata and service_manager_widget:
-        raise ConflictingConnectionDetailsError(
-            "Please provide only one of EvoWorkspaceMetadata or ServiceManagerWidget."
-        )
-    elif evo_workspace_metadata:
-        return create_service_and_data_client_from_metadata(evo_workspace_metadata)
-    elif service_manager_widget:
-        return create_service_and_data_client_from_manager(service_manager_widget)
-    raise MissingConnectionDetailsError(
-        "Missing one of EvoWorkspaceMetadata or ServiceManagerWidget needed to construct an ObjectAPIClient."
-    )
-
-
-async def create_evo_object_service_and_data_client_async(
+async def create_evo_object_service_and_data_client(
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
 ) -> tuple[ObjectAPIClient, ObjectDataClient]:
@@ -114,7 +97,7 @@ async def create_evo_object_service_and_data_client_async(
     if evo_workspace_metadata:
         return await create_service_and_data_client_from_metadata_async(evo_workspace_metadata)
     if service_manager_widget:
-        return create_service_and_data_client_from_manager(service_manager_widget)
+        return await asyncio.to_thread(create_service_and_data_client_from_manager, service_manager_widget)
     raise MissingConnectionDetailsError(
         "Missing one of EvoWorkspaceMetadata or ServiceManagerWidget needed to construct an ObjectAPIClient."
     )

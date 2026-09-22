@@ -69,9 +69,9 @@ class TestEvoToObjExporter(EvoDataConvertersTestCase):
 
         return TriangleMesh_V2_1_0.from_dict(triangle_mesh_object_dict)
 
-    def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         EvoDataConvertersTestCase.setUp(self)
-        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+        _, self.data_client = await create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generate Parquet files to test the exporter
         self.evo_object = self._load_triangle_mesh_v2_1_0_evo_object()
