@@ -12,7 +12,7 @@
 import json
 import tempfile
 from os import path
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import MagicMock, Mock, patch
 
 import requests
@@ -90,8 +90,8 @@ class TestBlockSyncToOMF(TestCase):
         os_unlink.assert_called_once_with(download_file)
 
 
-class TestBlockSyncClient(TestCase):
-    def setUp(self) -> None:
+class TestBlockSyncClient(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
         self.metadata = EvoWorkspaceMetadata(
             workspace_id="860be2f5-fe06-4c1b-ac8b-7d34d2b6d2ef",
@@ -99,7 +99,7 @@ class TestBlockSyncClient(TestCase):
             cache_root=self.cache_root_dir.name,
             org_id="bf1a040c-8c58-4bc2-bec2-c5ae7de8bd84",
         )
-        service_client, _ = create_evo_object_service_and_data_client(evo_workspace_metadata=self.metadata)
+        service_client, _ = await create_evo_object_service_and_data_client(evo_workspace_metadata=self.metadata)
         environment = service_client._environment
         api_connector = service_client._connector
         self.client = BlockSyncClient(environment, api_connector)

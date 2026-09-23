@@ -9,12 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, time, timezone
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, cast
 from uuid import UUID
 
-import nest_asyncio
 import numpy as np
 import numpy.typing as npt
 import omf
@@ -28,6 +29,8 @@ from scipy.spatial.transform import Rotation as R
 import evo.logging
 from evo.common import APIConnector, Environment
 from evo.data_converters.common import BlockSyncClient, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.objects import ObjectAPIClient
+from evo.objects.utils.data import ObjectDataClient
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -39,6 +42,35 @@ def _create_block_sync_client(environment: Environment, api_connector: APIConnec
     return BlockSyncClient(environment, api_connector)
 
 
+def _create_evo_clients(
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata],
+    service_manager_widget: Optional["ServiceManagerWidget"],
+) -> tuple[ObjectAPIClient, ObjectDataClient]:
+    def create_clients() -> tuple[ObjectAPIClient, ObjectDataClient]:
+        return cast(
+            tuple[ObjectAPIClient, ObjectDataClient],
+            asyncio.run(create_evo_object_service_and_data_client(evo_workspace_metadata, service_manager_widget)),
+        )
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return create_clients()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(create_clients).result()
+
+
+def _get_blocksync_element(object_id: UUID, client: BlockSyncClient, version_id: Optional[int]) -> VolumeElement:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return blocksync_to_omf_element(str(object_id), client, version_id)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(blocksync_to_omf_element, str(object_id), client, version_id).result()
+
+
 def export_blocksync_omf(
     filepath: str,
     object_id: UUID,
@@ -46,12 +78,8 @@ def export_blocksync_omf(
     evo_workspace_metadata: EvoWorkspaceMetadata = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
 ) -> None:
-    nest_asyncio.apply()
-
     logger.info("Creating service and data clients for interacting with BlockSync.")
-    service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata, service_manager_widget
-    )
+    service_client, _ = _create_evo_clients(evo_workspace_metadata, service_manager_widget)
 
     environment = service_client._environment
     api_connector = service_client._connector
@@ -64,7 +92,7 @@ def export_blocksync_omf(
 
     project = omf.Project(name=project_name, description=description, revision=revision)
 
-    project.elements = [blocksync_to_omf_element(str(object_id), client, version_id)]
+    project.elements = [_get_blocksync_element(object_id, client, version_id)]
     assert project.validate()
 
     logger.info("Writing OMF project to {filepath}")
