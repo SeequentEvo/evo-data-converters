@@ -1,0 +1,33 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "shp",
+  "name": "SHP",
+  "package": "evo-data-converters-shp",
+  "status": "implemented",
+  "extensions": [
+    ".shp",
+    ".shx",
+    ".dbf",
+    ".prj"
+  ],
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "Multipatch shapefiles without rings"
+    ],
+    "produces_evo_objects": [
+      "TriangleMesh"
+    ]
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "TriangleMesh: Ring-based multipatch parts (OUTER_RING, INNER_RING, etc.) are not supported.",
+    "TriangleMesh: NULL shapes (records with associated data but no geometry) are discarded."
+  ]
+}

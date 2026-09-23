@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seequent.com/schemas/evo-data-converters/converter-capabilities.schema.json",
+  "title": "Converter Capabilities",
+  "description": "Schema for a single package-local packages/<id>/converter-capabilities.json file.",
+  "$ref": "#/$defs/converter",
+  "$defs": {
+    "ioBlock": {
+      "type": "object",
+      "required": [
+        "supported"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "supported": {
+          "type": "boolean"
+        },
+        "source_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "produces_evo_objects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "supports_evo_objects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "converter": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "package",
+        "status",
+        "extensions",
+        "platform",
+        "import",
+        "export",
+        "limitations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "package": {
+          "type": "string",
+          "pattern": "^evo-data-converters-[a-z0-9-]+$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "implemented",
+            "template_only",
+            "planned"
+          ]
+        },
+        "extensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "platform": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "import": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ioBlock"
+            },
+            {
+              "required": [
+                "supported",
+                "source_types",
+                "produces_evo_objects"
+              ]
+            }
+          ]
+        },
+        "export": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ioBlock"
+            },
+            {
+              "required": [
+                "supported",
+                "supports_evo_objects"
+              ]
+            }
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
