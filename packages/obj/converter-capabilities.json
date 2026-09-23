@@ -1,0 +1,35 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "obj",
+  "name": "OBJ",
+  "package": "evo-data-converters-obj",
+  "status": "implemented",
+  "extensions": [
+    ".obj"
+  ],
+  "platform": [
+    "Cross-platform (Python)",
+    "TinyOBJ backend requires optional extra installation"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "Polygon mesh (via trimesh or tinyobj backend)"
+    ],
+    "produces_evo_objects": [
+      "TriangleMesh"
+    ]
+  },
+  "export": {
+    "supported": true,
+    "supports_evo_objects": [
+      "TriangleMesh (schema classification objects/triangle-mesh, major version 2)"
+    ]
+  },
+  "limitations": [
+    "Export currently supports only triangle-mesh objects.",
+    "TinyOBJ support depends on a pinned Git installation path.",
+    "TriangleMesh: Texture/material data on import is ignored.",
+    "TriangleMesh: Export does not include texture/material payloads."
+  ]
+}

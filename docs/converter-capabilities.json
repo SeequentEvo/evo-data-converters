@@ -1,7 +1,6 @@
 {
   "$schema": "./converter-capabilities.schema.json",
   "schema_version": "1.0",
-  "maintainers_note": "Update this file when converter behavior changes, then regenerate docs with: uv run python scripts/render_converter_capabilities.py",
   "converters": [
     {
       "id": "duf",

@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.converter_capabilities_utils import normalize_registry, validate_registry, write_registry
+from scripts.converter_capabilities_utils import build_registry, normalize_converter_entry, validate_registry
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-INPUT_FILE = REPO_ROOT / "converter-capabilities.json"
 OUTPUT_DIR = REPO_ROOT / "docs"
 OUTPUT_MD = OUTPUT_DIR / "converter-capabilities.md"
+OUTPUT_JSON = OUTPUT_DIR / "converter-capabilities.json"
 
 
 def _yes_no(value: bool) -> str:
@@ -19,15 +19,10 @@ def _join(items: list[str]) -> str:
     return ", ".join(items) if items else "-"
 
 
-def _read_registry() -> dict:
-    with INPUT_FILE.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
-
-
 def _render_markdown(registry: dict) -> str:
     lines: list[str] = []
     lines.append("# Converter Capability Matrix\n")
-    lines.append("This page is generated from `converter-capabilities.json`.\n")
+    lines.append("This page is generated from `packages/*/converter-capabilities.json`.\n")
     lines.append(
       "| Converter | Status | Import | Export | Extensions | Evo Objects (Import) | Key Limitations |\n"
     )
@@ -71,25 +66,38 @@ def _render_markdown(registry: dict) -> str:
     return "".join(lines)
 
 
+def _render_json(registry: dict) -> str:
+    # Machine-readable export for external consumers (e.g. the developer portal); "$schema"
+    # is a per-file editor hint and isn't meaningful on the aggregated collection, so it's dropped.
+    converters = [
+        normalize_converter_entry({k: v for k, v in conv.items() if k != "$schema"})
+        for conv in sorted(registry["converters"], key=lambda c: c["id"])
+    ]
+    document = {
+        "$schema": "./converter-capabilities.schema.json",
+        "schema_version": registry["schema_version"],
+        "converters": converters,
+    }
+    return json.dumps(document, indent=2) + "\n"
+
+
 def main() -> None:
-  registry = normalize_registry(_read_registry())
-  errors = validate_registry(registry)
+  registry, coverage_errors = build_registry()
+  errors = [*coverage_errors, *validate_registry(registry)]
   if errors:
-    print("converter-capabilities.json is invalid:")
+    print("packages/*/converter-capabilities.json are invalid:")
     for err in errors:
       print(f"- {err}")
     raise SystemExit(1)
-
-  # Rewriting is idempotent, so an already-normalized file produces no diff.
-  write_registry(registry)
 
   OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
   markdown = _render_markdown(registry)
   OUTPUT_MD.write_text(markdown, encoding="utf-8")
-
-  print(f"Normalized {INPUT_FILE}")
   print(f"Wrote {OUTPUT_MD}")
+
+  OUTPUT_JSON.write_text(_render_json(registry), encoding="utf-8")
+  print(f"Wrote {OUTPUT_JSON}")
 
 
 if __name__ == "__main__":

@@ -4,10 +4,11 @@ import argparse
 import sys
 
 from scripts.converter_capabilities_utils import (
-    load_registry,
-    normalize_registry,
-    validate_registry,
-    write_registry,
+    PACKAGES_DIR,
+    capability_file_path,
+    normalize_all,
+    validate_all,
+    write_capability_file,
 )
 
 
@@ -39,53 +40,55 @@ def _scaffold_converter_entry(converter_id: str, name: str, status: str) -> dict
 
 
 def cmd_validate(_: argparse.Namespace) -> int:
-    registry = load_registry()
-    errors = validate_registry(registry)
+    errors = validate_all()
     if errors:
         print("Validation failed:")
         for err in errors:
             print(f"- {err}")
         return 1
-    print("converter-capabilities.json is valid.")
+    print("All packages/*/converter-capabilities.json files are valid.")
     return 0
 
 
 def cmd_normalize(_: argparse.Namespace) -> int:
-    registry = normalize_registry(load_registry())
-    write_registry(registry)
-    print("Normalized converter-capabilities.json (sorted by converter id).")
+    written = normalize_all()
+    print(f"Normalized {len(written)} converter-capabilities.json file(s).")
     return cmd_validate(_)
 
 
 def cmd_add(args: argparse.Namespace) -> int:
-    registry = load_registry()
-    existing = {c.get("id") for c in registry.get("converters", [])}
-    if args.id in existing:
-        print(f"Converter id '{args.id}' already exists.")
+    package_dir = PACKAGES_DIR / args.id
+    if not package_dir.is_dir():
+        print(f"Package directory 'packages/{args.id}' does not exist. Scaffold it first with create-converter.")
         return 1
 
-    registry.setdefault("converters", []).append(_scaffold_converter_entry(args.id, args.name, args.status))
-    normalize_registry(registry)
-    write_registry(registry)
-    print(f"Added converter scaffold for '{args.id}'.")
+    capability_path = capability_file_path(args.id)
+    if capability_path.exists():
+        print(f"Converter capability file already exists: packages/{args.id}/converter-capabilities.json")
+        return 1
+
+    write_capability_file(args.id, _scaffold_converter_entry(args.id, args.name, args.status))
+    print(f"Added converter capability file for '{args.id}' at packages/{args.id}/converter-capabilities.json")
     print("Next steps:")
     print("- Fill in formats, supported objects, and limitations")
-    print("- Run: make converter-capabilities-validate")
-    print("- Run: make converter-capabilities")
+    print("- Run: uv run --project packages/common python -m scripts.manage_converter_capabilities validate")
+    print("- Run: uv run --project packages/common python -m scripts.render_converter_capabilities")
     return cmd_validate(args)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Manage converter-capabilities.json safely")
+    parser = argparse.ArgumentParser(description="Manage packages/*/converter-capabilities.json files safely")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    validate_parser = subparsers.add_parser("validate", help="Validate converter-capabilities.json")
+    validate_parser = subparsers.add_parser("validate", help="Validate all converter-capabilities.json files")
     validate_parser.set_defaults(func=cmd_validate)
 
-    normalize_parser = subparsers.add_parser("normalize", help="Sort and normalize converter-capabilities.json")
+    normalize_parser = subparsers.add_parser(
+        "normalize", help="Normalize the key order of all converter-capabilities.json files"
+    )
     normalize_parser.set_defaults(func=cmd_normalize)
 
-    add_parser = subparsers.add_parser("add", help="Add a new converter scaffold entry")
+    add_parser = subparsers.add_parser("add", help="Add a new converter capability file")
     add_parser.add_argument("--id", required=True, help="Converter id, for example my-format")
     add_parser.add_argument("--name", required=True, help="Display name, for example My Format")
     add_parser.add_argument(

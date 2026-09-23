@@ -39,7 +39,9 @@ The existing data converters can be used without modification or used as a templ
 ### Converter capabilities
 
 See the [converter capability matrix](docs/converter-capabilities.md) for supported source
- extensions, import/export support, Evo object types, and known limitations.
+ extensions, import/export support, Evo object types, and known limitations. A machine-readable
+ version of the same data is generated at [docs/converter-capabilities.json](docs/converter-capabilities.json)
+ for external tools and services.
 Contributors can update the registry using the [capability editing guide](docs/converter-capabilities-editing.md).
 
 ## Pre-requisites

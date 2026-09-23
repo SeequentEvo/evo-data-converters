@@ -1,0 +1,32 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "ubc",
+  "name": "UBC",
+  "package": "evo-data-converters-ubc",
+  "status": "implemented",
+  "extensions": [
+    ".msh",
+    ".mod",
+    ".sus",
+    ".den"
+  ],
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "UBC mesh + numeric property files"
+    ],
+    "produces_evo_objects": [
+      "Tensor3DGrid"
+    ]
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "Requires exactly one .msh mesh file per conversion call."
+  ]
+}

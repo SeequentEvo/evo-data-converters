@@ -34,6 +34,14 @@ prompts for `converter_type` and `export_support`, runs the copier template in
 It also creates the CI workflow `.github/workflows/publish-<type>.yaml` and adds the package to
 the test matrix in `.github/workflows/run-all-tests.yaml`.
 
+The template also renders a `packages/<type>/converter-capabilities.json` stub (status
+`planned`, import/export both unsupported). This is required — every converter package must
+have this file or the `converter-capabilities` CI job and
+`uv run --project packages/common python -m scripts.manage_converter_capabilities validate`
+fail coverage validation. Update the stub's fields as you implement the converter, and see
+[`docs/converter-capabilities-editing.md`](../../../docs/converter-capabilities-editing.md) for
+the full editing/validation workflow.
+
 To run it non-interactively (recommended for agents), pass both answers as flags:
 
 ```shell
@@ -64,6 +72,7 @@ Confirm the package and its wiring exist:
   `.gitkeep`) ready for the sample file.
 - `.github/workflows/publish-<type>.yaml` exists and `<type>` appears in the `package:` matrix
   in `.github/workflows/run-all-tests.yaml`.
+- `packages/<type>/converter-capabilities.json` exists (status `planned`).
 - If `Import and Export` was chosen, `exporter/` and export code-samples exist.
 - Registration applied:
   ```shell
@@ -73,6 +82,10 @@ Confirm the package and its wiring exist:
 - The generated tests pass out of the box (they assert the stubs raise `NotImplementedError`):
   ```shell
   uv run test-<type>
+  ```
+- The capability file is valid and package coverage is satisfied:
+  ```shell
+  uv run --project packages/common python -m scripts.manage_converter_capabilities validate
   ```
 
 ## 5. Add the sample data

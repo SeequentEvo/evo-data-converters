@@ -1,0 +1,29 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "gocad",
+  "name": "GOCAD",
+  "package": "evo-data-converters-gocad",
+  "status": "implemented",
+  "extensions": [
+    ".vo"
+  ],
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "GOCAD voxel grid"
+    ],
+    "produces_evo_objects": [
+      "Regular3DGrid"
+    ]
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "Current converter path is focused on voxel grid data."
+  ]
+}
