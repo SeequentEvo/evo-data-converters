@@ -11,6 +11,7 @@
 
 """ """
 
+import asyncio
 import tempfile
 from os import path
 from unittest import TestCase
@@ -42,11 +43,13 @@ from evo.data_converters.resqml.importer._attribute_converters import (
 class TestConvertAttributeProperties(TestCase):
     def setUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
-        _, self.data_client = create_evo_object_service_and_data_client(
-            EvoWorkspaceMetadata(
-                org_id="8ac3f041-b186-41f9-84ba-43d60f8683be",
-                workspace_id="2cf1697f-2771-485e-848d-e6674d2ac63f",
-                cache_root=self.cache_root_dir.name,
+        _, self.data_client = asyncio.run(
+            create_evo_object_service_and_data_client(
+                EvoWorkspaceMetadata(
+                    org_id="8ac3f041-b186-41f9-84ba-43d60f8683be",
+                    workspace_id="2cf1697f-2771-485e-848d-e6674d2ac63f",
+                    cache_root=self.cache_root_dir.name,
+                )
             )
         )
         self.data_dir = tempfile.TemporaryDirectory()
