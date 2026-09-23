@@ -1,5 +1,35 @@
 # Changelog
 
+## evo-data-converters-xyz@v0.2.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-vtk@v0.3.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-ubc@v0.3.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-shp@v0.2.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-resqml@v0.3.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-omf@v0.3.0 
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-obj@v0.2.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-image@v0.2.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-gocad@v0.3.0
+Make convert function async per [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
+## evo-data-converters-common@v0.4.0
+Remove nest_asyncio dependency [issue 149](https://github.com/SeequentEvo/evo-data-converters/issues/149)
+
 ## evo-data-converters-image@v0.1.4
 Align converter output with regular-2d-grid bottom-left origin convention
 
