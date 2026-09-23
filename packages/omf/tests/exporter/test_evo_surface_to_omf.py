@@ -36,14 +36,12 @@ from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestExportOMFSurface(EvoDataConvertersTestCase, TestCase):
-    def setUp(self) -> None:
-        EvoDataConvertersTestCase.setUp(self)
-
-        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+    async def asyncSetUp(self) -> None:
+        _, self.data_client = await create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/surface_v1.omf")
-        self.evo_objects = convert_omf(
+        self.evo_objects = await convert_omf(
             filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )
 

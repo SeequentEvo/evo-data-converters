@@ -13,7 +13,7 @@ import tempfile
 from os import path
 from pathlib import Path
 from typing import Any
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -219,7 +219,7 @@ class TestBlockModelConverterWarnings:
         assert expected_log_msg in caplog.text
 
 
-class TestOMFToBlockSyncConverter(TestCase):
+class TestOMFToBlockSyncConverter(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
         self.metadata = EvoWorkspaceMetadata(
@@ -229,10 +229,10 @@ class TestOMFToBlockSyncConverter(TestCase):
             org_id="bf1a040c-8c58-4bc2-bec2-c5ae7de8bd84",
         )
 
-    @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects_sync")
+    @patch("evo.data_converters.omf.importer.omf_to_evo.publish_geoscience_objects")
     @patch.object(BlockSyncClient, "get_auth_header")
-    def test_should_convert_blockmodels(
-        self, mock_publish_geoscience_objects: MagicMock, mock_get_auth_header: MagicMock
+    async def test_should_convert_blockmodels(
+        self, mock_get_auth_header: MagicMock, mock_publish_geoscience_objects: MagicMock
     ) -> None:
         omf_file = path.join(path.dirname(__file__), "data/bunny_blocks.omf")
 
@@ -307,7 +307,7 @@ class TestOMFToBlockSyncConverter(TestCase):
                 },
             )
 
-            objects = convert_omf(
+            objects = await convert_omf(
                 filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=True
             )
             self.assertListEqual(

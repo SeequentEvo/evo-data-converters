@@ -8,13 +8,14 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import asyncio
 import os
 from typing import TYPE_CHECKING, Optional
 
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
+    publish_geoscience_objects,
 )
 from evo.data_converters.shp.importer.implementation.local_data import LocalDataClient
 from evo.data_converters.shp.importer.implementation.prj_parser import prj_to_crs
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_shp(
+async def convert_shp(
     filepath: str,
     filepath_shx: str,
     filepath_dbf: str,
@@ -43,7 +44,7 @@ def convert_shp(
     overwrite_existing_objects: bool = False,
 ) -> list[TriangleMesh_V2_2_0] | list[ObjectMetadata]:
     """
-    Convert an ESRI shapefile (.shp, .shx, and .dbf) to a triangle-mesh geoscience object.
+    Asynchronously convert an ESRI shapefile (.shp, .shx, and .dbf) to a triangle-mesh geoscience object.
 
     :param filepath: Path to the .shp geometry file.
     :param filepath_shx: Path to the .shx spatial index file.
@@ -74,7 +75,7 @@ def convert_shp(
     geoscience_objects = []
 
     if publish_objects or evo_workspace_metadata or service_manager_widget:
-        object_service_client, data_client = create_evo_object_service_and_data_client(
+        object_service_client, data_client = await create_evo_object_service_and_data_client(
             evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
         )
     else:
@@ -101,14 +102,14 @@ def convert_shp(
         sbx_path=filepath_sbx,
         xml_path=filepath_xml,
     )
-    mesh = parser.parse_shp()
+    mesh = await asyncio.to_thread(parser.parse_shp)
 
     geoscience_objects.append(mesh)
 
     objects_metadata = None
     if publish_objects:
         print("Publishing Shapefile")
-        objects_metadata = publish_geoscience_objects_sync(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 

@@ -24,7 +24,7 @@ from evo.data_converters.common import (
     BaseGridData,
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
+    publish_geoscience_objects,
 )
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
@@ -110,7 +110,7 @@ def get_vtk_grids(filepath: str) -> list[tuple[str, BaseGridData]]:
     return grid_data_list
 
 
-def convert_vtk(
+async def convert_vtk(
     filepath: str,
     epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
@@ -164,7 +164,7 @@ def convert_vtk(
 
     geoscience_objects = []
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
@@ -195,7 +195,7 @@ def convert_vtk(
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
-        objects_metadata = publish_geoscience_objects_sync(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 
