@@ -11,6 +11,7 @@
 
 import uuid
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pyproj import CRS
@@ -41,31 +42,34 @@ GEOGCRS["WGS 84",
     ID["EPSG", 4326]]"""
 
 
-def test_failed_to_read_file() -> None:
+@pytest.mark.asyncio
+async def test_failed_to_read_file() -> None:
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / "fake_file.go"
     with pytest.raises(GocadInvalidDataError):
-        convert_gocad(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+        await convert_gocad(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
 
 
 @pytest.mark.parametrize("test_file, exc_message", [("non_orthogonal.vo", "skew"), ("inverted.vo", "invert")])
-def test_unsupported_rotation(caplog: pytest.LogCaptureFixture, test_file: str, exc_message: str) -> None:
+@pytest.mark.asyncio
+async def test_unsupported_rotation(caplog: pytest.LogCaptureFixture, test_file: str, exc_message: str) -> None:
     workspace_metadata = EvoWorkspaceMetadata()
 
     file_name = this_dir / "data" / test_file
     with pytest.raises(UnsupportedRotation) as excinfo:
-        convert_gocad(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
+        await convert_gocad(str(file_name), 4326, evo_workspace_metadata=workspace_metadata, publish_objects=False)
 
     assert str(excinfo.value) == exc_message
 
 
-def test_gocad_grid_converted() -> None:
+@pytest.mark.asyncio
+async def test_gocad_grid_converted() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
     file_name = this_dir / "data" / "3D_grid_GOCAD.vo"
-    result = convert_gocad(
+    result = await convert_gocad(
         str(file_name), 4326, evo_workspace_metadata=workspace_metadata, tags=tags, publish_objects=False
     )
     assert len(result) == 1
@@ -105,10 +109,11 @@ def test_gocad_grid_converted() -> None:
         (None, "unspecified"),
     ],
 )
-def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+@pytest.mark.asyncio
+async def test_coordinate_reference_system(input_crs: Any, expected_crs: Any) -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "3D_grid_GOCAD.vo"
-    result = convert_gocad(
+    result = await convert_gocad(
         str(file_name),
         evo_workspace_metadata=workspace_metadata,
         coordinate_reference_system=input_crs,
@@ -118,11 +123,12 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     assert result[0].coordinate_reference_system == expected_crs
 
 
-def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+@pytest.mark.asyncio
+async def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
     file_name = this_dir / "data" / "3D_grid_GOCAD.vo"
     with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
-        convert_gocad(
+        await convert_gocad(
             str(file_name),
             4326,
             evo_workspace_metadata=workspace_metadata,
