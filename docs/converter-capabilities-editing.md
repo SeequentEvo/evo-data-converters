@@ -42,6 +42,12 @@ Use the required fields:
 - export (`supported`, `supports_evo_objects`)
 - limitations
 
+For implemented converters, record exact Geoscience Object Service schema versions in the optional
+`produces_evo_schema_versions` map under `import` and `supports_evo_schema_versions` map under
+`export`. Keys are object-type slugs already listed in the corresponding object array; values are
+full `major.minor.patch` versions. Import versions come from the object schema classes constructed
+by the importer; export versions come from the versions the exporter explicitly accepts.
+
 ## 2. Validate it
 From the repo root:
 

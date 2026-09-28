@@ -20,7 +20,10 @@
     ],
     "produces_evo_objects": [
       "tensor-3d-grid"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "tensor-3d-grid": ["1.2.0"]
+    }
   },
   "export": {
     "supported": false,

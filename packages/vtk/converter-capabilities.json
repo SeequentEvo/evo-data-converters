@@ -28,7 +28,15 @@
       "unstructured-tet-grid",
       "unstructured-hex-grid",
       "unstructured-grid"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "regular-3d-grid": ["1.2.0"],
+      "regular-masked-3d-grid": ["1.2.0"],
+      "tensor-3d-grid": ["1.2.0"],
+      "unstructured-tet-grid": ["1.2.0"],
+      "unstructured-hex-grid": ["1.2.0"],
+      "unstructured-grid": ["1.2.0"]
+    }
   },
   "export": {
     "supported": false,

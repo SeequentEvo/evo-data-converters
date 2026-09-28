@@ -137,6 +137,20 @@ class TestValidateRegistry:
 
         assert validate_registry(registry) == []
 
+    def test_rejects_schema_versions_for_unlisted_object_types(self) -> None:
+        entry = {
+            **VALID_ENTRY,
+            "import": {
+                **VALID_ENTRY["import"],
+                "produces_evo_schema_versions": {"triangle-mesh": ["2.1.0"]},
+            },
+        }
+        registry = {"schema_version": "1.0", "converters": [entry]}
+
+        errors = validate_registry(registry)
+
+        assert any("keys must appear in produces_evo_objects" in err for err in errors)
+
 
 class TestValidateAll:
     def test_repo_packages_are_all_valid(self) -> None:
@@ -242,13 +256,21 @@ def test_cmd_validate_passes_for_real_repo(capsys: pytest.CaptureFixture) -> Non
 
 class TestRender:
     def test_render_markdown_lists_each_converter(self) -> None:
-        registry = {"schema_version": "1.0", "converters": [VALID_ENTRY]}
+        entry = {
+            **VALID_ENTRY,
+            "import": {
+                **VALID_ENTRY["import"],
+                "produces_evo_schema_versions": {"triangle-mesh": ["2.1.0"]},
+            },
+        }
+        registry = {"schema_version": "1.0", "converters": [entry]}
 
         markdown = render_module._render_markdown(registry)
 
         assert "# Converter Capability Matrix" in markdown
         assert "| Widget | implemented | Yes | No |" in markdown
         assert "### Widget" in markdown
+        assert "- Evo schema versions produced: triangle-mesh: 2.1.0" in markdown
 
     def test_render_json_strips_schema_hint_and_preserves_key_order(self) -> None:
         entry_with_schema = {"$schema": "../../converter-capabilities.schema.json", **VALID_ENTRY}

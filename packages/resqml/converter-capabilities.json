@@ -22,7 +22,12 @@
       "unstructured-hex-grid",
       "triangle-mesh",
       "downhole-intervals"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "unstructured-hex-grid": ["1.1.0"],
+      "triangle-mesh": ["2.0.0"],
+      "downhole-intervals": ["1.1.0"]
+    }
   },
   "export": {
     "supported": false,

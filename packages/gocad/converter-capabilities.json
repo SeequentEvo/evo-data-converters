@@ -17,7 +17,10 @@
     ],
     "produces_evo_objects": [
       "regular-3d-grid"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "regular-3d-grid": ["1.2.0"]
+    }
   },
   "export": {
     "supported": false,

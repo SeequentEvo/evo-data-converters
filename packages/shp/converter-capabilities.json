@@ -20,7 +20,10 @@
     ],
     "produces_evo_objects": [
       "triangle-mesh"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "triangle-mesh": ["2.2.0"]
+    }
   },
   "export": {
     "supported": false,

@@ -19,6 +19,12 @@ def _join(items: list[str]) -> str:
     return ", ".join(items) if items else "-"
 
 
+def _format_schema_versions(versions: dict[str, list[str]] | None) -> str:
+    if not versions:
+        return "-"
+    return "; ".join(f"{object_type}: {_join(schema_versions)}" for object_type, schema_versions in versions.items())
+
+
 def _render_markdown(registry: dict) -> str:
     lines: list[str] = []
     lines.append("# Converter Capability Matrix\n")
@@ -59,7 +65,15 @@ def _render_markdown(registry: dict) -> str:
         lines.append(f"- Platform/runtime notes: {_join(conv.get('platform', []))}\n")
         lines.append(f"- Import source types: {_join(conv['import']['source_types'])}\n")
         lines.append(f"- Evo objects produced: {_join(conv['import']['produces_evo_objects'])}\n")
+        lines.append(
+            "- Evo schema versions produced: "
+            f"{_format_schema_versions(conv['import'].get('produces_evo_schema_versions'))}\n"
+        )
         lines.append(f"- Evo objects export supports: {_join(conv['export']['supports_evo_objects'])}\n")
+        lines.append(
+            "- Evo schema versions export supports: "
+            f"{_format_schema_versions(conv['export'].get('supports_evo_schema_versions'))}\n"
+        )
         lines.append(f"- Limitations: {_join(conv['limitations'])}\n")
         lines.append("\n")
 

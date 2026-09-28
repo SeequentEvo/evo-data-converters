@@ -18,13 +18,19 @@
     ],
     "produces_evo_objects": [
       "triangle-mesh"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "triangle-mesh": ["2.2.0"]
+    }
   },
   "export": {
     "supported": true,
     "supports_evo_objects": [
       "triangle-mesh"
-    ]
+    ],
+    "supports_evo_schema_versions": {
+      "triangle-mesh": ["2.0.0", "2.1.0", "2.2.0"]
+    }
   },
   "limitations": [
     "Export currently supports only triangle-mesh objects (schema classification objects/triangle-mesh, major version 2).",

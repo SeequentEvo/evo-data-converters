@@ -21,7 +21,10 @@
     ],
     "produces_evo_objects": [
       "pointset"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "pointset": ["1.3.0"]
+    }
   },
   "export": {
     "supported": false,

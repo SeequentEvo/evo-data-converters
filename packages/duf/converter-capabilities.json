@@ -20,7 +20,11 @@
     "produces_evo_objects": [
       "triangle-mesh",
       "line-segments"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "triangle-mesh": ["2.1.0"],
+      "line-segments": ["2.1.0"]
+    }
   },
   "export": {
     "supported": false,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -135,6 +136,17 @@ def _is_list_of_strings(value: object) -> bool:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
+def _is_object_schema_versions(value: object) -> bool:
+    return isinstance(value, dict) and all(
+        isinstance(object_type, str)
+        and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", object_type) is not None
+        and isinstance(versions, list)
+        and bool(versions)
+        and all(isinstance(version, str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) for version in versions)
+        for object_type, versions in value.items()
+    )
+
+
 def validate_registry(registry: dict) -> list[str]:
     """Validate the schema/content rules for an aggregated registry.
 
@@ -213,6 +225,14 @@ def validate_registry(registry: dict) -> list[str]:
             for key in ("source_types", "produces_evo_objects"):
                 if not _is_list_of_strings(import_block.get(key)):
                     errors.append(f"{context}.import.{key} must be a list of strings")
+            versions = import_block.get("produces_evo_schema_versions")
+            if versions is not None:
+                if not _is_object_schema_versions(versions):
+                    errors.append(f"{context}.import.produces_evo_schema_versions must map object slugs to non-empty version lists")
+                elif _is_list_of_strings(import_block.get("produces_evo_objects")) and not set(versions).issubset(
+                    import_block["produces_evo_objects"]
+                ):
+                    errors.append(f"{context}.import.produces_evo_schema_versions keys must appear in produces_evo_objects")
 
         export_block = conv.get("export")
         if not isinstance(export_block, dict):
@@ -222,6 +242,14 @@ def validate_registry(registry: dict) -> list[str]:
                 errors.append(f"{context}.export.supported must be a boolean")
             if not _is_list_of_strings(export_block.get("supports_evo_objects")):
                 errors.append(f"{context}.export.supports_evo_objects must be a list of strings")
+            versions = export_block.get("supports_evo_schema_versions")
+            if versions is not None:
+                if not _is_object_schema_versions(versions):
+                    errors.append(f"{context}.export.supports_evo_schema_versions must map object slugs to non-empty version lists")
+                elif _is_list_of_strings(export_block.get("supports_evo_objects")) and not set(versions).issubset(
+                    export_block["supports_evo_objects"]
+                ):
+                    errors.append(f"{context}.export.supports_evo_schema_versions keys must appear in supports_evo_objects")
 
     return errors
 

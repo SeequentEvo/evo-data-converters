@@ -23,7 +23,12 @@
       "triangle-mesh",
       "line-segments",
       "BlockSync block model metadata"
-    ]
+    ],
+    "produces_evo_schema_versions": {
+      "pointset": ["1.2.0"],
+      "triangle-mesh": ["2.1.0"],
+      "line-segments": ["2.1.0"]
+    }
   },
   "export": {
     "supported": true,
@@ -32,7 +37,12 @@
       "line-segments",
       "pointset",
       "BlockSync block models"
-    ]
+    ],
+    "supports_evo_schema_versions": {
+      "triangle-mesh": ["2.0.0", "2.1.0"],
+      "line-segments": ["2.0.0", "2.1.0"],
+      "pointset": ["1.1.0", "1.2.0"]
+    }
   },
   "limitations": [
     "Some geometry types and geoscience object types are not yet supported.",
