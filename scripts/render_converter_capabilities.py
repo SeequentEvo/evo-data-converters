@@ -29,9 +29,7 @@ def _render_markdown(registry: dict) -> str:
     lines: list[str] = []
     lines.append("# Converter Capability Matrix\n")
     lines.append("This page is generated from `packages/*/converter-capabilities.json`.\n")
-    lines.append(
-      "| Converter | Status | Import | Export | Extensions | Evo Objects (Import) | Key Limitations |\n"
-    )
+    lines.append("| Converter | Status | Import | Export | Extensions | Evo Objects (Import) | Key Limitations |\n")
     lines.append("|---|---|---|---|---|---|---|\n")
 
     for conv in sorted(registry["converters"], key=lambda c: c["id"]):
@@ -96,22 +94,22 @@ def _render_json(registry: dict) -> str:
 
 
 def main() -> None:
-  registry, coverage_errors = build_registry()
-  errors = [*coverage_errors, *validate_registry(registry)]
-  if errors:
-    print("packages/*/converter-capabilities.json are invalid:")
-    for err in errors:
-      print(f"- {err}")
-    raise SystemExit(1)
+    registry, coverage_errors = build_registry()
+    errors = [*coverage_errors, *validate_registry(registry)]
+    if errors:
+        print("packages/*/converter-capabilities.json are invalid:")
+        for err in errors:
+            print(f"- {err}")
+        raise SystemExit(1)
 
-  OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-  markdown = _render_markdown(registry)
-  OUTPUT_MD.write_text(markdown, encoding="utf-8")
-  print(f"Wrote {OUTPUT_MD}")
+    markdown = _render_markdown(registry)
+    OUTPUT_MD.write_text(markdown, encoding="utf-8")
+    print(f"Wrote {OUTPUT_MD}")
 
-  OUTPUT_JSON.write_text(_render_json(registry), encoding="utf-8")
-  print(f"Wrote {OUTPUT_JSON}")
+    OUTPUT_JSON.write_text(_render_json(registry), encoding="utf-8")
+    print(f"Wrote {OUTPUT_JSON}")
 
 
 if __name__ == "__main__":

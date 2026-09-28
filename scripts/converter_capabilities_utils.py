@@ -121,7 +121,9 @@ def build_registry(packages_dir: Path | None = None) -> tuple[dict, list[str]]:
 
         conv_id = loaded.data.get("id")
         if isinstance(conv_id, str) and conv_id != loaded.package_name:
-            errors.append(f"{rel_path}: id '{conv_id}' does not match package directory 'packages/{loaded.package_name}'")
+            errors.append(
+                f"{rel_path}: id '{conv_id}' does not match package directory 'packages/{loaded.package_name}'"
+            )
 
         converters.append(loaded.data)
 
@@ -228,11 +230,15 @@ def validate_registry(registry: dict) -> list[str]:
             versions = import_block.get("produces_evo_schema_versions")
             if versions is not None:
                 if not _is_object_schema_versions(versions):
-                    errors.append(f"{context}.import.produces_evo_schema_versions must map object slugs to non-empty version lists")
+                    errors.append(
+                        f"{context}.import.produces_evo_schema_versions must map object slugs to non-empty version lists"
+                    )
                 elif _is_list_of_strings(import_block.get("produces_evo_objects")) and not set(versions).issubset(
                     import_block["produces_evo_objects"]
                 ):
-                    errors.append(f"{context}.import.produces_evo_schema_versions keys must appear in produces_evo_objects")
+                    errors.append(
+                        f"{context}.import.produces_evo_schema_versions keys must appear in produces_evo_objects"
+                    )
 
         export_block = conv.get("export")
         if not isinstance(export_block, dict):
@@ -245,11 +251,15 @@ def validate_registry(registry: dict) -> list[str]:
             versions = export_block.get("supports_evo_schema_versions")
             if versions is not None:
                 if not _is_object_schema_versions(versions):
-                    errors.append(f"{context}.export.supports_evo_schema_versions must map object slugs to non-empty version lists")
+                    errors.append(
+                        f"{context}.export.supports_evo_schema_versions must map object slugs to non-empty version lists"
+                    )
                 elif _is_list_of_strings(export_block.get("supports_evo_objects")) and not set(versions).issubset(
                     export_block["supports_evo_objects"]
                 ):
-                    errors.append(f"{context}.export.supports_evo_schema_versions keys must appear in supports_evo_objects")
+                    errors.append(
+                        f"{context}.export.supports_evo_schema_versions keys must appear in supports_evo_objects"
+                    )
 
     return errors
 
