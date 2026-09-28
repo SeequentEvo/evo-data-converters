@@ -1,28 +1,150 @@
 # Changelog
 
-## evo-data-converters-image@v0.1.4
-Align converter output with regular-2d-grid bottom-left origin convention
-
-## evo-data-converters-image@v0.1.3
-Align converter output with regular-2d-grid bottom-left origin convention
-
-## evo-data-converters-image@v0.1.2
-
-## evo-data-converters-shp@v0.1.0
-<!-- Release notes generated using configuration in .github/release.yml at evo-data-converters-shp@v0.1.0 -->
+## evo-data-converters-duf@v0.5.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
-* Add shapefile to triangle mesh converter. by @DBrownSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/187
+### Other Changes
+* DUF Demo - Advance Selection by @shivangj-10 in https://github.com/SeequentEvo/evo-data-converters/pull/233
 
-## New Contributors
-* @DBrownSeequent made their first contribution in https://github.com/SeequentEvo/evo-data-converters/pull/187
 
-**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.1...evo-data-converters-shp@v0.1.0
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-duf@v0.4.0...evo-data-converters-duf@v0.5.0
 
-## evo-data-converters-xyz@v0.1.0
-Releasing first batch of XYZ files
+## evo-data-converters-duf@v0.4.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
 
-## evo-data-converters-image@v0.1.1
+## What's Changed
+### Other Changes
+* Duf configure object names by @daniel-kinney-seequent in https://github.com/SeequentEvo/evo-data-converters/pull/224
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.8...evo-data-converters-duf@v0.4.0
+
+## evo-data-converters-image@v0.1.8
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* making uuid consistent with the data in https://github.com/SeequentEvo/evo-data-converters/pull/229
+* Add embedded GeoTIFF georeferencing extraction for origin/cell_size by @NataliiaKonkina in https://github.com/SeequentEvo/evo-data-converters/pull/231
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.7...evo-data-converters-image@v0.1.8
+
+## evo-data-converters-image@v0.1.7
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Incorrect automatic assignment of WGS84 (EPSG 4326) to images lacking… by @NataliiaKonkina in https://github.com/SeequentEvo/evo-data-converters/pull/225
+* Guard against missing attribute by @daniel-kinney-seequent in https://github.com/SeequentEvo/evo-data-converters/pull/228
+* add TIFF and BigTIFF support with robust CRS and band handling by @NataliiaKonkina in https://github.com/SeequentEvo/evo-data-converters/pull/226
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-obj@v0.1.1...evo-data-converters-image@v0.1.7
+
+## evo-data-converters-obj@v0.1.1
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-obj
+* Catch ValueError during OBJ loading, and treat it as an invalid OBJ file by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/221
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-obj@v0.1.0...evo-data-converters-obj@v0.1.1
+
+## evo-data-converters-xyz@v0.1.3
+<!-- Release notes generated using configuration in .github/release.yml at evo-data-converters-xyz@v0.1.3 -->
+
+## What's Changed
+### evo-data-converters-xyz
+* Creating an Optional Coordinate System (EPSG) Parameter Input for XYZ Evo Converter by @EricRoma in https://github.com/SeequentEvo/evo-data-converters/pull/220
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-xyz@v0.1.2...evo-data-converters-xyz@v0.1.3
+
+## evo-data-converters-ubc@v0.2.1
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-ubc
+* chore(ubc): bump version to 0.1.5 and update lockfile by @NataliiaKonkina in https://github.com/SeequentEvo/evo-data-converters/pull/217
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-ubc@v0.2.0...evo-data-converters-ubc@v0.2.1
+
+## evo-data-converters-vtk@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-vtk
+* Add support for numpy 2 within converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/176
+* Specific CRS exception class by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/186
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-vtk@v0.1.4...evo-data-converters-vtk@v0.2.0
+
+## evo-data-converters-ubc@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-ubc
+* Add support for numpy 2 within converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/176
+* Specific CRS exception class by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/186
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-ubc@v0.1.4...evo-data-converters-ubc@v0.2.0
+
+## evo-data-converters-resqml@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-resqml
+* Specific CRS exception class by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/186
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-resqml@v0.1.4...evo-data-converters-resqml@v0.2.0
+
+## evo-data-converters-omf@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-omf
+* Add support for numpy 2 within converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/176
+* Specific CRS exception class by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/186
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-omf@v0.1.6...evo-data-converters-omf@v0.2.0
+
+## evo-data-converters-obj@v0.1.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-obj
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-obj@v0.0.3...evo-data-converters-obj@v0.1.0
+
+## evo-data-converters-gocad@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Add support for numpy 2 within converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/176
+* Specific CRS exception class by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/186
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-gocad@v0.1.4...evo-data-converters-gocad@v0.2.0
+
+## evo-data-converters-duf@v0.3.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-duf
+* Remove memory guard by @daniel-kinney-seequent in https://github.com/SeequentEvo/evo-data-converters/pull/167
+* Add support for numpy 2 within converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/176
+* Specific CRS exception class by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/186
+* Support providing WKT2 an unspecifed CRS to a bunch of converters by @BenLewis-Seequent in https://github.com/SeequentEvo/evo-data-converters/pull/211
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-duf@v0.2.2...evo-data-converters-duf@v0.3.0
 
 ## evo-data-converters-obj@v0.0.3
 <!-- Release notes generated using configuration in .github/release.yml at main -->
