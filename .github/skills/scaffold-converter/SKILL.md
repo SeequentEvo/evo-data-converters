@@ -40,7 +40,9 @@ have this file or the `converter-capabilities` CI job and
 `uv run --project packages/common python -m scripts.manage_converter_capabilities validate`
 fail coverage validation. Update the stub's fields as you implement the converter, and see
 [`docs/converter-capabilities-editing.md`](../../../docs/converter-capabilities-editing.md) for
-the full editing/validation workflow.
+the full editing/validation workflow. In `produces_evo_objects` and `supports_evo_objects`, use
+Geoscience Object Service object-type slugs (for example, `triangle-mesh`), not Python class names
+such as `TriangleMesh`.
 
 To run it non-interactively (recommended for agents), pass both answers as flags:
 
