@@ -19,9 +19,9 @@
       "WellboreTrajectoryRepresentation"
     ],
     "produces_evo_objects": [
-      "UnstructuredHexGrid",
-      "TriangleMesh",
-      "DownholeIntervals"
+      "unstructured-hex-grid",
+      "triangle-mesh",
+      "downhole-intervals"
     ]
   },
   "export": {

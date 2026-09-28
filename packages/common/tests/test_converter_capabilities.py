@@ -256,7 +256,7 @@ class TestRender:
 
         document = json.loads(render_module._render_json(registry))
 
-        assert document["$schema"] == "./converter-capabilities.schema.json"
+        assert document["$schema"] == "../converter-capabilities.schema.json"
         assert document["schema_version"] == "1.0"
         assert len(document["converters"]) == 1
         rendered_entry = document["converters"][0]

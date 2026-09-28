@@ -20,7 +20,7 @@ outputs — **do not edit either by hand**; regenerate them instead (step 3):
 - [docs/converter-capabilities.json](../docs/converter-capabilities.json) — machine-readable export for
   external consumers (e.g. the developer portal, or another service that wants to know what a converter
   supports) that don't want to parse per-package files or depend on this repo's Python packages. It
-  validates against [docs/converter-capabilities.schema.json](../docs/converter-capabilities.schema.json)
+  validates against the shared [converter-capabilities.schema.json](../converter-capabilities.schema.json)
   and is fetchable directly, e.g. via the raw GitHub content URL for this file on `main`.
 
 Ownership of `packages/<id>/converter-capabilities.json` follows the existing
@@ -92,7 +92,7 @@ running instance of these converters — should read
 [`docs/converter-capabilities.json`](../docs/converter-capabilities.json) rather than parsing Markdown
 or depending on individual `packages/*/converter-capabilities.json` files. It's regenerated from those
 files on every merge to `main` and validates against
-[`docs/converter-capabilities.schema.json`](../docs/converter-capabilities.schema.json). A Python
+[`converter-capabilities.schema.json`](../converter-capabilities.schema.json). A Python
 service could instead depend on `evo-data-converters-common` directly if it already needs that
 dependency, but the generated JSON has no such requirement.
 

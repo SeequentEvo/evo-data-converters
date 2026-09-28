@@ -23,7 +23,7 @@
       "Colour images"
     ],
     "produces_evo_objects": [
-      "Regular2DGrid"
+      "regular-2d-grid"
     ]
   },
   "export": {

@@ -16,7 +16,7 @@
       "GOCAD voxel grid"
     ],
     "produces_evo_objects": [
-      "Regular3DGrid"
+      "regular-3d-grid"
     ]
   },
   "export": {

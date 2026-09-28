@@ -19,7 +19,7 @@
       "Multipatch shapefiles without rings"
     ],
     "produces_evo_objects": [
-      "TriangleMesh"
+      "triangle-mesh"
     ]
   },
   "export": {

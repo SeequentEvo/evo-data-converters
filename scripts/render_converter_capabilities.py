@@ -67,14 +67,14 @@ def _render_markdown(registry: dict) -> str:
 
 
 def _render_json(registry: dict) -> str:
-    # Machine-readable export for external consumers (e.g. the developer portal); "$schema"
-    # is a per-file editor hint and isn't meaningful on the aggregated collection, so it's dropped.
+    # Package-local schema hints have the wrong relative path for this aggregate, so use the
+    # shared root schema with a path relative to docs/.
     converters = [
         normalize_converter_entry({k: v for k, v in conv.items() if k != "$schema"})
         for conv in sorted(registry["converters"], key=lambda c: c["id"])
     ]
     document = {
-        "$schema": "./converter-capabilities.schema.json",
+        "$schema": "../converter-capabilities.schema.json",
         "schema_version": registry["schema_version"],
         "converters": converters,
     }

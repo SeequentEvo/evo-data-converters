@@ -20,7 +20,7 @@
       "Geosoft Binary/Triplet variants"
     ],
     "produces_evo_objects": [
-      "Pointset"
+      "pointset"
     ]
   },
   "export": {

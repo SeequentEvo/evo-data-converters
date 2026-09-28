@@ -22,12 +22,12 @@
       "vtkUnstructuredGrid"
     ],
     "produces_evo_objects": [
-      "Regular3DGrid",
-      "RegularMasked3DGrid",
-      "Tensor3DGrid",
-      "UnstructuredTetGrid",
-      "UnstructuredHexGrid",
-      "UnstructuredGrid"
+      "regular-3d-grid",
+      "regular-masked-3d-grid",
+      "tensor-3d-grid",
+      "unstructured-tet-grid",
+      "unstructured-hex-grid",
+      "unstructured-grid"
     ]
   },
   "export": {

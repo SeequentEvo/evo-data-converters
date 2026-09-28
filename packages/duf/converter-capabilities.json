@@ -18,8 +18,8 @@
       "Polyline"
     ],
     "produces_evo_objects": [
-      "TriangleMesh",
-      "LineSegments"
+      "triangle-mesh",
+      "line-segments"
     ]
   },
   "export": {

@@ -19,7 +19,7 @@
       "UBC mesh + numeric property files"
     ],
     "produces_evo_objects": [
-      "Tensor3DGrid"
+      "tensor-3d-grid"
     ]
   },
   "export": {

@@ -2,8 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://seequent.com/schemas/evo-data-converters/converter-capabilities.schema.json",
   "title": "Converter Capabilities",
-  "description": "Schema for a single package-local packages/<id>/converter-capabilities.json file.",
-  "$ref": "#/$defs/converter",
+  "description": "Schema for either a single package-local converter capability file or the generated converter capabilities collection.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/converter"
+    },
+    {
+      "$ref": "#/$defs/collection"
+    }
+  ],
   "$defs": {
     "ioBlock": {
       "type": "object",
@@ -24,13 +31,15 @@
         "produces_evo_objects": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "description": "Use the Geoscience Object Service object-type slug (for example, triangle-mesh). Label metadata outputs that are not Geoscience Object Service object types explicitly."
           }
         },
         "supports_evo_objects": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "description": "Use the Geoscience Object Service object-type slug (for example, triangle-mesh). Label metadata outputs that are not Geoscience Object Service object types explicitly."
           }
         }
       }
@@ -118,6 +127,29 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "converters"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "converters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/converter"
           }
         }
       }

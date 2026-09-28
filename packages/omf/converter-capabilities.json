@@ -19,18 +19,18 @@
       "OMF BlockModel"
     ],
     "produces_evo_objects": [
-      "Pointset",
-      "TriangleMesh",
-      "LineSegments",
+      "pointset",
+      "triangle-mesh",
+      "line-segments",
       "BlockSync block model metadata"
     ]
   },
   "export": {
     "supported": true,
     "supports_evo_objects": [
-      "TriangleMesh",
-      "LineSegments",
-      "Pointset",
+      "triangle-mesh",
+      "line-segments",
+      "pointset",
       "BlockSync block models"
     ]
   },
