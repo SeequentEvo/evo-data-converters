@@ -1,0 +1,59 @@
+{
+  "agsiModel": [
+    {
+      "modelID": "00000000-0000-0000-0000-000000000001",
+      "modelName": "Silvertown mini (v0.6 test fixture)",
+      "modelType": "Geotechnical model",
+      "category": "Observational",
+      "agsiModelElement": [
+        {
+          "elementID": "Profile Surficial Alignment NB",
+          "description": "Profile follows 'NB' alignment and 'Surficial' surface",
+          "elementType": "Geological unit",
+          "agsiGeometry": {
+            "description": "Surficial",
+            "agsiGeometryTop": {
+              "description": "Top of Surficial",
+              "geometryType": "Profile",
+              "fileFormat": "WKT",
+              "fileURI": "Profiles/NB-01-Surficial-Top.txt",
+              "revision": "P1",
+              "revisionInfo": "Trimmed for tests",
+              "remarks": "Top of Surficial"
+            },
+            "agsiGeometryBottom": {
+              "description": "Base of Surficial",
+              "geometryType": "Profile",
+              "fileFormat": "WKT",
+              "fileURI": "Profiles/NB-01-Surficial-Base.txt",
+              "revision": "P1",
+              "revisionInfo": "Trimmed for tests",
+              "remarks": "Base of Surficial"
+            },
+            "remarks": "Some remarks"
+          },
+          "geometryObject": "agsiGeometryAreaFromLines"
+        },
+        {
+          "elementID": "Profile Alluvium Alignment NB",
+          "description": "Profile follows 'NB' alignment and 'Alluvium' surface",
+          "elementType": "Geological unit",
+          "agsiGeometry": {
+            "description": "Alluvium",
+            "agsiGeometryTop": {
+              "description": "Top of Alluvium",
+              "geometryType": "Profile",
+              "fileFormat": "WKT",
+              "fileURI": "Profiles/NB-02-Alluvium-Top.txt",
+              "revision": "P1",
+              "revisionInfo": "Trimmed for tests",
+              "remarks": "Top of Alluvium"
+            },
+            "remarks": "Some remarks"
+          },
+          "geometryObject": "agsiGeometryAreaFromLines"
+        }
+      ]
+    }
+  ]
+}

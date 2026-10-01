@@ -1,0 +1,113 @@
+{
+  "agsSchema": {
+    "name": "AGSi",
+    "version": "1.0.1",
+    "link": "https://ags-data-format-wg.gitlab.io/agsi/agsi_standard/1.0.1/"
+  },
+  "agsFile": {
+    "fileID": "test-file-1",
+    "title": "AGSi 1.0.1 minimal test fixture",
+    "producedBy": "evo-data-converters tests",
+    "fileURI": "model.json"
+  },
+  "agsProject": {
+    "projectID": "P1",
+    "projectName": "Test project",
+    "agsProjectCoordinateSystem": [
+      {
+        "systemID": "CS-LOCAL",
+        "description": "Local section coordinates",
+        "systemType": "XZ",
+        "systemNameXY": "Chainage",
+        "systemNameZ": "Elevation",
+        "axisUnitsXY": "m",
+        "axisUnitsZ": "m"
+      },
+      {
+        "systemID": "CS-BNG",
+        "description": "Model coordinate system",
+        "systemType": "XYZ",
+        "systemNameXY": "British National Grid",
+        "systemNameZ": "Ordnance Datum Newlyn",
+        "axisUnitsXY": "m",
+        "axisUnitsZ": "mOD",
+        "globalXYSystem": "EPSG:27700"
+      }
+    ]
+  },
+  "agsiModel": [
+    {
+      "modelID": "00000000-0000-0000-0000-000000000002",
+      "modelName": "Minimal 3D model",
+      "coordSystemID": "CS-BNG",
+      "modelType": "Geological model",
+      "category": "Observational",
+      "alignmentID": "NB",
+      "agsiModelAlignment": [
+        {
+          "alignmentID": "NB",
+          "alignmentName": "Northbound",
+          "startChainage": 100.0,
+          "agsiGeometry": {
+            "geometryID": "GEOM-NB",
+            "geometryType": "Line",
+            "fileFormat": "WKT",
+            "fileURI": "Alignments/nb-alignment.wkt"
+          }
+        }
+      ],
+      "agsiModelBoundary": {
+        "boundaryID": "BND",
+        "minX": 539500,
+        "maxX": 539700,
+        "minY": 180000,
+        "maxY": 180200,
+        "topElevation": 10,
+        "bottomElevation": -50
+      },
+      "agsiModelElement": [
+        {
+          "elementID": "ALV",
+          "elementName": "Alluvium",
+          "elementType": "Geological unit",
+          "geometryObject": "agsiGeometryVolFromSurfaces",
+          "agsiGeometry": {
+            "geometryID": "GEOM-ALV",
+            "agsiGeometryTop": {
+              "geometryID": "GEOM-ALV-TOP",
+              "geometryType": "Surface",
+              "fileFormat": "WKT",
+              "fileURI": "Surfaces/alluvium-top.wkt"
+            },
+            "agsiGeometryBottom": {
+              "geometryID": "GEOM-ALV-BASE",
+              "elevation": -5.0
+            }
+          },
+          "agsiDataParameterValue": [
+            {
+              "codeID": "UnitWeightBulk",
+              "caseID": "Characteristic",
+              "valueNumeric": 18.0
+            }
+          ],
+          "colourRGB": "#a0522d",
+          "vendorExtension": {
+            "source": "tests"
+          }
+        },
+        {
+          "elementID": "LC",
+          "elementName": "London Clay",
+          "elementType": "Geological unit",
+          "geometryObject": "agsiGeometryLayer",
+          "agsiGeometry": {
+            "geometryID": "GEOM-LC",
+            "topElevation": -5.0,
+            "bottomElevation": -30.0
+          }
+        }
+      ]
+    }
+  ]
+}
