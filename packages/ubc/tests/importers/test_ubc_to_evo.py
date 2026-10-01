@@ -45,6 +45,7 @@ def test_convert_ubc_success() -> None:
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
     tags = {"tag1": "value1"}
     upload_path = "upload/path"
+    nanList = []
 
     mock_geoscience_object = MagicMock(spec=BaseSpatialDataProperties_V1_0_1)
     mock_metadata = MagicMock(spec=ObjectMetadata)
@@ -78,6 +79,7 @@ def test_convert_ubc_success() -> None:
             epsg_code=epsg_code,
             coordinate_reference_system=coordinate_reference_system,
             tags=tags,
+            NaNList=nanList,
         )
         mock_publish.assert_called_once_with(
             [mock_geoscience_object],
