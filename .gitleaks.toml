@@ -1,0 +1,13 @@
+title = "Seequent EVO data converters rules"
+[extend]
+useDefault = true
+
+[[rules]]
+id = "no-user-paths"
+description = "Detect personal usernames."
+regex = '''/(home|Users)/([a-z0-9]+)/'''
+
+[[rules]]
+id = "seequent-evo-token"
+description = "Detect Seequent Evo token patterns"
+regex = '''((?:service|spa|webapp)-[A-z0-9]{12,})\b'''

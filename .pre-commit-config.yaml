@@ -12,3 +12,7 @@ repos:
     hooks:
       - id: nbstripout
         name: Strip outputs from Jupyter notebooks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
