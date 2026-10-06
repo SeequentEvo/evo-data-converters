@@ -128,7 +128,7 @@ def build_registry(packages_dir: Path | None = None) -> tuple[dict, list[str]]:
         converters.append(loaded.data)
 
     registry = {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
         "converters": sorted(converters, key=lambda c: c.get("id", "")),
     }
     return registry, errors
@@ -136,6 +136,21 @@ def build_registry(packages_dir: Path | None = None) -> tuple[dict, list[str]]:
 
 def _is_list_of_strings(value: object) -> bool:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def _is_extension_requirements(value: object) -> bool:
+    if not isinstance(value, dict) or set(value) - {"anyOf", "allOf", "optional"}:
+        return False
+    modes = set(value) & {"anyOf", "allOf"}
+    if len(modes) != 1:
+        return False
+    mode = next(iter(modes))
+    if not value[mode]:
+        return False
+    return all(
+        _is_list_of_strings(extensions) and all(extensions) and len(extensions) == len(set(extensions))
+        for extensions in value.values()
+    )
 
 
 def _is_object_schema_versions(value: object) -> bool:
@@ -211,8 +226,11 @@ def validate_registry(registry: dict) -> list[str]:
             errors.append(f"{context}.status must be one of: {sorted(ALLOWED_STATUS)}")
 
         extensions = conv.get("extensions")
-        if not _is_list_of_strings(extensions) or not extensions:
-            errors.append(f"{context}.extensions must be a non-empty list of strings")
+        if not _is_extension_requirements(extensions):
+            errors.append(
+                f"{context}.extensions must contain exactly one non-empty anyOf or allOf list,"
+                " with an optional companion list; lists must contain unique non-empty strings and no unknown fields"
+            )
 
         for array_field in ("platform", "limitations"):
             if not _is_list_of_strings(conv.get(array_field)):

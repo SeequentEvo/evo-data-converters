@@ -4,9 +4,9 @@
   "name": "GOCAD",
   "package": "evo-data-converters-gocad",
   "status": "implemented",
-  "extensions": [
-    ".vo"
-  ],
+  "extensions": {
+    "anyOf": [".vo"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],

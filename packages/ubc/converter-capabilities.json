@@ -4,12 +4,10 @@
   "name": "UBC",
   "package": "evo-data-converters-ubc",
   "status": "implemented",
-  "extensions": [
-    ".msh",
-    ".mod",
-    ".sus",
-    ".den"
-  ],
+  "extensions": {
+    "allOf": [".msh"],
+    "optional": [".mod", ".sus", ".den"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],
@@ -30,6 +28,7 @@
     "supports_evo_objects": []
   },
   "limitations": [
-    "Requires exactly one .msh mesh file per conversion call."
+    "Requires exactly one .msh mesh file per conversion call.",
+    "Optional property extensions .mod, .sus, and .den are conventional examples; other non-.msh extensions are accepted."
   ]
 }

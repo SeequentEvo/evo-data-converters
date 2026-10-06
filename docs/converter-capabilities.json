@@ -1,15 +1,17 @@
 {
   "$schema": "../converter-capabilities.schema.json",
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "converters": [
     {
       "id": "duf",
       "name": "DUF",
       "package": "evo-data-converters-duf",
       "status": "implemented",
-      "extensions": [
-        ".duf"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".duf"
+        ]
+      },
       "platform": [
         "Windows only",
         "Requires Deswik Spatial and compatible .NET runtime"
@@ -48,9 +50,11 @@
       "name": "GOCAD",
       "package": "evo-data-converters-gocad",
       "status": "implemented",
-      "extensions": [
-        ".vo"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".vo"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],
@@ -81,15 +85,17 @@
       "name": "Image",
       "package": "evo-data-converters-image",
       "status": "implemented",
-      "extensions": [
-        ".jpeg",
-        ".jpg",
-        ".png",
-        ".tif",
-        ".tiff",
-        ".bmp",
-        ".gif"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".jpeg",
+          ".jpg",
+          ".png",
+          ".tif",
+          ".tiff",
+          ".bmp",
+          ".gif"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],
@@ -121,9 +127,11 @@
       "name": "OBJ",
       "package": "evo-data-converters-obj",
       "status": "implemented",
-      "extensions": [
-        ".obj"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".obj"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)",
         "TinyOBJ backend requires optional extra installation"
@@ -167,9 +175,11 @@
       "name": "OMF",
       "package": "evo-data-converters-omf",
       "status": "implemented",
-      "extensions": [
-        ".omf"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".omf"
+        ]
+      },
       "platform": [
         "Cross-platform with native build tool requirements"
       ],
@@ -232,10 +242,12 @@
       "name": "RESQML",
       "package": "evo-data-converters-resqml",
       "status": "implemented",
-      "extensions": [
-        ".epc",
-        ".xml"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".epc",
+          ".xml"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],
@@ -278,12 +290,16 @@
       "name": "SHP",
       "package": "evo-data-converters-shp",
       "status": "implemented",
-      "extensions": [
-        ".shp",
-        ".shx",
-        ".dbf",
-        ".prj"
-      ],
+      "extensions": {
+        "allOf": [
+          ".shp",
+          ".shx",
+          ".dbf"
+        ],
+        "optional": [
+          ".prj"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],
@@ -315,12 +331,16 @@
       "name": "UBC",
       "package": "evo-data-converters-ubc",
       "status": "implemented",
-      "extensions": [
-        ".msh",
-        ".mod",
-        ".sus",
-        ".den"
-      ],
+      "extensions": {
+        "allOf": [
+          ".msh"
+        ],
+        "optional": [
+          ".mod",
+          ".sus",
+          ".den"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],
@@ -343,7 +363,8 @@
         "supports_evo_objects": []
       },
       "limitations": [
-        "Requires exactly one .msh mesh file per conversion call."
+        "Requires exactly one .msh mesh file per conversion call.",
+        "Optional property extensions .mod, .sus, and .den are conventional examples; other non-.msh extensions are accepted."
       ]
     },
     {
@@ -351,13 +372,15 @@
       "name": "VTK",
       "package": "evo-data-converters-vtk",
       "status": "implemented",
-      "extensions": [
-        ".vti",
-        ".vtr",
-        ".vtu",
-        ".vtm",
-        ".xml"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".vti",
+          ".vtr",
+          ".vtu",
+          ".vtm",
+          ".xml"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],
@@ -412,10 +435,12 @@
       "name": "XYZ",
       "package": "evo-data-converters-xyz",
       "status": "implemented",
-      "extensions": [
-        ".xyz",
-        ".XYZ"
-      ],
+      "extensions": {
+        "anyOf": [
+          ".xyz",
+          ".XYZ"
+        ]
+      },
       "platform": [
         "Cross-platform (Python)"
       ],

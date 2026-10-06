@@ -19,6 +19,15 @@ def _join(items: list[str]) -> str:
     return ", ".join(items) if items else "-"
 
 
+def _format_extensions(requirements: dict[str, list[str]]) -> str:
+    mode = "anyOf" if "anyOf" in requirements else "allOf"
+    label = "Any of" if mode == "anyOf" else "All of"
+    result = f"{label}: {_join(requirements[mode])}"
+    if requirements.get("optional"):
+        result += f"; Optional: {_join(requirements['optional'])}"
+    return result
+
+
 def _format_schema_versions(versions: dict[str, list[str]] | None) -> str:
     if not versions:
         return "-"
@@ -43,7 +52,7 @@ def _render_markdown(registry: dict) -> str:
             + " | "
             + _yes_no(conv["export"]["supported"])
             + " | "
-            + _join(conv.get("extensions", []))
+            + _format_extensions(conv["extensions"])
             + " | "
             + _join(conv["import"]["produces_evo_objects"])
             + " | "
@@ -59,7 +68,7 @@ def _render_markdown(registry: dict) -> str:
         lines.append(f"- Status: `{conv['status']}`\n")
         lines.append(f"- Import supported: `{_yes_no(conv['import']['supported'])}`\n")
         lines.append(f"- Export supported: `{_yes_no(conv['export']['supported'])}`\n")
-        lines.append(f"- Extensions: {_join(conv.get('extensions', []))}\n")
+        lines.append(f"- Extensions: {_format_extensions(conv['extensions'])}\n")
         lines.append(f"- Platform/runtime notes: {_join(conv.get('platform', []))}\n")
         lines.append(f"- Import source types: {_join(conv['import']['source_types'])}\n")
         lines.append(f"- Evo objects produced: {_join(conv['import']['produces_evo_objects'])}\n")

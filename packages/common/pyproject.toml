@@ -48,6 +48,7 @@ test-xyz = "evo.data_converters.common._dev_tasks:test_package"
 [dependency-groups]
 dev = [
     "pytest>=8.2",
+    "jsonschema>=4.18",
     "ruff==0.9.1",    # keep in sync with .pre-commit-config.yaml
     "requests-mock",
     "mypy",

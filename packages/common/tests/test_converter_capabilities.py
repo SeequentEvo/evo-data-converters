@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 import scripts.render_converter_capabilities as render_module
+from jsonschema import Draft202012Validator
 from scripts.converter_capabilities_utils import (
     REPO_ROOT,
     build_registry,
@@ -30,7 +31,7 @@ VALID_ENTRY = {
     "name": "Widget",
     "package": "evo-data-converters-widget",
     "status": "implemented",
-    "extensions": [".widget"],
+    "extensions": {"anyOf": [".widget"]},
     "platform": ["Cross-platform (Python)"],
     "import": {"supported": True, "source_types": ["Widget"], "produces_evo_objects": ["Pointset"]},
     "export": {"supported": False, "supports_evo_objects": []},
@@ -95,6 +96,7 @@ class TestBuildRegistry:
 
         assert errors == []
         assert [c["id"] for c in registry["converters"]] == ["widget"]
+        assert registry["schema_version"] == "2.0"
 
     def test_excludes_common(self, tmp_path: Path) -> None:
         _make_package(tmp_path, "common")
@@ -106,6 +108,48 @@ class TestBuildRegistry:
 
 
 class TestValidateRegistry:
+    @pytest.mark.parametrize(
+        "extensions",
+        [
+            {"anyOf": [".csv", ".txt"]},
+            {"allOf": [".shp", ".shx", ".dbf"], "optional": [".prj"]},
+            {"anyOf": [".png"], "optional": []},
+        ],
+    )
+    def test_accepts_extension_requirements(self, extensions: dict) -> None:
+        entry = {**VALID_ENTRY, "extensions": extensions}
+        schema = json.loads((REPO_ROOT / "converter-capabilities.schema.json").read_text(encoding="utf-8"))
+
+        assert validate_registry({"schema_version": "1.0", "converters": [entry]}) == []
+        Draft202012Validator.check_schema(schema)
+        assert Draft202012Validator(schema).is_valid(entry)
+
+    @pytest.mark.parametrize(
+        "extensions",
+        [
+            [".csv"],
+            {},
+            {"optional": [".prj"]},
+            {"anyOf": []},
+            {"allOf": []},
+            {"anyOf": [".csv"], "allOf": [".txt"]},
+            {"anyOf": [""]},
+            {"anyOf": [".csv", ".csv"]},
+            {"anyOf": ".csv"},
+            {"anyOf": [None]},
+            {"anyOf": [".csv"], "optional": [""]},
+            {"anyOf": [".csv"], "optional": [".prj", ".prj"]},
+            {"anyOf": [".csv"], "optional": None},
+            {"anyOf": [".csv"], "unknown": []},
+        ],
+    )
+    def test_rejects_invalid_extension_requirements(self, extensions: object) -> None:
+        entry = {**VALID_ENTRY, "extensions": extensions}
+        schema = json.loads((REPO_ROOT / "converter-capabilities.schema.json").read_text(encoding="utf-8"))
+
+        assert any(".extensions" in error for error in validate_registry({"converters": [entry]}))
+        assert not Draft202012Validator(schema).is_valid(entry)
+
     def test_detects_duplicate_ids(self) -> None:
         registry = {
             "schema_version": "1.0",
@@ -153,6 +197,16 @@ class TestValidateRegistry:
 
 
 class TestValidateAll:
+    def test_repo_manifests_and_collection_match_json_schema(self) -> None:
+        schema = json.loads((REPO_ROOT / "converter-capabilities.schema.json").read_text(encoding="utf-8"))
+        validator = Draft202012Validator(schema)
+        registry, errors = build_registry()
+
+        assert errors == []
+        validator.validate(registry)
+        for entry in registry["converters"]:
+            validator.validate(entry)
+
     def test_repo_packages_are_all_valid(self) -> None:
         # Exercise the real repository state (no packages_dir override) as an integration check.
         errors = validate_all()
@@ -243,6 +297,7 @@ class TestCmdAdd:
         data = json.loads(capability_path.read_text(encoding="utf-8"))
         assert data["id"] == "widget"
         assert data["status"] == "planned"
+        assert data["extensions"] == {"anyOf": [".ext"]}
 
 
 def test_root_registry_file_removed() -> None:
@@ -255,6 +310,27 @@ def test_cmd_validate_passes_for_real_repo(capsys: pytest.CaptureFixture) -> Non
 
 
 class TestRender:
+    @pytest.mark.parametrize(
+        ("extensions", "expected"),
+        [
+            ({"anyOf": [".csv", ".txt"]}, "Any of: .csv, .txt"),
+            (
+                {"allOf": [".shp", ".shx", ".dbf"], "optional": [".prj"]},
+                "All of: .shp, .shx, .dbf; Optional: .prj",
+            ),
+            ({"anyOf": [".png"], "optional": []}, "Any of: .png"),
+        ],
+    )
+    def test_render_extension_requirements(self, extensions: dict, expected: str) -> None:
+        entry = {**VALID_ENTRY, "extensions": extensions}
+        registry = {"schema_version": "2.0", "converters": [entry]}
+
+        markdown = render_module._render_markdown(registry)
+
+        assert f"| Widget | implemented | Yes | No | {expected} |" in markdown
+        assert f"- Extensions: {expected}\n" in markdown
+        assert json.loads(render_module._render_json(registry))["converters"][0]["extensions"] == extensions
+
     def test_render_markdown_lists_each_converter(self) -> None:
         entry = {
             **VALID_ENTRY,

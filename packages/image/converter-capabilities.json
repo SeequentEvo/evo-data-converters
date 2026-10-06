@@ -4,15 +4,9 @@
   "name": "Image",
   "package": "evo-data-converters-image",
   "status": "implemented",
-  "extensions": [
-    ".jpeg",
-    ".jpg",
-    ".png",
-    ".tif",
-    ".tiff",
-    ".bmp",
-    ".gif"
-  ],
+  "extensions": {
+    "anyOf": [".jpeg", ".jpg", ".png", ".tif", ".tiff", ".bmp", ".gif"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],

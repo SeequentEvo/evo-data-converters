@@ -4,13 +4,9 @@
   "name": "VTK",
   "package": "evo-data-converters-vtk",
   "status": "implemented",
-  "extensions": [
-    ".vti",
-    ".vtr",
-    ".vtu",
-    ".vtm",
-    ".xml"
-  ],
+  "extensions": {
+    "anyOf": [".vti", ".vtr", ".vtu", ".vtm", ".xml"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],

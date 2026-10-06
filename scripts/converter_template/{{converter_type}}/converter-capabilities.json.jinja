@@ -4,9 +4,11 @@
   "name": "{{converter_type.upper()}}",
   "package": "evo-data-converters-{{converter_type}}",
   "status": "planned",
-  "extensions": [
-    ".{{converter_type}}"
-  ],
+  "extensions": {
+    "anyOf": [
+      ".{{converter_type}}"
+    ]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],

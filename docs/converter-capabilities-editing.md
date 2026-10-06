@@ -48,6 +48,39 @@ For implemented converters, record exact Geoscience Object Service schema versio
 full `major.minor.patch` versions. Import versions come from the object schema classes constructed
 by the importer; export versions come from the versions the exporter explicitly accepts.
 
+### File extension requirements
+
+`extensions` is an object containing exactly one of `anyOf` or `allOf`, plus an optional
+`optional` list of companion extensions:
+
+- `anyOf`: at least one listed extension is sufficient, e.g. CSV or TXT.
+- `allOf`: every listed extension is required together, e.g. the core shapefile set.
+- `optional`: companion files that are not required for conversion.
+
+Standalone alternatives:
+
+```json
+"extensions": {
+  "anyOf": [".csv", ".txt"]
+}
+```
+
+Required file set with an optional companion:
+
+```json
+"extensions": {
+  "allOf": [".shp", ".shx", ".dbf"],
+  "optional": [".prj"]
+}
+```
+
+The `anyOf` or `allOf` list must be non-empty. All lists contain unique, non-empty strings;
+`optional` may be omitted or empty. Do not specify both `anyOf` and `allOf`.
+
+These names borrow JSON Schema vocabulary but describe capability metadata, not executable
+schemas for validating uploaded files. They do not specify file counts, naming relationships,
+or dependencies referenced inside a file; document those details in limitations when needed.
+
 ## 2. Validate it
 From the repo root:
 

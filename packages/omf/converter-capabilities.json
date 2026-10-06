@@ -4,9 +4,9 @@
   "name": "OMF",
   "package": "evo-data-converters-omf",
   "status": "implemented",
-  "extensions": [
-    ".omf"
-  ],
+  "extensions": {
+    "anyOf": [".omf"]
+  },
   "platform": [
     "Cross-platform with native build tool requirements"
   ],

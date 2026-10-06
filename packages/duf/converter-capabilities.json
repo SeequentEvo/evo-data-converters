@@ -4,9 +4,9 @@
   "name": "DUF",
   "package": "evo-data-converters-duf",
   "status": "implemented",
-  "extensions": [
-    ".duf"
-  ],
+  "extensions": {
+    "anyOf": [".duf"]
+  },
   "platform": [
     "Windows only",
     "Requires Deswik Spatial and compatible .NET runtime"

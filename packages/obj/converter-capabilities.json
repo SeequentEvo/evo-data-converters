@@ -4,9 +4,9 @@
   "name": "OBJ",
   "package": "evo-data-converters-obj",
   "status": "implemented",
-  "extensions": [
-    ".obj"
-  ],
+  "extensions": {
+    "anyOf": [".obj"]
+  },
   "platform": [
     "Cross-platform (Python)",
     "TinyOBJ backend requires optional extra installation"

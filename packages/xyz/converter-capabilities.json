@@ -4,10 +4,9 @@
   "name": "XYZ",
   "package": "evo-data-converters-xyz",
   "status": "implemented",
-  "extensions": [
-    ".xyz",
-    ".XYZ"
-  ],
+  "extensions": {
+    "anyOf": [".xyz", ".XYZ"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],

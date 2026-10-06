@@ -2,16 +2,16 @@
 This page is generated from `packages/*/converter-capabilities.json`.
 | Converter | Status | Import | Export | Extensions | Evo Objects (Import) | Key Limitations |
 |---|---|---|---|---|---|---|
-| DUF | implemented | Yes | No | .duf | triangle-mesh, line-segments | Some DUF geometry types are not supported., TriangleMesh: Per-face colour data is ignored on import., TriangleMesh: Negative face index visibility semantics are ignored; all faces are forced visible. |
-| GOCAD | implemented | Yes | No | .vo | regular-3d-grid | Current converter path is focused on voxel grid data. |
-| Image | implemented | Yes | No | .jpeg, .jpg, .png, .tif, .tiff, .bmp, .gif | regular-2d-grid | No Evo-to-image exporter is currently provided. |
-| OBJ | implemented | Yes | Yes | .obj | triangle-mesh | Export currently supports only triangle-mesh objects (schema classification objects/triangle-mesh, major version 2)., TinyOBJ support depends on a pinned Git installation path., TriangleMesh: Texture/material data on import is ignored., TriangleMesh: Export does not include texture/material payloads. |
-| OMF | implemented | Yes | Yes | .omf | pointset, triangle-mesh, line-segments, BlockSync block model metadata | Some geometry types and geoscience object types are not yet supported., LineSegments: OMF LineSet is mapped to LineSegments; other interpretations such as drillholes or wireframe mesh are not produced. |
-| RESQML | implemented | Yes | No | .epc, .xml | unstructured-hex-grid, triangle-mesh, downhole-intervals | Large grid conversion can be skipped when estimated corner_points memory exceeds configured threshold., UnstructuredHexGrid: Grid properties indexed by non-cell elements (e.g. nodes or faces) are ignored., UnstructuredHexGrid: Grid properties of unknown or unsupported type are ignored. |
-| SHP | implemented | Yes | No | .shp, .shx, .dbf, .prj | triangle-mesh | TriangleMesh: Ring-based multipatch parts (OUTER_RING, INNER_RING, etc.) are not supported., TriangleMesh: NULL shapes (records with associated data but no geometry) are discarded. |
-| UBC | implemented | Yes | No | .msh, .mod, .sus, .den | tensor-3d-grid | Requires exactly one .msh mesh file per conversion call. |
-| VTK | implemented | Yes | No | .vti, .vtr, .vtu, .vtm, .xml | regular-3d-grid, regular-masked-3d-grid, tensor-3d-grid, unstructured-tet-grid, unstructured-hex-grid, unstructured-grid | Only XML VTK files are supported., VTK data object types outside the supported set are skipped with a warning., Individual grid conversion errors are caught per-grid and skipped. |
-| XYZ | implemented | Yes | No | .xyz, .XYZ | pointset | No Evo-to-XYZ exporter is currently provided., For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection. |
+| DUF | implemented | Yes | No | Any of: .duf | triangle-mesh, line-segments | Some DUF geometry types are not supported., TriangleMesh: Per-face colour data is ignored on import., TriangleMesh: Negative face index visibility semantics are ignored; all faces are forced visible. |
+| GOCAD | implemented | Yes | No | Any of: .vo | regular-3d-grid | Current converter path is focused on voxel grid data. |
+| Image | implemented | Yes | No | Any of: .jpeg, .jpg, .png, .tif, .tiff, .bmp, .gif | regular-2d-grid | No Evo-to-image exporter is currently provided. |
+| OBJ | implemented | Yes | Yes | Any of: .obj | triangle-mesh | Export currently supports only triangle-mesh objects (schema classification objects/triangle-mesh, major version 2)., TinyOBJ support depends on a pinned Git installation path., TriangleMesh: Texture/material data on import is ignored., TriangleMesh: Export does not include texture/material payloads. |
+| OMF | implemented | Yes | Yes | Any of: .omf | pointset, triangle-mesh, line-segments, BlockSync block model metadata | Some geometry types and geoscience object types are not yet supported., LineSegments: OMF LineSet is mapped to LineSegments; other interpretations such as drillholes or wireframe mesh are not produced. |
+| RESQML | implemented | Yes | No | Any of: .epc, .xml | unstructured-hex-grid, triangle-mesh, downhole-intervals | Large grid conversion can be skipped when estimated corner_points memory exceeds configured threshold., UnstructuredHexGrid: Grid properties indexed by non-cell elements (e.g. nodes or faces) are ignored., UnstructuredHexGrid: Grid properties of unknown or unsupported type are ignored. |
+| SHP | implemented | Yes | No | All of: .shp, .shx, .dbf; Optional: .prj | triangle-mesh | TriangleMesh: Ring-based multipatch parts (OUTER_RING, INNER_RING, etc.) are not supported., TriangleMesh: NULL shapes (records with associated data but no geometry) are discarded. |
+| UBC | implemented | Yes | No | All of: .msh; Optional: .mod, .sus, .den | tensor-3d-grid | Requires exactly one .msh mesh file per conversion call., Optional property extensions .mod, .sus, and .den are conventional examples; other non-.msh extensions are accepted. |
+| VTK | implemented | Yes | No | Any of: .vti, .vtr, .vtu, .vtm, .xml | regular-3d-grid, regular-masked-3d-grid, tensor-3d-grid, unstructured-tet-grid, unstructured-hex-grid, unstructured-grid | Only XML VTK files are supported., VTK data object types outside the supported set are skipped with a warning., Individual grid conversion errors are caught per-grid and skipped. |
+| XYZ | implemented | Yes | No | Any of: .xyz, .XYZ | pointset | No Evo-to-XYZ exporter is currently provided., For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection. |
 
 ## Detailed Capabilities
 ### DUF
@@ -19,7 +19,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .duf
+- Extensions: Any of: .duf
 - Platform/runtime notes: Windows only, Requires Deswik Spatial and compatible .NET runtime
 - Import source types: Polyface, Polyline
 - Evo objects produced: triangle-mesh, line-segments
@@ -33,7 +33,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .vo
+- Extensions: Any of: .vo
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: GOCAD voxel grid
 - Evo objects produced: regular-3d-grid
@@ -47,7 +47,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .jpeg, .jpg, .png, .tif, .tiff, .bmp, .gif
+- Extensions: Any of: .jpeg, .jpg, .png, .tif, .tiff, .bmp, .gif
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: Grayscale images, Colour images
 - Evo objects produced: regular-2d-grid
@@ -61,7 +61,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `Yes`
-- Extensions: .obj
+- Extensions: Any of: .obj
 - Platform/runtime notes: Cross-platform (Python), TinyOBJ backend requires optional extra installation
 - Import source types: Polygon mesh (via trimesh or tinyobj backend)
 - Evo objects produced: triangle-mesh
@@ -75,7 +75,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `Yes`
-- Extensions: .omf
+- Extensions: Any of: .omf
 - Platform/runtime notes: Cross-platform with native build tool requirements
 - Import source types: OMF PointSet, OMF Surface, OMF LineSet, OMF BlockModel
 - Evo objects produced: pointset, triangle-mesh, line-segments, BlockSync block model metadata
@@ -89,7 +89,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .epc, .xml
+- Extensions: Any of: .epc, .xml
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: IjkGridRepresentation, TriangulatedSetRepresentation, WellboreTrajectoryRepresentation
 - Evo objects produced: unstructured-hex-grid, triangle-mesh, downhole-intervals
@@ -103,7 +103,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .shp, .shx, .dbf, .prj
+- Extensions: All of: .shp, .shx, .dbf; Optional: .prj
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: Multipatch shapefiles without rings
 - Evo objects produced: triangle-mesh
@@ -117,21 +117,21 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .msh, .mod, .sus, .den
+- Extensions: All of: .msh; Optional: .mod, .sus, .den
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: UBC mesh + numeric property files
 - Evo objects produced: tensor-3d-grid
 - Evo schema versions produced: tensor-3d-grid: 1.2.0
 - Evo objects export supports: -
 - Evo schema versions export supports: -
-- Limitations: Requires exactly one .msh mesh file per conversion call.
+- Limitations: Requires exactly one .msh mesh file per conversion call., Optional property extensions .mod, .sus, and .den are conventional examples; other non-.msh extensions are accepted.
 
 ### VTK
 - Package: `evo-data-converters-vtk`
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .vti, .vtr, .vtu, .vtm, .xml
+- Extensions: Any of: .vti, .vtr, .vtu, .vtm, .xml
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: vtkImageData / vtkUniformGrid / vtkStructuredPoints, vtkRectilinearGrid, vtkUnstructuredGrid
 - Evo objects produced: regular-3d-grid, regular-masked-3d-grid, tensor-3d-grid, unstructured-tet-grid, unstructured-hex-grid, unstructured-grid
@@ -145,7 +145,7 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Status: `implemented`
 - Import supported: `Yes`
 - Export supported: `No`
-- Extensions: .xyz, .XYZ
+- Extensions: Any of: .xyz, .XYZ
 - Platform/runtime notes: Cross-platform (Python)
 - Import source types: Points, Binary, Geochemistry (comma/space), Geosoft Binary/Triplet variants
 - Evo objects produced: pointset

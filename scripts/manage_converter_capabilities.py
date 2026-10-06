@@ -18,7 +18,7 @@ def _scaffold_converter_entry(converter_id: str, name: str, status: str) -> dict
         "name": name,
         "package": f"evo-data-converters-{converter_id}",
         "status": status,
-        "extensions": [".ext"],
+        "extensions": {"anyOf": [".ext"]},
         "platform": ["Cross-platform (Python)"],
         "import": {"supported": False, "source_types": [], "produces_evo_objects": []},
         "export": {"supported": False, "supports_evo_objects": []},

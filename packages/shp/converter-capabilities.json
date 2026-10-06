@@ -4,12 +4,10 @@
   "name": "SHP",
   "package": "evo-data-converters-shp",
   "status": "implemented",
-  "extensions": [
-    ".shp",
-    ".shx",
-    ".dbf",
-    ".prj"
-  ],
+  "extensions": {
+    "allOf": [".shp", ".shx", ".dbf"],
+    "optional": [".prj"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],

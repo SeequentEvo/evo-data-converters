@@ -4,10 +4,9 @@
   "name": "RESQML",
   "package": "evo-data-converters-resqml",
   "status": "implemented",
-  "extensions": [
-    ".epc",
-    ".xml"
-  ],
+  "extensions": {
+    "anyOf": [".epc", ".xml"]
+  },
   "platform": [
     "Cross-platform (Python)"
   ],
