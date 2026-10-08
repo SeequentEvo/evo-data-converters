@@ -1,0 +1,38 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "duf",
+  "name": "DUF",
+  "package": "evo-data-converters-duf",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".duf"]
+  },
+  "platform": [
+    "Windows only",
+    "Requires Deswik Spatial and compatible .NET runtime"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "Polyface",
+      "Polyline"
+    ],
+    "produces_evo_objects": [
+      "triangle-mesh",
+      "line-segments"
+    ],
+    "produces_evo_schema_versions": {
+      "triangle-mesh": ["2.1.0"],
+      "line-segments": ["2.1.0"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "Some DUF geometry types are not supported.",
+    "TriangleMesh: Per-face colour data is ignored on import.",
+    "TriangleMesh: Negative face index visibility semantics are ignored; all faces are forced visible."
+  ]
+}

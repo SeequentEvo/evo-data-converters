@@ -1,0 +1,36 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "xyz",
+  "name": "XYZ",
+  "package": "evo-data-converters-xyz",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".xyz", ".XYZ"]
+  },
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "Points",
+      "Binary",
+      "Geochemistry (comma/space)",
+      "Geosoft Binary/Triplet variants"
+    ],
+    "produces_evo_objects": [
+      "pointset"
+    ],
+    "produces_evo_schema_versions": {
+      "pointset": ["1.3.0"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "No Evo-to-XYZ exporter is currently provided.",
+    "For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection."
+  ]
+}

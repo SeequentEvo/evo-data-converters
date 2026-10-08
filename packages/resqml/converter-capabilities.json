@@ -1,0 +1,40 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "resqml",
+  "name": "RESQML",
+  "package": "evo-data-converters-resqml",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".epc", ".xml"]
+  },
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "IjkGridRepresentation",
+      "TriangulatedSetRepresentation",
+      "WellboreTrajectoryRepresentation"
+    ],
+    "produces_evo_objects": [
+      "unstructured-hex-grid",
+      "triangle-mesh",
+      "downhole-intervals"
+    ],
+    "produces_evo_schema_versions": {
+      "unstructured-hex-grid": ["1.1.0"],
+      "triangle-mesh": ["2.0.0"],
+      "downhole-intervals": ["1.1.0"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "Large grid conversion can be skipped when estimated corner_points memory exceeds configured threshold.",
+    "UnstructuredHexGrid: Grid properties indexed by non-cell elements (e.g. nodes or faces) are ignored.",
+    "UnstructuredHexGrid: Grid properties of unknown or unsupported type are ignored."
+  ]
+}

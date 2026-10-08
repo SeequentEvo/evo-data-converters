@@ -1,0 +1,33 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "image",
+  "name": "Image",
+  "package": "evo-data-converters-image",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".jpeg", ".jpg", ".png", ".tif", ".tiff", ".bmp", ".gif"]
+  },
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "Grayscale images",
+      "Colour images"
+    ],
+    "produces_evo_objects": [
+      "regular-2d-grid"
+    ],
+    "produces_evo_schema_versions": {
+      "regular-2d-grid": ["1.3.0"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "No Evo-to-image exporter is currently provided."
+  ]
+}
