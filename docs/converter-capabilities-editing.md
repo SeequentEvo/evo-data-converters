@@ -53,13 +53,10 @@ by the importer; export versions come from the versions the exporter explicitly 
 `extensions` is an object containing exactly one of `anyOf` or `allOf`, plus an optional
 `optional` list of companion extensions:
 
-- `anyOf`: at least one listed extension is sufficient, e.g. CSV or TXT.
+- `anyOf`: at least one listed extension is sufficient, e.g. CSV or TXT. Use it for a standalone
+  extension, even when its list contains only one extension.
 - `allOf`: every listed extension is required together, e.g. the core shapefile set.
 - `optional`: companion files that are not required for conversion.
-
-Use `anyOf` for a standalone extension, even when its list contains only one extension. `oneOf`
-is the JSON Schema keyword that enforces exactly one of the `anyOf` or `allOf` fields; it is not
-a supported field in capability metadata.
 
 Standalone alternatives:
 
