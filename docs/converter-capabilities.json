@@ -332,7 +332,7 @@
       "package": "evo-data-converters-ubc",
       "status": "implemented",
       "extensions": {
-        "allOf": [
+        "anyOf": [
           ".msh"
         ],
         "optional": [

@@ -5,7 +5,7 @@
   "package": "evo-data-converters-ubc",
   "status": "implemented",
   "extensions": {
-    "allOf": [".msh"],
+    "anyOf": [".msh"],
     "optional": [".mod", ".sus", ".den"]
   },
   "platform": [
