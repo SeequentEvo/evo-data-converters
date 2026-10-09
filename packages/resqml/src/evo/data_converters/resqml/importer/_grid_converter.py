@@ -16,6 +16,7 @@ import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 from evo_schemas.components import Crs_V1_0_1_EpsgCode as CrsEpsgCode
+from evo_schemas.components import Crs_V1_0_1
 from evo_schemas.components import Hexahedrons_V1_1_0 as Hexahedrons
 from evo_schemas.components import IntegerAttribute_V1_0_1 as IntegerAttribute
 from evo_schemas.components import NanCategorical_V1_0_1 as NanCategorical
@@ -202,14 +203,14 @@ def _get_grid_name(grid: Grid) -> str:
     return name
 
 
-def _get_crs(model: Model, grid: Grid, epsg_code: int) -> CrsEpsgCode:
+def _get_crs(model: Model, grid: Grid, default_crs: Crs_V1_0_1) -> CrsEpsgCode:
     """
     Extract the EPSG code from the grid coordinate reference system
     and build an Evo CrsEpsgCode
 
     :param model: The model file containing the grid
     :param grid: The resqpy Grid object to be converted
-    :param epsg_code: The EPSG code to be used if the Grid does not have one
+    :param default_crs: The coordinate reference system to be used if the Grid does not have one
 
     :return: an Evo CrsEpsgCode
 
@@ -229,20 +230,19 @@ def _get_crs(model: Model, grid: Grid, epsg_code: int) -> CrsEpsgCode:
     # Otherwise use the passed in epsg_code
     crs_root = Crs(model, uuid=model.crs_uuid)
     if crs_root is not None and crs_root.epsg_code is not None:
-        default_epsg = int(crs_root.epsg_code)
+        default_crs = crs_from_epsg_code(int(crs_root.epsg_code))
     else:
         logger.warning(f"File {model.epc_file} {grid.uuid} does not have a root CRS")
-        default_epsg = epsg_code
     if grid.crs is None:
-        logger.warning(f"Grid {grid.citation_title} {grid.uuid} does not have a CRS, defaulting to EPSG:{default_epsg}")
-        return crs_from_epsg_code(default_epsg)
+        logger.warning(f"Grid {grid.citation_title} {grid.uuid} does not have a CRS, defaulting to {default_crs}")
+        return default_crs
 
     code = grid.crs.epsg_code
     if code is None:
         logger.warning(
-            f"Grid {grid.citation_title} {grid.uuid} does not have an EPSG code, defaulting to EPSG:{default_epsg}"
+            f"Grid {grid.citation_title} {grid.uuid} does not have an EPSG code, defaulting to {default_crs}"
         )
-        return crs_from_epsg_code(default_epsg)
+        return default_crs
     else:
         return crs_from_epsg_code(int(code))
 

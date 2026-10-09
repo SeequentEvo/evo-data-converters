@@ -44,7 +44,6 @@ from evo.data_converters.resqml.importer._downhole_intervals_to_evo import (
     convert_downhole_intervals_for_trajectory,
 )
 from evo.data_converters.resqml.importer.resqml_to_evo import _convert_downhole_intervals
-from evo.data_converters.resqml.utils import get_crs_epsg_code
 
 
 def add_wellbore_property(
@@ -326,11 +325,6 @@ class TestDownholeIntervals(TestCase):
 
     def test_build_hole_ids(self) -> None:
         self.assertIsInstance(_build_hole_ids_for_wellbore_frame(self.wellbore_frame, self.data_client), CategoryData)
-
-    def test_get_crs_epsg_code(self) -> None:
-        crs_2193 = get_crs_epsg_code(self.model, 2193)
-        self.assertEqual(crs_2193.epsg_code, 2193)
-        self.assertEqual(get_crs_epsg_code(self.model).epsg_code, self.model_crs_epsg_code_int)
 
     def test_convert_downhole_intervals_to_evo(self) -> None:
         stem = Path(self.model.epc_file or "None").stem

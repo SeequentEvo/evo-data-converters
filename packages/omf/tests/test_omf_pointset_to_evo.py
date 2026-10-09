@@ -51,7 +51,7 @@ class TestPointsetConverter(TestCase):
             project=project,
             reader=reader,
             data_client=self.data_client,
-            epsg_code=epsg_code,
+            crs=crs_from_epsg_code(epsg_code),
         )
 
         self.assertIsInstance(pointset_go, Pointset_V1_2_0)

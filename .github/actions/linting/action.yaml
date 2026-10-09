@@ -11,5 +11,6 @@ runs:
     - name: Ruff check and format
       shell: bash
       run: |
-        uv run --only-dev ruff check
-        uv run --only-dev ruff format --check
+        cd packages/common
+        uv run --only-dev ruff check ../..
+        uv run --only-dev ruff format --check ../..

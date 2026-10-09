@@ -28,6 +28,7 @@ pip install evo-data-converters-image
 ## Image Converter
 
 This package provides a converter for image files (JPEG, PNG, TIFF, BMP, GIF, etc.) to Regular 2D Grid geoscience objects.
+Grayscale images are exported as continuous float64 attributes, and color images are exported as color attributes.
 
 ## Code of conduct
 

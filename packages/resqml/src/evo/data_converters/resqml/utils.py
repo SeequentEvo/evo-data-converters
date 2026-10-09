@@ -10,16 +10,13 @@
 #  limitations under the License.
 
 import math
-from typing import Any, Optional
+from typing import Any
 from zipfile import BadZipFile
 
 import numpy as np
-import resqpy.crs as rqc
 import resqpy.olio.xml_et as rqet
-from evo.data_converters.common import crs_from_epsg_code
-from evo_schemas.components import Crs_V1_0_1_EpsgCode as Crs_EpsgCode
 from resqpy.grid import Grid
-from resqpy.model import Model, ModelContext
+from resqpy.model import ModelContext
 from resqpy.property import Property
 from resqpy.well import Trajectory
 
@@ -111,29 +108,6 @@ def load_lattice_array(object: Any, node: Any, array_attribute: str, trajectory:
         step_mds = start_value + np.arange(step_count) * step_value
         valid_mds = [md for md in step_mds if check_md(md, trajectory)]
         object.__dict__[array_attribute] = np.array(valid_mds)
-
-
-def get_crs_epsg_code(model: Model, int_epsg_code: Optional[int] = None) -> Crs_EpsgCode | None:
-    """
-    # Return the CRS EPSG code as Evo Crs_EpsgCode object.
-    # If an integer EPSG code is provided then use that, otherwise default
-    # to the Model crs_root. If neither option results in a valid EPSG code
-    # return None.
-
-    :param model: The resqpy model
-    :param int_epsg_code: An integer code to use
-    :return: an Evo Crs_EpsqCode
-    """
-    assert model is not None
-
-    if int_epsg_code is not None:
-        return crs_from_epsg_code(int_epsg_code)
-
-    crs_root = rqc.Crs(model, uuid=model.crs_uuid)
-    if crs_root is not None and crs_root.epsg_code is not None:
-        return crs_from_epsg_code(int(crs_root.epsg_code))
-
-    return None
 
 
 def convert_size(size_bytes: int) -> str:

@@ -9,6 +9,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from evo.data_converters.image.image_to_grid import convert_image_to_grid
+from .shp_to_evo import convert_shp
 
-__all__ = ["convert_image_to_grid"]
+__all__ = [
+    "convert_shp",
+]

@@ -18,7 +18,7 @@
 </p>
 <p align="center">
     <a href="https://developer.seequent.com/" target="_blank">Seequent Developer Portal</a>
-    &bull; <a href="https://community.seequent.com/" target="_blank">Seequent Community</a>
+    &bull; <a href="https://community.seequent.com/group/19-evo" target="_blank">Seequent Community</a>
     &bull; <a href="https://seequent.com" target="_blank">Seequent website</a>
 </p>
 
@@ -116,7 +116,7 @@ yourself with our [code of conduct.](https://github.com/SeequentEvo/evo-data-con
 
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at

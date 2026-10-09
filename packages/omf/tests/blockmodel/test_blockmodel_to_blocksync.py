@@ -23,7 +23,7 @@ import pyarrow as pa
 import pytest
 import requests_mock
 
-from evo.data_converters.common import BlockSyncClient, EvoWorkspaceMetadata
+from evo.data_converters.common import BlockSyncClient, EvoWorkspaceMetadata, crs_from_epsg_code
 from evo.data_converters.omf import OMFReaderContext
 from evo.data_converters.omf.importer import convert_omf
 from evo.data_converters.omf.importer.blockmodel import (
@@ -52,7 +52,7 @@ class TestBlockModelConverter(TestCase):
         regular_block_model = project.elements()[4]
 
         block_model_uuid, body, table = convert_omf_regular_block_model(
-            regular_block_model, self.client, reader, self.epsg_code
+            regular_block_model, self.client, reader, crs_from_epsg_code(self.epsg_code)
         )
 
         self.assertIsInstance(table, pa.Table)
@@ -88,7 +88,7 @@ class TestBlockModelConverter(TestCase):
         regular_subblock_model = project.elements()[6]
 
         block_model_uuid, body, table = convert_omf_regular_subblock_model(
-            regular_subblock_model, self.client, reader, self.epsg_code
+            regular_subblock_model, self.client, reader, crs_from_epsg_code(self.epsg_code)
         )
 
         self.assertIsInstance(table, pa.Table)
@@ -125,7 +125,7 @@ class TestBlockModelConverter(TestCase):
         regular_block_model = project.elements()[0]
 
         block_model_uuid, body, table = convert_omf_tensor_grid_model(
-            regular_block_model, self.client, reader, self.epsg_code
+            regular_block_model, self.client, reader, crs_from_epsg_code(self.epsg_code)
         )
 
         self.assertIsInstance(table, pa.Table)

@@ -17,13 +17,16 @@ This script demonstrates how to convert an image file (JPEG, PNG, TIFF, etc.) to
 regular-2d-grid schema format and save it as a JSON file locally, without requiring
 Evo authentication.
 
+Color images (RGB) are preserved as a single color attribute.
+Grayscale images are returned as single float64 intensity values.
+
 Usage:
     python example_image_to_json.py input.jpg output.json
 
 Supported formats: JPEG, PNG, TIFF, BMP, GIF, and other PIL/Pillow supported formats.
 
 This will create:
-    - output.json: The grid schema JSON
+    - output.json: The grid schema JSON with color or grayscale attributes
     - output_data/: Directory containing parquet data files
 """
 
@@ -63,6 +66,9 @@ def convert_image_to_grid_json(
 
     Supports JPEG, PNG, TIFF, BMP, GIF, and other PIL/Pillow formats.
 
+    Color images (RGB) are preserved as a single color attribute.
+    Grayscale images are returned as single intensity values.
+
     Args:
         image_path: Path to input image file
         output_json: Path to output JSON file
@@ -86,27 +92,50 @@ def convert_image_to_grid_json(
 
     print(f"Reading image: {image_path}")
 
-    # Read and convert image to grayscale
+    # Read image and detect color mode
     img = Image.open(image_path)
-    grayscale_img = img.convert("L")
-    width, height = grayscale_img.size
+    width, height = img.size
+    original_mode = img.mode
 
-    print(f"Image size: {width} x {height} pixels")
+    print(f"Image size: {width} x {height} pixels, mode: {original_mode}")
 
-    # Extract pixel values (row-major order)
-    pixel_array = np.array(grayscale_img, dtype=np.float64)
-    cell_values = []
-    for y in range(height):
-        for x in range(width):
-            value = pixel_array[y, x]
-            cell_values.append(value)
+    # Determine if grayscale or color
+    if original_mode in ("L", "LA"):
+        # Grayscale: single channel
+        if original_mode == "LA":
+            grayscale_img = img.convert("L")
+        else:
+            grayscale_img = img
 
-    cell_values = np.array(cell_values, dtype=np.float64)
+        pixel_array = np.array(grayscale_img, dtype=np.float64)
+        cell_values = np.flipud(pixel_array).ravel(order="C")
+        image_type = "grayscale"
+        print("Image is grayscale")
+    else:
+        # Color image: preserve RGB
+        color_img = img.convert("RGB") if original_mode in ("RGBA", "P") else img
+        pixel_array = np.array(color_img, dtype=np.uint8)
+        pixel_array_flipped = np.flipud(pixel_array)
+
+        # Store as uint8 RGB values (flattened)
+        cell_values = pixel_array_flipped.reshape(-1, 3)
+        image_type = "color"
+        print("Image is color (RGB)")
+
     print(f"Extracted {len(cell_values)} cell values")
 
     # Create parquet file
     print("Creating parquet file...")
-    table = pa.table({"values": cell_values})
+    if image_type == "grayscale":
+        table = pa.table({"values": cell_values})
+    else:
+        # Pack RGB into one uint32 per pixel in 0xAABBGGRR format (A=255).
+        r = cell_values[:, 0].astype(np.uint32)
+        g = cell_values[:, 1].astype(np.uint32)
+        b = cell_values[:, 2].astype(np.uint32)
+        packed = r | (g << 8) | (b << 16) | np.uint32(0xFF000000)
+        schema = pa.schema([("data", pa.uint32())])
+        table = pa.Table.from_arrays([pa.array(packed, type=pa.uint32())], schema=schema)
 
     # Generate hash
     buffer = io.BytesIO()
@@ -123,9 +152,30 @@ def convert_image_to_grid_json(
     print(f"Parquet file: {parquet_path}")
     print(f"Data hash: {data_hash}")
 
+    # Build cell attribute
+    if image_type == "grayscale":
+        cell_attributes = [
+            {
+                "attribute_type": "scalar",
+                "name": "2d-grid-data-continuous",
+                "key": data_hash,
+                "nan_description": {"values": [-1.0000000331813535e32, -1e32]},
+                "values": {"data": data_hash, "data_type": "float64", "width": 1, "length": width * height},
+            }
+        ]
+    else:  # color
+        cell_attributes = [
+            {
+                "attribute_type": "color",
+                "name": "2d-grid-data-color",
+                "key": data_hash,
+                "values": {"data": data_hash, "length": width * height},
+            }
+        ]
+
     # Build grid JSON
     grid_name = name or Path(image_path).stem
-    grid_description = description or "A 2D grid from image"
+    grid_description = description or f"A 2D {image_type} grid from image"
 
     grid_json = {
         "schema": "/objects/regular-2d-grid/1.3.0/regular-2d-grid.schema.json",
@@ -143,15 +193,7 @@ def convert_image_to_grid_json(
             "max_y": origin[1] + (height * cell_size[1]),
             "max_z": origin[2],
         },
-        "cell_attributes": [
-            {
-                "attribute_type": "scalar",
-                "name": "2d-grid-data-continuous",
-                "key": data_hash,
-                "nan_description": {"values": [-1.0000000331813535e32, -1e32]},
-                "values": {"data": data_hash, "data_type": "float64", "width": 1, "length": width * height},
-            }
-        ],
+        "cell_attributes": cell_attributes,
     }
 
     # Write JSON
@@ -161,8 +203,10 @@ def convert_image_to_grid_json(
 
     print("\nConversion complete!")
     print(f"  Grid: {grid_name}")
+    print(f"  Type: {image_type}")
     print(f"  Size: {width} x {height}")
     print(f"  Cells: {width * height}")
+    print(f"  Attributes: 1 ({image_type})")
     print(f"  Origin: {origin}")
     print(f"  Cell size: {cell_size}")
     print("\nOutput files:")

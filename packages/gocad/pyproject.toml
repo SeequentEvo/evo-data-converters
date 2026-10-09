@@ -1,16 +1,15 @@
 [project]
 name = "evo-data-converters-gocad"
 description = "Python data converters for GOCAD to Evo geoscience objects"
-version = "0.1.4"
+version = "0.2.1"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
-authors = [
-    { name = "Seequent", email = "support@seequent.com" }
-]
+authors = [{ name = "Seequent", email = "support@seequent.com" }]
 
 dependencies = [
-    "evo-data-converters-common>=0.3.1"
+    "evo-data-converters-common>=0.3.1",
+    "pandas>=2.3.3",
 ]
 
 [project.urls]
@@ -20,13 +19,20 @@ Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
-dev = [
-    "pytest",
+dev = ["pytest"]
+
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
+
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]

@@ -1,0 +1,184 @@
+#  Copyright © {{year}} Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+from pyproj import CRS
+from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
+
+from evo.data_converters.common import EvoWorkspaceMetadata
+from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError, MissingConnectionDetailsError
+from evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo import convert_{{converter_type}}
+from evo.objects.data import ObjectMetadata
+
+
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
+
+
+def test_convert_{{converter_type}}_success() -> None:
+    filepath = "dummy_file.txt"
+    coordinate_reference_system = _WKT2_EXAMPLE
+    evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
+    tags = {"tag1": "value1"}
+    upload_path = "upload/path"
+
+    mock_geoscience_object = MagicMock(spec=BaseSpatialDataProperties_V1_0_1)
+    mock_metadata = MagicMock(spec=ObjectMetadata)
+
+    with (
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.create_evo_object_service_and_data_client"
+        ) as mock_create_client,
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.publish_geoscience_objects_sync"
+        ) as mock_publish,
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.utils.get_geoscience_object_from_{{converter_type}}", return_value=mock_geoscience_object
+        ) as mock_get_geoscience_object,
+    ):
+        mock_create_client.return_value = (MagicMock(), MagicMock())
+        mock_publish.return_value = [mock_metadata]
+        
+        result = convert_{{converter_type}}(
+            filepath,
+            evo_workspace_metadata=evo_workspace_metadata,
+            tags=tags,
+            upload_path=upload_path,
+            publish_objects=True,
+            coordinate_reference_system=coordinate_reference_system,
+        )
+
+        assert result == [mock_metadata]
+        mock_get_geoscience_object.assert_called_once()
+        assert mock_get_geoscience_object.call_args[0][1] == filepath
+        mock_publish.assert_called_once_with(
+            [mock_geoscience_object],
+            mock_create_client.return_value[0],
+            mock_create_client.return_value[1],
+            upload_path,
+            False,
+        )
+
+
+def test_convert_{{converter_type}}_no_publish() -> None:
+    filepath = "dummy_file.txt"
+    evo_workspace_metadata = EvoWorkspaceMetadata()
+    tags = {"tag1": "value1"}
+    upload_path = "upload/path"
+
+    mock_geoscience_object = MagicMock(spec=BaseSpatialDataProperties_V1_0_1)
+
+    with (
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.create_evo_object_service_and_data_client"
+        ) as mock_create_client,
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.utils.get_geoscience_object_from_{{converter_type}}", return_value=mock_geoscience_object
+        ),
+    ):
+        mock_create_client.return_value = (MagicMock(), MagicMock())
+
+        result = convert_{{converter_type}}(
+            filepath,
+            evo_workspace_metadata=evo_workspace_metadata,
+            tags=tags,
+            upload_path=upload_path,
+            publish_objects=False,
+        )
+
+    assert result == [mock_geoscience_object]
+
+
+def test_convert_{{converter_type}}_missing_connection_details_error() -> None:
+    filepath = "dummy_file.txt"
+
+    with pytest.raises(MissingConnectionDetailsError):
+        convert_{{converter_type}}(filepath, publish_objects=False)
+
+
+def test_convert_{{converter_type}}_conflicting_connection_details_error() -> None:
+    filepath = "dummy_file.txt"
+    evo_workspace_metadata = EvoWorkspaceMetadata()
+    service_manager_widget = MagicMock()
+
+    with pytest.raises(ConflictingConnectionDetailsError):
+        convert_{{converter_type}}(
+            filepath,
+            evo_workspace_metadata=evo_workspace_metadata,
+            service_manager_widget=service_manager_widget,
+            publish_objects=False
+        )
+
+
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (4326, Crs_V1_0_1_EpsgCode(epsg_code=4326)),
+        ("EPSG:4326", Crs_V1_0_1_EpsgCode(epsg_code=4326)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
+    ],
+)
+def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+    filepath = "dummy_file.txt"
+    evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
+
+    mock_geoscience_object = MagicMock(spec=BaseSpatialDataProperties_V1_0_1)
+
+    with (
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.create_evo_object_service_and_data_client"
+        ) as mock_create_client,
+        patch(
+            "evo.data_converters.{{converter_type}}.importer.utils.get_geoscience_object_from_{{converter_type}}",
+            return_value=mock_geoscience_object,
+        ) as mock_get_obj,
+    ):
+        mock_create_client.return_value = (MagicMock(), MagicMock())
+
+        convert_{{converter_type}}(
+            filepath,
+            evo_workspace_metadata=evo_workspace_metadata,
+            coordinate_reference_system=input_crs,
+            publish_objects=False,
+        )
+
+        crs_arg = mock_get_obj.call_args[0][2]
+        assert crs_arg == expected_crs
+
+
+def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+    filepath = "dummy_file.txt"
+    evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
+
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        convert_{{converter_type}}(
+            filepath,
+            4326,
+            evo_workspace_metadata,
+            coordinate_reference_system=4326,
+            publish_objects=False,
+        )

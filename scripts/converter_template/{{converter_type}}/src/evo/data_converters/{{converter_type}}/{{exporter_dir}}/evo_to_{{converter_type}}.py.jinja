@@ -1,0 +1,100 @@
+#  Copyright © {{year}} Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+from typing import TYPE_CHECKING, Optional
+from uuid import UUID
+
+import evo.logging
+from evo.data_converters.common import (
+    EvoObjectMetadata,
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+)
+
+logger = evo.logging.getLogger("data_converters")
+
+if TYPE_CHECKING:
+    from evo.notebooks import ServiceManagerWidget
+
+
+class {{converter_type.upper()}}ExporterException(Exception):
+    """Base exception raised when exporting to {{converter_type.upper()}} fails."""
+
+
+class UnsupportedObjectError({{converter_type.upper()}}ExporterException):
+    """Raised when a Geoscience Object type cannot be exported to {{converter_type.upper()}}."""
+
+
+def export_{{converter_type}}(
+    filepath: str,
+    objects: list[EvoObjectMetadata],
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
+    service_manager_widget: Optional["ServiceManagerWidget"] = None,
+) -> None:
+    """Export Evo Geoscience Object(s) to a {{converter_type.upper()}} file.
+
+    :param filepath: Path of the {{converter_type.upper()}} file to create.
+    :param objects: List of EvoObjectMetadata objects containing the UUID and version of the Evo objects to export.
+    :param evo_workspace_metadata: (Optional) Evo workspace metadata.
+    :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
+
+    One of evo_workspace_metadata or service_manager_widget is required.
+
+    :raise UnsupportedObjectError: If the type of a requested object is not supported.
+    :raise MissingConnectionDetailsError: If no connection details could be derived.
+    :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
+    """
+    service_client, data_client = create_evo_object_service_and_data_client(
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+    )
+
+    # TODO: Implement exporting Evo Geoscience Objects to a {{converter_type.upper()}} file.
+    #   1. For each EvoObjectMetadata in ``objects``, download the object using ``service_client``
+    #      (e.g. ``service_client.download_object_by_id(object_id, version_id)``).
+    #   2. Convert each downloaded Geoscience Object into your {{converter_type.upper()}} representation
+    #      (raise UnsupportedObjectError for object types you do not support).
+    #   3. Write the converted data out to ``filepath``.
+    raise NotImplementedError("Implement export_{{converter_type}} for your {{converter_type.upper()}} file format.")
+
+
+def export_blocksync_{{converter_type}}(
+    filepath: str,
+    object_id: UUID,
+    version_id: Optional[str] = None,
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
+    service_manager_widget: Optional["ServiceManagerWidget"] = None,
+) -> None:
+    """Export a BlockSync block model to a {{converter_type.upper()}} file.
+
+    :param filepath: Path of the {{converter_type.upper()}} file to create.
+    :param object_id: UUID of the BlockSync block model object to export.
+    :param version_id: (Optional) Version of the object to export. Defaults to the latest version.
+    :param evo_workspace_metadata: (Optional) Evo workspace metadata.
+    :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
+
+    One of evo_workspace_metadata or service_manager_widget is required.
+
+    :raise UnsupportedObjectError: If the block model type is not supported.
+    :raise MissingConnectionDetailsError: If no connection details could be derived.
+    :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
+    """
+    service_client, data_client = create_evo_object_service_and_data_client(
+        evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
+    )
+
+    # TODO: Implement exporting a BlockSync block model to a {{converter_type.upper()}} file.
+    #   1. Download the block model identified by ``object_id`` / ``version_id``.
+    #   2. Convert it into your {{converter_type.upper()}} representation (raise UnsupportedObjectError
+    #      for block model types you do not support).
+    #   3. Write the converted data out to ``filepath``.
+    raise NotImplementedError(
+        "Implement export_blocksync_{{converter_type}} for your {{converter_type.upper()}} file format."
+    )

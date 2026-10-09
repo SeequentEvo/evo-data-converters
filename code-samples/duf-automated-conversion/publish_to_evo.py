@@ -71,7 +71,7 @@ def main():
     # Call convert_duf function
     objects_metadata = convert_duf(
         filepath=str(duf_file),
-        epsg_code=args.epsg_code,
+        coordinate_reference_system=args.epsg_code,
         evo_workspace_metadata=creds,
         tags=tags,
         upload_path=args.upload_path,

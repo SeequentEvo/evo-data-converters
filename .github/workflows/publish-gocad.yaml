@@ -50,7 +50,7 @@ jobs:
 
       - name: Build package
         shell: bash
-        run: uv build --package evo-data-converters-gocad
+        run: uv build packages/gocad --out-dir dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

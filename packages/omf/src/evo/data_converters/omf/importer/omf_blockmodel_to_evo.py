@@ -18,6 +18,7 @@ import evo.logging
 from evo.common import APIConnector, Environment
 from evo.data_converters.common import BlockSyncClient
 from evo.objects import ObjectAPIClient
+from evo_schemas.components import Crs_V1_0_1
 
 from .blockmodel.omf_blockmodel_to_blocksync import (
     add_blocks_and_columns,
@@ -34,14 +35,14 @@ def _create_block_sync_client(environment: Environment, api_connector: APIConnec
 
 
 def convert_omf_blockmodel(
-    object_service_client: ObjectAPIClient, element: omf2.Element, reader: omf2.Reader, epsg_code: int
+    object_service_client: ObjectAPIClient, element: omf2.Element, reader: omf2.Reader, crs: Crs_V1_0_1
 ) -> list[dict[str, Any]]:
     """Converts an OMF file to BlockSync Objects and creates an empty model on BlockSync.
 
     :param object_service_client: Client which holds the metadata for connecting to the Evo service.
     :param element: The block model element to be processed.
     :param reader: The project reader.
-    :param epsg_code: The EPSG code for the coordinate reference system.
+    :param crs: The coordinate reference system.
 
     If problems are encountered while loading the OMF project, these will be logged as warnings.
     """
@@ -55,7 +56,7 @@ def convert_omf_blockmodel(
 
     match geometry.grid:
         case omf2.Grid3Tensor():
-            block_sync_model = convert_omf_tensor_grid_model(element, client, reader, epsg_code)
+            block_sync_model = convert_omf_tensor_grid_model(element, client, reader, crs)
             if block_sync_model:
                 block_model_id, block_model, block_table = block_sync_model
                 upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
@@ -69,7 +70,7 @@ def convert_omf_blockmodel(
                         )
                     case omf2.RegularSubblocks():
                         block_model_id, block_model, block_table = convert_omf_regular_subblock_model(
-                            element, client, reader, epsg_code
+                            element, client, reader, crs
                         )
                         upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
                         block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
@@ -79,9 +80,7 @@ def convert_omf_blockmodel(
                         )
             else:
                 # Block model does not contain sub blocks
-                block_model_id, block_model, block_table = convert_omf_regular_block_model(
-                    element, client, reader, epsg_code
-                )
+                block_model_id, block_model, block_table = convert_omf_regular_block_model(element, client, reader, crs)
                 upload_block_data_to_blockmodels(client, block_model, block_table, block_model_id)
                 block_model_metadata.append(client.get_blockmodel_metadata(block_model_id))
 
