@@ -25,6 +25,7 @@ Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4",
     "pytest",
     "pytest-asyncio",
     "pytest-mock>=3.15.1",
