@@ -13,7 +13,7 @@ dependencies = [
     "evo-objects>=0.3.0",
     "evo-schemas>=2025.9.12",
     "numpy>=1.26.3",
-    "pyarrow",
+    "pyarrow<26",
     "requests",
     "scipy",
     "pyproj>=3.7.1",
@@ -48,6 +48,7 @@ test-xyz = "evo.data_converters.common._dev_tasks:test_package"
 [dependency-groups]
 dev = [
     "pytest>=8.2",
+    "jsonschema>=4.18",
     "ruff==0.9.1",    # keep in sync with .pre-commit-config.yaml
     "requests-mock",
     "mypy",

@@ -1,5 +1,15 @@
 # Changelog
 
+## evo-data-converters-image@v0.1.10
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Fix image converter failure on large GeoTIFF by using rasterio TIFF f… by @NataliiaKonkina in https://github.com/SeequentEvo/evo-data-converters/pull/245
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.8...evo-data-converters-image@v0.1.10
+
 ## evo-data-converters-duf@v0.5.0
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 

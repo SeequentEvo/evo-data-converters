@@ -29,6 +29,10 @@ All objects are subclasses of `BaseSpatialDataProperties_V1_0_1` and share:
 When unsure, look at the closest existing converter under `packages/` and mirror its object
 construction.
 
+The names in this table describe Python/evo-schemas object types. In
+`converter-capabilities.json`, use the corresponding Geoscience Object Service object-type slug
+instead (for example, `triangle-mesh`, not `TriangleMesh`).
+
 ## Attributes (per-element values)
 
 - **Continuous** (floats): `ContinuousAttribute_V1_1_0(name, key, nan_description=NanContinuous_V1_0_1(values=[...]), values=FloatArray1_V1_0_1(data=<hash>, length=N))`
