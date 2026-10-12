@@ -19,7 +19,7 @@ dependencies = [
     "scipy",
     "pyproj>=3.7.1",
     "pandas>=2.3.3",
-    "pint-pandas>=0.8.0",
+    "pint-pandas>=0.7.2",
 ]
 
 [project.urls]
