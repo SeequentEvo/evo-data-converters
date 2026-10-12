@@ -2,7 +2,7 @@
 name = "evo-data-converters-gef"
 description = "Python data converters for GEF to Evo geoscience objects"
 version = "0.0.1"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
@@ -11,15 +11,12 @@ authors = [
 
 dependencies = [
     "evo-data-converters-common",
-    "pandas",
-    "pint-pandas",
-    "pygef[plot]",
-    "pyarrow>=17.0.0",
+    "pygef",
 ]
 
 [project.urls]
-Source = "https://github.com/SeequentEvo/evo-python-sdk"
-Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
+Source = "https://github.com/SeequentEvo/evo-data-converters"
+Tracker = "https://github.com/SeequentEvo/evo-data-converters/issues"
 Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
@@ -31,15 +28,18 @@ dev = [
     "pytest-mock>=3.15.1",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
+
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
-
-[tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "UP006"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src"]
@@ -58,9 +58,3 @@ path = "README.md"
 # Converts relative images to absolute links in PyPI
 pattern = '!\[(.+?)\]\(((?!https?://)\S+?\.(?:jpe?g|png|gif))\)'
 replacement = '![\1](https://github.com/SeequentEvo/evo-data-converters/raw/main/packages/gef/\g<2>)'
-
-[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
-# Literal TOML strings (single quotes) need no escaping of backslashes.
-# Converts relative links to absolute links in PyPI
-pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
-replacement = '[\1](https://github.com/SeequentEvo/evo-data-converters/tree/main/packages/gef/\g<2>)'

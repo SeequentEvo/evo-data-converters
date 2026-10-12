@@ -38,6 +38,7 @@ data.
 For an existing set of supported data converters, see:
 
 - [DUF](../duf/README.md)
+- [GEF](../gef/README.md)
 - [GOCAD](../gocad/README.md)
 - [Image](../image/README.md)
 - [OBJ](../obj/README.md)

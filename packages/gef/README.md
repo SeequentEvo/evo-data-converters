@@ -24,7 +24,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Installation
 
-The `gef` data-converter package depends upon the `pygef` package. Pygef should install automatically when evo-data-converter-gef is installed.
+The `gef` data-converter package depends upon the `pygef` package. Pygef should install automatically when evo-data-converters-gef is installed.
 
 ```shell
 pip install evo-data-converters-gef
@@ -44,9 +44,10 @@ This format will not be supported at this stage.
 
 ## Usage
 
-You can either use the [convert-gef notebook](packages/gef/samples/convert-gef/convert-gef.ipynb) and modify to suit your needs, or write a python script using the following as a starting point:
+You can either use the [convert-gef notebook](code-samples/convert-gef/convert-gef.ipynb) and modify to suit your needs, or write a python script using the following as a starting point:
 
 ```python
+import asyncio
 import glob
 import tempfile
 from pprint import pp
@@ -65,11 +66,11 @@ redirect_url = ""
 
 workspace_metadata = EvoWorkspaceMetadata(client_id=client_id, hub_url=hub_url, org_id=org_id, workspace_id=workspace_id, redirect_url=redirect_url, cache_root=cache_dir)
 
-gef_files = glob.glob("packages/gef/samples/convert-gef/data/input/*")
+gef_files = glob.glob("packages/gef/code-samples/convert-gef/data/input/*")
 
-objects_metadata = convert_gef(
+objects_metadata = asyncio.run(convert_gef(
     filepaths=gef_files, evo_workspace_metadata=workspace_metadata, upload_path="gef-cli", overwrite_existing_objects=True
-)
+))
 
 pp(objects_metadata)
 ```
@@ -82,7 +83,7 @@ We rely on an open, friendly, inclusive environment. To help us ensure this rema
 
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at

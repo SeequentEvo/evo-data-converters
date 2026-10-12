@@ -19,8 +19,7 @@ dependencies = [
     "scipy",
     "pyproj>=3.7.1",
     "pandas>=2.3.3",
-    "typing_extensions; python_version < '3.12'",
-    "pint-pandas>=0.7.1",
+    "pint-pandas>=0.8.0",
 ]
 
 [project.urls]
@@ -51,7 +50,6 @@ test-xyz = "evo.data_converters.common._dev_tasks:test_package"
 [dependency-groups]
 dev = [
     "pytest>=8.2",
-    "pytest-asyncio",
     "ruff==0.9.1",    # keep in sync with .pre-commit-config.yaml
     "requests-mock",
     "mypy",
