@@ -1,0 +1,32 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "gef",
+  "name": "GEF",
+  "package": "evo-data-converters-gef",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".gef", ".xml"]
+  },
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "GEF cone penetration test data",
+      "BRO XML cone penetration test data"
+    ],
+    "produces_evo_objects": [
+      "downhole-collection"
+    ],
+    "produces_evo_schema_versions": {
+      "downhole-collection": ["1.3.1"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+  ]
+}
