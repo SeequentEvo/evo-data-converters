@@ -1,0 +1,51 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "omf",
+  "name": "OMF",
+  "package": "evo-data-converters-omf",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".omf"]
+  },
+  "platform": [
+    "Cross-platform with native build tool requirements"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "OMF PointSet",
+      "OMF Surface",
+      "OMF LineSet",
+      "OMF BlockModel"
+    ],
+    "produces_evo_objects": [
+      "pointset",
+      "triangle-mesh",
+      "line-segments",
+      "BlockSync block model metadata"
+    ],
+    "produces_evo_schema_versions": {
+      "pointset": ["1.2.0"],
+      "triangle-mesh": ["2.1.0"],
+      "line-segments": ["2.1.0"]
+    }
+  },
+  "export": {
+    "supported": true,
+    "supports_evo_objects": [
+      "triangle-mesh",
+      "line-segments",
+      "pointset",
+      "BlockSync block models"
+    ],
+    "supports_evo_schema_versions": {
+      "triangle-mesh": ["2.0.0", "2.1.0"],
+      "line-segments": ["2.0.0", "2.1.0"],
+      "pointset": ["1.1.0", "1.2.0"]
+    }
+  },
+  "limitations": [
+    "Some geometry types and geoscience object types are not yet supported.",
+    "LineSegments: OMF LineSet is mapped to LineSegments; other interpretations such as drillholes or wireframe mesh are not produced."
+  ]
+}

@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -9,10 +9,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
 import pyarrow as pa
 import pytest
+
+# The repository-level `scripts` package (used by test_converter_capabilities.py) isn't
+# installed; make it importable when tests run from within packages/common.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 @pytest.fixture

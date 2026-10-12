@@ -1,0 +1,46 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "vtk",
+  "name": "VTK",
+  "package": "evo-data-converters-vtk",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".vti", ".vtr", ".vtu", ".vtm", ".xml"]
+  },
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "vtkImageData / vtkUniformGrid / vtkStructuredPoints",
+      "vtkRectilinearGrid",
+      "vtkUnstructuredGrid"
+    ],
+    "produces_evo_objects": [
+      "regular-3d-grid",
+      "regular-masked-3d-grid",
+      "tensor-3d-grid",
+      "unstructured-tet-grid",
+      "unstructured-hex-grid",
+      "unstructured-grid"
+    ],
+    "produces_evo_schema_versions": {
+      "regular-3d-grid": ["1.2.0"],
+      "regular-masked-3d-grid": ["1.2.0"],
+      "tensor-3d-grid": ["1.2.0"],
+      "unstructured-tet-grid": ["1.2.0"],
+      "unstructured-hex-grid": ["1.2.0"],
+      "unstructured-grid": ["1.2.0"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "Only XML VTK files are supported.",
+    "VTK data object types outside the supported set are skipped with a warning.",
+    "Individual grid conversion errors are caught per-grid and skipped."
+  ]
+}
