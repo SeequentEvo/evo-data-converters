@@ -26,6 +26,7 @@ Documentation = "https://developer.seequent.com/"
 [dependency-groups]
 dev = [
     "pytest",
+    "pytest-asyncio",
     "pytest-mock>=3.15.1",
 ]
 

@@ -24,14 +24,13 @@ import numpy
 import pandas as pd
 import pytest
 from evo_schemas.objects.downhole_collection import DownholeCollection_V1_3_1
-from packages.gef.tests.consts import GEF1, GEF2, GEF_XML_MULTIPLE
 
+from consts import GEF1, GEF2, GEF_XML_MULTIPLE
 from evo.common.connector import APIConnector
 from evo.common.data import Environment
 from evo.common.interfaces import ICache, IContext
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.gef.importer import convert_gef
-from evo.data_converters.gef.objects import DownholeCollection, DownholeCollectionData
 from evo.objects.client.object_client import DownloadedObject
 from evo.objects.data import ObjectReference, ObjectSchema
 
@@ -348,9 +347,9 @@ _gef_cpt_spec_2 = _CPTSpec(
     sum_azimuths=244721.11715837254,
     sum_dips=93023.0331,
     attributes={
-        "depth_offset": "1bf9b2795fe576ac46692a0a6e5d9baa",
+        "depth_offset": "f7703081c64854dc02ef94edbccbd642",
         "friction_ratio_computed": "3cef78f21050ea2de35c3fcb48a34ba7",
-        "depth": "6d3cdf3b1f4665c225f2866fc1e1e02e",
+        "depth": "19c0322f27f00fe7866f8799916baf90",
         "cone_resistance": "722fd21f7444e2c7aee9075b4779af5c",  # 2
         "local_friction": "3be183440664b350cf5a4708a79b0bb1",  # 3
         "friction_ratio": "58460c64acc23f50f5bd3ce1f74822f4",  # 4
@@ -600,10 +599,6 @@ async def test_can_override_crs(evo_metadata, data_client):
     assert gef_object_dict["coordinate_reference_system"]["epsg_code"] == 32650
 
 
-# TODO - The test code for mocking was mostly copy/pasted. The assumption is that the tests that require them will
-#  be moved to evo-python-sdk.
-
-
 # Copied from evo-objects/tests/typed/helpers.py
 class TestContext(IContext):
     def __init__(self, mock_metadata):
@@ -760,82 +755,3 @@ def _mock_geoscience_objects(environment):
         patch("evo.objects.typed.base.create_geoscience_object", mock_client.create_geoscience_object),
     ):
         yield mock_client
-
-
-# TODO - Fix this test and move it wherever the "typed" DHC code ends up
-@pytest.mark.skip
-@pytest.mark.asyncio
-async def test_typed_dhc(evo_metadata, data_client):
-    hole1 = pd.DataFrame(
-        {
-            "depth": [1.0, 2, 3, 4, 5, 6],
-            "dip": [90.0, 90, 90, 90, 90, 90],
-            "azimuth": [0.0, 0, 0, 0, 0, 0],
-            "attr1": [
-                "oh",
-                "bye",
-                "oh",
-                "bye",
-                "oh",
-                "bye",
-            ],
-        }
-    )
-
-    hole2 = pd.DataFrame(
-        {
-            "depth": [0.0, 1, 2, 3, 4, 5],
-            "dip": [90.0, 90, 90, 90, 90, 90],
-            "azimuth": [0.0, 0, 0, 0, 0, 0],
-            "attr1": [
-                "hi",
-                "okay",
-                "hi",
-                "okay",
-                "hi",
-                "okay",
-            ],
-            "attr2": [1.1, 2.2, 3.3, 4.4, 5.5, 6.6],
-        }
-    )
-
-    context = TestContext(mock_metadata=evo_metadata)
-
-    with _mock_geoscience_objects(context.get_environment()) as mock_client:
-        dhc_data = DownholeCollectionData(
-            name="test DHC",
-            holes=[
-                hole1,
-                hole2,
-            ],
-            properties=pd.DataFrame(
-                {
-                    "id": ["id 1", "id 2"],
-                    "x": [0.0, 1],
-                    "y": [0.0, 20],
-                    "z": [0.0, 300],
-                    "final": [1.0, 4],
-                    "current": [2.0, 5],
-                    "target": [3.0, 6],
-                }
-            ),
-            attributes=pd.DataFrame(
-                {
-                    "attr1": [1, 2],
-                    "attr2": [1.1, 2.2],
-                    "attr3": ["hi", "there"],
-                }
-            ),
-        )
-
-        await DownholeCollection.create(context, dhc_data)
-
-        gef_object_dict, *_ = mock_client.objects.values()
-        cpt_data = _CPTData.from_gef_dict(gef_object_dict, data_client)
-
-        # TODO - temporary
-        assert len(cpt_data.cpt_tables) == 0
-
-        # TODO - This is just a spot check. This test might just be temporary anyway.
-        assert list(cpt_data.bbox) == [0.0, 1.0, 0.0, 20.0, -6.0, 300.0]
-        assert list(cpt_data.geometries[1]["depth"]) == [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]

@@ -27,7 +27,7 @@ from pygef.cpt import CPTData
 from evo.data_converters.gef.common_gef import CPTSource, ParsedCptFile
 from evo.data_converters.gef.converter.gef_spec import CAMEL_TO_SNAKE
 from evo.data_converters.gef.converter.gef_to_downhole_collection import build_downhole_collection, process_cpt_file
-from evo.data_converters.gef.objects import DownholeCollectionData
+from evo.objects.typed.downhole_collection import DownholeCollectionData
 
 CRS1 = "EPSG:28992"
 CRS2 = "EPSG:4326"
@@ -477,7 +477,7 @@ class TestCPT:
             collar_attributes=dhc.attributes.iloc[0],
             collar_properties=dhc.properties.iloc[0],
             path=dhc.path,
-            collection=dhc.collections[0].distance_table,
+            collection=dhc.collections[0].table,
             crs=dhc.coordinate_reference_system,
         )
 
@@ -507,7 +507,7 @@ def check_dhc(dhc: DownholeCollectionData, test_cpts: list[TestCPT]):
 
         coll_offset = dhc.collections[0].holes["offset"].iloc[i]
         coll_count = dhc.collections[0].holes["count"].iloc[i]
-        collection = dhc.collections[0].distance_table[coll_offset : coll_offset + coll_count]
+        collection = dhc.collections[0].table[coll_offset : coll_offset + coll_count]
         assert len(path) == len(collection), f"For GEF import, the path and collection should correspond, hole {i}"
 
         collar_attributes = dhc.attributes.iloc[i]
@@ -642,8 +642,8 @@ class TestProcessCptFile:
 
         dhc = _process_cpt([cpt1, cpt2])
 
-        table_first_section = dhc.collections[0].distance_table[: len(EVEN_ROWS)]
-        table_second_section = dhc.collections[0].distance_table[len(EVEN_ROWS) :]
+        table_first_section = dhc.collections[0].table[: len(EVEN_ROWS)]
+        table_second_section = dhc.collections[0].table[len(EVEN_ROWS) :]
 
         assert table_first_section["cone_resistance"].isna().all()
         assert table_first_section["friction_ratio_computed"].isna().all()  # Derived from cone_resistance
@@ -758,7 +758,7 @@ class TestCollections:
         dhc = _process_cpt(cpt)
 
         path_cols = dhc.path.columns
-        coll_cols = dhc.collections[0].distance_table.columns
+        coll_cols = dhc.collections[0].table.columns
 
         # "penetrationLength" has been converted to "distance", which appears in both tables
         assert "penetrationLength" not in path_cols
@@ -766,9 +766,7 @@ class TestCollections:
         assert "penetrationLength" not in coll_cols
         assert "penetration_length" not in coll_cols
         assert np.array_equal(dhc.path["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
-        assert np.array_equal(
-            dhc.collections[0].distance_table["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS]
-        )
+        assert np.array_equal(dhc.collections[0].table["distance"], DEFAULT_TABLE["penetrationLength"][EVEN_ROWS])
 
         # Check other path columns
         other_path_cols = MeasurementsColumn.from_strs([col for col in path_cols if col != "distance"])
@@ -782,12 +780,12 @@ class TestCollections:
         test_cpt1.with_table_columns([cone_resistance, local_friction])
         cpt = test_cpt1.build_parsed_cpt()
         dhc = _process_cpt(cpt)
-        assert "friction_ratio_computed" in dhc.collections[0].distance_table.columns
+        assert "friction_ratio_computed" in dhc.collections[0].table.columns
 
     def test_dtypes(self, cpt):
         """The measurement table should consistent of floats, because they are measurements"""
         dhc = _process_cpt(cpt)
-        coll_table = dhc.collections[0].distance_table
+        coll_table = dhc.collections[0].table
         for col in coll_table.columns:
             assert coll_table[col].dtype == np.float64
 
@@ -857,7 +855,7 @@ class TestApplyMeasurementUnits:
         # Checking the units as they get sent to Evo
         path_descs = dhc.path.attrs["attribute_descriptions"]
         assert path_descs["distance"].unit.value == "m"
-        coll_descs = dhc.collections[0].distance_table.attrs["attribute_descriptions"]
+        coll_descs = dhc.collections[0].table.attrs["attribute_descriptions"]
         assert coll_descs["cone_resistance"].unit.value == "MPa"
         assert coll_descs["local_friction"].unit.value == "MPa"
         assert coll_descs["soil_density"].unit.value == "N/m3"
@@ -883,7 +881,7 @@ class TestNanHandling:
 
         assert np.array_equal(
             data_table["coneResistance"] == nan_mapping["coneResistance"],
-            dhc.collections[0].distance_table["cone_resistance"].isna(),
+            dhc.collections[0].table["cone_resistance"].isna(),
         )
         for col in [inclination_ew, inclination_ns, inclination_resultant]:
             assert np.array_equal(data_table[col.as_camel] == nan_mapping[col.as_camel], dhc.path[col.as_snake].isna())

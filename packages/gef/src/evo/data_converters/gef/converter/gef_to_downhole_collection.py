@@ -21,12 +21,13 @@ from pygef.common import Location as PygefLocation
 from pygef.cpt import CPTData
 
 import evo.logging
+from evo.objects.typed.attributes import AttributeDescription
+from evo.objects.typed.downhole_collection import DistanceCollection, DownholeCollectionData
 from evo.objects.typed.types import EpsgCode
 
 from ...common import InvalidCRSError, crs_from_any
 from ...common.objects.units import UnitMapper
 from ..common_gef import CPTSource, ParsedCptFile
-from ..objects import AttributeDescription, DistanceCollection, DownholeCollectionData
 from .gef_spec import (
     CAMEL_TO_SNAKE,
     COLLAR_ATTRIBUTES,
@@ -330,6 +331,13 @@ def _apply_nan_mapping(df: pd.DataFrame, cpt: ParsedCptFile) -> pd.DataFrame:
     return df
 
 
+def _get_distance_unit_from_combined_table(combined_table) -> str | None:
+    if (distance := combined_table.attrs.get("attribute_descriptions", {}).get("distance")) is not None:
+        return distance.unit.value
+    else:
+        return None
+
+
 def build_downhole_collection(
     cpts: list[ProcessedCPT], name: str | None = None, tags: dict[str, typing.Any] = None, epsg_code: int | None = None
 ) -> DownholeCollectionData:
@@ -354,7 +362,8 @@ def build_downhole_collection(
     hole_descriptions = _build_hole_descriptions(cpts)
     _combined_table = _combine_cpt_tables(cpts)
     paths = _build_paths(_combined_table)
-    collections = _build_collections(_combined_table, hole_descriptions)
+    distance_unit = _get_distance_unit_from_combined_table(_combined_table)
+    collections = _build_collections(_combined_table, hole_descriptions, distance_unit)
     crs = EpsgCode(epsg_code) if epsg_code is not None else _get_crs(cpts)
 
     return DownholeCollectionData(
@@ -366,6 +375,8 @@ def build_downhole_collection(
         holes=hole_descriptions,
         properties=hole_properties,
         attributes=attributes,
+        distance_unit=distance_unit,
+        desurvey=None,
     )
 
 
@@ -465,13 +476,17 @@ def _build_paths(combined_table: pd.DataFrame) -> pd.DataFrame:
     return paths_df
 
 
-def _build_collections(combined_table: pd.DataFrame, holes: pd.DataFrame) -> list[DistanceCollection]:
+def _build_collections(
+    combined_table: pd.DataFrame, holes: pd.DataFrame, distance_unit: str | None
+) -> list[DistanceCollection]:
     distance_collection_attrs = [col for col in combined_table.columns if col not in PATH_ATTRIBUTES]
     distance_collection_df = combined_table[distance_collection_attrs]
+
     dc = DistanceCollection(
         name="cpt",
         holes=holes,
-        distance_table=distance_collection_df,
+        table=distance_collection_df,
+        unit=distance_unit,
     )
     return [dc]
 
