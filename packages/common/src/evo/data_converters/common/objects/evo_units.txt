@@ -29,7 +29,7 @@ lbmol = 453.59237 * mol
 sixteenth_of_inch = in/16
 thirtysecond_of_inch = in/32
 sixtyfourth_of_inch = in/64
-deca_in = 10 * in 
+deca_in = 10 * in
 
 half_foot = ft/2
 deca_ft = 10 * ft
@@ -72,9 +72,9 @@ percentage_vol = 0.01
 percentage_molar = 0.01
 
 # ppm/ppb
-ppm_mass = 1e6
-ppb_mass = 1e9
-ppm_vol = 1e6
+ppm_mass = 1e-6
+ppb_mass = 1e-9
+ppm_vol = 1e-6
 
 
 # Angle
@@ -97,4 +97,3 @@ barrel_per_acre =  bbl/acre
 acre_foot_per_barrel = acre_foot/bbl
 barrel_per_acre_foot = bbl/acre_foot
 cubic_foot_per_day_per_barrel_per_day = cubic_foot_per_day/barrel_per_day
-
