@@ -30,35 +30,30 @@ def parse_gef_file(filepath: str | Path, replace_column_voids=False) -> list[CPT
     :return: List of CPTData objects. GEF files contain a single CPTData object. XML files may
                 contain multiple CPTData objects.
     """
-    try:
-        if not Path(filepath).exists():
-            raise FileNotFoundError(f"File not found: {filepath}")
-        source_type = CPTSource.infer_from_filename(filepath)
-        if source_type == CPTSource.BRO_XML:
-            # No method in pygef to detect type, so just try to read as CPT.
-            # XML files can contain multiple CPT entries.
-            try:
-                multiple_cpt_data = read_cpt_xml(filepath)
-            except Exception:
-                raise ValueError(f"File '{filepath}' is not a CPT XML file or could not be parsed as CPT data.")
+    if not Path(filepath).exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    source_type = CPTSource.infer_from_filename(filepath)
+    if source_type == CPTSource.BRO_XML:
+        # No method in pygef to detect type, so just try to read as CPT.
+        # XML files can contain multiple CPT entries.
+        try:
+            multiple_cpt_data = read_cpt_xml(filepath)
+        except Exception:
+            raise ValueError(f"File '{filepath}' is not a CPT XML file or could not be parsed as CPT data.")
 
-            for cpt_data in multiple_cpt_data:
-                check_for_required_columns(cpt_data, filepath)
-            return multiple_cpt_data
-
-        elif source_type == CPTSource.GEF:
-            cpt_data = read_cpt(filepath, replace_column_voids=replace_column_voids, remove_pre_excavated_rows=False)
-            # GEF test ID is in alias.
-            # https://github.com/cemsbv/pygef/blob/6002e174b154a6ef7726f7a3aa467d6ada22be92/src/pygef/shim.py#L106
+        for cpt_data in multiple_cpt_data:
             check_for_required_columns(cpt_data, filepath)
-            return [cpt_data]
+        return multiple_cpt_data
 
-        else:
-            raise ValueError(f"File '{filepath}' is not supported. Only .xml and .gef are supported.")
+    elif source_type == CPTSource.GEF:
+        cpt_data = read_cpt(filepath, replace_column_voids=replace_column_voids, remove_pre_excavated_rows=False)
+        # GEF test ID is in alias.
+        # https://github.com/cemsbv/pygef/blob/6002e174b154a6ef7726f7a3aa467d6ada22be92/src/pygef/shim.py#L106
+        check_for_required_columns(cpt_data, filepath)
+        return [cpt_data]
 
-    except Exception as e:
-        logger.error(f"Error processing file '{filepath}': {e}")
-        raise
+    else:
+        raise ValueError(f"File '{filepath}' is not supported. Only .xml and .gef are supported.")
 
 
 def parse_gef_files(filepaths: list[str | Path], replace_column_voids=False) -> dict[str, tuple[str, CPTData]]:

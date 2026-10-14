@@ -601,6 +601,8 @@ async def test_can_override_crs(evo_metadata, data_client):
 
 # Copied from evo-objects/tests/typed/helpers.py
 class TestContext(IContext):
+    __test__ = False
+
     def __init__(self, mock_metadata):
         self._mock_metadata: EvoWorkspaceMetadata = mock_metadata
 

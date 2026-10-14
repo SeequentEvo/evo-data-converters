@@ -340,7 +340,7 @@ def _get_distance_unit_from_combined_table(combined_table) -> str | None:
 
 
 def build_downhole_collection(
-    cpts: list[ProcessedCPT], name: str | None = None, tags: dict[str, typing.Any] = None, epsg_code: int | None = None
+    cpts: list[ProcessedCPT], name: str | None = None, tags: dict[str, typing.Any] = None, crs: int | str | None = None
 ) -> DownholeCollectionData:
     """Create a DownholeCollection from parsed GEF CPT files.
 
@@ -365,12 +365,12 @@ def build_downhole_collection(
     paths = _build_paths(_combined_table)
     distance_unit = _get_distance_unit_from_combined_table(_combined_table)
     collections = _build_collections(_combined_table, hole_descriptions, distance_unit)
-    crs = EpsgCode(epsg_code) if epsg_code is not None else _get_crs(cpts)
+    coordinate_reference_system = _get_crs(cpts) if crs is None else EpsgCode(crs) if isinstance(crs, int) else crs
 
     return DownholeCollectionData(
         name=name,
         tags=tags,
-        coordinate_reference_system=crs,
+        coordinate_reference_system=coordinate_reference_system,
         path=paths,
         collections=collections,
         holes=hole_descriptions,

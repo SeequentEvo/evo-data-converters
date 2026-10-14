@@ -328,6 +328,8 @@ def _make_pygef_data(**kwargs) -> CPTData:
 
 @dataclasses.dataclass
 class TestCPT:
+    __test__ = False
+
     filename: str
     table_rows: list[int]
     hole_index: int

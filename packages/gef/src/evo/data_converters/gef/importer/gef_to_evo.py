@@ -8,12 +8,14 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import evo.logging
 from evo.common.context import StaticContext
+
+from common import crs_from_epsg_code, crs_from_any
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
@@ -35,11 +37,14 @@ async def convert_gef(
     epsg_code: int | None = None,
     evo_workspace_metadata: EvoWorkspaceMetadata | None = None,
     service_manager_widget: "ServiceManagerWidget | None" = None,
-    name: str | None = None,
     tags: dict[str, str] | None = None,
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    *,
+    coordinate_reference_system: str | int | None = None,
+    # TODO - Is the name parameter wanted?
+    name: str | None = None,
 ) -> list[ObjectMetadata] | None:
     """Converts a collection of GEF-CPT files into a Downhole Collection Geoscience Object.
 
@@ -69,22 +74,34 @@ async def convert_gef(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
+    # The `crs_from_...` methods are used to validate the crs, but the converter handles int | str | None so the
+    # return value is ignored.
+    if epsg_code is not None:
+        if coordinate_reference_system is not None:
+            raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
+        _ = crs_from_epsg_code(epsg_code)
+        crs = epsg_code
+    else:
+        _ = crs_from_any(coordinate_reference_system)
+        crs = coordinate_reference_system
+
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing will be skipped due to missing hub_url.")
         publish_objects = False
 
     tags = {
-        "Source": "GEF-CPT files (via Evo Data Converters)",
+        "Source": "GEF-CPT or BRO-XML files (via Evo Data Converters)",
         "Stage": "Experimental",
-        "InputType": "GEF-CPT",
+        "InputType": "CPT",
         **(tags or {}),
     }
 
     gef_cpt_data = parse_gef_files(filepaths)
     processed_gef_cpt_data = process_cpt_files(gef_cpt_data)
-    downhole_collection_data = build_downhole_collection(
-        processed_gef_cpt_data, name=name, tags=tags, epsg_code=epsg_code
-    )
+    downhole_collection_data = build_downhole_collection(processed_gef_cpt_data, name=name, tags=tags, crs=crs)
 
     # TODO - Need to find a better way to do this
     context = StaticContext(
