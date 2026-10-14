@@ -73,6 +73,7 @@ class UnitMapper:
 #
 #       See: https://github.com/geosoft-as/osdu-uom
 #            https://github.com/hgrecco/pint/blob/master/pint/default_en.txt
+#            https://pint.readthedocs.io/en/stable/default-units.html
 #
 #
 _translation_table: dict[str, str | None] = {
