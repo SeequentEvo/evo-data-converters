@@ -430,8 +430,8 @@ _gef_cpt_spec_2 = _CPTSpec(
 )
 
 _bro_xml_spec_1a = _CPTSpec(
-    collar_locations=[52.365336590, 5.609079550, 4.41],
-    crs="Crs_V1_0_1_EpsgCode(epsg_code=4258)",
+    collar_locations=[170112.2, 486406.5, 4.41],
+    crs="Crs_V1_0_1_EpsgCode(epsg_code=28992)",
     hole_id="CPT000000099543",
     hole_distancess={"final": 7.439, "target": 7.439, "current": 7.439},
     num_rows=372,
@@ -457,19 +457,19 @@ _bro_xml_spec_1a = _CPTSpec(
         "cone_diameter": [44.0],
         "cone_to_friction_sleeve_surface_area": [22530],
         "cpt_description": ["Hyson"],
-        "delivered_crs": [28992],
-        "delivered_x": [170112.2],
-        "delivered_y": [486406.5],
+        "standardized_crs": [4258],
+        "standardized_x": [52.365336590],
+        "standardized_y": [5.609079550],
         "research_report_date": [pd.Timestamp("2019-04-23 00:00:00+0000", tz="UTC")],
         "zlm_inclination_resultant_after": [0],
         "zlm_inclination_resultant_before": [0],
     },
-    bbox=(52.36533659, 52.36533659, 5.60907955, 5.63490911152718, -3.0297745888314376, 4.41),
+    bbox=(170112.2, 170112.2, 486406.5, 486406.5258295615, -3.0297745888314376, 4.41),
 )
 
 __bro_xml_spec_1b = _CPTSpec(
-    collar_locations=[52.0201802, 5.06352596, 0.09],
-    crs="Crs_V1_0_1_EpsgCode(epsg_code=4258)",
+    collar_locations=[132782.52, 448030.34, 0.09],
+    crs="Crs_V1_0_1_EpsgCode(epsg_code=28992)",
     hole_id="CPT000000155283",
     hole_distancess={"final": 6.57, "target": 6.57, "current": 6.57},
     num_rows=305,
@@ -494,14 +494,14 @@ __bro_xml_spec_1b = _CPTSpec(
     collar_attributes={
         "cone_to_friction_sleeve_surface_area": [15050],
         "cpt_description": ["Rups 09 Tor 27/PJW/"],
-        "delivered_crs": [28992],
-        "delivered_x": [132782.52],
-        "delivered_y": [448030.34],
+        "standardized_crs": [4258],
+        "standardized_x": [52.0201802],
+        "standardized_y": [5.06352596],
         "research_report_date": [pd.Timestamp("2020-07-15 00:00:00+0000", tz="UTC")],
         "zlm_inclination_resultant_after": [2],
         "zlm_inclination_resultant_before": [2],
     },
-    bbox=(52.0201802, 52.0201802, 5.06352596, 5.06352596, -6.48, 0.09),
+    bbox=(132782.52, 132782.52, 448030.34, 448030.34, -6.48, 0.09),
 )
 
 

@@ -68,8 +68,8 @@ PATH_ATTRIBUTES: list[str] = [
 class ProcessedCPT:
     project_id: str | None
     parsed: ParsedCptFile
-    location: _Location
-    delivered_location: _Location | None
+    delivered_location: _Location
+    standardized_location: _Location | None
     distances: _Distances
     hole_attributes: dict[str, Any]
     cpt_table: pd.DataFrame
@@ -112,7 +112,7 @@ def process_cpt_files(parsed_cpt_files: dict[str, tuple[str, CPTData]]) -> list[
 def process_cpt_file(cpt: ParsedCptFile) -> ProcessedCPT:
     """Extract and process all data we care about from the pygef data"""
     project_id = _extract_project_id(cpt)
-    location, delivered_location = _process_locations(cpt)
+    delivered_location, standardized_location = _process_locations(cpt)
     distances = _process_distances(cpt)
     hole_attributes = _process_hole_attributes(cpt)
     cpt_table = _process_cpt_table(cpt)
@@ -122,8 +122,8 @@ def process_cpt_file(cpt: ParsedCptFile) -> ProcessedCPT:
     return ProcessedCPT(
         project_id=project_id,
         parsed=cpt,
-        location=location,
         delivered_location=delivered_location,
+        standardized_location=standardized_location,
         distances=distances,
         hole_attributes=hole_attributes,
         cpt_table=cpt_table,
@@ -210,17 +210,18 @@ def _process_locations(cpt: ParsedCptFile) -> tuple[_Location, _Location | None]
     z = cpt.data.delivered_vertical_position_offset or 0.0
     delivered_crs = _extract_crs(cpt.data.delivered_location)
     delivered_xyz = _Location(cpt.data.delivered_location.x, cpt.data.delivered_location.y, z, delivered_crs)
-    if cpt.data.standardized_location is None:
-        # TODO - This is going to be the case with GEF. There's a problem with this. There is no guarantee that
+    standardized_xyz = None
+
+    if cpt.data.standardized_location is not None:
+        # TODO - GEF doesn't appear to have this. There's a problem with this. There is no guarantee that
         #  multiple GEFs will all have the same CRS description, but the GO schema is forcing a single CRS.
         #  It might be necessary to standardize this ourselves.
-        xyz = delivered_xyz
-        delivered_xyz = None
-    else:
         standardized_crs = _extract_crs(cpt.data.standardized_location)
-        xyz = _Location(cpt.data.standardized_location.x, cpt.data.standardized_location.y, z, standardized_crs)
+        standardized_xyz = _Location(
+            cpt.data.standardized_location.x, cpt.data.standardized_location.y, z, standardized_crs
+        )
 
-    return xyz, delivered_xyz
+    return delivered_xyz, standardized_xyz
 
 
 def _process_distances(cpt: ParsedCptFile) -> _Distances:
@@ -395,7 +396,10 @@ def _generate_collection_name(cpts: list[ProcessedCPT]) -> str:
 
 
 def _build_hole_properties(cpts: list[ProcessedCPT]) -> pd.DataFrame:
-    rows = [{"hole_id": cpt.hole_id, **cpt.location.xyz_dict(), **dataclasses.asdict(cpt.distances)} for cpt in cpts]
+    rows = [
+        {"hole_id": cpt.hole_id, **cpt.delivered_location.xyz_dict(), **dataclasses.asdict(cpt.distances)}
+        for cpt in cpts
+    ]
     df = pd.DataFrame(rows)
     return df.astype(HOLE_PROPERTIES_DTYPES)
 
@@ -406,9 +410,9 @@ def _build_attributes(cpts: list[ProcessedCPT]) -> pd.DataFrame:
         row = {}
         if cpt.project_id is not None:
             row["project_id"] = cpt.project_id
-        if cpt.delivered_location is not None:
-            loc = cpt.delivered_location
-            row |= {"delivered_x": loc.x, "delivered_y": loc.y, "delivered_crs": loc.crs}
+        if cpt.standardized_location is not None:
+            loc = cpt.standardized_location
+            row |= {"standardized_x": loc.x, "standardized_y": loc.y, "standardized_crs": loc.crs}
         row |= cpt.hole_attributes
         rows.append(row)
     df = pd.DataFrame(rows)
@@ -464,6 +468,10 @@ def _convert_from_pint_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _combine_cpt_tables(cpts: list[ProcessedCPT]) -> pd.DataFrame:
+    """
+    Columns can have pint units. We don't have to worry about combining mismatched units because `MEASUREMENT_UNITS`
+    dictates the units for a given column name.
+    """
     cpt_tables = [cpt.cpt_table for cpt in cpts]
     combined_table = pd.concat(cpt_tables, ignore_index=True)
     combined_table = combined_table.rename(columns={"penetration_length": "distance"})
@@ -497,7 +505,7 @@ def _get_crs(cpts: list[ProcessedCPT]) -> int | str | None:
 
     N.B. The DownholeCollection schema requires a singular CRS description.
     """
-    valid_crs = [cpt.location.crs for cpt in cpts if cpt.location.crs is not None]
+    valid_crs = [cpt.delivered_location.crs for cpt in cpts if cpt.delivered_location.crs is not None]
     if len(valid_crs) == 0:
         return None
 
