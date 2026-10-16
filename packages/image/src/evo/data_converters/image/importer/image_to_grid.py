@@ -465,11 +465,8 @@ class ImageGridConverter:
         if suffix not in {".tif", ".tiff", ".cog"}:
             return None
 
-        # Avoid Pillow limitations/noise for BigTIFF; query CRS directly from rasterio.
-        if self._is_bigtiff(image_path):
-            if not HAS_RASTERIO:
-                return None
-
+        # Use Rasterio for TIFF CRS metadata to avoid Pillow's image-size limits.
+        if HAS_RASTERIO:
             try:
                 with rasterio.open(image_path) as src:
                     if src.crs:
@@ -483,8 +480,9 @@ class ImageGridConverter:
                             logger.info("Detected embedded BigTIFF WKT via rasterio")
                             return {"ogc_wkt": wkt_text}
             except Exception as e:  # pragma: no cover - defensive parsing path
-                logger.debug(f"Failed to read BigTIFF CRS from '{image_path}' via rasterio: {e}")
+                logger.debug(f"Failed to read GeoTIFF CRS from '{image_path}' via rasterio: {e}")
 
+        if self._is_bigtiff(image_path):
             return None
 
         try:
