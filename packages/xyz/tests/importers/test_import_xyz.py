@@ -18,7 +18,8 @@ from evo.data_converters.common import EvoWorkspaceMetadata
 this_dir = Path(__file__).parent
 
 
-def test_convert_xyz_parser() -> None:
+@pytest.mark.asyncio
+async def test_convert_xyz_parser() -> None:
     xyz_file = this_dir / "data" / "ThreePointTable.xyz"
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
     tags = {"tagtest": "testvalue"}
@@ -35,7 +36,7 @@ def test_convert_xyz_parser() -> None:
         mock_save_parquet_file.return_value = None
         mock_save_1d_parquet_file.return_value = None
 
-        result = convert_xyz(
+        result = await convert_xyz(
             filepath=str(xyz_file),
             evo_workspace_metadata=evo_workspace_metadata,
             tags=tags,
@@ -59,7 +60,7 @@ def test_convert_xyz_parser() -> None:
             assert result[0].locations.attributes[0].nan_description.values == [-1.0e32]
 
 
-def _run_convert(filename: str, x_index: int = -1, y_index: int = -1, z_index: int = -1, data_index: int = -1):
+async def _run_convert(filename: str, x_index: int = -1, y_index: int = -1, z_index: int = -1, data_index: int = -1):
     xyz_file = this_dir / "data" / filename
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
     with (
@@ -70,7 +71,7 @@ def _run_convert(filename: str, x_index: int = -1, y_index: int = -1, z_index: i
         patch("evo.data_converters.xyz.importer.xyz_parser.save_1d_array_to_parquet"),
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
-        result = convert_xyz(
+        result = await convert_xyz(
             filepath=str(xyz_file),
             evo_workspace_metadata=evo_workspace_metadata,
             publish_objects=False,
@@ -104,71 +105,82 @@ def _assert_pointset(ps, min_x, min_y, min_z, max_x, max_y, max_z, n, has_data):
 # binary_located.XYZ — GEOSOFT_BYNARY_XYZ
 
 
-def test_binary_default() -> None:
-    ps = _run_convert("binary_located.XYZ")
+@pytest.mark.asyncio
+async def test_binary_default() -> None:
+    ps = await _run_convert("binary_located.XYZ")
     _assert_pointset(ps, -4.48, -1.4, 0.0, 4.48, 1.4, 0.0, 180, False)
 
 
-def test_binary_custom_xy() -> None:
-    ps = _run_convert("binary_located.XYZ", x_index=1, y_index=0)
+@pytest.mark.asyncio
+async def test_binary_custom_xy() -> None:
+    ps = await _run_convert("binary_located.XYZ", x_index=1, y_index=0)
     _assert_pointset(ps, -1.4, -4.48, 0.0, 1.4, 4.48, 0.0, 180, False)
 
 
 # triplet_located.XYZ — GEOSOFT_XYZ_TRIPLET
 
 
-def test_triplet_default() -> None:
-    ps = _run_convert("triplet_located.XYZ")
+@pytest.mark.asyncio
+async def test_triplet_default() -> None:
+    ps = await _run_convert("triplet_located.XYZ")
     _assert_pointset(ps, -4.48, -1.4, 0.2, 4.48, 1.4, 0.2, 180, False)
 
 
-def test_triplet_custom_xyz() -> None:
-    ps = _run_convert("triplet_located.XYZ", x_index=2, y_index=1, z_index=0)
+@pytest.mark.asyncio
+async def test_triplet_custom_xyz() -> None:
+    ps = await _run_convert("triplet_located.XYZ", x_index=2, y_index=1, z_index=0)
     _assert_pointset(ps, 0.2, -1.4, -4.48, 0.2, 1.4, 4.48, 180, False)
 
 
 # triplet_located.XYZ — GEOSOFT_BYNARY_XYZ_DATA
 
 
-def test_triplet_data_default() -> None:
-    ps = _run_convert("triplet_located.XYZ", data_index=2)
+@pytest.mark.asyncio
+async def test_triplet_data_default() -> None:
+    ps = await _run_convert("triplet_located.XYZ", data_index=2)
     _assert_pointset(ps, -4.48, -1.4, 0.0, 4.48, 1.4, 0.0, 180, True)
 
 
-def test_triplet_data_custom_xy() -> None:
-    ps = _run_convert("triplet_located.XYZ", x_index=1, y_index=0, data_index=2)
+@pytest.mark.asyncio
+async def test_triplet_data_custom_xy() -> None:
+    ps = await _run_convert("triplet_located.XYZ", x_index=1, y_index=0, data_index=2)
     _assert_pointset(ps, -1.4, -4.48, 0.0, 1.4, 4.48, 0.0, 180, True)
 
 
 # full_located.XYZ — GEOSOFT_XYZ_TRIPLET
 
 
-def test_full_default() -> None:
-    ps = _run_convert("full_located.XYZ")
+@pytest.mark.asyncio
+async def test_full_default() -> None:
+    ps = await _run_convert("full_located.XYZ")
     _assert_pointset(ps, 0.0, 0.0, 0.2, 0.0, 0.0, 0.2, 180, False)
 
 
-def test_full_custom_xyz() -> None:
-    ps = _run_convert("full_located.XYZ", x_index=5, y_index=6, z_index=2)
+@pytest.mark.asyncio
+async def test_full_custom_xyz() -> None:
+    ps = await _run_convert("full_located.XYZ", x_index=5, y_index=6, z_index=2)
     _assert_pointset(ps, -4.48, -1.4, 0.2, 4.48, 1.4, 0.2, 180, False)
 
 
 # full_located.XYZ — GEOSOFT_BYNARY_XYZ_DATA
 
 
-def test_full_data_default() -> None:
-    ps = _run_convert("full_located.XYZ", data_index=10)
+@pytest.mark.asyncio
+async def test_full_data_default() -> None:
+    ps = await _run_convert("full_located.XYZ", data_index=10)
     _assert_pointset(ps, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 180, True)
 
 
 # full_located.XYZ — GEOSOFT_XYZ_TRIPLET_DATA
 
 
-def test_full_data_custom_z() -> None:
-    ps = _run_convert("full_located.XYZ", z_index=2, data_index=10)
+@pytest.mark.asyncio
+async def test_full_data_custom_z() -> None:
+    ps = await _run_convert("full_located.XYZ", z_index=2, data_index=10)
     _assert_pointset(ps, 0.0, 0.0, 0.2, 0.0, 0.0, 0.2, 180, True)
 
 
-def test_full_data_custom_xyz() -> None:
-    ps = _run_convert("full_located.XYZ", x_index=4, y_index=5, z_index=2, data_index=10)
+@pytest.mark.asyncio
+async def test_full_data_custom_xyz() -> None:
+    ps = await _run_convert("full_located.XYZ", x_index=4, y_index=5, z_index=2, data_index=10)
     _assert_pointset(ps, -1e32, -4.48, 0.2, -1e32, 4.48, 0.2, 180, True)

@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Optional
 from uuid import UUID
 
@@ -64,7 +65,7 @@ async def export_obj(
     :raise ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget present.
     """
 
-    service_client, data_client = create_evo_object_service_and_data_client(
+    service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata, service_manager_widget
     )
 
@@ -78,7 +79,7 @@ async def export_obj(
     if len(objects) == 1:
         header += f"; {obj_description}"
 
-    export_scene(scene, filepath, file_type="obj", header=header)
+    await asyncio.to_thread(export_scene, scene, filepath, file_type="obj", header=header)
 
 
 async def _download_evo_object_by_id(

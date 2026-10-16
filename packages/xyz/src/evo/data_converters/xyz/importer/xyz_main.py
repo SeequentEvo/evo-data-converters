@@ -18,14 +18,14 @@ from typing import TYPE_CHECKING, Optional
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
+    publish_geoscience_objects,
 )
 
 if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_xyz(
+async def convert_xyz(
     filepath: str,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
@@ -41,7 +41,7 @@ def convert_xyz(
 ) -> list[Pointset_V1_3_0]:
     geoscience_objects = []
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
@@ -61,7 +61,7 @@ def convert_xyz(
     objects_metadata = None
     if publish_objects:
         print("Publishing XYZ file")
-        objects_metadata = publish_geoscience_objects_sync(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 

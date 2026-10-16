@@ -34,7 +34,7 @@ from evo.notebooks import ServiceManagerWidget
 manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
 
 # Convert and publish
-results = convert_image_to_grid(
+results = await convert_image_to_grid(
     image_path="image.jpg",
     origin=[572565.0, 6839415.0, 1000.0],
     cell_size=[30.0, 30.0],

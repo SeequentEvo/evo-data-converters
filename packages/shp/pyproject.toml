@@ -1,6 +1,6 @@
 [project]
 name = "evo-data-converters-shp"
-version = "0.1.7"
+version = "0.2.0"
 description = "Python data converters for ESRI shapefiles to Evo geoscience objects."
 readme = "README.md"
 authors = [
@@ -22,7 +22,8 @@ Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
 dev = [
-    "pytest"
+    "pytest",
+    "pytest-asyncio",
 ]
 
 [project.optional-dependencies]

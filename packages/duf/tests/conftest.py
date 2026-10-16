@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import os
 import sys
 
@@ -68,7 +69,7 @@ class TestDataClient:
 
 @pytest.fixture(scope="session")
 def data_client(evo_metadata) -> TestDataClient:
-    _, data_client = create_evo_object_service_and_data_client(evo_metadata)
+    _, data_client = asyncio.run(create_evo_object_service_and_data_client(evo_metadata))
     return TestDataClient(data_client)
 
 

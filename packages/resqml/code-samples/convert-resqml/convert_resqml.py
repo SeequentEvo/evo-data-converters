@@ -12,6 +12,7 @@
 #  limitations under the License.
 
 import argparse
+import asyncio
 import uuid
 
 from evo.data_converters.common import EvoWorkspaceMetadata
@@ -38,8 +39,10 @@ meta_data = EvoWorkspaceMetadata(workspace_id=str(uuid.uuid4()))
 options = RESQMLConversionOptions(active_cells_only=not args.all_grid_cells)
 
 for file_name in file_names:
-    objects = convert_resqml(
-        file_name, coordinate_reference_system=args.epsg_code, evo_workspace_metadata=meta_data, options=options
+    objects = asyncio.run(
+        convert_resqml(
+            file_name, coordinate_reference_system=args.epsg_code, evo_workspace_metadata=meta_data, options=options
+        )
     )
     for o in objects:
         print(o.json_dumps(indent=4))

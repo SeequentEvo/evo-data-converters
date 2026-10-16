@@ -60,9 +60,9 @@ simple_shape_faces = pd.DataFrame(
 class TestObjGeometryParsing(EvoDataConvertersTestCase):
     implementation: str = "trimesh"
 
-    def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
         EvoDataConvertersTestCase.setUp(self)
-        _, data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+        _, data_client = await create_evo_object_service_and_data_client(self.workspace_metadata)
         self.data_client = data_client
 
     async def _make_geoobject(self, filename: str = "simple_shapes.obj") -> TriangleMesh_V2_2_0:

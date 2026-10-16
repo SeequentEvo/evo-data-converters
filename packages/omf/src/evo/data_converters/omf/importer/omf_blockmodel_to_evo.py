@@ -10,7 +10,6 @@
 #  limitations under the License.
 from typing import Any
 
-import nest_asyncio
 import omf2
 import pyarrow as pa
 
@@ -48,7 +47,6 @@ def convert_omf_blockmodel(
     """
     environment = object_service_client._environment
     api_connector = object_service_client._connector
-    nest_asyncio.apply()
     block_model_metadata = []
 
     client = _create_block_sync_client(environment, api_connector)

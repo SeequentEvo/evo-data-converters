@@ -14,8 +14,6 @@ import logging
 import pprint
 import tempfile
 
-import nest_asyncio
-
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.obj.importer import convert_obj
 
@@ -94,9 +92,6 @@ if args.redirect_url:
     workspace_metadata.redirect_url = args.redirect_url
 
 logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
-
-# NOTE: nest_asyncio is currently required as some code in evo.data_converters.common still uses asyncio.run()
-nest_asyncio.apply()
 
 # Convert OBJ file, if a hub_url was provided above the objects will be published
 results = asyncio.run(

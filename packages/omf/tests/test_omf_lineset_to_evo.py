@@ -12,7 +12,7 @@
 from os import path
 from tempfile import TemporaryDirectory
 from typing import Any
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 
 import omf2
 import pyarrow.parquet as pq
@@ -34,13 +34,13 @@ from evo.data_converters.omf import OMFReaderContext
 from evo.data_converters.omf.importer import convert_omf_lineset
 
 
-class TestOMFLineSetConverter(TestCase):
-    def setUp(self) -> None:
+class TestOMFLineSetConverter(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
         self.cache_root_dir = TemporaryDirectory()
         metadata = EvoWorkspaceMetadata(
             workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
         )
-        _, data_client = create_evo_object_service_and_data_client(metadata)
+        _, data_client = await create_evo_object_service_and_data_client(metadata)
         self.data_client = data_client
 
     def _element_by_name(self, project: omf2.Project, element_name: str) -> omf2.Element:

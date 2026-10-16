@@ -12,6 +12,7 @@
 #  limitations under the License.
 
 import argparse
+import asyncio
 import logging
 import pprint
 import tempfile
@@ -47,11 +48,13 @@ parser.add_argument(
     help="Local directory to store processed files. If it doesn't exist it will be created. Defaults to a temporary directory if not provided.",
 )
 
-parser.add_argument("--hub-url", help="The URL of the hub the workspace resides in.", default="")
-parser.add_argument("--org-id", help="UUID of the organization the workspace belongs to.", default="")
-parser.add_argument("--workspace-id", help="The workspace UUID.")
+parser.add_argument("--hub-url", help="The URL of the hub the workspace resides in.", default="", required=True)
+parser.add_argument("--org-id", help="UUID of the organization the workspace belongs to.", default="", required=True)
+parser.add_argument("--workspace-id", help="The workspace UUID.", required=True)
 
-parser.add_argument("--client-id", help="The OAuth client ID, as registered with the OAuth provider.", default="")
+parser.add_argument(
+    "--client-id", help="The OAuth client ID, as registered with the OAuth provider.", default="", required=True
+)
 parser.add_argument("--redirect-url", help="The local URL to redirect the user back to after authorisation", default="")
 
 parser.add_argument(
@@ -116,13 +119,15 @@ if args.corner_points_array_threshold:
 logger.debug(f"Using RESQML conversion options: {options}")
 
 # Convert RESQML file, if a hub_url was provided above the objects will be published
-results = convert_resqml(
-    filepath=args.filename,
-    evo_workspace_metadata=workspace_metadata,
-    coordinate_reference_system=args.epsg_code,
-    tags=tags,
-    upload_path=args.upload_path,
-    options=options,
+results = asyncio.run(
+    convert_resqml(
+        filepath=args.filename,
+        evo_workspace_metadata=workspace_metadata,
+        coordinate_reference_system=args.epsg_code,
+        tags=tags,
+        upload_path=args.upload_path,
+        options=options,
+    )
 )
 
 # Results will either be a list of BaseSpatialDataProperties_V1_0_1 if not published, or a list of ObjectMetadata if they were published

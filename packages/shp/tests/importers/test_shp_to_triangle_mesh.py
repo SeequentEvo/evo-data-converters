@@ -107,9 +107,10 @@ def parquet_path(tmp_path: Path) -> Path:
     return tmp_path / "parquet"
 
 
-def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_path: Path):
+@pytest.mark.asyncio
+async def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_path: Path) -> None:
     path, expected_fields, expected_shape_num, expected_triangle_num, expected_vertex_num = sample_shp
-    triangle_meshes = convert_shp(
+    triangle_meshes = await convert_shp(
         filepath=path,
         filepath_shx=path.with_suffix(".shx"),
         filepath_dbf=path.with_suffix(".dbf"),
@@ -150,13 +151,14 @@ def test_convert_basic_shp(sample_shp: tuple[Path, int, int, int, int], parquet_
     assert triangle_mesh.bounding_box.max_z == 8
 
 
-def test_custom_tags(sample_shp: Path, parquet_path: Path):
+@pytest.mark.asyncio
+async def test_custom_tags(sample_shp: Path, parquet_path: Path) -> None:
     path, _, _, _, _ = sample_shp
 
     tags = {"Source": "Test", "Type": "Shapefile", "Custom Tag": "Here!"}
     expected_tags = {"Stage": "Experimental", "InputType": "SHP", **(tags)}
 
-    triangle_meshes = convert_shp(
+    triangle_meshes = await convert_shp(
         filepath=path,
         filepath_shx=path.with_suffix(".shx"),
         filepath_dbf=path.with_suffix(".dbf"),
@@ -173,11 +175,12 @@ def test_custom_tags(sample_shp: Path, parquet_path: Path):
     assert triangle_mesh.tags == expected_tags
 
 
-def test_prj(sample_shp: Path, prj: Path, parquet_path: Path):
+@pytest.mark.asyncio
+async def test_prj(sample_shp: Path, prj: Path, parquet_path: Path) -> None:
     path, _, _, _, _ = sample_shp
     prj_file, expected_prj = prj
 
-    triangle_meshes = convert_shp(
+    triangle_meshes = await convert_shp(
         filepath=path,
         filepath_shx=path.with_suffix(".shx"),
         filepath_dbf=path.with_suffix(".dbf"),
@@ -194,10 +197,11 @@ def test_prj(sample_shp: Path, prj: Path, parquet_path: Path):
     assert triangle_mesh.coordinate_reference_system.ogc_wkt == expected_prj
 
 
-def test_parquet_output(sample_shp: Path, parquet_path: Path):
+@pytest.mark.asyncio
+async def test_parquet_output(sample_shp: Path, parquet_path: Path) -> None:
     path, _, _, _, _ = sample_shp
 
-    triangle_meshes = convert_shp(
+    triangle_meshes = await convert_shp(
         filepath=path,
         filepath_shx=path.with_suffix(".shx"),
         filepath_dbf=path.with_suffix(".dbf"),

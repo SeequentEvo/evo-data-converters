@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import gc
 import warnings
 from pathlib import Path
@@ -72,7 +73,7 @@ async def convert_obj(
     :raise InvalidOBJError: If the input OBJ file is invalid or cannot be parsed.
     :raise InvalidCRSError: If the input CRS information is invalid.
     """
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
         service_manager_widget=service_manager_widget,
     )
@@ -101,7 +102,7 @@ async def convert_obj(
 
     importer = impl_class(obj_file=filepath, crs=crs, data_client=data_client)
 
-    triangle_mesh_go = importer.convert_file()
+    triangle_mesh_go = await asyncio.to_thread(importer.convert_file)
 
     # Deallocate the parser's memory to shorten the memory peak during a conversion.
     del importer

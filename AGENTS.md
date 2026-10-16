@@ -59,7 +59,7 @@ packages/<type>/src/evo/data_converters/<type>/
 ```
 
 - `convert_<type>(...)` already creates the Evo clients, resolves the CRS, calls
-  `get_geoscience_object_from_<type>`, and publishes via `publish_geoscience_objects_sync`.
+  `get_geoscience_object_from_<type>`, and publishes via `await publish_geoscience_objects(...)`.
   It returns `list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]`. **Don't change, reorder,
   or remove the standard parameters** — but you _may_ add new **optional keyword-only** params
   (after the `*`, with defaults) for runtime choices such as geometry grouping.
@@ -85,7 +85,7 @@ cd packages/common && uv run --only-dev mypy ../<type>   # type check a converte
 ## Framework APIs (from `evo.data_converters.common`)
 
 - `create_evo_object_service_and_data_client(evo_workspace_metadata=..., service_manager_widget=...)`
-- `publish_geoscience_objects_sync(objects, object_service_client, data_client, upload_path, overwrite_existing_objects)`
+- `await publish_geoscience_objects(objects, object_service_client, data_client, upload_path, overwrite_existing_objects)`
 - `crs_from_any(...)`, `crs_from_epsg_code(...)` (in `evo.data_converters.common.crs`)
 - `data_client.save_table(pyarrow_table)` and `data_client.cache_location` for referenced data
 

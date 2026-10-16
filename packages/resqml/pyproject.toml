@@ -1,7 +1,7 @@
 [project]
 name = "evo-data-converters-resqml"
 description = "Python data converters for RESQML to Evo geoscience objects"
-version = "0.2.1"
+version = "0.3.0"
 requires-python = ">=3.10"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
@@ -24,6 +24,7 @@ Documentation = "https://developer.seequent.com/"
 dev = [
     "pandas",
     "pytest",
+    "pytest-asyncio",
 ]
 
 [project.optional-dependencies]
