@@ -9,9 +9,9 @@ authors = [{ name = "Seequent", email = "support@seequent.com" }]
 
 dependencies = [
     "aiohttp",
-    "evo-sdk-common>=0.4.2",
-    "evo-objects>=0.3.0",
-    "evo-schemas>=2025.9.12",
+    "evo-sdk-common>=0.5.21",
+    "evo-objects>=0.4.2",
+    "evo-schemas>=2026.1.8",
     "nest_asyncio",
     "numpy>=1.26.3",
     "pyarrow<26",
@@ -19,6 +19,7 @@ dependencies = [
     "scipy",
     "pyproj>=3.7.1",
     "pandas>=2.3.3",
+    "pint-pandas>=0.8.0",
 ]
 
 [project.urls]
@@ -55,6 +56,8 @@ dev = [
     "mypy",
     "pre-commit>=4",
     "copier>=9.16.0", # used by the repository-level create-converter scaffolding CLI
+    "pandas-stubs>=2.3.3",
+    "pyarrow-stubs",
 ]
 
 [[tool.uv.index]]

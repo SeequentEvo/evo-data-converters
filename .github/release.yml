@@ -11,6 +11,9 @@ changelog:
     - title: evo-data-converters-duf
       labels:
         - duf
+    - title: evo-data-converters-gef
+      labels:
+        - gef
     - title: evo-data-converters-gocad
       labels:
         - gocad
