@@ -23,15 +23,18 @@ from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestExportOMFPointSet(EvoDataConvertersTestCase):
-    def setUp(self) -> None:
-        EvoDataConvertersTestCase.setUp(self)
-
-        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+    async def asyncSetUp(self) -> None:
+        _, self.data_client = await create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
-        self.evo_object = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        self.evo_object = (
+            await convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )[1]
         self.evo_object.description = "any description"
         self.assertIsInstance(self.evo_object, Pointset_V1_2_0)

@@ -18,7 +18,7 @@ import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
+    publish_geoscience_objects,
 )
 from evo.data_converters.common.crs import crs_from_any, crs_from_epsg_code
 from evo.data_converters.gocad.importer import utils
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_gocad(
+async def convert_gocad(
     filepath: str,
     epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
@@ -71,7 +71,7 @@ def convert_gocad(
     :raise UnsupportedRotation: If the Gocan file contains inverted or skew rotation.
     """
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
@@ -89,7 +89,7 @@ def convert_gocad(
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
-        objects_metadata = publish_geoscience_objects_sync(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 

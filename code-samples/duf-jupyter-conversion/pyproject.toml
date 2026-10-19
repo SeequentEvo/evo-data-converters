@@ -2,7 +2,7 @@
 name = "duf-jupyter-conversion"
 version = "0.0.1"
 description = "Jupyter notebook for DUF file conversion to an Evo workspace"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10"
 dependencies = [
     "numpy<=1.26.4",
     "jupyterlab-widgets==3.0.15",

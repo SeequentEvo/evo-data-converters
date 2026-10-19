@@ -12,14 +12,13 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pyproj import CRS
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1, Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
+from pyproj import CRS
 
+from evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo import convert_{{converter_type}}
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError, MissingConnectionDetailsError
-from evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo import convert_{{converter_type}}
 from evo.objects.data import ObjectMetadata
-
 
 _WKT2_EXAMPLE = """\
 GEOGCRS["WGS 84",
@@ -38,7 +37,8 @@ GEOGCRS["WGS 84",
     ID["EPSG", 4326]]"""
 
 
-def test_convert_{{converter_type}}_success() -> None:
+@pytest.mark.asyncio
+async def test_convert_{{converter_type}}_success() -> None:
     filepath = "dummy_file.txt"
     coordinate_reference_system = _WKT2_EXAMPLE
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
@@ -53,7 +53,7 @@ def test_convert_{{converter_type}}_success() -> None:
             "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.create_evo_object_service_and_data_client"
         ) as mock_create_client,
         patch(
-            "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.publish_geoscience_objects_sync"
+            "evo.data_converters.{{converter_type}}.importer.{{converter_type}}_to_evo.publish_geoscience_objects"
         ) as mock_publish,
         patch(
             "evo.data_converters.{{converter_type}}.importer.utils.get_geoscience_object_from_{{converter_type}}", return_value=mock_geoscience_object
@@ -62,7 +62,7 @@ def test_convert_{{converter_type}}_success() -> None:
         mock_create_client.return_value = (MagicMock(), MagicMock())
         mock_publish.return_value = [mock_metadata]
         
-        result = convert_{{converter_type}}(
+        result = await convert_{{converter_type}}(
             filepath,
             evo_workspace_metadata=evo_workspace_metadata,
             tags=tags,
@@ -83,7 +83,8 @@ def test_convert_{{converter_type}}_success() -> None:
         )
 
 
-def test_convert_{{converter_type}}_no_publish() -> None:
+@pytest.mark.asyncio
+async def test_convert_{{converter_type}}_no_publish() -> None:
     filepath = "dummy_file.txt"
     evo_workspace_metadata = EvoWorkspaceMetadata()
     tags = {"tag1": "value1"}
@@ -101,7 +102,7 @@ def test_convert_{{converter_type}}_no_publish() -> None:
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
 
-        result = convert_{{converter_type}}(
+        result = await convert_{{converter_type}}(
             filepath,
             evo_workspace_metadata=evo_workspace_metadata,
             tags=tags,
@@ -112,20 +113,22 @@ def test_convert_{{converter_type}}_no_publish() -> None:
     assert result == [mock_geoscience_object]
 
 
-def test_convert_{{converter_type}}_missing_connection_details_error() -> None:
+@pytest.mark.asyncio
+async def test_convert_{{converter_type}}_missing_connection_details_error() -> None:
     filepath = "dummy_file.txt"
 
     with pytest.raises(MissingConnectionDetailsError):
-        convert_{{converter_type}}(filepath, publish_objects=False)
+        await convert_{{converter_type}}(filepath, publish_objects=False)
 
 
-def test_convert_{{converter_type}}_conflicting_connection_details_error() -> None:
+@pytest.mark.asyncio
+async def test_convert_{{converter_type}}_conflicting_connection_details_error() -> None:
     filepath = "dummy_file.txt"
     evo_workspace_metadata = EvoWorkspaceMetadata()
     service_manager_widget = MagicMock()
 
     with pytest.raises(ConflictingConnectionDetailsError):
-        convert_{{converter_type}}(
+        await convert_{{converter_type}}(
             filepath,
             evo_workspace_metadata=evo_workspace_metadata,
             service_manager_widget=service_manager_widget,
@@ -142,7 +145,8 @@ def test_convert_{{converter_type}}_conflicting_connection_details_error() -> No
         (None, "unspecified"),
     ],
 )
-def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+@pytest.mark.asyncio
+async def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     filepath = "dummy_file.txt"
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
 
@@ -159,7 +163,7 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     ):
         mock_create_client.return_value = (MagicMock(), MagicMock())
 
-        convert_{{converter_type}}(
+        await convert_{{converter_type}}(
             filepath,
             evo_workspace_metadata=evo_workspace_metadata,
             coordinate_reference_system=input_crs,
@@ -170,12 +174,13 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
         assert crs_arg == expected_crs
 
 
-def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+@pytest.mark.asyncio
+async def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
     filepath = "dummy_file.txt"
     evo_workspace_metadata = EvoWorkspaceMetadata(hub_url="http://example.com")
 
     with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
-        convert_{{converter_type}}(
+        await convert_{{converter_type}}(
             filepath,
             4326,
             evo_workspace_metadata,

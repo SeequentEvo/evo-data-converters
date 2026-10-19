@@ -9,11 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 from evo.common.exceptions import NotFoundException
-from evo.data_converters.common.publish import publish_geoscience_object, publish_geoscience_objects_sync
+from evo.data_converters.common.publish import (
+    publish_geoscience_object,
+    publish_geoscience_objects,
+)
 
 
 class TestPublishGeoscienceObjects(IsolatedAsyncioTestCase):
@@ -28,14 +32,14 @@ class TestPublishGeoscienceObjects(IsolatedAsyncioTestCase):
 
     @patch("evo.data_converters.common.publish.publish_geoscience_object")
     @patch("evo.data_converters.common.publish.generate_paths")
-    def test_publish_geoscience_objects(
+    async def test_publish_geoscience_objects(
         self, mock_generate_paths: MagicMock, mock_publish_geoscience_object: AsyncMock
     ) -> None:
         expected_metadata = Mock()
         mock_publish_geoscience_object.return_value = expected_metadata
         mock_generate_paths.return_value = ["test/mock_1.json", "test/mock_2.json"]
 
-        objects_metadata = publish_geoscience_objects_sync(
+        objects_metadata = await publish_geoscience_objects(
             object_models=self.test_objects,
             object_service_client=self.mock_object_service_client,
             data_client=self.mock_data_client,
@@ -61,11 +65,43 @@ class TestPublishGeoscienceObjects(IsolatedAsyncioTestCase):
         )
 
     @patch("evo.data_converters.common.publish.publish_geoscience_object")
-    def test_publish_geoscience_objects_empty_list(self, mock_publish_geoscience_object: AsyncMock) -> None:
-        objects_metadata = publish_geoscience_objects_sync([], self.mock_object_service_client, self.mock_data_client)
+    async def test_publish_geoscience_objects_empty_list(self, mock_publish_geoscience_object: AsyncMock) -> None:
+        objects_metadata = await publish_geoscience_objects([], self.mock_object_service_client, self.mock_data_client)
 
         self.assertEqual(objects_metadata, [])
         mock_publish_geoscience_object.assert_not_called()
+
+    @patch("evo.data_converters.common.publish.publish_geoscience_object")
+    @patch("evo.data_converters.common.publish.generate_paths")
+    async def test_async_publish_geoscience_objects_concurrently(
+        self, mock_generate_paths: MagicMock, mock_publish_geoscience_object: AsyncMock
+    ) -> None:
+        both_started = asyncio.Event()
+        release = asyncio.Event()
+        started = 0
+        expected_metadata = [Mock(), Mock()]
+
+        async def publish(*args: object) -> Mock:
+            nonlocal started
+            result = expected_metadata[started]
+            started += 1
+            if started == len(self.test_objects):
+                both_started.set()
+            await release.wait()
+            return result
+
+        mock_generate_paths.return_value = ["test/mock_1.json", "test/mock_2.json"]
+        mock_publish_geoscience_object.side_effect = publish
+
+        publish_task = asyncio.create_task(
+            publish_geoscience_objects(
+                self.test_objects, self.mock_object_service_client, self.mock_data_client, path_prefix="test"
+            )
+        )
+        await asyncio.wait_for(both_started.wait(), timeout=1)
+        release.set()
+
+        self.assertEqual(await publish_task, expected_metadata)
 
     async def test_publish_geoscience_object_creates_new_object(self) -> None:
         """Test publishing when object doesn't exist (404 NotFound)"""

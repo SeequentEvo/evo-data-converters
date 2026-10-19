@@ -134,6 +134,7 @@ uv.lock
 .idea
 query_results.parquet
 .cache_ggshield
+.DS_Store
 
 # Object data client caches
 **/data/cache

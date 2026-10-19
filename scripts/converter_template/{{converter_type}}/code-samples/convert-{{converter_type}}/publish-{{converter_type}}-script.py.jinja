@@ -10,13 +10,14 @@
 #  limitations under the License.
 
 import argparse
+import asyncio
 import logging
 import pprint
 import tempfile
 import uuid
 
-from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.{{converter_type}}.importer import convert_{{converter_type}}
+from evo.data_converters.common import EvoWorkspaceMetadata
 
 parser = argparse.ArgumentParser(description="Publish elements from an {{converter_type.upper()}} file to Evo")
 
@@ -109,14 +110,16 @@ if args.redirect_url:
 logger.debug(f"Using Evo Workspace Metadata: {workspace_metadata}")
 
 # Convert {{converter_type.upper()}} file. If --no-publish is not set and a hub_url is available, the objects will be published.
-results = convert_{{converter_type}}(
-    filepath=args.filename,
-    evo_workspace_metadata=workspace_metadata,
-    coordinate_reference_system=args.epsg_code,
-    tags=tags,
-    upload_path=args.upload_path,
-    overwrite_existing_objects=args.overwrite_existing_objects,
-    publish_objects=args.publish,
+results = asyncio.run(
+    convert_{{converter_type}}(
+        filepath=args.filename,
+        evo_workspace_metadata=workspace_metadata,
+        coordinate_reference_system=args.epsg_code,
+        tags=tags,
+        upload_path=args.upload_path,
+        overwrite_existing_objects=args.overwrite_existing_objects,
+        publish_objects=args.publish,
+    )
 )
 
 # Results will either be a list of BaseSpatialDataProperties_V1_0_1 if not published, or a list of ObjectMetadata if they were published

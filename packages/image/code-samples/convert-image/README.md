@@ -56,7 +56,7 @@ from evo.notebooks import ServiceManagerWidget
 manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
 
 # Convert and publish
-results = convert_image_to_grid(
+results = await convert_image_to_grid(
     image_path="path/to/image.jpg",
     service_manager_widget=manager,
     upload_path="grids/image_imports",
@@ -69,7 +69,7 @@ print(f"Published: {results[0].name}")
 ### Advanced Example with Custom Parameters
 
 ```python
-results = convert_image_to_grid(
+results = await convert_image_to_grid(
     image_path="image.jpg",
     origin=[572565.0, 6839415.0, 1000.0],  # World coordinates
     cell_size=[30.0, 30.0],  # 30m x 30m cells

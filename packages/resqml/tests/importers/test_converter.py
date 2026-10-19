@@ -13,7 +13,8 @@
 
 from os import path
 from tempfile import TemporaryDirectory
-from unittest import TestCase
+from typing import Any
+from unittest import IsolatedAsyncioTestCase
 from uuid import uuid4
 from zipfile import BadZipFile
 
@@ -43,25 +44,25 @@ GEOGCRS["WGS 84",
     ID["EPSG", 4326]]"""
 
 
-class TestConverter(TestCase):
+class TestConverter(IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.temp_cache_dir = TemporaryDirectory()
         self.workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=self.temp_cache_dir.name)
 
-    def test_unknown_file(self) -> None:
+    async def test_unknown_file(self) -> None:
         # Given a file that does not exist
         file_name = "this file does not exist"
         # Then when convert_resqml is called
         # It should raise a FileNotFound exception
         with self.assertRaises(FileNotFoundError):
-            convert_resqml(
+            await convert_resqml(
                 filepath=file_name,
                 epsg_code=4326,
                 evo_workspace_metadata=self.workspace_metadata,
                 publish_objects=False,
             )
 
-    def test_non_epc_file_thats_not_zipped(self) -> None:
+    async def test_non_epc_file_thats_not_zipped(self) -> None:
         # Given a file that is not in epc format
         file_name = path.join(path.dirname(__file__), "data/not_zipped.epc")
 
@@ -69,14 +70,14 @@ class TestConverter(TestCase):
         # It should raise a BadZipFile exception
         # TODO this should eventually be wrapped in what ever exception we're going to throw
         with self.assertRaises(BadZipFile):
-            convert_resqml(
+            await convert_resqml(
                 filepath=file_name,
                 epsg_code=4326,
                 evo_workspace_metadata=self.workspace_metadata,
                 publish_objects=False,
             )
 
-    def test_non_epc_file_thats_zipped(self) -> None:
+    async def test_non_epc_file_thats_zipped(self) -> None:
         # Given a file that is not in epc format
         file_name = path.join(path.dirname(__file__), "data/invalid.epc")
 
@@ -84,18 +85,18 @@ class TestConverter(TestCase):
         # It should raise a KeyError exception
         # TODO this should eventually be wrapped in what ever exception we're going to throw
         with self.assertRaises(KeyError):
-            convert_resqml(
+            await convert_resqml(
                 filepath=file_name,
                 epsg_code=4326,
                 evo_workspace_metadata=self.workspace_metadata,
                 publish_objects=False,
             )
 
-    def test_should_create_expected_objects(self) -> None:
+    async def test_should_create_expected_objects(self) -> None:
         file_name = path.join(path.dirname(__file__), "data/surface.epc")
 
         epsg_code = 32650
-        go_objects = convert_resqml(
+        go_objects = await convert_resqml(
             filepath=file_name,
             evo_workspace_metadata=self.workspace_metadata,
             epsg_code=epsg_code,
@@ -131,12 +132,12 @@ class TestConverter(TestCase):
         self.assertAlmostEqual(expected_bounding_box.min_z, triangle_mesh_go.bounding_box.min_z)
         self.assertAlmostEqual(expected_bounding_box.max_z, triangle_mesh_go.bounding_box.max_z)
 
-    def test_should_add_expected_tags(self) -> None:
+    async def test_should_add_expected_tags(self) -> None:
         file_name = path.join(path.dirname(__file__), "data/surface.epc")
 
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
-        go_objects = convert_resqml(
+        go_objects = await convert_resqml(
             filepath=file_name,
             evo_workspace_metadata=self.workspace_metadata,
             epsg_code=32650,
@@ -162,11 +163,12 @@ class TestConverter(TestCase):
         (None, "unspecified"),
     ],
 )
-def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+@pytest.mark.asyncio
+async def test_coordinate_reference_system(input_crs: Any, expected_crs: Any) -> None:
     temp_cache_dir = TemporaryDirectory()
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=temp_cache_dir.name)
     file_name = path.join(path.dirname(__file__), "data/surface.epc")
-    go_objects = convert_resqml(
+    go_objects = await convert_resqml(
         filepath=file_name,
         evo_workspace_metadata=workspace_metadata,
         coordinate_reference_system=input_crs,
@@ -176,12 +178,13 @@ def test_coordinate_reference_system(input_crs, expected_crs) -> None:
     assert go_objects[0].coordinate_reference_system == expected_crs
 
 
-def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+@pytest.mark.asyncio
+async def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
     temp_cache_dir = TemporaryDirectory()
     workspace_metadata = EvoWorkspaceMetadata(workspace_id=str(uuid4()), cache_root=temp_cache_dir.name)
     file_name = path.join(path.dirname(__file__), "data/surface.epc")
     with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
-        convert_resqml(
+        await convert_resqml(
             filepath=file_name,
             evo_workspace_metadata=workspace_metadata,
             epsg_code=32650,
