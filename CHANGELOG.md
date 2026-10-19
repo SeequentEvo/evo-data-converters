@@ -1,5 +1,135 @@
 # Changelog
 
+## evo-data-converters-vtk@v0.3.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-vtk@v0.2.0...evo-data-converters-vtk@v0.3.0
+
+## evo-data-converters-ubc@0.3.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-ubc@0.2.1...evo-data-converters-ubc@0.3.0
+
+## evo-data-converters-shp@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-shp@v0.1.7...evo-data-converters-shp@v0.2.0
+
+## evo-data-converters-resqml@v0.3.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-resqml@v0.2.0...evo-data-converters-resqml@v0.3.0
+
+## evo-data-converters-omf@v0.3.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-omf@v0.2.0...evo-data-converters-omf@v0.3.0
+
+## evo-data-converters-obj@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-obj@v0.1.1...evo-data-converters-obj@v0.2.0
+
+## evo-data-converters-image@v0.2.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/240
+* Update CHANGELOG.md by @change-log-updater[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/266
+* Creating a registry of the capabilities of each Evo data converter by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/248
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.1.10...evo-data-converters-image@v0.2.0
+
+## evo-data-converters-gocad@v0.3.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-gocad@v0.2.0...evo-data-converters-gocad@v0.3.0
+
+## evo-data-converters-common@v0.4.0
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Fix PyArrow and NumPy compatibility in tests by @l-macdonald in https://github.com/SeequentEvo/evo-data-converters/pull/269
+* Bump the uv group across 1 directory with 2 updates by @dependabot[bot] in https://github.com/SeequentEvo/evo-data-converters/pull/268
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+## New Contributors
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-common@v0.3.3...evo-data-converters-common@v0.4.0
+
 ## evo-data-converters-image@v0.1.10
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
