@@ -13,7 +13,8 @@ import json
 import tempfile
 from os import path
 from unittest import IsolatedAsyncioTestCase, TestCase
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from uuid import UUID
 
 import requests
 import requests_mock
@@ -21,7 +22,11 @@ from omf import VolumeElement, VolumeGridGeometry
 from omf.data import DateTimeData, MappedData, ScalarData
 
 from evo.data_converters.common import BlockSyncClient, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
-from evo.data_converters.omf.exporter.blocksync_to_omf import blocksync_to_omf_element, export_blocksync_columns
+from evo.data_converters.omf.exporter.blocksync_to_omf import (
+    blocksync_to_omf_element,
+    export_blocksync_columns,
+    export_blocksync_omf,
+)
 
 
 class TestBlockSyncToOMF(TestCase):
@@ -88,6 +93,45 @@ class TestBlockSyncToOMF(TestCase):
 
         # Ensure the download file was deleted
         os_unlink.assert_called_once_with(download_file)
+
+
+class TestBlockSyncOMFExport(IsolatedAsyncioTestCase):
+    async def test_export_blocksync_omf_awaits_client_creation(self) -> None:
+        filepath = "blockmodel.omf"
+        object_id = UUID("bca38684-831f-4350-9a3f-68705bb69e84")
+        metadata = Mock(spec=EvoWorkspaceMetadata)
+        service_client = Mock()
+        environment = service_client._environment
+        api_connector = service_client._connector
+        block_sync_client = Mock(spec=BlockSyncClient)
+        element = Mock(spec=VolumeElement)
+        project = Mock()
+        project.validate.return_value = True
+        create_clients = AsyncMock(return_value=(service_client, Mock()))
+
+        with (
+            patch(
+                "evo.data_converters.omf.exporter.blocksync_to_omf.create_evo_object_service_and_data_client",
+                create_clients,
+            ),
+            patch(
+                "evo.data_converters.omf.exporter.blocksync_to_omf.BlockSyncClient",
+                return_value=block_sync_client,
+            ) as create_block_sync_client,
+            patch(
+                "evo.data_converters.omf.exporter.blocksync_to_omf.blocksync_to_omf_element",
+                return_value=element,
+            ) as convert_element,
+            patch("evo.data_converters.omf.exporter.blocksync_to_omf.omf.Project", return_value=project),
+            patch("evo.data_converters.omf.exporter.blocksync_to_omf.omf.OMFWriter") as omf_writer,
+        ):
+            await export_blocksync_omf(filepath, object_id, 3, metadata)
+
+        create_clients.assert_awaited_once_with(metadata, None)
+        create_block_sync_client.assert_called_once_with(environment, api_connector)
+        convert_element.assert_called_once_with(str(object_id), block_sync_client, 3)
+        self.assertEqual(project.elements, [element])
+        omf_writer.assert_called_once_with(project, filepath)
 
 
 class TestBlockSyncClient(IsolatedAsyncioTestCase):
