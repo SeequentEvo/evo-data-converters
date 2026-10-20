@@ -27,7 +27,7 @@ Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
 # Developer task entry points, run from packages/common with `uv run <name>`
-# (e.g. `uv run lint`, `uv run test-xyz`). Backed by evo.data_converters.common._dev_tasks.
+# (e.g. `uv run lint`, `uv run test-omf`). Backed by evo.data_converters.common._dev_tasks.
 [project.scripts]
 lint = "evo.data_converters.common._dev_tasks:lint"
 lint-fix = "evo.data_converters.common._dev_tasks:lint_fix"
@@ -43,7 +43,6 @@ test-resqml = "evo.data_converters.common._dev_tasks:test_package"
 test-shp = "evo.data_converters.common._dev_tasks:test_package"
 test-ubc = "evo.data_converters.common._dev_tasks:test_package"
 test-vtk = "evo.data_converters.common._dev_tasks:test_package"
-test-xyz = "evo.data_converters.common._dev_tasks:test_package"
 
 [dependency-groups]
 dev = [

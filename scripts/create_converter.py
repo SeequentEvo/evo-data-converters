@@ -42,7 +42,7 @@ def _parse_args(argv=None):
     )
     parser.add_argument(
         "--converter-type",
-        help="Short, lowercase format name (e.g. obj, shp, xyz). Becomes the package and module name.",
+        help="Short, lowercase format name (e.g. obj, shp, ubc). Becomes the package and module name.",
     )
     parser.add_argument(
         "--export-support",

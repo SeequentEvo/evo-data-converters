@@ -11,7 +11,6 @@ This page is generated from `packages/*/converter-capabilities.json`.
 | SHP | implemented | Yes | No | All of: .shp, .shx, .dbf; Optional: .prj | triangle-mesh | TriangleMesh: Ring-based multipatch parts (OUTER_RING, INNER_RING, etc.) are not supported., TriangleMesh: NULL shapes (records with associated data but no geometry) are discarded. |
 | UBC | implemented | Yes | No | Any of: .msh; Optional: .mod, .sus, .den | tensor-3d-grid | Requires exactly one .msh mesh file per conversion call., Optional property extensions .mod, .sus, and .den are conventional examples; other non-.msh extensions are accepted. |
 | VTK | implemented | Yes | No | Any of: .vti, .vtr, .vtu, .vtm, .xml | regular-3d-grid, regular-masked-3d-grid, tensor-3d-grid, unstructured-tet-grid, unstructured-hex-grid, unstructured-grid | Only XML VTK files are supported., VTK data object types outside the supported set are skipped with a warning., Individual grid conversion errors are caught per-grid and skipped. |
-| XYZ | implemented | Yes | No | Any of: .xyz, .XYZ | pointset | No Evo-to-XYZ exporter is currently provided., For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection. |
 
 ## Detailed Capabilities
 ### DUF
@@ -139,18 +138,4 @@ This page is generated from `packages/*/converter-capabilities.json`.
 - Evo objects export supports: -
 - Evo schema versions export supports: -
 - Limitations: Only XML VTK files are supported., VTK data object types outside the supported set are skipped with a warning., Individual grid conversion errors are caught per-grid and skipped.
-
-### XYZ
-- Package: `evo-data-converters-xyz`
-- Status: `implemented`
-- Import supported: `Yes`
-- Export supported: `No`
-- Extensions: Any of: .xyz, .XYZ
-- Platform/runtime notes: Cross-platform (Python)
-- Import source types: Points, Binary, Geochemistry (comma/space), Geosoft Binary/Triplet variants
-- Evo objects produced: pointset
-- Evo schema versions produced: pointset: 1.3.0
-- Evo objects export supports: -
-- Evo schema versions export supports: -
-- Limitations: No Evo-to-XYZ exporter is currently provided., For multi-column Geosoft files, behavior depends on x_index/y_index/z_index/data_index selection.
 

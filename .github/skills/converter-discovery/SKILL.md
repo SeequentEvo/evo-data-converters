@@ -48,7 +48,7 @@ Prefer a well-maintained open-source library over a hand-rolled parser when one 
 - Prefer libraries that return NumPy arrays / PyArrow tables, since those map cleanly onto the
   parquet-hash / `data_client.save_table` upload pattern.
 - If no suitable library exists, plan a custom parser (see `gocad` for a binary example and
-  `xyz` for a text example).
+  `ubc` for a text example).
 
 ## 4. Map to Evo geoscience objects
 

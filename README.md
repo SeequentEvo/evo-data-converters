@@ -34,7 +34,6 @@ The existing data converters can be used without modification or used as a templ
 | [evo-data-converters-shp](packages/shp/README.md)       | <a href="https://pypi.org/project/evo-data-converters-shp/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-shp" /></a>       |
 | [evo-data-converters-ubc](packages/ubc/README.md)       | <a href="https://pypi.org/project/evo-data-converters-ubc/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ubc" /></a>       |
 | [evo-data-converters-vtk](packages/vtk/README.md)       | <a href="https://pypi.org/project/evo-data-converters-vtk/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-vtk" /></a>       |
-| [evo-data-converters-xyz](packages/xyz/README.md)       | <a href="https://pypi.org/project/evo-data-converters-xyz/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-xyz" /></a>       |
 
 ### Converter capabilities
 
@@ -104,7 +103,6 @@ For examples of how to use Evo data converters, please refer to the samples in e
 - [SHP](packages/shp/code-samples)
 - [UBC](packages/ubc/code-samples)
 - [VTK](packages/vtk/code-samples)
-- [XYZ](packages/xyz/code-samples)
 
 ## Contributing
 

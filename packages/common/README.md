@@ -46,7 +46,6 @@ For an existing set of supported data converters, see:
 - [SHP](../shp/README.md)
 - [UBC](../ubc/README.md)
 - [VTK](../vtk/README.md)
-- [XYZ](../xyz/README.md)
 
 Data converters can be optionally both an importer and an exporter.
 
@@ -87,7 +86,7 @@ cd packages/<converter>
 uv run lint            # ruff check + format --check for this package
 uv run lint-fix        # ruff check --fix + format for this package
 uv run test            # sync and run the tests for this package
-uv run test-<type>     # sync and run the tests for a named package, e.g. test-xyz
+uv run test-<type>     # sync and run the tests for a named package, e.g. test-omf
 
 cd ../common
 
@@ -110,7 +109,7 @@ This runs the CLI ([`../../scripts/create_converter.py`](../../scripts/create_co
 
 You will be prompted for:
 
-- **Converter type** – a short name for the file format, e.g. `obj`, `shp`, `xyz`. This is used for the package name
+- **Converter type** – a short name for the file format, e.g. `obj`, `shp`, `ubc`. This is used for the package name
   (`evo-data-converters-<type>`), module paths, and the `convert_<type>` / `export_<type>` function names.
 - **Export support** – whether the converter is _Import only_ or _Import and Export_. Choose _Import and Export_ to also
   scaffold an exporter.

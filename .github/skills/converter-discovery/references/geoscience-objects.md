@@ -19,7 +19,7 @@ All objects are subclasses of `BaseSpatialDataProperties_V1_0_1` and share:
 
 | Input data looks like… | Likely Evo object | Notes |
 |---|---|---|
-| Scattered 3D points (± values) | `Pointset` | Coordinates as `FloatArray3`; values as attributes. See `packages/xyz`. |
+| Scattered 3D points (± values) | `Pointset` | Coordinates as `FloatArray3`; values as attributes. See `packages/omf`. |
 | Polylines / segments | `LineSegments` | Vertices + segment index pairs. See `packages/omf`. |
 | Triangulated surface / mesh | `TriangleMesh` | Vertices (`FloatArray3`) + triangle indices (`IndexArray3`). See `packages/omf`, `packages/obj`. |
 | Regular/rectilinear 3D grid | `RegularGrid3D` / tensor grid | Origin, cell sizes, counts, rotation. See `packages/common/grid_data.py`, `packages/resqml`. |
@@ -44,7 +44,7 @@ instead (for example, `triangle-mesh`, not `TriangleMesh`).
 Large arrays are not inlined — they are uploaded and referenced by hash/name:
 
 - Modern: `data_client.save_table(pyarrow_table)` returns a reference to embed.
-- Parquet-hash pattern (see `packages/xyz`): write the array to
+- Parquet-hash pattern (see `packages/image`): write the array to
   `os.path.join(data_client.cache_location, sha256_hash)` and reference `data=<hash>`.
 
 ## Where things live in `evo_schemas`

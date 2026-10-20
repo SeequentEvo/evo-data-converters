@@ -32,7 +32,7 @@ Update or create `packages/<converter-id>/converter-capabilities.json`.
 
 Use the required fields:
 
-- id (must match the package directory name, e.g. `packages/xyz` → `"id": "xyz"`)
+- id (must match the package directory name, e.g. `packages/omf` → `"id": "omf"`)
 - name
 - package
 - status
