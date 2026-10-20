@@ -39,7 +39,7 @@ Replace the two placeholder files once the reader and builder are implemented.
 ## 3. Write builder tests — `test_<type>_utils.py`
 
 - Use a mocked `ObjectDataClient` (see `test_<type>_to_evo.py` and existing converters such as
-  `packages/xyz/tests` for the pattern) with a real `cache_location`, or a `tmp_path` fixture.
+  `packages/ubc/tests` for the pattern) with a real `cache_location`, or a `tmp_path` fixture.
   If your builder calls `data_client.save_table(...)`, a bare `MagicMock` won't work — create a
   real client via `create_evo_object_service_and_data_client(EvoWorkspaceMetadata(workspace_id=<uuid>, cache_root=<tmp>))`
   (the `workspace_id` must be a valid UUID or `save_table` raises `AttributeError`).

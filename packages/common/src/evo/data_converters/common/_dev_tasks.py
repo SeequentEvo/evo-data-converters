@@ -92,7 +92,7 @@ def test_package() -> None:
     """Run the tests for a single package, chosen from the invoked script name.
 
     All ``test-<type>`` entry points map to this function; the package name is
-    derived from the console script name, e.g. ``test-xyz`` -> ``xyz``.
+    derived from the console script name, e.g. ``test-omf`` -> ``omf``.
     """
     invoked = Path(sys.argv[0]).name
     prefix = "test-"

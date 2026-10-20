@@ -9,7 +9,7 @@ Goal: implement the two stub functions the scaffold generated so `convert_<type>
 real Evo geoscience object. Everything else in `convert_<type>` is already wired.
 
 See [`references/object-patterns.md`](references/object-patterns.md) for copy-adaptable code and
-[`packages/xyz`](../../../packages/xyz) / [`packages/omf`](../../../packages/omf) for full
+[`packages/omf`](../../../packages/omf) / [`packages/obj`](../../../packages/obj) for full
 working examples.
 
 ## 1. Implement the reader — `<type>_reader.py`
@@ -73,7 +73,7 @@ Two supported patterns (see the reference file for full snippets):
 
 - **`data_client.save_table(pyarrow_table)`** — build a PyArrow table and save it; embed the
   returned reference. Preferred for new converters.
-- **Parquet-hash** (as in `packages/xyz`) — hash the array bytes, write parquet to
+- **Parquet-hash** (as in `packages/image`) — hash the array bytes, write parquet to
   `os.path.join(str(data_client.cache_location), sha256_hash)`, and reference `data=<hash>` in a
   `FloatArray*` element. Ensure `length` matches the element count.
 

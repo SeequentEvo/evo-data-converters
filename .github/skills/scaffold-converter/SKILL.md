@@ -12,7 +12,7 @@ later.
 
 ## 1. Choose the converter name and mode
 
-- **converter type**: a short, lowercase format name — e.g. `obj`, `shp`, `xyz`. It becomes the
+- **converter type**: a short, lowercase format name — e.g. `obj`, `shp`, `ubc`. It becomes the
   package name (`evo-data-converters-<type>`), the module path, and the `convert_<type>` /
   `export_<type>` function names. Pick a name that isn't already under `packages/`.
 - **export support**: `Import only` or `Import and Export`. Import-first is the recommended

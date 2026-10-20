@@ -213,7 +213,7 @@ class TestValidateAll:
         assert errors == []
 
     def test_repo_matches_expected_converter_ids(self) -> None:
-        expected = {"duf", "gocad", "image", "obj", "omf", "resqml", "shp", "ubc", "vtk", "xyz"}
+        expected = {"duf", "gocad", "image", "obj", "omf", "resqml", "shp", "ubc", "vtk"}
         assert set(discover_converter_packages()) == expected
         assert "common" not in discover_converter_packages()
 
