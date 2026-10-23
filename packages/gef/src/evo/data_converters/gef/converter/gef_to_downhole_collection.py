@@ -266,6 +266,11 @@ def _calculate_dip(df: pd.DataFrame) -> pd.DataFrame:
         df["dip"] = 90.0
     else:
         df["dip"] = 90 - df["inclinationResultant"]
+
+    dip = df["dip"]
+    dip[dip.isna()] = 90.0
+    df["dip"] = dip
+
     return df
 
 

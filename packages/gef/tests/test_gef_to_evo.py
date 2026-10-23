@@ -269,7 +269,7 @@ _gef_cpt_spec_1 = _CPTSpec(
     num_rows=1004,
     sum_distances=1.006009e04,
     sum_azimuths=30316.31327618739,  # derived from inclinationNS and inclinationEW
-    sum_dips=87243.70199999999,  # derived from inclinationResultant
+    sum_dips=87333.70199999999,  # derived from inclinationResultant
     attributes={
         # Computed by pygef
         # This is computed from `delivered_vertical_position_offset - depth` (or penetrationLength if depth is abesent)

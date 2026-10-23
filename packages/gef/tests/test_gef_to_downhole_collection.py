@@ -888,10 +888,8 @@ class TestNanHandling:
         for col in [inclination_ew, inclination_ns, inclination_resultant]:
             assert np.array_equal(data_table[col.as_camel] == nan_mapping[col.as_camel], dhc.path[col.as_snake].isna())
 
-        # Check how the dip and azimuth get handled if any of their inputs are NaN. It's inconsistent that azimuth
-        # gets a value of 0.0 and dip gets NaN, but that's how it is.
+        # Azimuth defaults to 0.0, and dip defaults to 90.0
         nan_inputs_to_az = np.logical_or(dhc.path["inclination_ew"].isna(), dhc.path["inclination_ns"].isna())
         assert (dhc.path["azimuth"][nan_inputs_to_az] == 0.0).all()
-
         nan_inputs_to_dip = dhc.path["inclination_resultant"].isna()
-        assert dhc.path["dip"][nan_inputs_to_dip].isna().all()
+        assert (dhc.path["dip"][nan_inputs_to_dip] == 90.0).all()
