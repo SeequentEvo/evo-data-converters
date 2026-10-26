@@ -50,6 +50,12 @@ The package can be installed from PyPI using pip:
 
 #### Deswik Suite
 
+> [!IMPORTANT]
+> Install Deswik Suite using the `.zip` download, **not** the `.appx` package. 
+> The `.appx` version installs components in a location that the DUF converter can't access.
+>
+> ![Choose the Deswik.Suite Installer & Patch zip, not the appx](images/duf-installer.png)
+
 The `duf` data-converter package depends on an installed version of `Deswik.Suite` for interacting with DUF files. The
 package will search for `Deswik.Suite` in `C:\Program Files\Deswik`, and use the latest version installed. If you have
 installed `Deswik.Suite` in a different location, you will need to set the environment variable `DESWIK_PATH` to point
