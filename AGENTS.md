@@ -12,9 +12,8 @@ detailed, step-by-step workflows.
   Each supported format is its own package that builds on the shared framework in
   [`packages/common`](packages/common/README.md); run commands from within each package
   directory (there is no root-level workspace or lockfile).
-- Existing converters to learn from: `xyz` (point set from CSV/text), `omf` (multiple object
-  types + export + block model), `gocad` (binary), `resqml`, `vtk`, `shp`, `image`, `ubc`,
-  `obj`, `duf`.
+- Existing converters to learn from: `omf` (multiple object types + export + block model), 
+  `gocad` (binary), `resqml`, `vtk`, `shp`, `image`, `ubc`, `obj`, `duf`.
 - A scaffolding CLI, `create-converter`, that generates a complete, ready-to-implement package.
 
 ## The build workflow

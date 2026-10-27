@@ -2,7 +2,7 @@
 
 converter_type:
     type: str
-    help: What type of converter are you creating? (e.g. obj, shp, xyz, etc.)
+    help: What type of converter are you creating? (e.g. obj, shp, ubc, etc.)
 
 export_support:
     type: str

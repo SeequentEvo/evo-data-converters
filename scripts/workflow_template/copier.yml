@@ -4,4 +4,4 @@
 
 converter_type:
     type: str
-    help: The converter type / short, lowercase format name (e.g. obj, shp, xyz).
+    help: The converter type / short, lowercase format name (e.g. obj, shp, ubc).
