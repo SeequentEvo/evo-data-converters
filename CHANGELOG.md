@@ -1,5 +1,7 @@
 # Changelog
 
+## evo-data-converters-image@v0.2.1
+
 ## evo-data-converters-vtk@v0.3.0
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
