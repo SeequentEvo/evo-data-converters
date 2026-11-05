@@ -1,5 +1,14 @@
 # Changelog
 
+## evo-data-converters-image@v0.2.1
+## What's Changed
+* Use Rasterio for TIFF CRS metadata to avoid Pillow's image-size limits. by @NataliiaKonkina in #270
+### evo-data-converters-image
+* chore(evo-data-converters-image): bump version to 0.2.1 by @NataliiaKonkina in #278
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-image@v0.2.0...evo-data-converters-image@v0.2.1
+
 ## evo-data-converters-vtk@v0.3.0
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
