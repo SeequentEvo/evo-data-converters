@@ -480,6 +480,10 @@ def _combine_cpt_tables(cpts: list[ProcessedCPT]) -> pd.DataFrame:
     cpt_tables = [cpt.cpt_table for cpt in cpts]
     combined_table = pd.concat(cpt_tables, ignore_index=True)
     combined_table = combined_table.rename(columns={"penetration_length": "distance"})
+
+    # Conversion from pint should happen after concatenation, because the `_convert_from_pint_columns` populates
+    # the `attrs` attribute of the dataframe as part of the Evo SDK's contract. But `attrs` may not be stable with
+    # concatenation.
     return _convert_from_pint_columns(combined_table)
 
 
