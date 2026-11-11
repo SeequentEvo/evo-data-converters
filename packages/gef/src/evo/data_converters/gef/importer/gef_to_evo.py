@@ -39,7 +39,6 @@ async def convert_gef(
     service_manager_widget: "ServiceManagerWidget | None" = None,
     tags: dict[str, str] | None = None,
     upload_path: str = "",
-    publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
     *,
     coordinate_reference_system: str | int | None = None,
@@ -61,8 +60,10 @@ async def convert_gef(
     :param name (Optional) Name for DownholeCollection, auto-generated from hole IDs if not provided.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object.
     :param upload_path: (Optional) Path object will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
     :param overwrite_existing_objects: (Optional) Whether existing objects will be overwritten with a new version.
+
+    Note that the argument `publish_argements` is not available here, unlike the other converters, due to
+    implementation differences.
 
     :return: Geoscience Object or ObjectMetadata if published.
 
@@ -90,7 +91,7 @@ async def convert_gef(
 
     if evo_workspace_metadata and not evo_workspace_metadata.hub_url:
         logger.debug("Publishing will be skipped due to missing hub_url.")
-        publish_objects = False
+        return
 
     tags = {
         "Source": "GEF-CPT or BRO-XML files (via Evo Data Converters)",
@@ -111,13 +112,11 @@ async def convert_gef(
         workspace_id=data_client._environment.workspace_id,
     )
 
-    # TODO - Does this make sense using the "typed" objects? What is expected to happen if publish_objects=False?
-    if publish_objects:
-        logger.debug("Publishing Geoscience Object")
-        if overwrite_existing_objects:
-            if not upload_path.lower().endswith(".json"):
-                upload_path += ".json"
-            ref = ObjectReference.new(data_client._environment, object_path=upload_path)
-            return [(await DownholeCollection.create_or_replace(context, ref, downhole_collection_data)).metadata]
-        else:
-            return [(await DownholeCollection.create(context, downhole_collection_data, path=upload_path)).metadata]
+    logger.debug("Publishing Geoscience Object")
+    if overwrite_existing_objects:
+        if not upload_path.lower().endswith(".json"):
+            upload_path += ".json"
+        ref = ObjectReference.new(data_client._environment, object_path=upload_path)
+        return [(await DownholeCollection.create_or_replace(context, ref, downhole_collection_data)).metadata]
+    else:
+        return [(await DownholeCollection.create(context, downhole_collection_data, path=upload_path)).metadata]
