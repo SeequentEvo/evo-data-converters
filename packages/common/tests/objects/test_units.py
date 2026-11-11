@@ -20,7 +20,7 @@ from evo_schemas.elements.unit_plane_angle import UnitPlaneAngle_V1_0_1_UnitCate
 from evo_schemas.elements.unit_time_per_length import UnitTimePerLength_V1_0_1_UnitCategories as UnitTimePerLength
 from pint_pandas import PintType
 
-from evo.data_converters.common.objects.units import UnitMapper
+from evo.data_converters.common.units import UnitMapper
 
 
 class TestUnitMapper:

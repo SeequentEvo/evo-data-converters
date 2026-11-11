@@ -15,10 +15,11 @@ from typing import TYPE_CHECKING
 import evo.logging
 from evo.common.context import StaticContext
 
-from common import crs_from_epsg_code, crs_from_any
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
+    crs_from_any,
+    crs_from_epsg_code,
 )
 from evo.data_converters.gef.converter import parse_gef_files
 from evo.data_converters.gef.converter.gef_to_downhole_collection import build_downhole_collection, process_cpt_files

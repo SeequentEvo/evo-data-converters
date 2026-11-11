@@ -26,7 +26,7 @@ from evo.objects.typed.downhole_collection import DistanceCollection, DownholeCo
 from evo.objects.typed.types import EpsgCode
 
 from ...common import InvalidCRSError, crs_from_any
-from ...common.objects.units import UnitMapper
+from ...common.units import UnitMapper
 from ..common_gef import CPTSource, ParsedCptFile
 from .gef_spec import (
     CAMEL_TO_SNAKE,
