@@ -113,6 +113,7 @@ async def convert_gef(
     )
 
     logger.debug("Publishing Geoscience Object")
+    upload_path = f"{upload_path.strip('/')}/{downhole_collection_data.name}"
     if overwrite_existing_objects:
         if not upload_path.lower().endswith(".json"):
             upload_path += ".json"
