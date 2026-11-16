@@ -54,6 +54,8 @@ from evo.data_converters.duf.xprops import get_xprops_value
 
 logger = evo.logging.getLogger("data_converters")
 
+_UNIX_EPOCH_TICKS = 621_355_968_000_000_000  # System.DateTime(1970, 1, 1).Ticks
+
 
 class AttributeType(Enum):
     String = auto()
@@ -256,7 +258,11 @@ class AttributeSpec:
                 any_null = False
                 timestamps = []
                 for value in values:
-                    if isinstance(value, datetime):
+                    if isinstance(value, dw.DateTime):
+                        # Exact microseconds from .NET ticks (100 ns). The wall-clock time is treated as UTC, the same
+                        # as for string values below.
+                        timestamp = (value.Ticks - _UNIX_EPOCH_TICKS) // 10
+                    elif isinstance(value, datetime):
                         timestamp = int(value.timestamp() * 1_000_000)  # Convert to microseconds
                     else:
                         try:
@@ -325,12 +331,18 @@ class AttributeSpec:
                 return None
 
 
+def _is_blank(value: Any) -> bool:
+    # Avoid `==`/`in` comparisons: pythonnet raises TypeError when comparing .NET structs (e.g. System.DateTime)
+    # against None or str.
+    return value is None or (isinstance(value, str) and value == "")
+
+
 def _try_cast(cast_func, value) -> Any | None:
-    if value in (None, ""):
+    if _is_blank(value):
         return None
     try:
         return cast_func(value)
-    except ValueError:
+    except (ValueError, TypeError):
         # It is possible for a Deswik entity to have an attribute that doesn't match its layer's type spec.
         logger.debug(f"Not able to use `{cast_func}` to cast `{value}`")
         return None
@@ -349,8 +361,11 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
             return _try_cast(int, value)
         case AttributeType.Double:
             return _try_cast(float, value)
-        case AttributeType.DateTime | AttributeType.Boolean:
-            return value if value not in {None, ""} else None
+        case AttributeType.DateTime:
+            return None if _is_blank(value) else value
+        case AttributeType.Boolean:
+            # Values of any other type (e.g. a stray DateTime) can't go into a boolean column
+            return value if isinstance(value, bool) else None
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None
