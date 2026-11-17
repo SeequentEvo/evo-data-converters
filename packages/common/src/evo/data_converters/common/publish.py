@@ -14,7 +14,7 @@ import asyncio
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
 import evo.logging
-from evo.common.exceptions import NotFoundException
+from evo.common.exceptions import NotFoundException, error_context
 from evo.objects import ObjectAPIClient
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
@@ -59,16 +59,21 @@ async def publish_geoscience_object(
     Publish a single Geoscience Object
     """
     logger.debug(f"Publishing Geoscience Object: {object_model}")
+    object_description = f"geoscience object '{object_model.name}' (schema: {object_model.schema}) at path '{path}'"
+    with error_context(f"While checking whether {object_description} already exists", logger=logger):
+        try:
+            existing_object = await object_service_client.download_object_by_path(path)
+            object_model.uuid = existing_object.metadata.id
+        except NotFoundException:
+            pass
 
-    try:
-        existing_object = await object_service_client.download_object_by_path(path)
-        object_model.uuid = existing_object.metadata.id
-    except NotFoundException:
-        pass
+    with error_context(f"While uploading data referenced by {object_description}", logger=logger):
+        await data_client.upload_referenced_data(object_model.as_dict())
 
-    await data_client.upload_referenced_data(object_model.as_dict())
     if overwrite_existing_object and object_model.uuid is not None:
-        object_metadata = await object_service_client.update_geoscience_object(object_model.as_dict())
+        with error_context(f"While updating existing {object_description} (uuid: {object_model.uuid})", logger=logger):
+            object_metadata = await object_service_client.update_geoscience_object(object_model.as_dict())
     else:
-        object_metadata = await object_service_client.create_geoscience_object(path, object_model.as_dict())
+        with error_context(f"While creating {object_description}", logger=logger):
+            object_metadata = await object_service_client.create_geoscience_object(path, object_model.as_dict())
     return object_metadata

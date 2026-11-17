@@ -1,8 +1,8 @@
 [project]
 name = "evo-data-converters-vtk"
 description = "Python data converters for VTK to Evo geoscience objects"
-version = "0.3.0"
-requires-python = ">=3.10"
+version = "0.4.0"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "evo-data-converters-common>=0.3.1",
+    "evo-data-converters-common>=0.5.0",
     "pandas>=2.3.3",
     "vtk",
 ]

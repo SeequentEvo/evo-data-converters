@@ -6,7 +6,7 @@ runs:
   steps:
     - uses: ./.github/actions/install-uv
       with:
-        PYTHON_VERSION: "3.10"
+        PYTHON_VERSION: "3.11"
 
     - name: Ruff check and format
       shell: bash
