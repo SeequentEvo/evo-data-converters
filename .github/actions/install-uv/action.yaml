@@ -3,7 +3,7 @@ description: "Install Python and uv"
 
 inputs:
   PYTHON_VERSION:
-    default: "3.11"
+    required: true
     description: "The Python version to use"
 
 runs:
