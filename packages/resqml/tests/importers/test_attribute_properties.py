@@ -96,7 +96,7 @@ class TestConvertAttributeProperties(TestCase):
             keyword="Continuous Property Test",
             support_uuid=self.grid.uuid,
             uom="m",
-            null_value=np.NaN,
+            null_value=np.nan,
         )
 
         # create a set of category labels
@@ -230,7 +230,7 @@ class TestConvertAttributeProperties(TestCase):
         self.check_data_is_valid(self.continuous_property.array_ref(), self.get_data_from_parquet_file(go.values.data))
 
     def test_convert_continuous_property_with_null_value(self) -> None:
-        self.continuous_property.array_ref()[1][1][1] = np.NaN
+        self.continuous_property.array_ref()[1][1][1] = np.nan
         go = convert_continuous_property(self.continuous_property, self.data_client)
         self.assertIsInstance(go, ContinuousAttribute)
         self.assertEqual(go.name, self.continuous_property.title)
@@ -253,7 +253,7 @@ class TestConvertAttributeProperties(TestCase):
     def test_convert_continuous_property_with_masked_data_and_null_value(self) -> None:
         idx_valid = np.random.choice([True, False], self.grid.extent_kji)
         idx_valid[1] = True
-        self.continuous_property.array_ref()[0][0][0] = np.NaN
+        self.continuous_property.array_ref()[0][0][0] = np.nan
         self.assertLess(
             self.continuous_property.array_ref(masked=True)[idx_valid].size,
             self.continuous_property.array_ref().size,
@@ -335,7 +335,7 @@ class TestConvertAttributeProperties(TestCase):
         self.assertEqual(prop_data.all(), go_data.all())
 
     def test_convert_points_property_with_null_value(self) -> None:
-        self.points_property.array_ref()[1][1][1][1] = np.NaN
+        self.points_property.array_ref()[1][1][1][1] = np.nan
         go = convert_points_property(self.points_property, self.data_client)
         self.assertIsInstance(go, VectorAttribute)
         self.assertEqual(go.name, self.points_property.title)
@@ -359,7 +359,7 @@ class TestConvertAttributeProperties(TestCase):
     def test_convert_points_property_with_masked_data_and_null_values(self) -> None:
         idx_valid = np.random.choice([True, False], self.grid.extent_kji)
         idx_valid[1, 1, 1] = True
-        self.points_property.array_ref()[0][0][0] = (np.NaN, np.NaN, np.NaN)
+        self.points_property.array_ref()[0][0][0] = (np.nan, np.nan, np.nan)
         self.assertLess(
             self.points_property.array_ref(masked=True)[idx_valid].size,
             self.points_property.array_ref().size,

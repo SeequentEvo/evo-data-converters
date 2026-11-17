@@ -217,10 +217,10 @@ def _build_hole_ids_for_wellbore_frame(wellboreframe: rqw.WellboreFrame, data_cl
 
 
 def _get_depth_locations(
-    depths: npt.NDArray[np.float_], trajectory: rqw.Trajectory, data_client: ObjectDataClient
+    depths: npt.NDArray[np.float64], trajectory: rqw.Trajectory, data_client: ObjectDataClient
 ) -> Locations:
     depth_xyzs = [
-        trajectory.xyz_for_md(depths[i]) if trajectory.xyz_for_md(depths[i]) is not None else (np.NaN, np.NaN, np.NaN)
+        trajectory.xyz_for_md(depths[i]) if trajectory.xyz_for_md(depths[i]) is not None else (np.nan, np.nan, np.nan)
         for i in range(depths.size)
     ]
     df = pd.DataFrame(depth_xyzs, columns=["x", "y", "z"])
