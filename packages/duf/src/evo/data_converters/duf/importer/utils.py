@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -15,7 +15,7 @@ import re
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import timezone
 from enum import auto, Enum
 from typing import Any, TypeAlias
 
@@ -53,6 +53,8 @@ from evo.data_converters.duf.common.consts import EvoSchema
 from evo.data_converters.duf.xprops import get_xprops_value
 
 logger = evo.logging.getLogger("data_converters")
+
+_UNIX_EPOCH_TICKS = 621_355_968_000_000_000  # System.DateTime(1970, 1, 1).Ticks
 
 
 class AttributeType(Enum):
@@ -113,8 +115,7 @@ class AttributeSpec:
         name = value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String)
         if evo_schema in (EvoSchema.triangle_mesh, EvoSchema.line_segments):
             if name.lower() == "id":
-                # Leapfrog does not handle columns named "ID", so rename them on the fly. We'll just hope
-                # that there isn't another column named "external_id".
+                # Leapfrog does not handle columns named "ID", so rename them.
                 evo_name = "external_id"
                 logger.warning(f"Column {name} is being converted to {evo_name}")
             else:
@@ -256,8 +257,10 @@ class AttributeSpec:
                 any_null = False
                 timestamps = []
                 for value in values:
-                    if isinstance(value, datetime):
-                        timestamp = int(value.timestamp() * 1_000_000)  # Convert to microseconds
+                    if isinstance(value, dw.DateTime):
+                        # Exact microseconds from .NET ticks (100 ns). The wall-clock time is treated as UTC, the same
+                        # as for string values below.
+                        timestamp = (value.Ticks - _UNIX_EPOCH_TICKS) // 10
                     else:
                         try:
                             timestamp = int(isoparse(value).replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
@@ -325,8 +328,14 @@ class AttributeSpec:
                 return None
 
 
+def _is_blank(value: Any) -> bool:
+    # Avoid `==`/`in` comparisons: pythonnet raises TypeError when comparing .NET structs (e.g. System.DateTime)
+    # against None or str.
+    return value is None or (isinstance(value, str) and value == "")
+
+
 def _try_cast(cast_func, value) -> Any | None:
-    if value in (None, ""):
+    if _is_blank(value):
         return None
     try:
         return cast_func(value)
@@ -350,7 +359,7 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
         case AttributeType.Double:
             return _try_cast(float, value)
         case AttributeType.DateTime | AttributeType.Boolean:
-            return value if value not in {None, ""} else None
+            return None if _is_blank(value) else value
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None

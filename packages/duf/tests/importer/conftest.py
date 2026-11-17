@@ -140,6 +140,11 @@ def mismatching_type_desc_and_values(mismatching_type_desc_and_values_path):
 
 
 @pytest.fixture(scope="session")
+def polyline_datetime_minvalue_path():
+    return str((Path(__file__).parent.parent / "data" / "polyline_datetime_minvalue.duf").resolve())
+
+
+@pytest.fixture(scope="session")
 def polyline_missing_vertex_list_path():
     return str((Path(__file__).parent.parent / "data" / "polyline_missing_VertexList.duf").resolve())
 

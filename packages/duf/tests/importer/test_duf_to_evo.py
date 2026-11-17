@@ -241,6 +241,32 @@ def test_mismatch_of_attribute_type_spec_and_value(
     check_attr_values(mesh_go.parts.attributes[1])
 
 
+def test_import_unset_dotnet_datetime_attribute(evo_metadata, data_client, polyline_datetime_minvalue_path) -> None:
+    """
+    One polyline's "Date" attribute is a .NET DateTime.MinValue (Deswik's unset date) and another is the same date as
+    a "0001-01-01 00:00:00" string; the rest are date strings. MinValue hashes the same as "".
+    """
+    go_objects = convert_duf(
+        filepath=polyline_datetime_minvalue_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+
+    assert len(go_objects) == 1
+    date_attr = next(attr for attr in go_objects[0].parts.attributes if attr.name == "Date")
+    assert date_attr.attribute_type == "date_time"
+
+    dates = data_client.load_table(date_attr.values).column(0).to_pylist()
+    assert sorted(date.isoformat() for date in dates) == [
+        "0001-01-01T00:00:00+00:00",
+        "0001-01-01T00:00:00+00:00",
+        "2025-08-13T00:00:00+00:00",
+        "2025-08-13T00:00:00+00:00",
+    ]
+
+
 def test_import_polyline_missing_vertex_list(evo_metadata, polyline_missing_vertex_list_path):
     go_objects = convert_duf(
         filepath=polyline_missing_vertex_list_path,
