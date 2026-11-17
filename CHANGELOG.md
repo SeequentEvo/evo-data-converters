@@ -1,5 +1,24 @@
 # Changelog
 
+## evo-data-converters-common@v0.4.1
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### evo-data-converters-common
+* Add object and operation context to publishing errors by @GriffinBaxterSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/281
+
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-common@v0.4.0...evo-data-converters-common@v0.4.1
+
+## evo-data-converters-duf@v0.5.1
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Other Changes
+* Issue 149 - Modify convert function to be async functions by @AdamFreemanSeequent in https://github.com/SeequentEvo/evo-data-converters/pull/265
+
+**Full Changelog**: https://github.com/SeequentEvo/evo-data-converters/compare/evo-data-converters-duf@v0.5.0...evo-data-converters-duf@v0.6.0
+
 ## evo-data-converters-image@v0.2.1
 ## What's Changed
 * Use Rasterio for TIFF CRS metadata to avoid Pillow's image-size limits. by @NataliiaKonkina in #270
