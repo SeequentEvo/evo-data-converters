@@ -15,7 +15,7 @@ import re
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import timezone
 from enum import auto, Enum
 from typing import Any, TypeAlias
 
@@ -115,8 +115,7 @@ class AttributeSpec:
         name = value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String)
         if evo_schema in (EvoSchema.triangle_mesh, EvoSchema.line_segments):
             if name.lower() == "id":
-                # Leapfrog does not handle columns named "ID", so rename them on the fly. We'll just hope
-                # that there isn't another column named "external_id".
+                # Leapfrog does not handle columns named "ID", so rename them.
                 evo_name = "external_id"
                 logger.warning(f"Column {name} is being converted to {evo_name}")
             else:
@@ -262,8 +261,6 @@ class AttributeSpec:
                         # Exact microseconds from .NET ticks (100 ns). The wall-clock time is treated as UTC, the same
                         # as for string values below.
                         timestamp = (value.Ticks - _UNIX_EPOCH_TICKS) // 10
-                    elif isinstance(value, datetime):
-                        timestamp = int(value.timestamp() * 1_000_000)  # Convert to microseconds
                     else:
                         try:
                             timestamp = int(isoparse(value).replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
@@ -342,7 +339,7 @@ def _try_cast(cast_func, value) -> Any | None:
         return None
     try:
         return cast_func(value)
-    except (ValueError, TypeError):
+    except ValueError:
         # It is possible for a Deswik entity to have an attribute that doesn't match its layer's type spec.
         logger.debug(f"Not able to use `{cast_func}` to cast `{value}`")
         return None
@@ -361,11 +358,8 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
             return _try_cast(int, value)
         case AttributeType.Double:
             return _try_cast(float, value)
-        case AttributeType.DateTime:
+        case AttributeType.DateTime | AttributeType.Boolean:
             return None if _is_blank(value) else value
-        case AttributeType.Boolean:
-            # Values of any other type (e.g. a stray DateTime) can't go into a boolean column
-            return value if isinstance(value, bool) else None
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None
