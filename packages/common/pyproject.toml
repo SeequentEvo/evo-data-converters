@@ -1,8 +1,8 @@
 [project]
 name = "evo-data-converters-common"
 description = "Python framework for building data converters between common geoscience data formats"
-version = "0.4.1"
-requires-python = ">=3.10"
+version = "0.5.0"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [{ name = "Seequent", email = "support@seequent.com" }]

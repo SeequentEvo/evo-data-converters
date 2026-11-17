@@ -1,15 +1,15 @@
 [project]
 name = "evo-data-converters-obj"
 description = "Python data converters for Wavefront Technologies OBJ/MTL file to Evo geoscience objects"
-version = "0.2.0"
-requires-python = ">=3.10"
+version = "0.3.0"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
     { name = "Seequent", email = "support@seequent.com" }
 ]
 dependencies = [
-    "evo-data-converters-common",
+    "evo-data-converters-common>=0.5.0",
     "trimesh>=4.9.0",
 ]
 
