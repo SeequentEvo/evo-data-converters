@@ -101,7 +101,7 @@ b. Browse the results and find a listing that includes an EPSG code.
 
 If you encounter issues:
 1. Check that you've completed the authentication setup.
-2. Verify your Python version (3.10+).
+2. Verify your Python version (3.11 or 3.12).
 3. Ensure all requirements are installed.
 4. Visit the [Seequent Community](https://community.seequent.com/group/19-evo) for support.
 5. Check the [GitHub issues](https://github.com/SeequentEvo/evo-python-sdk/issues) for known problems.

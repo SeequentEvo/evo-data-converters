@@ -45,7 +45,7 @@ Contributors can update the registry using the [capability editing guide](docs/c
 
 ## Pre-requisites
 
-- Python 3.10, 3.11, or 3.12
+- Python 3.11 or newer. RESQML requires Python 3.11 or 3.12.
 
 ### Evo authorisation and discovery
 

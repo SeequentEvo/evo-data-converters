@@ -1,8 +1,8 @@
 [project]
 name = "evo-data-converters-resqml"
 description = "Python data converters for RESQML to Evo geoscience objects"
-version = "0.3.0"
-requires-python = ">=3.10"
+version = "0.4.0"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "evo-data-converters-common>=0.3.1",
+    "evo-data-converters-common>=0.5.0",
     "resqpy==5.1.10",
 ]
 

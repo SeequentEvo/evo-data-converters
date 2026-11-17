@@ -33,7 +33,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python virtual environment with Python 3.10, 3.11, or 3.12
+* Python virtual environment with Python 3.11 or newer
 * Microsoft Windows - this package is not currently supported on Linux or macOS
 * Deswik Spatial - https://www.deswik.com/products/spatial
 * .NET Framework v4.7.2 or higher (or other compatible .NET runtime)
