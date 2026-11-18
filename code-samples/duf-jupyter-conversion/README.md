@@ -19,9 +19,9 @@ a. In a new browser tab or window, visit [https://developer.seequent.com/](https
 
 <img src="https://raw.githubusercontent.com/SeequentEvo/evo-python-sdk/main/docs/img/sign-in.png" alt="Sign-in" width="330" />
 
-b. Click **My apps** in the toolbar. You may need to agree to the developer terms and conditions before proceeding.
+b. Click the profile icon in the top-right corner of the toolbar, then click **My apps** in the menu. You may need to agree to the developer terms and conditions before proceeding.
 
-<img src="https://raw.githubusercontent.com/SeequentEvo/evo-python-sdk/main/docs/img/my-apps-menu.png" alt="Click My apps" width="450" />
+<img src="docs/img/dev-portal-my-apps.png" alt="Click the profile icon, then click My apps" width="350" />
 
 c. Click **Create app**.
 
@@ -111,18 +111,18 @@ c. Sign in with your Bentley ID when your web browser asks you to. After you hav
 
 d. Use the widget that appears to select your Evo instance and workspace. Converted objects will be published to this workspace.
 
-e. Run the second code cell to display the DUF converter form, then follow the steps in **Using the converter form** below.
+e. Run the second code cell to display the DUF converter notebook, then follow the steps in **Using the converter notebook** below.
 
 ## Using the notebook
 
-The form shows each section after you complete the one before it.
+The notebook shows each section after you complete the one before it.
 
 1. **Select DUF File**: Click the button to open a Windows file dialog and choose a `.duf` file. Only files with the `.duf` extension are accepted.
 1. **Add CRS** (optional): By default, objects are published with an "Unspecified" coordinate reference system (CRS). Their coordinates are unchanged, but Evo can't use spatial search on them or align them with data in other coordinate systems. To set a CRS, tick **Add CRS** and enter the EPSG code for your data, for example `32750`. The code is validated as you type and the CRS name is shown when it is valid. If you aren't sure which code to use, search [epsg.io](https://epsg.io/).
 1. **Object path** (optional): Enter the folder path in your Evo workspace where objects should be published, for example `/duf/converted`. Leave this empty to publish at the workspace root.
-1. **Convert**: Click to start the conversion. A timer shows progress. When the conversion is complete, the form shows how many objects were published and an **Open Evo workspace** link to view them in the Evo portal.
+1. **Convert**: Click to start the conversion. A timer shows progress. When the conversion is complete, the notebook shows how many objects were published and an **Open Evo workspace** link to view them in the Evo portal.
 
-The form remembers your last selected file, **Add CRS** choice, EPSG code, and object path. They are filled in automatically the next time you run the notebook.
+The notebook remembers your last selected file, **Add CRS** choice, EPSG code, and object path. They are filled in automatically the next time you run the notebook.
 
 ### Advanced: choose which layers to convert
 
@@ -156,11 +156,11 @@ To change these settings, edit [helpers/conversion.py](helpers/conversion.py).
 | --- | --- |
 | `convert_duf.ipynb` | The notebook to open and run. |
 | `start-here.bat` | Installs `uv` and the dependencies, then launches the notebook. |
-| `helpers/widgets.py` | The converter forms (`create_duf_widget` and `create_duf_widget_advanced`). |
+| `helpers/widgets.py` | The converter widgets (`create_duf_widget` and `create_duf_widget_advanced`). |
 | `helpers/conversion.py` | Reads DUF layers and calls the DUF converter. |
 | `helpers/portal.py` | Builds the Evo portal link shown after publishing. |
 | `example-data/` | Sample DUF files you can use to try out the notebook. |
-| `notebook-data/` | Local cache for sign-in tokens, saved form values, and data files waiting to be uploaded. Created automatically and ignored by Git. |
+| `docs/img/` | Screenshots used in this README. |
 | `pyproject.toml`, `uv.lock` | Python project and locked dependencies used by `uv`. |
 
 ## Sample data files
