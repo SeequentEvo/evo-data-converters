@@ -1,6 +1,6 @@
 # Interactive DUF file to Evo data converter (Jupyter)
 
-This code sample is a Jupyter notebook that converts Deswik Unified Files (DUF) into Evo geoscience objects and publishes them to an Evo workspace. Instead of editing scripts or configuration files, you sign in with your Bentley ID and use a small point-and-click form inside the notebook to choose a DUF file, set a coordinate reference system, and start the conversion.
+This code sample is a Jupyter notebook that converts the compatible layers of a Deswik Unified Files (DUF) into Evo geoscience objects and publishes them to an Evo workspace. Instead of editing scripts or configuration files, you sign in with your Bentley ID and use a small point-and-click form inside the notebook to select a DUF file and an Evo workspace and start the conversion.
 
 If you need a hands-off, scheduled workflow instead, see the [automated DUF conversion sample](../duf-automated-conversion/README.md).
 
