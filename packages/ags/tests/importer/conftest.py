@@ -19,7 +19,6 @@ import pytest
 from evo.data_converters.ags.common import AgsContext
 from evo.data_converters.ags.common.ags_context import GEOL, LOCA, SCPG, SCPP, SCPT
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
-from evo.data_converters.common.objects.downhole_collection.column_mapping import ColumnMapping
 
 
 @pytest.fixture(scope="session")
@@ -162,11 +161,6 @@ def mock_ags_context():
     context = Mock(spec=AgsContext)
     context.filename = "test_file.ags"
     context.coordinate_reference_system = "EPSG:27700"
-    context.column_mapping = ColumnMapping(
-        DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
-        FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
-        TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
-    )
 
     # LOCA table
     loca_df = pd.DataFrame(
@@ -227,18 +221,6 @@ def mock_ags_context():
             return geol_df.copy()
         return pd.DataFrame()
 
-    def get_tables_side_effect(groups=None):
-        tables = []
-        if groups:
-            if SCPT in groups:
-                tables.append(scpt_df.copy())
-            if SCPP in groups:
-                tables.append(scpp_df.copy())
-            if GEOL in groups:
-                tables.append(geol_df.copy())
-        return tables
-
     context.get_table.side_effect = get_table_side_effect
-    context.get_tables.side_effect = get_tables_side_effect
 
     return context

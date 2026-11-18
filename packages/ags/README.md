@@ -88,7 +88,7 @@ Export functionality is not yet implemented.
 
 ### Supported AGS Groups
 
-**Required Groups:**
+**Core Groups:**
 - `LOCA` - Location Details (hole/test locations with coordinates)
 - `SCPG` - Static Cone Penetration Tests - General (test metadata)
 - `SCPT` - Seismic Cone Penetration Test results (distance-based measurements)
@@ -96,7 +96,7 @@ Export functionality is not yet implemented.
 **Optional Groups (imported if present):**
 - `SCPP` - Static Cone Penetration Tests - Derived Parameters (interval data)
 - `GEOL` - Field Geological Descriptions (interval data)
-  - **Note:** GEOL rows without corresponding CPT data (LOCA_ID not in SCPG/LOCA tables) are dropped with a warning
+  - Measurement rows without a matching collar are dropped with a warning. A GEOL-only location is imported as a collar.
 
 **Other Groups Used (if present):**
 - `PROJ` - Project metadata (used for naming and grouping files)
@@ -139,6 +139,14 @@ AGS TYPE codes are mapped to appropriate pandas/Python types:
 
 - HORN table data is used to calculate dip and azimuth for measurement depths
 - Measurements unspecified or outside HORN intervals default to vertical (90°/0°)
+- Measurements from SCPT form the downhole path. A hole without SCPT measurements gets a vertical station at its final depth when known and positive.
+
+### Downhole Collection Data
+
+- The converter returns typed `DownholeCollectionData` when `publish_objects=False`, and publishes typed Downhole Collection objects otherwise.
+- Measurement groups with usable rows become collections named for their AGS group: SCPT is distance data; SCPP and GEOL are interval data.
+- Attribute columns with supported integer, float, boolean, string, or datetime values are retained. Empty and unsupported columns (including elapsed-time `T` values) are omitted; unsupported values are logged.
+- Source AGS tables are not modified during conversion.
 
 ### Assumptions & Limitations
 

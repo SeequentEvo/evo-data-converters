@@ -10,12 +10,17 @@
 #  limitations under the License.
 
 from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import PurePosixPath
+from typing import Protocol
 
-from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
+
+class NamedObject(Protocol):
+    @property
+    def name(self) -> str: ...
 
 
-def generate_paths(object_models: list[BaseSpatialDataProperties_V1_0_1], path_prefix: str = "") -> list[str]:
+def generate_paths(object_models: Sequence[NamedObject], path_prefix: str = "") -> list[str]:
     """
     Generates a list of paths where each object will be uploaded to.
 

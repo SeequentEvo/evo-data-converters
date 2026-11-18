@@ -20,7 +20,6 @@ from pyproj.exceptions import CRSError
 from python_ags4 import AGS4
 
 import evo.logging
-from evo.data_converters.common.objects.downhole_collection.column_mapping import ColumnMapping
 
 from .pandas_utils import coerce_to_object_int
 
@@ -95,6 +94,10 @@ class AgsContext:
     RETAINED_GROUPS: tuple[str, ...] = (PROJ, UNIT, HORN)
     # Groups that contain measurement data
     MEASUREMENT_GROUPS: tuple[str, ...] = (SCPT, SCPP, GEOL)
+    # Depth column of the measurement groups taken at a distance down the hole
+    DISTANCE_COLUMNS: dict[str, str] = {SCPT: "SCPT_DPTH"}
+    # Top and base depth columns of the measurement groups taken over an interval of the hole
+    INTERVAL_COLUMNS: dict[str, tuple[str, str]] = {SCPP: ("SCPP_TOP", "SCPP_BASE"), GEOL: ("GEOL_TOP", "GEOL_BASE")}
 
     # AGS validation rules that are ignored during file checks
     IGNORED_RULES: tuple[str, ...] = (
@@ -186,15 +189,6 @@ class AgsContext:
             if parts:
                 return " - ".join(parts)
         raise ValueError("Filename not available and PROJ_NAME/PROJ_ID not found in PROJ table")
-
-    @property
-    def column_mapping(self) -> ColumnMapping:
-        """Gets the default column mapping for downhole collections."""
-        return ColumnMapping(
-            DEPTH_COLUMNS=["SCPT_DPTH"],
-            FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],
-            TO_COLUMNS=["GEOL_BASE", "SCPP_BASE"],
-        )
 
     def parse_ags(self, filepath: Path | str | StringIO) -> None:
         """Parses an AGS file to dataframes for each table.
@@ -423,14 +417,6 @@ class AgsContext:
         :return: DataFrame containing the table data, or an empty DataFrame if not present
         """
         return self.tables.get(group, pd.DataFrame())
-
-    def get_tables(self, groups: list[str]) -> list[pd.DataFrame]:
-        """Get all tables whose name is in `groups`. No error is raised for missing groups.
-
-        :param groups: List of group names to retrieve DataFrames for
-        :return: List of DataFrames, one for each matching group
-        """
-        return [self.get_table(group) for group in groups if group in self.tables.keys()]
 
     def get_headings(self, group: str) -> list[str]:
         """Gets the list of headings for a group, by group name.

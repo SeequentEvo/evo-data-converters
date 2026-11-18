@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 "notebooks" = [
-    "evo-sdk-common[notebooks]>=0.4.2",
+    "evo-sdk-common[notebooks]>=0.5.31",
     "notebook>=7.4.3",
 ]
 

@@ -16,78 +16,298 @@ from pyproj import CRS
 import evo.logging
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT, CoordinateFamily
-from evo.data_converters.common.objects.downhole_collection import DownholeCollection, HoleCollars
-from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
+from evo.objects.typed import DistanceCollection, DownholeCollectionData, EpsgCode, IntervalCollection
 
 logger = evo.logging.getLogger("data_converters")
+
+# Orientation of a vertical hole, used where the AGS file gives none
+DEFAULT_DIP = 90.0
+DEFAULT_AZIMUTH = 0.0
+
+DISTANCE_UNIT = "m"
+
+# Standard collar columns, the other columns of the collars are kept as attributes
+COLLAR_COLUMNS = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
+STATION_DTYPES = {"hole_index": "int64", "distance": "float64", "dip": "float64", "azimuth": "float64"}
 
 
 def create_from_parsed_ags(
     ags_context: AgsContext,
     tags: dict[str, str] | None = None,
-) -> DownholeCollection:
-    """Converts the in-memory dataframes of AgsContext to an Evo Downhole Collection.
+) -> DownholeCollectionData:
+    """Converts the in-memory dataframes of AgsContext to the data of an Evo Downhole Collection.
 
     Collars are built from both SCPG and GEOL tables:
     - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
     - GEOL collars are uniquely identified by LOCA_ID only
 
-    Fetches measurements from all relevant tables (SCPT, SCPP, GEOL) and assigns hole_index.
+    Every measurement group with data (SCPT, SCPP, GEOL) becomes a collection named after the group, with its rows
+    linked to the collars by hole_index. SCPT is a distance collection, SCPP and GEOL are interval collections.
+
+    The hole paths are made of the measured depths of the first distance table (SCPT), with the dip and azimuth of
+    the HORN table when present, otherwise the holes are vertical. A hole without measured depths, such as one that
+    only has GEOL data, gets a single vertical station at its final depth, or no station when that is unknown.
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param tags: Optional dict of tags to add to the DownholeCollection.
-    :return: A DownholeCollection object
+    :return: The data of the DownholeCollection, to create in Evo with DownholeCollection.create.
     """
 
-    # Build collars from LOCA and SCPG, and SCPT for final depth
     crs_definition = ags_context.coordinate_reference_system
-    hole_collars: HoleCollars = build_collars(ags_context, crs_definition)
-    collars_df = hole_collars.df
+    collars_df = build_collars(ags_context, crs_definition)
 
-    # Prepare lookup tables for merging hole_index into measurements
-    lookup_with_tesn = collars_df[["LOCA_ID", "SCPG_TESN", "hole_index"]]
-    lookup_without_tesn = collars_df[["LOCA_ID", "hole_index"]].drop_duplicates(subset=["LOCA_ID"], keep="first")
-
-    measurements: list[pd.DataFrame] = ags_context.get_tables(groups=AgsContext.MEASUREMENT_GROUPS)
-    for table in measurements:
-        if "SCPG_TESN" in table.columns:
-            # CPT-specific data: merge on both LOCA_ID and SCPG_TESN
-            table_with_index = table.merge(lookup_with_tesn, on=["LOCA_ID", "SCPG_TESN"], how="left")
+    collections: list[DistanceCollection | IntervalCollection] = []
+    stations: pd.DataFrame | None = None
+    for group in AgsContext.MEASUREMENT_GROUPS:
+        if group in AgsContext.DISTANCE_COLUMNS:
+            depth_columns = {"distance": AgsContext.DISTANCE_COLUMNS[group]}
         else:
-            # Location-level data (e.g., GEOL): merge on LOCA_ID only
-            table_with_index = table.merge(lookup_without_tesn, on=["LOCA_ID"], how="left")
+            from_column, to_column = AgsContext.INTERVAL_COLUMNS[group]
+            depth_columns = {"from": from_column, "to": to_column}
 
-        # Drop rows with unmatched LOCA_ID and ensure integer dtype
-        table["hole_index"] = table_with_index["hole_index"]
-        unmatched_count = table["hole_index"].isna().sum()
-        if unmatched_count > 0:
-            table_name = getattr(table, "name", "")
-            logger.warning(f"Dropping {unmatched_count} rows with unmatched LOCA_ID in measurement table {table_name}")
-            table.dropna(subset=["hole_index"], inplace=True)
-        table["hole_index"] = table["hole_index"].astype(int)
+        measurements = prepare_measurements(ags_context.get_table(group), group, depth_columns, collars_df)
+        if measurements is None:
+            continue
 
-    downhole_collection: DownholeCollection = DownholeCollection(
-        collars=hole_collars,
+        collection_class = DistanceCollection if "distance" in depth_columns else IntervalCollection
+        collections.append(
+            collection_class(
+                name=group,
+                holes=hole_chunks(measurements["hole_index"]),
+                table=collection_table(measurements, group, depth_columns),
+                unit=DISTANCE_UNIT,
+            )
+        )
+
+        # Only the first distance table is used when building the hole path geometry
+        if stations is None and "distance" in depth_columns:
+            stations = path_stations(measurements, depth_columns["distance"], ags_context.get_table(HORN))
+
+    path, holes = build_path(collars_df, stations)
+
+    properties = collars_df[["hole_index", "hole_id", "x", "y", "z"]].copy()
+    properties["hole_id"] = properties["hole_id"].astype(str)
+    properties["final"] = properties["target"] = properties["current"] = collars_df["final_depth"]
+
+    collar_attributes = attribute_frame(collars_df.drop(columns=COLLAR_COLUMNS), "collars")
+
+    return DownholeCollectionData(
         name=ags_context.filename,
-        measurements=measurements,
-        coordinate_reference_system=crs_definition or "unspecified",
         tags=tags,
-        column_mapping=ags_context.column_mapping,
+        coordinate_reference_system=to_evo_crs(crs_definition),
+        path=path,
+        holes=holes,
+        properties=properties,
+        attributes=None if collar_attributes.empty else collar_attributes,
+        collections=collections,
+        distance_unit=DISTANCE_UNIT,
+        desurvey=None,
     )
 
-    # If HORN data present, calculate dip and azimuth for the first distance table.
-    # Only the first distance table is used when building the hole path geometry.
-    horn_df = ags_context.get_table(HORN)
-    if horn_df is not None and not horn_df.empty:
-        for mt in downhole_collection.measurements:
-            if isinstance(mt, DistanceTable):
-                depth_col = mt.get_primary_column()
-                calculate_dip_and_azimuth(horn_df, mt.df, depth_col)
-                mt.mapping.DIP_COLUMNS.append("dip")
-                mt.mapping.AZIMUTH_COLUMNS.append("azimuth")
-                break
 
-    return downhole_collection
+def to_evo_crs(crs_definition: int | str | None) -> EpsgCode | str | None:
+    """Convert the coordinate reference system of an AGS file to the form used by a Downhole Collection.
+
+    :param crs_definition: An EPSG code, "unspecified" or None when the AGS file has no coordinate reference system.
+    :return: The EPSG code, or None when unspecified. A CRS given as a string without an EPSG code is returned as WKT.
+    """
+    if crs_definition is None or crs_definition == "unspecified":
+        return None
+    if isinstance(crs_definition, int):
+        return EpsgCode(crs_definition)
+
+    crs = CRS.from_user_input(crs_definition)
+    epsg_code = crs.to_epsg()
+    return EpsgCode(epsg_code) if epsg_code is not None else crs.to_wkt()
+
+
+def prepare_measurements(
+    table: pd.DataFrame,
+    group: str,
+    depth_columns: dict[str, str],
+    collars_df: pd.DataFrame,
+) -> pd.DataFrame | None:
+    """Link the rows of a measurement table to their collars and order them by hole and depth.
+
+    Tables with SCPG_TESN are matched to the collars on LOCA_ID and SCPG_TESN, location-level tables (e.g. GEOL) on
+    LOCA_ID only. Rows without a matching collar are dropped. The table itself is left unchanged.
+
+    :param table: The measurement table of an AGS group.
+    :param group: The AGS group of the table.
+    :param depth_columns: The depth columns of the group, keyed by the name they have in the Downhole Collection.
+    :param collars_df: The collars, with their hole_index.
+    :return: A copy of the table with a hole_index column and float depth columns, sorted by hole_index and the first
+        depth column. None when there are no rows to convert.
+    """
+    if table.empty:
+        logger.debug(f"AGS group {group} has no rows, skipping")
+        return None
+
+    missing_columns = [column for column in depth_columns.values() if column not in table.columns]
+    if missing_columns:
+        logger.warning(f"Skipping AGS group {group}, it has no {', '.join(missing_columns)} column")
+        return None
+
+    keys = ["LOCA_ID", "SCPG_TESN"] if "SCPG_TESN" in table.columns else ["LOCA_ID"]
+    lookup = collars_df[[*keys, "hole_index"]].drop_duplicates(subset=keys, keep="first")
+    measurements = table.merge(lookup, on=keys, how="left")
+
+    unmatched = measurements["hole_index"].isna()
+    if unmatched.any():
+        logger.warning(f"Dropping {unmatched.sum()} rows with unmatched LOCA_ID in measurement table {group}")
+        measurements = measurements[~unmatched]
+        if measurements.empty:
+            return None
+
+    depths = {
+        column: pd.to_numeric(measurements[column], errors="coerce").astype("float64")
+        for column in depth_columns.values()
+    }
+    first_depth_column = next(iter(depths))
+    return (
+        measurements.assign(hole_index=measurements["hole_index"].astype("int64"), **depths)
+        .sort_values(["hole_index", first_depth_column])
+        .reset_index(drop=True)
+    )
+
+
+def collection_table(measurements: pd.DataFrame, group: str, depth_columns: dict[str, str]) -> pd.DataFrame:
+    """Build the table of a collection from prepared measurements.
+
+    The depth columns come first, named as the Downhole Collection expects them. All the other columns, including the
+    LOCA_ID and SCPG_TESN keys, follow as attributes.
+
+    :param measurements: The measurements of an AGS group, from prepare_measurements.
+    :param group: The AGS group of the measurements.
+    :param depth_columns: The depth columns of the group, keyed by the name they have in the Downhole Collection.
+    """
+    evo_names = {column: name for name, column in depth_columns.items()}
+    depths = measurements[list(evo_names)].rename(columns=evo_names)
+    attributes = attribute_frame(measurements.drop(columns=["hole_index", *evo_names]), group)
+    return pd.concat([depths, attributes], axis=1)
+
+
+def hole_chunks(hole_index: pd.Series, holes: pd.Series | None = None) -> pd.DataFrame:
+    """Locate the rows of each hole in a table that is sorted by hole_index.
+
+    :param hole_index: The hole_index of each row of the table.
+    :param holes: When given, every one of these holes gets a chunk, with a count of zero when it has no rows.
+        Otherwise only the holes with rows do.
+    :return: The hole_index, offset and count of each chunk, with the data types of the Downhole Collection tables.
+    """
+    counts = hole_index.value_counts()
+    if holes is not None:
+        counts = counts.reindex(holes.to_numpy(), fill_value=0)
+    counts = counts.sort_index()
+
+    return pd.DataFrame(
+        {
+            "hole_index": counts.index.to_numpy(dtype="int32"),
+            "offset": (counts.cumsum() - counts).to_numpy(dtype="uint64"),
+            "count": counts.to_numpy(dtype="uint64"),
+        }
+    )
+
+
+def path_stations(measurements: pd.DataFrame, depth_column: str, horn_df: pd.DataFrame) -> pd.DataFrame:
+    """Build the path stations of the holes from the measured depths of a distance table.
+
+    Dip and azimuth come from the HORN table when it has data, otherwise the holes are vertical.
+
+    :param measurements: The measurements of a distance group, from prepare_measurements.
+    :param depth_column: The depth column of the measurements.
+    :param horn_df: The HORN table, empty when the AGS file has none.
+    :return: The hole_index, distance, dip and azimuth of each station, ordered by hole and distance.
+    """
+    stations = (
+        measurements[["hole_index", "LOCA_ID", depth_column]].dropna(subset=[depth_column]).reset_index(drop=True)
+    )
+
+    if horn_df.empty:
+        stations["dip"] = DEFAULT_DIP
+        stations["azimuth"] = DEFAULT_AZIMUTH
+    else:
+        calculate_dip_and_azimuth(horn_df, stations, depth_column)
+        stations["dip"] = stations["dip"].fillna(DEFAULT_DIP)
+        stations["azimuth"] = stations["azimuth"].fillna(DEFAULT_AZIMUTH)
+
+    return stations.rename(columns={depth_column: "distance"})[list(STATION_DTYPES)]
+
+
+def build_path(collars_df: pd.DataFrame, stations: pd.DataFrame | None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build the path of the Downhole Collection and the chunks locating the stations of every hole in it.
+
+    A hole without stations gets a single vertical station at its final depth, or no station when that is unknown.
+
+    :param collars_df: The collars, with their hole_index and final_depth.
+    :param stations: The stations of the holes with measured depths, from path_stations. None when there are none.
+    :return: The path, with distance, dip and azimuth columns, and the chunks of all the holes.
+    """
+    if stations is None:
+        stations = pd.DataFrame({column: pd.Series(dtype=dtype) for column, dtype in STATION_DTYPES.items()})
+
+    final_depth = collars_df["final_depth"]
+    needs_station = (
+        ~collars_df["hole_index"].isin(stations["hole_index"]) & np.isfinite(final_depth) & (final_depth > 0)
+    )
+    vertical_stations = pd.DataFrame(
+        {
+            "hole_index": collars_df.loc[needs_station, "hole_index"],
+            "distance": final_depth[needs_station],
+            "dip": DEFAULT_DIP,
+            "azimuth": DEFAULT_AZIMUTH,
+        }
+    )
+
+    path = pd.concat([stations, vertical_stations], ignore_index=True).astype(STATION_DTYPES)
+    path = path.sort_values("hole_index", kind="stable").reset_index(drop=True)
+    return path[["distance", "dip", "azimuth"]], hole_chunks(path["hole_index"], collars_df["hole_index"])
+
+
+def attribute_frame(df: pd.DataFrame, source: str) -> pd.DataFrame:
+    """Convert the columns of a dataframe to data types that can be uploaded as attributes.
+
+    Columns that cannot be represented as an attribute are dropped, with a warning when they hold unsupported data.
+
+    :param df: The dataframe with the attribute columns.
+    :param source: What the columns belong to, for log messages.
+    """
+    columns = {}
+    for name in df.columns:
+        series = attribute_series(df[name], source)
+        if series is not None:
+            columns[name] = series
+    return pd.DataFrame(columns, index=df.index)
+
+
+def attribute_series(series: pd.Series, source: str) -> pd.Series | None:
+    """Convert a column to a data type that can be uploaded as an attribute.
+
+    The data type is inferred from the values, ignoring missing ones, since AGS columns are often of object dtype
+    holding values and pd.NA. Integers, floats, booleans, strings and datetimes are supported.
+
+    :param series: The column to convert.
+    :param source: What the column belongs to, for log messages.
+    :return: The converted column, or None if it has no values or they are of an unsupported type.
+    """
+    kind = pd.api.types.infer_dtype(series, skipna=True)
+
+    if kind == "integer":
+        return series.astype("Int64")
+    if kind in ("floating", "mixed-integer-float", "decimal"):
+        return pd.to_numeric(series, errors="coerce").astype("float64")
+    if kind == "boolean":
+        return series.astype("boolean")
+    if kind == "string":
+        return series.astype("string")
+    if kind in ("datetime64", "datetime", "date"):
+        return pd.to_datetime(series, errors="coerce")
+
+    if kind == "empty":
+        logger.debug(f"Skipping attribute {series.name!r} of {source}, it has no values")
+    else:
+        logger.warning(f"Skipping attribute {series.name!r} of {source}, unsupported data type {kind!r}")
+    return None
 
 
 def build_scpg_collars(ags_context: AgsContext) -> pd.DataFrame:
@@ -157,8 +377,8 @@ def build_geol_collars(ags_context: AgsContext) -> pd.DataFrame:
     return geol_collars
 
 
-def build_collars(ags_context: AgsContext, crs_definition: int | str | None) -> HoleCollars:
-    """Builds the HoleCollars object from the AGS context.
+def build_collars(ags_context: AgsContext, crs_definition: int | str | None) -> pd.DataFrame:
+    """Builds the collars from the AGS context.
 
     Collars are built from both SCPG and GEOL tables:
     - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
@@ -169,7 +389,8 @@ def build_collars(ags_context: AgsContext, crs_definition: int | str | None) -> 
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param crs_definition: The coordinate reference system shared by the LOCA rows.
-    :return: A HoleCollars object
+    :return: A DataFrame with a row per collar. The standard columns (hole_index, hole_id, x, y, z, final_depth) come
+        first, followed by the LOCA_ID and SCPG_TESN keys and the other LOCA and SCPG columns.
     """
     scpg_collars = build_scpg_collars(ags_context)
     geol_collars = build_geol_collars(ags_context)
@@ -195,10 +416,9 @@ def build_collars(ags_context: AgsContext, crs_definition: int | str | None) -> 
     collars_df["final_depth"] = pd.to_numeric(collars_df["final_depth"], errors="coerce").astype(float)
 
     # Reorder columns to standard first but retain useful keys
-    standard_cols = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
     key_cols = ["LOCA_ID", "SCPG_TESN"]
-    other_cols = [c for c in collars_df.columns if c not in standard_cols + key_cols]
-    collars_df = collars_df[standard_cols + key_cols + other_cols]
+    other_cols = [c for c in collars_df.columns if c not in COLLAR_COLUMNS + key_cols]
+    collars_df = collars_df[COLLAR_COLUMNS + key_cols + other_cols]
 
     duplicates_count = len(collars_df) - collars_df["hole_id"].nunique()
     if duplicates_count > 0:
@@ -207,7 +427,7 @@ def build_collars(ags_context: AgsContext, crs_definition: int | str | None) -> 
         )
         collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
 
-    return HoleCollars(df=collars_df)
+    return collars_df
 
 
 def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> None:
@@ -329,6 +549,7 @@ def calculate_dip_and_azimuth(
 
     Matches each measurement to a HORN interval where HORN_TOP <= depth < HORN_BASE.
     Measurements outside all intervals for their LOCA_ID get vertical defaults (90°/0°).
+    The columns are added to measurements_df, which must have LOCA_ID and the depth column.
     """
     n_rows = len(measurements_df)
 
@@ -338,7 +559,14 @@ def calculate_dip_and_azimuth(
 
     # Create working copy with original index tracking
     work_df = measurements_df[["LOCA_ID", depth_column]].copy()
+    work_df[depth_column] = pd.to_numeric(work_df[depth_column], errors="coerce").astype("float64")
     work_df["_orig_idx"] = np.arange(n_rows)
+
+    # merge_asof needs keys of the same type on both sides
+    horn_df = horn_df.assign(
+        HORN_TOP=pd.to_numeric(horn_df["HORN_TOP"], errors="coerce").astype("float64"),
+        HORN_BASE=pd.to_numeric(horn_df["HORN_BASE"], errors="coerce").astype("float64"),
+    )
 
     # Pre-sort HORN intervals by LOCA_ID
     horn_by_loca = {loca_id: group.sort_values("HORN_TOP") for loca_id, group in horn_df.groupby("LOCA_ID")}
@@ -374,5 +602,5 @@ def calculate_dip_and_azimuth(
     if unmatched_count > 0:
         logger.info(f"{unmatched_count} depth measurements outside HORN intervals, assuming vertical")
 
-    measurements_df["dip"] = pd.Series(dip_result, dtype="float64")
-    measurements_df["azimuth"] = pd.Series(azimuth_result, dtype="float64")
+    measurements_df["dip"] = pd.Series(dip_result, index=measurements_df.index, dtype="float64")
+    measurements_df["azimuth"] = pd.Series(azimuth_result, index=measurements_df.index, dtype="float64")

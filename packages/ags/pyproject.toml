@@ -10,6 +10,8 @@ authors = [
 ]
 dependencies = [
     "evo-data-converters-common>=0.3.1",
+    "evo-objects[utils]>=0.6.3",
+    "evo-sdk-common>=0.5.31",
     "python-ags4==1.1.0",
 ]
 classifiers = [

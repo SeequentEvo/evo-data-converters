@@ -11,16 +11,18 @@
 
 import asyncio
 from pathlib import Path
-from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 
-import pyarrow.parquet as pq
 import pytest
-from evo_schemas.objects import DownholeCollection_V1_3_1
 
 from evo.data_converters.ags.common import AgsFileInvalidException
-from evo.data_converters.ags.importer.ags_to_evo import convert_ags
+from evo.data_converters.ags.importer.ags_to_downhole_collection import create_from_parsed_ags
+from evo.data_converters.ags.importer.ags_to_evo import convert_ags, publish_downhole_collections
 from evo.data_converters.common import EvoWorkspaceMetadata
+from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError
 from evo.objects.data import ObjectMetadata
+from evo.objects.typed import DownholeCollectionData
 
 
 def test_convert_ags_saves_elevation_from_selected_coordinate_family(
@@ -32,96 +34,111 @@ def test_convert_ags_saves_elevation_from_selected_coordinate_family(
 
     assert len(result) == 1
     collection = result[0]
-    assert isinstance(collection, DownholeCollection_V1_3_1)
-    cache_root = Path(evo_metadata.cache_root)
-    coordinates_path = next(cache_root.rglob(collection.location.coordinates.data))
-    coordinates = pq.read_table(coordinates_path).to_pandas()
-    assert coordinates["z"].tolist() == [-4.78, -4.78, 16.48, 0.0, 0.0, 0.0, -4.78, 16.48, 0.0, 0.0, 0.0]
+    assert isinstance(collection, DownholeCollectionData)
+    assert collection.properties["z"].tolist() == [
+        -4.78,
+        -4.78,
+        16.48,
+        0.0,
+        0.0,
+        0.0,
+        -4.78,
+        16.48,
+        0.0,
+        0.0,
+        0.0,
+    ]
 
 
 def test_should_convert_ags_file_without_publish(evo_metadata, valid_ags_1a_path):
-    """Integration: converts an AGS file to a geoscience object without publishing."""
     result = asyncio.run(
         convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata, publish_objects=False)
     )
-    assert isinstance(result, list)
-    assert isinstance(result[0], DownholeCollection_V1_3_1)
+
     assert len(result) == 1
+    data = result[0]
+    assert isinstance(data, DownholeCollectionData)
+    assert data.tags is not None
+    assert data.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
+    assert data.tags["Stage"] == "Experimental"
+    assert data.tags["InputType"] == "AGS"
 
-    obj_metadata = result[0]
-    assert obj_metadata.tags is not None
-    assert obj_metadata.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
-    assert obj_metadata.tags["Stage"] == "Experimental"
-    assert obj_metadata.tags["InputType"] == "AGS"
 
-
-@patch("evo.data_converters.ags.importer.ags_to_evo.publish_geoscience_objects")
-def test_should_publish_with_hub_url(mock_publish, evo_metadata_with_hub, valid_ags_1a_path):
-    """Integration: publishes when hub_url is provided (network calls mocked)."""
-    mock_metadata = [Mock(spec=ObjectMetadata)]
-    mock_publish.return_value = mock_metadata
+@patch("evo.data_converters.ags.importer.ags_to_evo.create_evo_object_service_and_data_client")
+@patch("evo.data_converters.ags.importer.ags_to_evo.DownholeCollection")
+def test_should_publish_with_hub_url(mock_collection, mock_clients, evo_metadata_with_hub, valid_ags_1a_path):
+    metadata = Mock(spec=ObjectMetadata)
+    mock_collection.create = AsyncMock(return_value=SimpleNamespace(metadata=metadata))
+    data_client = Mock()
+    context = Mock()
+    data_client.get_static_context.return_value = context
+    mock_clients.return_value = (Mock(), data_client)
 
     result = asyncio.run(
-        convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata_with_hub, publish_objects=True)
+        convert_ags(
+            filepaths=[valid_ags_1a_path],
+            evo_workspace_metadata=evo_metadata_with_hub,
+            publish_objects=True,
+            upload_path="prefix",
+        )
     )
 
-    assert result == mock_metadata
-    mock_publish.assert_called_once()
-
-    publish_kwargs = mock_publish.call_args.kwargs
-    object_models = publish_kwargs["object_models"]
-    assert len(object_models) == 1
-    published_obj = object_models[0]
-    assert published_obj.tags is not None
-    assert published_obj.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
-    assert published_obj.tags["Stage"] == "Experimental"
-    assert published_obj.tags["InputType"] == "AGS"
+    assert result == [metadata]
+    mock_collection.create.assert_awaited_once()
+    call = mock_collection.create.await_args
+    assert call.args[0] == context
+    assert call.kwargs["path"] == "prefix/valid_ags_1a.json"
+    data = call.args[1]
+    assert data.tags is not None
+    assert data.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
+    assert data.tags["Stage"] == "Experimental"
+    assert data.tags["InputType"] == "AGS"
 
 
 def test_should_add_custom_tags(evo_metadata, valid_ags_1a_path):
-    """Integration: conversion succeeds with custom tags supplied (tags applied internally)."""
     custom_tags = {"CustomTag": "CustomValue", "AnotherTag": "AnotherValue"}
     result = asyncio.run(
         convert_ags(
-            filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata, tags=custom_tags, publish_objects=False
+            filepaths=[valid_ags_1a_path],
+            evo_workspace_metadata=evo_metadata,
+            tags=custom_tags,
+            publish_objects=False,
         )
     )
+
     assert len(result) == 1
-
-    published_obj = result[0]
-    assert published_obj.tags is not None
-
-    assert published_obj.tags["CustomTag"] == "CustomValue"
-    assert published_obj.tags["AnotherTag"] == "AnotherValue"
-    assert published_obj.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
-    assert published_obj.tags["Stage"] == "Experimental"
-    assert published_obj.tags["InputType"] == "AGS"
+    assert result[0].tags is not None
+    assert result[0].tags["CustomTag"] == "CustomValue"
+    assert result[0].tags["AnotherTag"] == "AnotherValue"
+    assert result[0].tags["InputType"] == "AGS"
 
 
 def test_should_handle_parse_error(evo_metadata, not_ags_path, caplog):
-    """Integration: invalid AGS files return empty list (parse error handled)."""
     result = asyncio.run(
         convert_ags(filepaths=[not_ags_path], evo_workspace_metadata=evo_metadata, publish_objects=False)
     )
+
     assert result == []
-    # Should log a warning
     assert "AGS Format Rule 3" in caplog.text
 
 
-@patch("evo.data_converters.ags.importer.ags_to_evo.publish_geoscience_objects")
+@patch("evo.data_converters.ags.importer.ags_to_evo.create_evo_object_service_and_data_client")
+@patch("evo.data_converters.ags.importer.ags_to_evo.DownholeCollection")
 def test_coordinate_crs_mismatch_is_not_published(
-    mock_publish: Mock,
+    mock_collection,
+    mock_clients,
     evo_metadata_with_hub: EvoWorkspaceMetadata,
     valid_ags_1a_path: str,
     tmp_path: Path,
 ) -> None:
     filepath = tmp_path / "mismatched_crs.ags"
     filepath.write_text(Path(valid_ags_1a_path).read_text().replace('"OSGB"', '"WGS84"'))
+    mock_clients.return_value = (Mock(), Mock())
 
     with pytest.raises(AgsFileInvalidException, match="No complete geographic coordinate pair"):
         asyncio.run(convert_ags(filepaths=[str(filepath)], evo_workspace_metadata=evo_metadata_with_hub))
 
-    mock_publish.assert_not_called()
+    mock_collection.create.assert_not_called()
 
 
 @pytest.mark.parametrize("merge_files", [True, False])
@@ -132,7 +149,6 @@ def test_conflicting_crs_file_is_skipped(
     merge_files: bool,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Integration: a file whose holes declare different CRSs is skipped, the other files are converted."""
     result = asyncio.run(
         convert_ags(
             filepaths=[test_elevations_ags_path, conflicting_crs_ags_path],
@@ -148,7 +164,6 @@ def test_conflicting_crs_file_is_skipped(
 
 
 def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2a_path, invalid_ags_2b_path, caplog):
-    """Integration: multiple ags files with warnings should be imported"""
     result = asyncio.run(
         convert_ags(
             filepaths=[valid_ags_2a_path, invalid_ags_2b_path],
@@ -156,62 +171,45 @@ def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2
             publish_objects=False,
         )
     )
-    assert len(result) == 1
 
-    expected_warnings = [
+    assert len(result) == 1
+    for message in (
         "Found 1 duplicate LOCA_ID values when merging contexts.",
         "Duplicate IDs: ['EXAMPLE-2-CPT1']",
         "Found 1 duplicate (LOCA_ID, SCPG_TESN) pairs when merging contexts.",
-    ]
-
-    for warning_message in expected_warnings:
-        assert warning_message in caplog.text
+    ):
+        assert message in caplog.text
 
 
 def test_convert_ags_with_multiple_files_from_different_projects(evo_metadata, valid_ags_1a_path, valid_ags_2a_path):
-    """Integration: Test multiple AGS files from different PROJ_IDs creates separate DownholeCollections."""
     result = asyncio.run(
         convert_ags(
             filepaths=[valid_ags_1a_path, valid_ags_2a_path], evo_workspace_metadata=evo_metadata, publish_objects=False
         )
     )
 
-    # Should create two separate DownholeCollection objects
-    assert isinstance(result, list)
     assert len(result) == 2
-    assert all(isinstance(obj, DownholeCollection_V1_3_1) for obj in result)
+    assert all(isinstance(item, DownholeCollectionData) for item in result)
 
 
 def test_convert_ags_with_multiple_files_same_project(evo_metadata, valid_ags_1a_path, valid_ags_1b_path):
-    """Integration: Test multiple files from same PROJ_ID merge into single DownholeCollection."""
     result = asyncio.run(
         convert_ags(
             filepaths=[valid_ags_1a_path, valid_ags_1b_path], evo_workspace_metadata=evo_metadata, publish_objects=False
         )
     )
 
-    # Should create one merged DownholeCollection object
-    assert isinstance(result, list)
     assert len(result) == 1
-
-    downhole_collection = result[0]
-    assert isinstance(downhole_collection, DownholeCollection_V1_3_1)
-
-    # Name comes from the first filename
-    assert downhole_collection.name == "valid_ags_1a"
-
-    # Verify tags
-    assert downhole_collection.tags is not None
-    assert downhole_collection.tags["InputType"] == "AGS"
-    assert downhole_collection.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
-
-    # Verify CRS was set
-    assert downhole_collection.coordinate_reference_system is not None
-    assert downhole_collection.coordinate_reference_system.epsg_code == 27700
+    data = result[0]
+    assert isinstance(data, DownholeCollectionData)
+    assert data.name == "valid_ags_1a"
+    assert data.tags is not None
+    assert data.tags["InputType"] == "AGS"
+    assert data.tags["Source"] == "valid_ags_1a (via Evo Data Converters)"
+    assert data.coordinate_reference_system == 27700
 
 
 def test_convert_ags_with_multiple_files_same_project_no_merge(evo_metadata, valid_ags_1a_path, valid_ags_1b_path):
-    """Integration: Test multiple files from same PROJ_ID with merge_files=False creates separate DownholeCollections."""
     result = asyncio.run(
         convert_ags(
             filepaths=[valid_ags_1a_path, valid_ags_1b_path],
@@ -221,18 +219,12 @@ def test_convert_ags_with_multiple_files_same_project_no_merge(evo_metadata, val
         )
     )
 
-    # Should create two separate DownholeCollection objects
-    assert isinstance(result, list)
     assert len(result) == 2
-    assert all(isinstance(obj, DownholeCollection_V1_3_1) for obj in result)
-
-    assert set(obj.name for obj in result) == {"valid_ags_1a", "valid_ags_1b"}
-    assert all(obj.tags is not None for obj in result)
-    assert all(obj.tags["InputType"] == "AGS" for obj in result)
+    assert {item.name for item in result} == {"valid_ags_1a", "valid_ags_1b"}
+    assert all(item.tags is not None and item.tags["InputType"] == "AGS" for item in result)
 
 
 def test_convert_ags_with_mixed_projects(evo_metadata, valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path):
-    """Integration: Test mixed PROJ_IDs merge same projects and separates different ones."""
     result = asyncio.run(
         convert_ags(
             filepaths=[valid_ags_1a_path, valid_ags_1b_path, valid_ags_2a_path],
@@ -241,19 +233,50 @@ def test_convert_ags_with_mixed_projects(evo_metadata, valid_ags_1a_path, valid_
         )
     )
 
-    # Should create two DownholeCollection objects (1a+1b merged, 2a separate)
-    assert isinstance(result, list)
     assert len(result) == 2
-    assert all(isinstance(obj, DownholeCollection_V1_3_1) for obj in result)
-
-    # Verify both collections have proper metadata
-    names = [obj.name for obj in result]
-    assert len(names) == 2
-    assert all(obj.tags is not None for obj in result)
-    assert all(obj.tags["InputType"] == "AGS" for obj in result)
+    assert all(item.tags is not None and item.tags["InputType"] == "AGS" for item in result)
 
 
 def test_convert_ags_with_empty_file_list(evo_metadata):
-    """Integration: Test empty file list handled gracefully."""
-    result = asyncio.run(convert_ags(filepaths=[], evo_workspace_metadata=evo_metadata, publish_objects=False))
-    assert result == []
+    assert asyncio.run(convert_ags(filepaths=[], evo_workspace_metadata=evo_metadata, publish_objects=False)) == []
+
+
+@patch("evo.data_converters.ags.importer.ags_to_evo.create_evo_object_service_and_data_client")
+def test_publish_requires_hub_url(mock_clients, evo_metadata, valid_ags_1a_path):
+    mock_clients.return_value = (Mock(), Mock())
+    with pytest.raises(ConflictingConnectionDetailsError, match="without hub_url"):
+        asyncio.run(convert_ags(filepaths=[valid_ags_1a_path], evo_workspace_metadata=evo_metadata))
+    mock_clients.assert_called_once()
+
+
+@pytest.mark.parametrize("overwrite, method", [(False, "create"), (True, "create_or_replace")])
+@patch("evo.data_converters.ags.importer.ags_to_evo.DownholeCollection")
+def test_publish_downhole_collections(mock_collection, overwrite, method, mock_ags_context):
+    mock_ags_context.filename = "test_file"
+    data = create_from_parsed_ags(mock_ags_context)
+    context = Mock()
+    environment = Mock()
+    environment.hub_url = "https://test.hub.url"
+    environment.org_id = "00000000-0000-0000-0000-000000000001"
+    environment.workspace_id = "00000000-0000-0000-0000-000000000002"
+    context.get_environment.return_value = environment
+    metadata = Mock(spec=ObjectMetadata)
+    publish = AsyncMock(return_value=SimpleNamespace(metadata=metadata))
+    setattr(mock_collection, method, publish)
+
+    result = asyncio.run(
+        publish_downhole_collections([data, data], context, "prefix", overwrite_existing_objects=overwrite)
+    )
+
+    assert result == [metadata, metadata]
+    assert publish.await_count == 2
+    if overwrite:
+        assert [call.args[1].object_path for call in publish.await_args_list] == [
+            "prefix/test_file_1.json",
+            "prefix/test_file_2.json",
+        ]
+    else:
+        assert [call.kwargs["path"] for call in publish.await_args_list] == [
+            "prefix/test_file_1.json",
+            "prefix/test_file_2.json",
+        ]
