@@ -146,7 +146,7 @@ def mock_ags_context():
     """Create a mock AgsContext with sample data."""
     context = Mock(spec=AgsContext)
     context.filename = "test_file.ags"
-    context.coordinate_reference_system = "EPSG:4326"
+    context.coordinate_reference_system = "EPSG:27700"
     context.column_mapping = ColumnMapping(
         DEPTH_COLUMNS=["SCPT_DPTH", "SCDG_DPTH"],
         FROM_COLUMNS=["GEOL_TOP", "SCPP_TOP"],

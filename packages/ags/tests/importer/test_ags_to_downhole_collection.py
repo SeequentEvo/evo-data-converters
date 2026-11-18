@@ -10,9 +10,11 @@
 #  limitations under the License.
 
 import pandas as pd
+import pytest
+from pyproj import CRS
 
-from evo.data_converters.ags.common import AgsContext
-from evo.data_converters.ags.common.ags_context import HORN, SCPG, SCPT
+from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
+from evo.data_converters.ags.common.ags_context import HORN, LOCA, SCPG, SCPT
 from evo.data_converters.ags.importer.ags_to_downhole_collection import (
     calculate_dip_and_azimuth,
     create_from_parsed_ags,
@@ -30,7 +32,7 @@ class TestCreateFromParsedAgsProps:
 
         assert isinstance(result, DownholeCollection)
         assert result.name == "test_file.ags"
-        assert result.coordinate_reference_system == "EPSG:4326"
+        assert result.coordinate_reference_system == "EPSG:27700"
         assert result.tags is None
 
     def test_with_tags(self, mock_ags_context):
@@ -453,6 +455,147 @@ class TestCreateDownholeCollectionWithHornTable:
 
 class TestCoordinateColumnHandling:
     """Tests for handling different coordinate column formats and missing values."""
+
+    @pytest.fixture
+    def coordinate_context(self, valid_ags_path: str) -> AgsContext:
+        context = AgsContext()
+        context.parse_ags(valid_ags_path)
+        loca = context.get_table(LOCA)
+        loca["LOCA_NATE"] = 575784.0
+        loca["LOCA_NATN"] = 5807006.0
+        loca["LOCA_LOCX"] = 100.0
+        loca["LOCA_LOCY"] = 200.0
+        loca["LOCA_LON"] = 174.8
+        loca["LOCA_LAT"] = -41.3
+        loca["LOCA_GREF"] = "OSGB"
+        return context
+
+    @pytest.mark.parametrize("crs_name", ["WGS84", "NZGD2000"])
+    @pytest.mark.parametrize("crs_column", ["LOCA_LLZ", "LOCA_GREF"])
+    def test_geographic_crs_uses_lon_lat(self, coordinate_context: AgsContext, crs_name: str, crs_column: str) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = ""
+        loca[crs_column] = crs_name
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert CRS.from_user_input(result.coordinate_reference_system).is_geographic
+        assert (result.collars.df["x"] == loca["LOCA_LON"].iloc[0]).all()
+        assert (result.collars.df["y"] == loca["LOCA_LAT"].iloc[0]).all()
+
+    @pytest.mark.parametrize("crs_name", ["OSGB", "OSI", "ITM", "EPSG:2193"])
+    def test_nate_natn_have_projected_crs(self, coordinate_context: AgsContext, crs_name: str) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = crs_name
+        loca["LOCA_LLZ"] = "WGS84"
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert CRS.from_user_input(result.coordinate_reference_system).is_projected
+        assert (result.collars.df["x"] == loca["LOCA_NATE"].iloc[0]).all()
+        assert (result.collars.df["y"] == loca["LOCA_NATN"].iloc[0]).all()
+
+    @pytest.mark.parametrize(
+        ("crs_name", "columns"),
+        [
+            ("WGS84", ["LOCA_LON", "LOCA_LAT"]),
+            ("OSGB", ["LOCA_NATE", "LOCA_NATN", "LOCA_LOCX", "LOCA_LOCY"]),
+        ],
+    )
+    @pytest.mark.parametrize("empty_columns", [False, True])
+    def test_crs_coordinate_mismatch_raises(
+        self, coordinate_context: AgsContext, crs_name: str, columns: list[str], empty_columns: bool
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = crs_name
+        if empty_columns:
+            loca[columns] = pd.NA
+        else:
+            coordinate_context.set_table(LOCA, loca.drop(columns=columns))
+
+        with pytest.raises(AgsFileInvalidException, match="No complete .* coordinate pair.*hole"):
+            create_from_parsed_ags(coordinate_context)
+
+    def test_projected_pair_falls_back_together(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_NATN"] = pd.NA
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert (result.collars.df["x"] == 100.0).all()
+        assert (result.collars.df["y"] == 200.0).all()
+
+    def test_incomplete_projected_pairs_are_not_mixed(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_NATN"] = pd.NA
+        loca["LOCA_LOCX"] = pd.NA
+
+        with pytest.raises(AgsFileInvalidException, match="No complete projected coordinate pair"):
+            create_from_parsed_ags(coordinate_context)
+
+    def test_each_hole_requires_matching_coordinates(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        second_hole = loca.copy()
+        second_hole["LOCA_ID"] = "MISMATCH"
+        combined_loca = pd.concat([loca, second_hole], ignore_index=True)
+        combined_loca.loc[
+            combined_loca["LOCA_ID"] == "MISMATCH", ["LOCA_NATE", "LOCA_NATN", "LOCA_LOCX", "LOCA_LOCY"]
+        ] = pd.NA
+        coordinate_context.set_table(LOCA, combined_loca)
+        scpg = coordinate_context.get_table(SCPG)
+        second_test = scpg.copy()
+        second_test["LOCA_ID"] = "MISMATCH"
+        coordinate_context.set_table(SCPG, pd.concat([scpg, second_test], ignore_index=True))
+
+        with pytest.raises(AgsFileInvalidException, match="MISMATCH"):
+            create_from_parsed_ags(coordinate_context)
+
+    def test_zero_coordinates_are_valid(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = "WGS84"
+        loca[["LOCA_LON", "LOCA_LAT"]] = 0.0
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert (result.collars.df[["x", "y"]] == 0.0).all().all()
+
+    def test_non_numeric_coordinates_do_not_fall_back_to_other_family(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = "WGS84"
+        loca["LOCA_LON"] = "invalid"
+
+        with pytest.raises(AgsFileInvalidException, match="No complete geographic coordinate pair"):
+            create_from_parsed_ags(coordinate_context)
+
+    def test_projected_crs_in_llz_uses_projected_columns(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LLZ"] = "EPSG:2193"
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.coordinate_reference_system == 2193
+        assert (result.collars.df["x"] == 575784.0).all()
+        assert (result.collars.df["y"] == 5807006.0).all()
+
+    def test_unsupported_crs_type_raises(self, coordinate_context: AgsContext) -> None:
+        coordinate_context.get_table(LOCA)["LOCA_GREF"] = "EPSG:4978"
+
+        with pytest.raises(AgsFileInvalidException, match="neither projected nor geographic"):
+            create_from_parsed_ags(coordinate_context)
+
+    @pytest.mark.parametrize("crs_name", ["", "LOCAL"])
+    def test_unspecified_crs_warns_and_preserves_fallback(
+        self, coordinate_context: AgsContext, crs_name: str, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        coordinate_context.get_table(LOCA)["LOCA_GREF"] = crs_name
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.coordinate_reference_system == "unspecified"
+        assert (result.collars.df["x"] == 575784.0).all()
+        assert (result.collars.df["y"] == 5807006.0).all()
+        assert "coordinate column family cannot be verified" in caplog.text
 
     def test_coordinate_column_priority_and_fallback(self, test_coordinate_columns_ags_path, caplog):
         """Test coordinate column priority (NATE > LOCX > LON) and handling of missing/NaN values.

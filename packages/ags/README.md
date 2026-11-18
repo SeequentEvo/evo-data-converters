@@ -119,8 +119,12 @@ AGS TYPE codes are mapped to appropriate pandas/Python types:
 ### CRS (Coordinate Reference System) Handling
 
 - Supports standard AGS abbreviations: OSGB (EPSG:27700), OSI (EPSG:29902), ITM (EPSG:2157)
-- Falls back to LOCA_LLZ field for geographic CRS when available
+- Resolves CRS names and EPSG codes in `LOCA_GREF`, falling back to `LOCA_LLZ`
+- Projected CRSs use complete `LOCA_NATE`/`LOCA_NATN` pairs, falling back per hole to `LOCA_LOCX`/`LOCA_LOCY`
+- Geographic CRSs use only `LOCA_LON`/`LOCA_LAT`, even when projected columns are populated
+- Raises `AgsFileInvalidException` if any imported hole lacks a complete coordinate pair in the detected CRS family
 - Handles LOCAL as "unspecified" CRS
+- When the CRS cannot be resolved or is LOCAL, preserves legacy coordinate selection and logs that the coordinate family cannot be verified
 
 ### Importing multiple files
 

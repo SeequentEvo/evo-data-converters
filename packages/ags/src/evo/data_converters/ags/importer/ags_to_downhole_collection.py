@@ -11,9 +11,10 @@
 
 import numpy as np
 import pandas as pd
+from pyproj import CRS
 
 import evo.logging
-from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT
 from evo.data_converters.common.objects.downhole_collection import DownholeCollection, HoleCollars
 from evo.data_converters.common.objects.downhole_collection.tables import DEFAULT_AZIMUTH, DEFAULT_DIP, DistanceTable
@@ -186,23 +187,7 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
     collars_df = pd.concat([scpg_collars, geol_collars], ignore_index=True)
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
 
-    # Find coordinate columns with valid data
-    for target_col, source_cols in AgsContext.COORDINATE_COLUMN_PRIORITY:
-        assigned = False
-        for source_col in source_cols:
-            if source_col in collars_df.columns:
-                temp_col = pd.to_numeric(collars_df[source_col], errors="coerce")
-                # Check if we have any non-null values to select this column
-                if temp_col.notna().any():
-                    collars_df[target_col] = temp_col
-                    assigned = True
-                    break
-
-        if not assigned:
-            logger.warning(f"No valid {target_col} coordinate data found in LOCA table, defaulting to 0.0")
-            collars_df[target_col] = 0.0
-        else:
-            collars_df[target_col] = collars_df[target_col].fillna(0.0)
+    assign_coordinates(collars_df, ags_context.coordinate_reference_system)
 
     # Ensure final_depth is float dtype even if NaN
     collars_df["final_depth"] = pd.to_numeric(collars_df["final_depth"], errors="coerce").astype(float)
@@ -221,6 +206,55 @@ def build_collars(ags_context: AgsContext) -> HoleCollars:
         collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
 
     return HoleCollars(df=collars_df)
+
+
+def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> None:
+    """Assign horizontal coordinates from the CRS family and preserve elevation fallback."""
+    priority = AgsContext.UNSPECIFIED_COORDINATE_COLUMN_PRIORITY
+    if crs_definition is not None and crs_definition != "unspecified":
+        assign_horizontal_coordinates(collars_df, crs_definition)
+        priority = (("z", ("LOCA_GL", "LOCA_LOCZ")),)
+    else:
+        logger.warning("CRS is unspecified; coordinate column family cannot be verified.")
+
+    for target_col, source_cols in priority:
+        for source_col in source_cols:
+            if source_col in collars_df.columns:
+                values = pd.to_numeric(collars_df[source_col], errors="coerce")
+                if values.notna().any():
+                    collars_df[target_col] = values.fillna(0.0)
+                    break
+        else:
+            logger.warning(f"No valid {target_col} coordinate data found in LOCA table, defaulting to 0.0")
+            collars_df[target_col] = 0.0
+
+
+def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int | str) -> None:
+    """Select complete X/Y pairs per hole without crossing CRS families or pairing axes."""
+    crs = CRS.from_user_input(crs_definition)
+    if crs.is_projected:
+        family, pairs = "projected", AgsContext.PROJECTED_COORDINATE_PAIRS
+    elif crs.is_geographic:
+        family, pairs = "geographic", AgsContext.GEOGRAPHIC_COORDINATE_PAIRS
+    else:
+        raise AgsFileInvalidException(f"CRS {crs_definition} is neither projected nor geographic.")
+
+    collars_df[["x", "y"]] = np.nan
+    for x_column, y_column in pairs:
+        if x_column not in collars_df or y_column not in collars_df:
+            continue
+        x = pd.to_numeric(collars_df[x_column], errors="coerce")
+        y = pd.to_numeric(collars_df[y_column], errors="coerce")
+        use_pair = collars_df["x"].isna() & x.notna() & y.notna()
+        collars_df.loc[use_pair, "x"] = x[use_pair]
+        collars_df.loc[use_pair, "y"] = y[use_pair]
+
+    missing = collars_df["x"].isna()
+    if missing.any():
+        holes = collars_df.loc[missing, "hole_id"].tolist()
+        raise AgsFileInvalidException(
+            f"No complete {family} coordinate pair for CRS {crs_definition} in LOCA table for holes: {holes}."
+        )
 
 
 def calculate_dip_and_azimuth(

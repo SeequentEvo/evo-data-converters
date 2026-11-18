@@ -115,8 +115,14 @@ class AgsContext:
         # Note: ID, DMS, PA, PT, PU, RL, U, X, XN types fall back to string (default)
     }
 
-    # Priority order for selecting coordinate columns
-    COORDINATE_COLUMN_PRIORITY: tuple[tuple[str, tuple[str, ...]], ...] = (
+    PROJECTED_COORDINATE_PAIRS: tuple[tuple[str, str], ...] = (
+        ("LOCA_NATE", "LOCA_NATN"),
+        ("LOCA_LOCX", "LOCA_LOCY"),
+    )
+    GEOGRAPHIC_COORDINATE_PAIRS: tuple[tuple[str, str], ...] = (("LOCA_LON", "LOCA_LAT"),)
+
+    # Legacy fallback only when no CRS can be resolved.
+    UNSPECIFIED_COORDINATE_COLUMN_PRIORITY: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("x", ("LOCA_NATE", "LOCA_LOCX", "LOCA_LON")),
         ("y", ("LOCA_NATN", "LOCA_LOCY", "LOCA_LAT")),
         ("z", ("LOCA_GL", "LOCA_LOCZ")),
@@ -416,48 +422,47 @@ class AgsContext:
         Try to determine CRS from LOCA_GREF, if it exists.
 
         :returns: None if we can't determine a CRS, "unspecified" if the
-            CRS is locally defined, an integer if we found the projected CRS.
+            CRS is locally defined, an integer if we found an EPSG CRS.
         """
+        return self._crs_from_loca_column("LOCA_GREF")
+
+    def crs_from_loca_llz(self) -> int | None:
+        """
+        Try to determine CRS from LOCA_LLZ, if it exists.
+
+        :returns: None if we can't determine a CRS, or the EPSG code if found.
+        """
+        crs = self._crs_from_loca_column("LOCA_LLZ")
+        return crs if isinstance(crs, int) else None
+
+    def _crs_from_loca_column(self, column: str) -> int | str | None:
         try:
-            gref = self.get_table(LOCA).at[0, "LOCA_GREF"]
-            gref = str(gref).upper().strip()
+            value = self.get_table(LOCA).at[0, column]
         except (KeyError, ValueError):
             return None
 
-        # Mapping of AGS standard abbreviations to projected CRS
+        if pd.isna(value) or not str(value).strip():
+            return None
+        value = str(value).upper().strip()
         ags_standard_map: dict[str, int | str] = {
             "OSGB": 27700,
             "OSI": 29902,
             "ITM": 2157,
             "LOCAL": "unspecified",
         }
-
-        if gref in ags_standard_map:
-            return ags_standard_map[gref]
-
-        logger.warning(f"Could not determine CRS from LOCA_GREF: {gref}")
-
-        return None
-
-    def crs_from_loca_llz(self) -> int | None:
-        """
-        Try to determine CRS from LOCA_LLZ, if it exists.
-
-        :returns: None if we can't determine a CRS, or the epsg code if we found the geographic CRS.
-        """
-        try:
-            llz = self.get_table(LOCA).at[0, "LOCA_LLZ"]
-            llz = str(llz).upper().strip()
-        except (KeyError, ValueError):
-            return None
+        if column == "LOCA_GREF" and value in ags_standard_map:
+            return ags_standard_map[value]
 
         try:
-            crs = CRS.from_user_input(llz)
+            crs = CRS.from_user_input(value)
         except CRSError:
-            logger.warning(f"Could not determine CRS from LOCA_LLZ: {llz}")
+            logger.warning(f"Could not determine CRS from {column}: {value}")
             return None
 
-        return crs.to_epsg()
+        epsg = crs.to_epsg()
+        if epsg is None:
+            logger.warning(f"Could not determine EPSG code from {column}: {value}")
+        return epsg
 
     def validate_merge(self, other: "AgsContext", raise_on_error: bool = True) -> list[str]:
         """Validate whether another AgsContext can be merged into this one.

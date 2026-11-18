@@ -10,11 +10,15 @@
 #  limitations under the License.
 
 import asyncio
+from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
 from evo_schemas.objects import DownholeCollection_V1_3_1
 
+from evo.data_converters.ags.common import AgsFileInvalidException
 from evo.data_converters.ags.importer.ags_to_evo import convert_ags
+from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.objects.data import ObjectMetadata
 
 
@@ -85,6 +89,22 @@ def test_should_handle_parse_error(evo_metadata, not_ags_path, caplog):
     assert result == []
     # Should log a warning
     assert "AGS Format Rule 3" in caplog.text
+
+
+@patch("evo.data_converters.ags.importer.ags_to_evo.publish_geoscience_objects")
+def test_coordinate_crs_mismatch_is_not_published(
+    mock_publish: Mock,
+    evo_metadata_with_hub: EvoWorkspaceMetadata,
+    valid_ags_1a_path: str,
+    tmp_path: Path,
+) -> None:
+    filepath = tmp_path / "mismatched_crs.ags"
+    filepath.write_text(Path(valid_ags_1a_path).read_text().replace('"OSGB"', '"WGS84"'))
+
+    with pytest.raises(AgsFileInvalidException, match="No complete geographic coordinate pair"):
+        asyncio.run(convert_ags(filepaths=[str(filepath)], evo_workspace_metadata=evo_metadata_with_hub))
+
+    mock_publish.assert_not_called()
 
 
 def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2a_path, invalid_ags_2b_path, caplog):
