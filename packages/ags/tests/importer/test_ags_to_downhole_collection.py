@@ -63,8 +63,7 @@ class TestCreateFromParsedAgsCollars:
         # 4 SCPG collars + 2 GEOL collars = 6 total
         assert list(collars_df["hole_index"]) == [1, 2, 3, 4, 5, 6]
 
-        # Check z is set to 0.0
-        assert all(collars_df["z"] == 0.0)
+        assert collars_df["z"].tolist() == [5.0, -4.78, 0.0, 0.0, 5.0, -4.78]
 
     def test_collars_final_depths(self, mock_ags_context):
         """Test that final depths are calculated correctly from measurement data."""
@@ -92,6 +91,7 @@ class TestCreateFromParsedAgsCollars:
         # Check data types
         assert collars_df["x"].dtype == float
         assert collars_df["y"].dtype == float
+        assert collars_df["z"].dtype == float
         assert collars_df["hole_id"].dtype == object  # string
 
         assert collars_df[collars_df["hole_id"] == "BH01:T01"]["x"].values[0] == 100.0
@@ -173,6 +173,7 @@ class TestCreateFromParsedAgsCollars:
         # Should have final_depth from GEOL_BASE
         assert collars_df["final_depth"].notna().all()
         assert list(collars_df["final_depth"]) == [5.0, 10.0]
+        assert collars_df["z"].tolist() == [5.0, -4.78]
 
 
 class TestCreateFromParsedAgsMeasurements:
@@ -516,39 +517,58 @@ class TestCoordinateColumnHandling:
         with pytest.raises(AgsFileInvalidException, match="No complete .* coordinate pair.*hole"):
             create_from_parsed_ags(coordinate_context)
 
-    def test_projected_pair_falls_back_together(self, coordinate_context: AgsContext) -> None:
+    def test_projected_crs_does_not_fall_back_to_local_coordinates(self, coordinate_context: AgsContext) -> None:
         loca = coordinate_context.get_table(LOCA)
         loca["LOCA_NATN"] = pd.NA
 
-        result = create_from_parsed_ags(coordinate_context)
-
-        assert (result.collars.df["x"] == 100.0).all()
-        assert (result.collars.df["y"] == 200.0).all()
+        with pytest.raises(AgsFileInvalidException, match="No complete national coordinate pair"):
+            create_from_parsed_ags(coordinate_context)
 
     def test_incomplete_projected_pairs_are_not_mixed(self, coordinate_context: AgsContext) -> None:
         loca = coordinate_context.get_table(LOCA)
         loca["LOCA_NATN"] = pd.NA
         loca["LOCA_LOCX"] = pd.NA
 
-        with pytest.raises(AgsFileInvalidException, match="No complete projected coordinate pair"):
+        with pytest.raises(AgsFileInvalidException, match="No complete national coordinate pair"):
             create_from_parsed_ags(coordinate_context)
 
+    @staticmethod
+    def _add_hole(context: AgsContext, loca_id: str) -> pd.DataFrame:
+        """Copy the first LOCA and SCPG rows to a new hole and return the updated LOCA table."""
+        loca = context.get_table(LOCA)
+        new_hole = loca.copy()
+        new_hole["LOCA_ID"] = loca_id
+        context.set_table(LOCA, pd.concat([loca, new_hole], ignore_index=True))
+        scpg = context.get_table(SCPG)
+        new_test = scpg.copy()
+        new_test["LOCA_ID"] = loca_id
+        context.set_table(SCPG, pd.concat([scpg, new_test], ignore_index=True))
+        return context.get_table(LOCA)
+
     def test_each_hole_requires_matching_coordinates(self, coordinate_context: AgsContext) -> None:
-        loca = coordinate_context.get_table(LOCA)
-        second_hole = loca.copy()
-        second_hole["LOCA_ID"] = "MISMATCH"
-        combined_loca = pd.concat([loca, second_hole], ignore_index=True)
-        combined_loca.loc[
-            combined_loca["LOCA_ID"] == "MISMATCH", ["LOCA_NATE", "LOCA_NATN", "LOCA_LOCX", "LOCA_LOCY"]
-        ] = pd.NA
-        coordinate_context.set_table(LOCA, combined_loca)
-        scpg = coordinate_context.get_table(SCPG)
-        second_test = scpg.copy()
-        second_test["LOCA_ID"] = "MISMATCH"
-        coordinate_context.set_table(SCPG, pd.concat([scpg, second_test], ignore_index=True))
+        loca = self._add_hole(coordinate_context, "MISMATCH")
+        loca.loc[loca["LOCA_ID"] == "MISMATCH", ["LOCA_NATE", "LOCA_NATN", "LOCA_LOCX", "LOCA_LOCY"]] = pd.NA
 
         with pytest.raises(AgsFileInvalidException, match="MISMATCH"):
             create_from_parsed_ags(coordinate_context)
+
+    def test_holes_with_different_crs_raise(self, coordinate_context: AgsContext) -> None:
+        loca = self._add_hole(coordinate_context, "GEOGRAPHIC")
+        loca.loc[loca["LOCA_ID"] == "GEOGRAPHIC", "LOCA_GREF"] = ""
+        loca.loc[loca["LOCA_ID"] == "GEOGRAPHIC", "LOCA_LLZ"] = "WGS84"
+
+        with pytest.raises(AgsFileInvalidException, match="different coordinate reference systems"):
+            create_from_parsed_ags(coordinate_context)
+
+    def test_hole_without_crs_uses_crs_of_other_holes(self, coordinate_context: AgsContext) -> None:
+        loca = self._add_hole(coordinate_context, "UNDECLARED")
+        loca.loc[loca["LOCA_ID"] == "UNDECLARED", "LOCA_GREF"] = ""
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.coordinate_reference_system == 27700
+        assert (result.collars.df["x"] == 575784.0).all()
+        assert (result.collars.df["y"] == 5807006.0).all()
 
     def test_zero_coordinates_are_valid(self, coordinate_context: AgsContext) -> None:
         loca = coordinate_context.get_table(LOCA)
@@ -585,7 +605,7 @@ class TestCoordinateColumnHandling:
             create_from_parsed_ags(coordinate_context)
 
     @pytest.mark.parametrize("crs_name", ["", "LOCAL"])
-    def test_unspecified_crs_warns_and_preserves_fallback(
+    def test_unspecified_crs_warns_and_uses_declared_local_family(
         self, coordinate_context: AgsContext, crs_name: str, caplog: pytest.LogCaptureFixture
     ) -> None:
         coordinate_context.get_table(LOCA)["LOCA_GREF"] = crs_name
@@ -593,26 +613,35 @@ class TestCoordinateColumnHandling:
         result = create_from_parsed_ags(coordinate_context)
 
         assert result.coordinate_reference_system == "unspecified"
-        assert (result.collars.df["x"] == 575784.0).all()
-        assert (result.collars.df["y"] == 5807006.0).all()
+        if crs_name == "LOCAL":
+            assert (result.collars.df["x"] == 100.0).all()
+            assert (result.collars.df["y"] == 200.0).all()
+            assert (result.collars.df["z"] == 0.0).all()
+            assert "local coordinate family" in caplog.text
+        else:
+            assert (result.collars.df["x"] == 575784.0).all()
+            assert (result.collars.df["y"] == 5807006.0).all()
+            assert "coordinate column family cannot be verified" in caplog.text
+
+    def test_undeclared_crs_uses_geographic_family_when_only_lon_lat_present(
+        self, coordinate_context: AgsContext, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA).drop(columns=["LOCA_NATE", "LOCA_NATN", "LOCA_LOCX", "LOCA_LOCY"])
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_GL"] = 12.5
+        loca["LOCA_LOCZ"] = -3.25
+        coordinate_context.set_table(LOCA, loca)
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.coordinate_reference_system == "unspecified"
+        assert (result.collars.df["x"] == 174.8).all()
+        assert (result.collars.df["y"] == -41.3).all()
+        assert (result.collars.df["z"] == 12.5).all()
         assert "coordinate column family cannot be verified" in caplog.text
 
-    def test_coordinate_column_priority_and_fallback(self, test_coordinate_columns_ags_path, caplog):
-        """Test coordinate column priority (NATE > LOCX > LON) and handling of missing/NaN values.
-
-        The implementation picks the FIRST column with ANY valid values and uses it for ALL rows.
-
-        Test file contains:
-        - BH01: NATE=100, NATN=200, GL=5
-        - BH02: LOCX=300, LOCY=400, LOCZ=10 (but NATE/NATN/GL exist in other rows)
-        - BH03: LAT=51.5074, LON=-0.1278 (but NATE/NATN/GL exist in other rows)
-        - BH04: NATE=500, NATN=600, LOCZ=15 (but GL exists in other rows)
-        - BH05: all NaN
-
-        Since BH01 and BH04 have NATE/NATN values, those columns are used for x/y for ALL rows.
-        Since BH01 has GL value, that column is used for z for ALL rows.
-        Rows without values in the chosen columns get filled with 0.0.
-        """
+    def test_unspecified_coordinate_family_keeps_matching_z(self, test_coordinate_columns_ags_path, caplog):
+        """Unspecified coordinates use one family, including its matching elevation."""
         ags_context = AgsContext()
         ags_context.parse_ags(test_coordinate_columns_ags_path)
 
@@ -625,9 +654,8 @@ class TestCoordinateColumnHandling:
         assert bh01["y"] == 200.0
         assert bh01["z"] == 5.0
 
-        # BH02: NATE/NATN columns were chosen (have values in BH01/BH04)
-        # BH02 has no NATE/NATN, so filled with 0.0
-        # GL column was chosen for z (has value in BH01), BH02 has no GL, filled with 0.0
+        # NATE/NATN are selected for the table; missing national coordinates and elevation
+        # are not borrowed from the local or geographic columns.
         bh02 = collars_df[collars_df["LOCA_ID"] == "BH02"].iloc[0]
         assert bh02["x"] == 0.0
         assert bh02["y"] == 0.0
@@ -639,11 +667,11 @@ class TestCoordinateColumnHandling:
         assert bh03["y"] == 0.0
         assert bh03["z"] == 0.0
 
-        # BH04: Has NATE/NATN values, no GL (filled with 0.0)
+        # BH04: Has national coordinates but no ground level; LOCZ is not interchangeable.
         bh04 = collars_df[collars_df["LOCA_ID"] == "BH04"].iloc[0]
         assert bh04["x"] == 500.0
         assert bh04["y"] == 600.0
-        assert bh04["z"] == 0.0  # GL column chosen but no value in BH04
+        assert bh04["z"] == 0.0
 
         # BH05: Uses NATE/NATN/GL columns but has no values, filled with 0.0
         bh05 = collars_df[collars_df["LOCA_ID"] == "BH05"].iloc[0]
@@ -651,12 +679,117 @@ class TestCoordinateColumnHandling:
         assert bh05["y"] == 0.0
         assert bh05["z"] == 0.0
 
-        # No warnings should be logged for coordinates
-        warning_messages = [record.message for record in caplog.records if record.levelname == "WARNING"]
-        assert not any("coordinate data found" in msg for msg in warning_messages)
+        assert "No valid z coordinate data found" in caplog.text
+        assert "BH02:T1" in caplog.text
+        assert "BH03:T1" in caplog.text
+        assert "BH04:T1" in caplog.text
+        assert "BH05:T1" in caplog.text
 
-    def test_nate_preferred_over_locx(self, test_coordinate_columns_ags_path):
-        """Test that NATE is preferred over LOCX when both are present."""
+    @pytest.mark.parametrize(
+        ("crs_name", "ground_level", "local_z", "expected"),
+        [
+            ("OSGB", 12.5, 99.0, 12.5),
+            ("OSGB", -4.78, 99.0, -4.78),
+            ("OSGB", 0.0, 99.0, 0.0),
+            ("OSGB", "16.48", 99.0, 16.48),
+            ("OSGB", None, -3.25, 0.0),
+            ("OSGB", "", 10.0, 0.0),
+            ("LOCAL", 12.5, -3.25, -3.25),
+        ],
+    )
+    def test_elevation_uses_selected_coordinate_family(
+        self,
+        coordinate_context: AgsContext,
+        crs_name: str,
+        ground_level: float | str | None,
+        local_z: float,
+        expected: float,
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = crs_name
+        loca["LOCA_GL"] = ground_level
+        loca["LOCA_LOCZ"] = local_z
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.collars.df["z"].tolist() == [expected] * len(result.collars.df)
+
+    @pytest.mark.parametrize(
+        ("source_column", "crs_name", "expected"),
+        [("LOCA_GL", "OSGB", -4.78), ("LOCA_LOCZ", "LOCAL", -4.78), ("LOCA_LOCZ", "OSGB", 0.0)],
+    )
+    def test_elevation_with_one_source_column(
+        self, coordinate_context: AgsContext, source_column: str, crs_name: str, expected: float
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA).drop(columns=["LOCA_GL", "LOCA_LOCZ"], errors="ignore")
+        loca[source_column] = -4.78
+        loca["LOCA_GREF"] = crs_name
+        coordinate_context.set_table(LOCA, loca)
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert (result.collars.df["z"] == expected).all()
+
+    def test_missing_elevation_warns_per_hole(
+        self, coordinate_context: AgsContext, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GL"] = pd.NA
+        loca["LOCA_LOCZ"] = pd.NA
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert (result.collars.df["z"] == 0.0).all()
+        assert "No valid z coordinate data found" in caplog.text
+        assert result.collars.df["hole_id"].iloc[0] in caplog.text
+
+    def test_missing_vertical_datum_warns_and_is_preserved_as_undeclared(
+        self, coordinate_context: AgsContext, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_DATM"] = ""
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert "LOCA_GL used without a declared vertical datum (LOCA_DATM)" in caplog.text
+        assert (result.collars.df["LOCA_DATM"] == "undeclared").all()
+
+    def test_declared_vertical_datum_is_preserved_for_ground_level(
+        self, coordinate_context: AgsContext, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        coordinate_context.get_table(LOCA)["LOCA_DATM"] = "SITE VERTICAL DATUM"
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert (result.collars.df["LOCA_DATM"] == "SITE VERTICAL DATUM").all()
+        assert "LOCA_GL used without a declared vertical datum" not in caplog.text
+
+    def test_local_reference_selects_local_xyz_family(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LREF"] = "SITE GRID"
+        loca["LOCA_DATM"] = "LOCAL DATUM"
+        loca["LOCA_LOCZ"] = -3.25
+
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert (result.collars.df["x"] == 100.0).all()
+        assert (result.collars.df["y"] == 200.0).all()
+        assert (result.collars.df["z"] == -3.25).all()
+        assert (result.collars.df["LOCA_LREF"] == "SITE GRID").all()
+        assert (result.collars.df["LOCA_DATM"] == "LOCAL DATUM").all()
+
+    def test_local_reference_without_local_coordinates_raises(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LREF"] = "SITE GRID"
+        loca[["LOCA_LOCX", "LOCA_LOCY"]] = pd.NA
+
+        with pytest.raises(AgsFileInvalidException, match="No complete local coordinate pair.*LOCA_LREF"):
+            create_from_parsed_ags(coordinate_context)
+
+    def test_unspecified_family_prefers_national_pair_over_local_pair(self, test_coordinate_columns_ags_path):
+        """Test that an unspecified file uses one family consistently."""
         ags_context = AgsContext()
         ags_context.parse_ags(test_coordinate_columns_ags_path)
 
@@ -697,3 +830,4 @@ class TestCoordinateColumnHandling:
         assert "No valid x coordinate data found" in caplog.text
         assert "No valid y coordinate data found" in caplog.text
         assert "No valid z coordinate data found" in caplog.text
+        assert "LOCA_GL used without a declared vertical datum" in caplog.text

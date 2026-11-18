@@ -119,12 +119,15 @@ AGS TYPE codes are mapped to appropriate pandas/Python types:
 ### CRS (Coordinate Reference System) Handling
 
 - Supports standard AGS abbreviations: OSGB (EPSG:27700), OSI (EPSG:29902), ITM (EPSG:2157)
-- Resolves CRS names and EPSG codes in `LOCA_GREF`, falling back to `LOCA_LLZ`
-- Projected CRSs use complete `LOCA_NATE`/`LOCA_NATN` pairs, falling back per hole to `LOCA_LOCX`/`LOCA_LOCY`
+- Resolves the CRS per hole (`LOCA` row) from CRS names and EPSG codes in `LOCA_GREF`, falling back to `LOCA_LLZ`
+- Rejects a file whose holes declare different CRSs, because a downhole collection has a single CRS; during conversion that file is skipped and logged
+- Holes without a declared CRS adopt the CRS declared by the other holes, with a warning
+- Projected CRSs use only complete `LOCA_NATE`/`LOCA_NATN` pairs
 - Geographic CRSs use only `LOCA_LON`/`LOCA_LAT`, even when projected columns are populated
 - Raises `AgsFileInvalidException` if any imported hole lacks a complete coordinate pair in the detected CRS family
 - Handles LOCAL as "unspecified" CRS
-- When the CRS cannot be resolved or is LOCAL, preserves legacy coordinate selection and logs that the coordinate family cannot be verified
+- When the CRS cannot be resolved, selects one coordinate family and logs that it cannot be verified
+- Non-standard columns such as `LOCA_EASTING`/`LOCA_NORTHING` are not read
 
 ### Importing multiple files
 
@@ -139,9 +142,10 @@ AGS TYPE codes are mapped to appropriate pandas/Python types:
 
 ### Assumptions & Limitations
 
-- **Z coordinate / Elevation:** Currently uses `LOCA_GL` (ground level) or `LOCA_LLZ` when available, otherwise defaults to 0.0.
+- **Coordinate families and elevation:** Local coordinates (`LOCA_LOCX`/`LOCA_LOCY`) use `LOCA_LOCZ`, which AGS defines relative to the local datum named in `LOCA_DATM`. AGS defines `LOCA_GL` as ground level relative to the datum of the location, but does not declare that vertical datum, and `LOCA_GREF`/`LOCA_LLZ` identify only the horizontal reference system. As a parser convention, national grid coordinates (`LOCA_NATE`/`LOCA_NATN`) and geographic coordinates (`LOCA_LON`/`LOCA_LAT`) use `LOCA_GL` as the collar elevation, because AGS has no separate elevation field for either family. When `LOCA_GL` is used and `LOCA_DATM` is blank or absent, the parser warns that the vertical datum is undeclared. The original `LOCA_DATM` is retained as a collar attribute, with blank or absent values represented as `"undeclared"`. The collection CRS therefore describes X/Y only; Z is stored as the source value and is not expressed in a vertical axis of that CRS. The parser does not mix coordinate families to fill missing values, so it never falls back from `LOCA_GL` to `LOCA_LOCZ` or the reverse. If the selected family's elevation is missing or non-numeric, the affected hole is logged and Z defaults to 0.0. No coordinate transformation, elevation-unit conversion, or vertical datum conversion is performed.
+- **Unspecified coordinate reference:** A declared local reference (`LOCA_GREF=LOCAL` or `LOCA_LREF`) selects the local coordinate family and requires complete `LOCA_LOCX`/`LOCA_LOCY` values. If no reference is declared, the parser chooses one available coordinate family for the table in national, local, then geographic order and logs that the family cannot be verified.
 - **Hole identification:** Holes are uniquely identified by the combination of `LOCA_ID` and `SCPG_TESN`. The display `hole_id` is formatted as `"LOCA_ID:SCPG_TESN"` or just `"LOCA_ID"` if no TESN (e.g., geological descriptions from GEOL).
-- **CRS preference:** When both `LOCA_GREF` and `LOCA_LLZ` provide CRS information, `LOCA_GREF` is preferred.
+- **CRS preference:** When a hole has CRS information in both `LOCA_GREF` and `LOCA_LLZ`, `LOCA_GREF` is preferred.
 - **AGS validation rules:** Some AGS format rules are ignored during validation to accommodate real-world files (see `IGNORED_RULES` in [ags_context.py](./src/evo/data_converters/ags/common/ags_context.py)).
 
 ## Code of conduct

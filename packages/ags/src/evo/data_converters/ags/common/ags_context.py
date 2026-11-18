@@ -12,6 +12,7 @@
 from functools import cached_property
 from io import StringIO
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from pyproj import CRS
@@ -34,6 +35,37 @@ GEOL = "GEOL"
 PROJ = "PROJ"
 UNIT = "UNIT"
 HORN = "HORN"
+
+CoordinateFamily = Literal["national", "local", "geographic"]
+
+AGS_STANDARD_GRID_REFERENCES: dict[str, int | str] = {
+    "OSGB": 27700,
+    "OSI": 29902,
+    "ITM": 2157,
+    "LOCAL": "unspecified",
+}
+
+
+def _normalize_crs_value(value: object) -> str | None:
+    if pd.isna(value) or not str(value).strip():
+        return None
+    return str(value).upper().strip()
+
+
+def _crs_from_loca_value(column: str, value: str) -> int | str | None:
+    if column == "LOCA_GREF" and value in AGS_STANDARD_GRID_REFERENCES:
+        return AGS_STANDARD_GRID_REFERENCES[value]
+
+    try:
+        crs = CRS.from_user_input(value)
+    except CRSError:
+        logger.warning(f"Could not determine CRS from {column}: {value}")
+        return None
+
+    epsg = crs.to_epsg()
+    if epsg is None:
+        logger.warning(f"Could not determine EPSG code from {column}: {value}")
+    return epsg
 
 
 class AgsFileInvalidException(Exception):
@@ -115,18 +147,20 @@ class AgsContext:
         # Note: ID, DMS, PA, PT, PU, RL, U, X, XN types fall back to string (default)
     }
 
-    PROJECTED_COORDINATE_PAIRS: tuple[tuple[str, str], ...] = (
-        ("LOCA_NATE", "LOCA_NATN"),
-        ("LOCA_LOCX", "LOCA_LOCY"),
-    )
-    GEOGRAPHIC_COORDINATE_PAIRS: tuple[tuple[str, str], ...] = (("LOCA_LON", "LOCA_LAT"),)
+    # LOCA coordinate columns (x, y) and elevation column of each coordinate family
+    COORDINATE_COLUMNS_BY_FAMILY: dict[CoordinateFamily, tuple[str, str]] = {
+        "national": ("LOCA_NATE", "LOCA_NATN"),
+        "local": ("LOCA_LOCX", "LOCA_LOCY"),
+        "geographic": ("LOCA_LON", "LOCA_LAT"),
+    }
+    ELEVATION_COLUMN_BY_FAMILY: dict[CoordinateFamily, str] = {
+        "national": "LOCA_GL",
+        "local": "LOCA_LOCZ",
+        "geographic": "LOCA_GL",
+    }
 
-    # Legacy fallback only when no CRS can be resolved.
-    UNSPECIFIED_COORDINATE_COLUMN_PRIORITY: tuple[tuple[str, tuple[str, ...]], ...] = (
-        ("x", ("LOCA_NATE", "LOCA_LOCX", "LOCA_LON")),
-        ("y", ("LOCA_NATN", "LOCA_LOCY", "LOCA_LAT")),
-        ("z", ("LOCA_GL", "LOCA_LOCZ")),
-    )
+    # Used only when the file does not identify a coordinate reference system.
+    UNSPECIFIED_COORDINATE_FAMILY_PRIORITY: tuple[CoordinateFamily, ...] = ("national", "local", "geographic")
 
     def __init__(self) -> None:
         self._tables = dict()
@@ -322,6 +356,12 @@ class AgsContext:
             measurement_groups_str = ", ".join(self.MEASUREMENT_GROUPS)
             errors.append(f"Missing importable groups: one or more of {measurement_groups_str} required.")
 
+        # Ensure the LOCA rows share a single coordinate reference system
+        try:
+            _ = self.coordinate_reference_system
+        except AgsFileInvalidException as e:
+            errors.append(str(e))
+
         return errors
 
     @property
@@ -358,24 +398,23 @@ class AgsContext:
 
     @property
     def coordinate_reference_system(self) -> int | str | None:
-        """Gets the coordinate reference system used by the in-memory AGS file.
+        """Gets the coordinate reference system shared by the LOCA rows of the in-memory AGS file.
+
+        The CRS is resolved per LOCA row, preferring `LOCA_GREF` over `LOCA_LLZ`. Rows without
+        a CRS adopt the CRS declared by the other rows.
 
         :returns: epsg code as integer or "unspecified" if a CRS can be determined, None otherwise.
+        :raises AgsFileInvalidException: if LOCA rows declare different coordinate reference systems.
         """
-        crs_gref: int | str | None = self.crs_from_loca_gref()
-        crs_llz: int | None = self.crs_from_loca_llz()
+        crs_gref = self.crs_from_loca_gref()
+        crs_llz = self.crs_from_loca_llz()
 
-        if all([crs_gref, crs_llz]):
-            logger.warning(f"Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF: {crs_gref}")
-            return crs_gref
+        both = [loca_id for loca_id, crs in crs_gref.items() if crs is not None and crs_llz[loca_id] is not None]
+        if both:
+            logger.warning(f"Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF for LOCA_IDs: {both}")
 
-        if crs_gref is not None:
-            return crs_gref
-
-        if crs_llz is not None:
-            return crs_llz
-
-        return None
+        crs_by_location = {loca_id: crs if crs is not None else crs_llz[loca_id] for loca_id, crs in crs_gref.items()}
+        return self._shared_crs(crs_by_location)
 
     def get_table(self, group: str) -> pd.DataFrame:
         """Gets a table by group name.
@@ -417,52 +456,55 @@ class AgsContext:
         """
         self._headings[group] = headings
 
-    def crs_from_loca_gref(self) -> int | str | None:
+    def crs_from_loca_gref(self) -> dict[str, int | str | None]:
         """
-        Try to determine CRS from LOCA_GREF, if it exists.
+        Try to determine the CRS declared in LOCA_GREF for each LOCA_ID.
 
-        :returns: None if we can't determine a CRS, "unspecified" if the
-            CRS is locally defined, an integer if we found an EPSG CRS.
+        :returns: Mapping of LOCA_ID to None if we can't determine a CRS, "unspecified" if the
+            CRS is locally defined, or an integer if we found an EPSG CRS.
         """
-        return self._crs_from_loca_column("LOCA_GREF")
+        return self._crs_by_location("LOCA_GREF")
 
-    def crs_from_loca_llz(self) -> int | None:
+    def crs_from_loca_llz(self) -> dict[str, int | None]:
         """
-        Try to determine CRS from LOCA_LLZ, if it exists.
+        Try to determine the CRS declared in LOCA_LLZ for each LOCA_ID.
 
-        :returns: None if we can't determine a CRS, or the EPSG code if found.
+        :returns: Mapping of LOCA_ID to None if we can't determine a CRS, or the EPSG code if found.
         """
-        crs = self._crs_from_loca_column("LOCA_LLZ")
-        return crs if isinstance(crs, int) else None
-
-    def _crs_from_loca_column(self, column: str) -> int | str | None:
-        try:
-            value = self.get_table(LOCA).at[0, column]
-        except (KeyError, ValueError):
-            return None
-
-        if pd.isna(value) or not str(value).strip():
-            return None
-        value = str(value).upper().strip()
-        ags_standard_map: dict[str, int | str] = {
-            "OSGB": 27700,
-            "OSI": 29902,
-            "ITM": 2157,
-            "LOCAL": "unspecified",
+        return {
+            loca_id: crs if isinstance(crs, int) else None for loca_id, crs in self._crs_by_location("LOCA_LLZ").items()
         }
-        if column == "LOCA_GREF" and value in ags_standard_map:
-            return ags_standard_map[value]
 
-        try:
-            crs = CRS.from_user_input(value)
-        except CRSError:
-            logger.warning(f"Could not determine CRS from {column}: {value}")
+    def _crs_by_location(self, column: str) -> dict[str, int | str | None]:
+        loca = self.get_table(LOCA)
+        if "LOCA_ID" not in loca:
+            return {}
+        values = loca[column] if column in loca else pd.Series(pd.NA, index=loca.index)
+        normalized = [_normalize_crs_value(value) for value in values]
+        crs_by_value = {
+            value: _crs_from_loca_value(column, value) for value in dict.fromkeys(normalized) if value is not None
+        }
+        return {
+            str(loca_id): crs_by_value[value] if value is not None else None
+            for loca_id, value in zip(loca["LOCA_ID"], normalized)
+        }
+
+    @staticmethod
+    def _shared_crs(crs_by_location: dict[str, int | str | None]) -> int | str | None:
+        declared = {crs for crs in crs_by_location.values() if crs is not None}
+        if len(declared) > 1:
+            raise AgsFileInvalidException(
+                f"LOCA rows declare different coordinate reference systems: {sorted(map(str, declared))}. "
+                "A downhole collection supports a single coordinate reference system."
+            )
+        if not declared:
             return None
 
-        epsg = crs.to_epsg()
-        if epsg is None:
-            logger.warning(f"Could not determine EPSG code from {column}: {value}")
-        return epsg
+        crs = declared.pop()
+        undeclared = [loca_id for loca_id, value in crs_by_location.items() if value is None]
+        if undeclared:
+            logger.warning(f"No CRS declared for LOCA_IDs: {undeclared}, assuming {crs}")
+        return crs
 
     def validate_merge(self, other: "AgsContext", raise_on_error: bool = True) -> list[str]:
         """Validate whether another AgsContext can be merged into this one.

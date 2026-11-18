@@ -141,6 +141,21 @@ def test_no_coordinates_ags_path():
     return str((Path(__file__).parent / "data" / "test_no_coordinates.ags").resolve())
 
 
+@pytest.fixture(scope="session")
+def test_elevations_ags_path():
+    """Path to an AGS file with national coordinates and ground levels for several holes."""
+    return str((Path(__file__).parent / "data" / "test_elevations.ags").resolve())
+
+
+@pytest.fixture
+def conflicting_crs_ags_path(test_elevations_ags_path, tmp_path):
+    """Path to a copy of test_elevations.ags where one hole declares a different CRS."""
+    filepath = tmp_path / "conflicting_crs.ags"
+    content = Path(test_elevations_ags_path).read_text()
+    filepath.write_text(content.replace('"BH02","200.00","2000.00","OSGB"', '"BH02","200.00","2000.00","ITM"'))
+    return str(filepath)
+
+
 @pytest.fixture
 def mock_ags_context():
     """Create a mock AgsContext with sample data."""
@@ -159,6 +174,7 @@ def mock_ags_context():
             "LOCA_ID": ["BH01", "BH02", "BH03"],
             "LOCA_NATE": [100.0, 200.0, 300.0],
             "LOCA_NATN": [1000.0, 2000.0, 3000.0],
+            "LOCA_GL": [5.0, -4.78, 0.0],
         }
     )
 

@@ -11,6 +11,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
@@ -111,7 +112,7 @@ def test_crs_from_loca_gref_osgb(valid_ags_path):
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_GREF"] = "OSGB"
 
-    assert context.crs_from_loca_gref() == 27700
+    assert context.crs_from_loca_gref() == {"EXAMPLE-1-CPT1": 27700}
 
 
 def test_crs_from_loca_gref_local(valid_ags_path):
@@ -122,7 +123,7 @@ def test_crs_from_loca_gref_local(valid_ags_path):
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_GREF"] = "LOCAL"
 
-    assert context.crs_from_loca_gref() == "unspecified"
+    assert context.crs_from_loca_gref() == {"EXAMPLE-1-CPT1": "unspecified"}
 
 
 def test_crs_from_loca_gref_unknown(valid_ags_path, caplog):
@@ -133,7 +134,7 @@ def test_crs_from_loca_gref_unknown(valid_ags_path, caplog):
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_GREF"] = "UNKNOWN_CRS"
 
-    assert context.crs_from_loca_gref() is None
+    assert context.crs_from_loca_gref() == {"EXAMPLE-1-CPT1": None}
     assert "Could not determine CRS from LOCA_GREF: UNKNOWN_CRS" in caplog.text
 
 
@@ -145,7 +146,7 @@ def test_crs_from_loca_llz_epsg_code(valid_ags_path):
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_LLZ"] = "EPSG:4326"
 
-    assert context.crs_from_loca_llz() == 4326
+    assert context.crs_from_loca_llz() == {"EXAMPLE-1-CPT1": 4326}
 
 
 def test_crs_from_loca_llz_wgs84(valid_ags_path):
@@ -156,7 +157,7 @@ def test_crs_from_loca_llz_wgs84(valid_ags_path):
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_LLZ"] = "WGS84"
 
-    assert context.crs_from_loca_llz() == 4326
+    assert context.crs_from_loca_llz() == {"EXAMPLE-1-CPT1": 4326}
 
 
 def test_crs_from_loca_llz_invalid(valid_ags_path, caplog):
@@ -167,7 +168,7 @@ def test_crs_from_loca_llz_invalid(valid_ags_path, caplog):
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_LLZ"] = "INVALID_CRS"
 
-    assert context.crs_from_loca_llz() is None
+    assert context.crs_from_loca_llz() == {"EXAMPLE-1-CPT1": None}
     assert "Could not determine CRS from LOCA_LLZ: INVALID_CRS" in caplog.text
 
 
@@ -203,7 +204,10 @@ def test_coordinate_reference_system_both_prefers_gref(valid_ags_path, caplog):
     loca_table["LOCA_LLZ"] = "EPSG:4326"
 
     assert context.coordinate_reference_system == 27700
-    assert "Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF: 27700" in caplog.text
+    assert (
+        "Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF for LOCA_IDs: ['EXAMPLE-1-CPT1']"
+        in caplog.text
+    )
 
 
 def test_coordinate_reference_system_neither_available(valid_ags_path):
@@ -224,6 +228,70 @@ def test_coordinate_reference_system_local_gref(valid_ags_path):
     loca_table["LOCA_GREF"] = "LOCAL"
 
     assert context.coordinate_reference_system == "unspecified"
+
+
+def _context_with_loca(**columns: list[str]) -> AgsContext:
+    context = AgsContext()
+    context.set_table(LOCA, pd.DataFrame({"LOCA_ID": ["BH01", "BH02", "BH03"], **columns}))
+    return context
+
+
+def test_coordinate_reference_system_resolved_per_location():
+    """Test equivalent CRS declarations from different LOCA rows and columns resolve to one CRS"""
+    context = _context_with_loca(LOCA_GREF=["OSGB", "EPSG:27700", ""], LOCA_LLZ=["", "", "EPSG:27700"])
+
+    assert context.coordinate_reference_system == 27700
+
+
+def test_coordinate_reference_system_rows_without_crs_adopt_shared_crs(caplog):
+    """Test LOCA rows without a CRS adopt the CRS declared by the other rows, with a warning"""
+    context = _context_with_loca(LOCA_GREF=["OSGB", "", "OSGB"])
+
+    assert context.coordinate_reference_system == 27700
+    assert "No CRS declared for LOCA_IDs: ['BH02'], assuming 27700" in caplog.text
+
+
+def test_coordinate_reference_system_invalid_value_warns_once(caplog):
+    """Test an unresolvable CRS repeated across LOCA rows is reported once"""
+    context = _context_with_loca(LOCA_GREF=["NOT_A_CRS", "NOT_A_CRS", "NOT_A_CRS"])
+
+    assert context.coordinate_reference_system is None
+    assert caplog.text.count("Could not determine CRS from LOCA_GREF: NOT_A_CRS") == 1
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [
+        {"LOCA_GREF": ["OSGB", "OSGB", "ITM"]},
+        {"LOCA_GREF": ["OSGB", "", ""], "LOCA_LLZ": ["", "WGS84", ""]},
+        {"LOCA_GREF": ["OSGB", "LOCAL", "OSGB"]},
+    ],
+    ids=["different_gref", "gref_and_llz_rows", "national_and_local"],
+)
+def test_coordinate_reference_system_conflicting_locations_raise(columns):
+    """Test LOCA rows declaring different CRSs are rejected instead of sharing one CRS"""
+    context = _context_with_loca(**columns)
+
+    with pytest.raises(AgsFileInvalidException, match="LOCA rows declare different coordinate reference systems"):
+        _ = context.coordinate_reference_system
+
+
+def test_parse_ags_rejects_conflicting_crs(conflicting_crs_ags_path):
+    """An AGS file whose LOCA rows declare different CRSs cannot be imported"""
+    context = AgsContext()
+    with pytest.raises(AgsFileInvalidException, match="LOCA rows declare different coordinate reference systems"):
+        context.parse_ags(conflicting_crs_ags_path)
+
+
+def test_merge_with_conflicting_crs_file_skipped(test_elevations_ags_path, conflicting_crs_ags_path, caplog):
+    """Test that a file with conflicting CRSs is skipped instead of failing the merge of the other files"""
+    from evo.data_converters.ags.importer.parse_ags_files import parse_ags_files
+
+    contexts = parse_ags_files([test_elevations_ags_path, conflicting_crs_ags_path])
+
+    assert len(contexts) == 1
+    assert contexts[0].get_table(LOCA)["LOCA_ID"].tolist() == ["BH01", "BH02", "BH03", "BH04", "BH05"]
+    assert f"Failed to parse the following AGS files: {conflicting_crs_ags_path}" in caplog.text
 
 
 def test_coordinate_reference_system_mismatch_in_merge(valid_ags_2a_path, invalid_ags_2d_path, caplog):

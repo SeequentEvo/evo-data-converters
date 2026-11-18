@@ -13,6 +13,7 @@ import asyncio
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pyarrow.parquet as pq
 import pytest
 from evo_schemas.objects import DownholeCollection_V1_3_1
 
@@ -20,6 +21,22 @@ from evo.data_converters.ags.common import AgsFileInvalidException
 from evo.data_converters.ags.importer.ags_to_evo import convert_ags
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.objects.data import ObjectMetadata
+
+
+def test_convert_ags_saves_elevation_from_selected_coordinate_family(
+    evo_metadata: EvoWorkspaceMetadata, test_elevations_ags_path: str
+) -> None:
+    result = asyncio.run(
+        convert_ags(filepaths=[test_elevations_ags_path], evo_workspace_metadata=evo_metadata, publish_objects=False)
+    )
+
+    assert len(result) == 1
+    collection = result[0]
+    assert isinstance(collection, DownholeCollection_V1_3_1)
+    cache_root = Path(evo_metadata.cache_root)
+    coordinates_path = next(cache_root.rglob(collection.location.coordinates.data))
+    coordinates = pq.read_table(coordinates_path).to_pandas()
+    assert coordinates["z"].tolist() == [-4.78, -4.78, 16.48, 0.0, 0.0, 0.0, -4.78, 16.48, 0.0, 0.0, 0.0]
 
 
 def test_should_convert_ags_file_without_publish(evo_metadata, valid_ags_1a_path):
@@ -105,6 +122,29 @@ def test_coordinate_crs_mismatch_is_not_published(
         asyncio.run(convert_ags(filepaths=[str(filepath)], evo_workspace_metadata=evo_metadata_with_hub))
 
     mock_publish.assert_not_called()
+
+
+@pytest.mark.parametrize("merge_files", [True, False])
+def test_conflicting_crs_file_is_skipped(
+    evo_metadata: EvoWorkspaceMetadata,
+    test_elevations_ags_path: str,
+    conflicting_crs_ags_path: str,
+    merge_files: bool,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Integration: a file whose holes declare different CRSs is skipped, the other files are converted."""
+    result = asyncio.run(
+        convert_ags(
+            filepaths=[test_elevations_ags_path, conflicting_crs_ags_path],
+            evo_workspace_metadata=evo_metadata,
+            publish_objects=False,
+            merge_files=merge_files,
+        )
+    )
+
+    assert len(result) == 1
+    assert result[0].name == "test_elevations"
+    assert "LOCA rows declare different coordinate reference systems" in caplog.text
 
 
 def test_duplicate_loca_id_across_files_raises_warning(evo_metadata, valid_ags_2a_path, invalid_ags_2b_path, caplog):
