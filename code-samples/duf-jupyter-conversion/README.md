@@ -113,7 +113,7 @@ d. Use the widget that appears to select your Evo instance and workspace. Conver
 
 e. Run the second code cell to display the DUF converter form, then follow the steps in **Using the converter form** below.
 
-## Using the converter form
+## Using the notebook
 
 The form shows each section after you complete the one before it.
 
