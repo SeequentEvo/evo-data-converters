@@ -1,0 +1,37 @@
+{
+  "$schema": "../../converter-capabilities.schema.json",
+  "id": "las",
+  "name": "LAS",
+  "package": "evo-data-converters-las",
+  "status": "implemented",
+  "extensions": {
+    "anyOf": [".las"]
+  },
+  "platform": [
+    "Cross-platform (Python)"
+  ],
+  "import": {
+    "supported": true,
+    "source_types": [
+      "LAS 2.0 well log files (depth indexed), with optional Petrel deviation (.dev) files"
+    ],
+    "produces_evo_objects": [
+      "downhole-collection",
+      "pointset"
+    ],
+    "produces_evo_schema_versions": {
+      "downhole-collection": ["1.3.1"],
+      "pointset": ["1.2.0"]
+    }
+  },
+  "export": {
+    "supported": false,
+    "supports_evo_objects": []
+  },
+  "limitations": [
+    "Only LAS 2.0 is supported; time/index-indexed files are rejected.",
+    "One hole per LAS file; the ~Other section is ignored.",
+    "Collar and survey need a Petrel deviation (.dev) file per hole, otherwise a (0, 0, 0) collar and a vertical path are used.",
+    "Deviation files are assumed to be in metres."
+  ]
+}
