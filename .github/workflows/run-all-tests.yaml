@@ -28,6 +28,7 @@ jobs:
           - common
           - gocad
           - image
+          - las
           - obj
           - omf
           - resqml
