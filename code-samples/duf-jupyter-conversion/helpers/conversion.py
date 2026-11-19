@@ -4,13 +4,15 @@ from evo.data_converters.duf.importer import convert_duf
 from evo.data_converters.duf.importer.utils import ResolveObjectNameOption
 
 
-async def convert_duf_to_evo(filepath: str, epsg_code: int, upload_path: str, manager, layers: list[str] | None = None):
+async def convert_duf_to_evo(
+    filepath: str, epsg_code: int | None, upload_path: str, manager, layers: list[str] | None = None
+):
     """
     Convert the provided DUF file and publish objects to Evo.
 
     Args:
         filepath: Full path to the .duf file.
-        epsg_code: EPSG integer code for CRS.
+        epsg_code: EPSG integer code for CRS, or None to publish with an unspecified CRS.
         upload_path: Optional Evo object path ("" for root).
         manager: Authenticated Evo manager providing credentials.
         layers: Optional list of layer names to include. If None, all layers are converted.
@@ -23,7 +25,7 @@ async def convert_duf_to_evo(filepath: str, epsg_code: int, upload_path: str, ma
 
     objects_metadata = await convert_duf(
         filepath=filepath,
-        epsg_code=epsg_code,
+        coordinate_reference_system=epsg_code,
         service_manager_widget=manager,
         tags=tags,
         upload_path=upload_path,

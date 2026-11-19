@@ -106,7 +106,15 @@ def create_file_selection_widgets():
 
 
 def create_epsg_widgets():
-    """Create EPSG input, info label, link, and containing box."""
+    """Create the "Add CRS:" checkbox row, EPSG input fields, and containing box."""
+    add_crs_cb = widgets.Checkbox(value=False, indent=False, layout=widgets.Layout(width="auto"))
+    crs_note = widgets.HTML(
+        value="<span style='color:black'>NOTE: If CRS is not added, it will be set as \"Unspecified\"</span>",
+    )
+    add_crs_row = widgets.HBox(
+        [widgets.Label(value="Add CRS:"), add_crs_cb],
+        layout=widgets.Layout(align_items="center"),
+    )
     epsg_input = widgets.Text(
         description="EPSG code:",
         placeholder="(required), eg. 4326",
@@ -116,8 +124,29 @@ def create_epsg_widgets():
     epsg_link = widgets.HTML(
         value='<a href="https://epsg.io" target="_blank" style="font-size: 12px;">Visit epsg.io to find an EPSG code</a>'
     )
-    box = widgets.VBox([epsg_input, epsg_info, epsg_link], layout=bordered_box_layout())
-    return epsg_input, epsg_info, epsg_link, box
+    epsg_fields = widgets.VBox([epsg_input, epsg_info, epsg_link], layout=widgets.Layout(display="none"))
+    box = widgets.VBox([add_crs_row, crs_note, epsg_fields], layout=bordered_box_layout())
+    return epsg_input, epsg_info, epsg_fields, crs_note, add_crs_cb, box
+
+
+def bind_add_crs_checkbox(add_crs_cb, epsg_fields, crs_note, env_file_path: Path, on_change):
+    """Show the EPSG input fields, and hide the "Unspecified" CRS note, only while "Add CRS" is checked."""
+
+    def on_toggle(change):
+        add_crs = change["new"]
+        epsg_fields.layout.display = "" if add_crs else "none"
+        crs_note.layout.display = "none" if add_crs else ""
+        update_env_var(env_file_path, "ADD_CRS", "true" if add_crs else "false")
+        on_change()
+
+    add_crs_cb.observe(on_toggle, names="value")
+
+
+def resolve_epsg_code(add_crs_cb, epsg_input) -> int | None:
+    """Return the EPSG code to send, or None when the CRS should be unspecified."""
+    if not add_crs_cb.value:
+        return None
+    return int(epsg_input.value.strip())
 
 
 def create_object_path_widgets():
@@ -166,6 +195,7 @@ def run_timed_conversion(
         disable_widgets: List of widgets to disable during conversion.
         async_task: An async callable(stop_event) that performs the actual work.
     """
+    previous_disabled = [w.disabled for w in disable_widgets]
     for w in disable_widgets:
         w.disabled = True
 
@@ -192,8 +222,8 @@ def run_timed_conversion(
         finally:
             stop_event.set()
             t.join(timeout=1.0)
-            for w in disable_widgets:
-                w.disabled = False
+            for w, was_disabled in zip(disable_widgets, previous_disabled):
+                w.disabled = was_disabled
 
     asyncio.run_coroutine_threadsafe(wrapper(), event_loop)
 
@@ -235,7 +265,9 @@ async def run_with_retry(coroutine_fn, status_message, max_retries=3):
     return None
 
 
-def apply_preload_state(env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, object_path_input):
+def apply_preload_state(
+    env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, add_crs_cb, object_path_input
+):
     """Apply saved environment state to widgets. Returns (selected_file_path, epsg_valid, show_advanced)."""
     selected_file_path = None
     epsg_valid = False
@@ -260,6 +292,8 @@ def apply_preload_state(env_vars, env_file_path, output_label, status_label, eps
                 epsg_info.value = msg
                 epsg_info.style = {"text_color": "green" if valid else "red"}
                 epsg_valid = valid
+            # Older saved state has no ADD_CRS key; a saved EPSG code implies the CRS was being added.
+            add_crs_cb.value = env_vars.get("ADD_CRS", "true" if saved_epsg else "false") == "true"
             object_path_input.value = env_vars.get("OBJECT_PATH", "")
         else:
             status_label.value = "ERROR: Saved file not found on disk"
@@ -276,7 +310,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     env_vars = read_env_vars(env_file_path)
 
     select_button, output_label, status_label, file_selection_box = create_file_selection_widgets()
-    epsg_input, epsg_info, _, epsg_box = create_epsg_widgets()
+    epsg_input, epsg_info, epsg_fields, crs_note, add_crs_cb, epsg_box = create_epsg_widgets()
     object_path_input, object_path_box = create_object_path_widgets()
     convert_button, timer_label, status_message, workspace_link, convert_section = create_convert_section()
 
@@ -286,7 +320,8 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     state = {"selected_file_path": None, "epsg_valid": False}
 
     def update_summary():
-        if state["selected_file_path"] and state["epsg_valid"]:
+        crs_ready = state["epsg_valid"] or not add_crs_cb.value
+        if state["selected_file_path"] and crs_ready:
             convert_section.layout.display = ""
         else:
             convert_section.layout.display = "none"
@@ -341,9 +376,17 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     epsg_input.observe(on_epsg_change, names="value")
     select_button.on_click(on_button_click)
     object_path_input.observe(on_object_path_change, names="value")
+    bind_add_crs_checkbox(add_crs_cb, epsg_fields, crs_note, env_file_path, update_summary)
 
     selected, epsg_valid, show_advanced = apply_preload_state(
-        env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, object_path_input
+        env_vars,
+        env_file_path,
+        output_label,
+        status_label,
+        epsg_input,
+        epsg_info,
+        add_crs_cb,
+        object_path_input,
     )
     state["selected_file_path"] = selected
     state["epsg_valid"] = epsg_valid
@@ -354,7 +397,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
     def on_convert_click(b):
         async def do_convert():
             async def task():
-                epsg_code = int(epsg_input.value.strip())
+                epsg_code = resolve_epsg_code(add_crs_cb, epsg_input)
                 upload_path = object_path_input.value.strip() or ""
                 object_metadata = await convert_duf_to_evo(state["selected_file_path"], epsg_code, upload_path, manager)
                 if object_metadata:
@@ -374,7 +417,7 @@ async def create_duf_widget(manager, cache_location: str = "notebook-data"):
             timer_label,
             status_message,
             workspace_link,
-            [convert_button, select_button, epsg_input, object_path_input],
+            [convert_button, select_button, epsg_input, add_crs_cb, object_path_input],
             do_convert,
         )
 
@@ -392,7 +435,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     env_vars = read_env_vars(env_file_path)
 
     select_button, output_label, status_label, file_selection_box = create_file_selection_widgets()
-    epsg_input, epsg_info, _, epsg_box = create_epsg_widgets()
+    epsg_input, epsg_info, epsg_fields, crs_note, add_crs_cb, epsg_box = create_epsg_widgets()
     object_path_input, object_path_box = create_object_path_widgets()
     convert_button, timer_label, status_message, workspace_link, convert_section = create_convert_section(
         button_description="Convert & Publish",
@@ -420,7 +463,8 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
 
     def update_summary():
         layers_selected = any(cb.value for cb in state["layer_checkboxes"])
-        if state["selected_file_path"] and state["epsg_valid"] and layers_selected:
+        crs_ready = state["epsg_valid"] or not add_crs_cb.value
+        if state["selected_file_path"] and crs_ready and layers_selected:
             convert_section.layout.display = ""
         else:
             convert_section.layout.display = "none"
@@ -477,6 +521,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     epsg_input.observe(on_epsg_change, names="value")
     select_button.on_click(on_button_click)
     object_path_input.observe(on_object_path_change, names="value")
+    bind_add_crs_checkbox(add_crs_cb, epsg_fields, crs_note, env_file_path, update_summary)
 
     def on_read_layers_click(b):
         read_layers_button.disabled = True
@@ -537,7 +582,14 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     read_layers_button.on_click(on_read_layers_click)
 
     selected, epsg_valid, show_advanced = apply_preload_state(
-        env_vars, env_file_path, output_label, status_label, epsg_input, epsg_info, object_path_input
+        env_vars,
+        env_file_path,
+        output_label,
+        status_label,
+        epsg_input,
+        epsg_info,
+        add_crs_cb,
+        object_path_input,
     )
     state["selected_file_path"] = selected
     state["epsg_valid"] = epsg_valid
@@ -548,7 +600,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
     def on_convert_click(b):
         async def do_convert():
             async def task():
-                epsg_code = int(epsg_input.value.strip())
+                epsg_code = resolve_epsg_code(add_crs_cb, epsg_input)
                 selected_layer_names = [cb.description for cb in state["layer_checkboxes"] if cb.value]
                 upload_path = object_path_input.value.strip() or ""
 
@@ -579,7 +631,7 @@ async def create_duf_widget_advanced(manager, cache_location: str = "notebook-da
             timer_label,
             status_message,
             workspace_link,
-            [convert_button, select_button, epsg_input, object_path_input],
+            [convert_button, select_button, epsg_input, add_crs_cb, object_path_input],
             do_convert,
         )
 
