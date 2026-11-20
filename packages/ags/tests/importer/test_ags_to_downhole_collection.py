@@ -42,6 +42,15 @@ def chunk_rows(chunks: pd.DataFrame) -> list[tuple[int, int, int]]:
     return [tuple(row) for row in chunks.itertuples(index=False, name=None)]
 
 
+def row_hole_index(collection: DistanceCollection | IntervalCollection) -> list[int]:
+    holes = collection.holes
+    return holes["hole_index"].repeat(holes["count"].astype("int64")).tolist()
+
+
+def push_warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [record.message for record in caplog.records if "Multiple CPT pushes" in record.message]
+
+
 def to_pyproj(crs: EpsgCode | str | None) -> CRS | None:
     if crs is None:
         return None
@@ -70,45 +79,110 @@ class TestCreateFromParsedAgs:
             "target",
             "current",
         ]
-        assert result.properties["hole_id"].tolist() == [
-            "BH01:T01",
-            "BH02:T01",
-            "BH03:T01",
-            "BH03:T02",
-            "BH01",
-            "BH02",
-        ]
+        assert result.properties["hole_id"].tolist() == ["BH01", "BH02", "BH03"]
         assert result.attributes is not None
         assert result.attributes.columns[:2].tolist() == ["LOCA_ID", "SCPG_TESN"]
 
         tagged = create_from_parsed_ags(mock_ags_context, tags={"source": "test"})
         assert tagged.tags == {"source": "test"}
 
-    def test_loca_ids_in_both_scpg_and_geol_warn_and_keep_all_collars(self, mock_ags_context, caplog):
+    def test_one_collar_per_loca_id_shared_by_all_groups(self, mock_ags_context):
+        result = create_from_parsed_ags(mock_ags_context)
+
+        collars = collar_frame(result)
+        assert collars["hole_id"].tolist() == collars["LOCA_ID"].tolist() == ["BH01", "BH02", "BH03"]
+        hole_index_of = dict(zip(collars["LOCA_ID"], collars["hole_index"]))
+        for collection in result.collections:
+            expected = [hole_index_of[loca_id] for loca_id in collection.table["LOCA_ID"]]
+            assert row_hole_index(collection) == expected, collection.name
+
+    def test_only_first_push_of_a_location_is_imported(self, mock_ags_context, caplog):
         with caplog.at_level(logging.WARNING):
             result = create_from_parsed_ags(mock_ags_context)
 
-        duplicate_warnings = [
-            record.message for record in caplog.records if "LOCA_IDs present in both SCPG and GEOL" in record.message
+        assert collar_frame(result)["SCPG_TESN"].tolist() == ["T01", "T01", "T01"]
+        scpt = get_collection(result, "SCPT")
+        assert scpt.table["SCPG_TESN"].tolist() == ["T01"] * 5
+        assert result.properties["final"].tolist() == [5.2, 10.0, 7.1]
+        assert push_warnings(caplog) == [
+            "Multiple CPT pushes found for LOCA_ID 'BH03'. Only the first push ('T01') was imported. "
+            "Push 'T02' was not imported because multiple pushes per location are not currently supported."
         ]
-        assert len(duplicate_warnings) == 1
-        assert "BH01" in duplicate_warnings[0]
-        assert "BH02" in duplicate_warnings[0]
-        assert len(result.properties) == 6
 
-    def test_geol_rows_of_all_locations_are_kept(self, valid_ags_with_geol_path):
+    def test_first_push_follows_the_order_of_the_ags_data(self, mock_ags_context, caplog):
+        original_get_table = mock_ags_context.get_table.side_effect
+
+        def get_table(group):
+            table = original_get_table(group)
+            # BH03 push T02 comes before T01, so T02 is imported even though it sorts after T01
+            return table.iloc[[0, 1, 3, 2]] if group == SCPG else table
+
+        mock_ags_context.get_table.side_effect = get_table
+        with caplog.at_level(logging.WARNING):
+            result = create_from_parsed_ags(mock_ags_context)
+
+        assert collar_frame(result)["SCPG_TESN"].tolist() == ["T01", "T01", "T02"]
+        scpt = get_collection(result, "SCPT")
+        assert scpt.table[["distance", "SCPG_TESN"]].values.tolist()[-1] == [7.2, "T02"]
+        assert chunk_rows(scpt.holes) == [(1, 0, 2), (2, 2, 2), (3, 4, 1)]
+        assert result.properties["final"].tolist() == [5.2, 10.0, 7.2]
+        assert push_warnings(caplog) == [
+            "Multiple CPT pushes found for LOCA_ID 'BH03'. Only the first push ('T02') was imported. "
+            "Push 'T01' was not imported because multiple pushes per location are not currently supported."
+        ]
+
+    def test_skipped_pushes_are_excluded_from_all_groups(self, multiple_pushes_ags_path, caplog):
+        context = AgsContext()
+        context.parse_ags(multiple_pushes_ags_path)
+
+        with caplog.at_level(logging.WARNING):
+            result = create_from_parsed_ags(context)
+
+        collars = collar_frame(result)
+        assert collars["hole_id"].tolist() == ["CPT-14", "CPT-15"]
+        assert collars["SCPG_TESN"].tolist() == ["1", "1"]
+        assert not any(":" in hole_id for hole_id in collars["hole_id"])
+        # The final depth of CPT-14 comes from its GEOL data and first push, not the deeper pushes 2 and 3
+        assert result.properties["final"].tolist() == [3.0, 1.0]
+
+        scpt = get_collection(result, "SCPT")
+        assert scpt.table[["LOCA_ID", "SCPG_TESN"]].drop_duplicates().values.tolist() == [
+            ["CPT-14", "1"],
+            ["CPT-15", "1"],
+        ]
+        assert scpt.table["distance"].tolist() == [0.0, 1.0, 2.0, 0.0, 1.0]
+        assert chunk_rows(scpt.holes) == [(1, 0, 3), (2, 3, 2)]
+        scpp = get_collection(result, "SCPP")
+        assert scpp.table[["from", "to"]].values.tolist() == [[0.0, 1.0], [1.0, 2.0]]
+        assert scpp.table["SCPP_REF"].tolist() == ["P141", "P141"]
+        assert chunk_rows(scpp.holes) == [(1, 0, 2)]
+        geol = get_collection(result, "GEOL")
+        assert chunk_rows(geol.holes) == [(1, 0, 2)]
+        assert chunk_rows(result.holes) == [(1, 0, 3), (2, 3, 2)]
+
+        assert push_warnings(caplog) == [
+            "Multiple CPT pushes found for LOCA_ID 'CPT-14'. Only the first push ('1') was imported. "
+            "Pushes '2' and '3' were not imported because multiple pushes per location are not currently supported."
+        ]
+
+    def test_geol_rows_of_all_locations_are_kept(self, valid_ags_with_geol_path, caplog):
         context = AgsContext()
         context.parse_ags(valid_ags_with_geol_path)
 
-        result = create_from_parsed_ags(context)
+        with caplog.at_level(logging.WARNING):
+            result = create_from_parsed_ags(context)
 
         collars = collar_frame(result)
-        assert collars["hole_id"].tolist() == ["BH01:T01", "BH02:T01", "BH01", "BH02", "BH03"]
-        assert collars["SCPG_TESN"].isna().tolist() == [False, False, True, True, True]
+        assert collars["hole_id"].tolist() == ["BH01", "BH02", "BH03"]
+        assert collars["SCPG_TESN"].isna().tolist() == [False, False, True]
         geol = get_collection(result, "GEOL")
         assert geol.table["LOCA_ID"].tolist() == ["BH01"] * 4 + ["BH02"] * 3 + ["BH03"]
-        # GEOL rows are linked to the first collar of their LOCA_ID
-        assert chunk_rows(geol.holes) == [(1, 0, 4), (2, 4, 3), (5, 7, 1)]
+        # GEOL rows share the collar of their LOCA_ID with the CPT data
+        assert chunk_rows(geol.holes) == [(1, 0, 4), (2, 4, 3), (3, 7, 1)]
+        # BH03 only has GEOL data, so it gets a vertical station at its final depth
+        assert chunk_rows(result.holes) == [(1, 0, 5), (2, 5, 6), (3, 11, 1)]
+        assert result.path["distance"].iloc[-1] == 10.0
+        assert push_warnings(caplog) == []
 
     def test_collections_and_hole_chunks(self, mock_ags_context):
         result = create_from_parsed_ags(mock_ags_context)
@@ -123,8 +197,8 @@ class TestCreateFromParsedAgs:
         assert all(collection.unit == "m" for collection in result.collections)
 
         assert scpt.table.columns[:1].tolist() == ["distance"]
-        assert scpt.table["distance"].tolist() == [5.1, 5.2, 6.1, 6.2, 7.1, 7.2]
-        assert chunk_rows(scpt.holes) == [(1, 0, 2), (2, 2, 2), (3, 4, 1), (4, 5, 1)]
+        assert scpt.table["distance"].tolist() == [5.1, 5.2, 6.1, 6.2, 7.1]
+        assert chunk_rows(scpt.holes) == [(1, 0, 2), (2, 2, 2), (3, 4, 1)]
         assert scpp.table[["from", "to"]].values.tolist() == [[5.0, 10.0], [10.0, 15.0], [15.0, 20.0]]
         assert scpp.table["SCPP_CIC"].tolist() == [1.5, 2.3, 1.8]
         assert chunk_rows(scpp.holes) == [(1, 0, 2), (2, 2, 1)]
@@ -137,7 +211,7 @@ class TestCreateFromParsedAgs:
             assert collection.holes["offset"].dtype == "uint64"
             assert collection.holes["count"].dtype == "uint64"
 
-    def test_path_includes_vertical_fallback_for_geol_holes(self, mock_ags_context):
+    def test_path_follows_measured_depths(self, mock_ags_context):
         result = create_from_parsed_ags(mock_ags_context)
 
         assert result.path[["distance", "dip", "azimuth"]].values.tolist() == [
@@ -146,17 +220,14 @@ class TestCreateFromParsedAgs:
             [6.1, 90.0, 0.0],
             [6.2, 90.0, 0.0],
             [7.1, 90.0, 0.0],
-            [7.2, 90.0, 0.0],
-            [5.0, 90.0, 0.0],
-            [10.0, 90.0, 0.0],
         ]
-        assert chunk_rows(result.holes) == [(1, 0, 2), (2, 2, 2), (3, 4, 1), (4, 5, 1), (5, 6, 1), (6, 7, 1)]
+        assert chunk_rows(result.holes) == [(1, 0, 2), (2, 2, 2), (3, 4, 1)]
         box = result.compute_bounding_box()
         assert box.min_x == pytest.approx(100.0)
         assert box.max_x == pytest.approx(300.0)
         assert box.min_y == pytest.approx(1000.0)
         assert box.max_y == pytest.approx(3000.0)
-        assert box.min_z == pytest.approx(-14.78)
+        assert box.min_z == pytest.approx(-10.98)
         assert box.max_z == pytest.approx(5.0)
 
     def test_horn_drives_path_orientation(self, mock_ags_context):
@@ -177,8 +248,8 @@ class TestCreateFromParsedAgs:
         mock_ags_context.get_table.side_effect = get_table
         result = create_from_parsed_ags(mock_ags_context)
 
-        assert result.path["dip"].tolist() == [85.0, 85.0, 80.0, 80.0, 75.0, 75.0, 90.0, 90.0]
-        assert result.path["azimuth"].tolist() == [45.0, 45.0, 90.0, 90.0, 135.0, 135.0, 0.0, 0.0]
+        assert result.path["dip"].tolist() == [85.0, 85.0, 80.0, 80.0, 75.0]
+        assert result.path["azimuth"].tolist() == [45.0, 45.0, 90.0, 90.0, 135.0]
 
     def test_geol_only_and_empty_distance_group(self, mock_ags_context):
         original_get_table = mock_ags_context.get_table.side_effect
@@ -207,8 +278,12 @@ class TestCreateFromParsedAgs:
         assert result.attributes is not None
         assert not {"SCPG_TSEC", "SCPG_TMIN", "SCPG_THR"} & set(result.attributes.columns)
         assert caplog.text.count("unsupported data type 'timedelta64'") == 3
-        assert result.properties["hole_id"].tolist() == ["BH1:CPT01", "BH1:CPT02"]
-        assert chunk_rows(result.holes) == [(1, 0, 1), (2, 1, 0)]
+        assert result.properties["hole_id"].tolist() == ["BH1"]
+        assert chunk_rows(result.holes) == [(1, 0, 1)]
+        assert push_warnings(caplog) == [
+            "Multiple CPT pushes found for LOCA_ID 'BH1'. Only the first push ('CPT01') was imported. "
+            "Push 'CPT02' was not imported because multiple pushes per location are not currently supported."
+        ]
 
     def test_datetime_attributes_are_preserved(self, test_datetime_formats_ags_path):
         context = AgsContext()
@@ -494,7 +569,7 @@ class TestCoordinateColumnHandling:
             [0.0, 0.0, 0.0],
         ]
         assert "No valid z coordinate data found" in caplog.text
-        for hole_id in ["BH02:T1", "BH03:T1", "BH04:T1", "BH05:T1"]:
+        for hole_id in ["'BH02'", "'BH03'", "'BH04'", "'BH05'"]:
             assert hole_id in caplog.text
 
     @pytest.mark.parametrize(

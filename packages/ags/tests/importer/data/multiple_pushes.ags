@@ -1,0 +1,76 @@
+"GROUP","PROJ"
+"HEADING","PROJ_ID","PROJ_NAME","PROJ_LOC","PROJ_CLNT","PROJ_CONT","PROJ_ENG","PROJ_MEMO","FILE_FSET"
+"UNIT","","","","","","","",""
+"TYPE","ID","X","X","X","X","X","X","X"
+"DATA","PUSH-TEST","AGS file with multiple CPT pushes for one location","","","","","",""
+
+
+"GROUP","TRAN"
+"HEADING","TRAN_ISNO","TRAN_DATE","TRAN_PROD","TRAN_STAT","TRAN_DESC","TRAN_AGS","TRAN_RECV","TRAN_DLIM","TRAN_RCON","TRAN_REM","FILE_FSET"
+"UNIT","","yyyy-mm-dd","","","","","","","","",""
+"TYPE","X","DT","X","X","X","X","X","X","X","X","X"
+"DATA","1","2025-01-01","Test","Final","","4.1.1","","|","+","",""
+
+
+"GROUP","TYPE"
+"HEADING","TYPE_TYPE","TYPE_DESC"
+"UNIT","",""
+"TYPE","X","X"
+"DATA","X","Text"
+"DATA","DT","Date and time in international format"
+"DATA","ID","Unique identifier"
+"DATA","0DP","Value; 0 decimal places"
+"DATA","2DP","Value; 2 decimal places"
+"DATA","3DP","Value; 3 decimal places"
+"DATA","PA","Pick text defined in ABBR group"
+
+
+"GROUP","LOCA"
+"HEADING","LOCA_ID","LOCA_TYPE","LOCA_STAT","LOCA_NATE","LOCA_NATN","LOCA_GREF","LOCA_GL","LOCA_REM","LOCA_FDEP","LOCA_STAR","LOCA_PURP","LOCA_TERM","LOCA_ENDD"
+"UNIT","","","","m","m","","m","","m","yyyy-mm-dd","","","yyyy-mm-dd"
+"TYPE","ID","PA","PA","2DP","2DP","X","2DP","X","2DP","DT","X","X","DT"
+"DATA","CPT-14","CPT","Final","100.00","1000.00","EPSG:28992","0.00","Three CPT pushes","3.50","2025-01-01","","",""
+"DATA","CPT-15","CPT","Final","200.00","2000.00","EPSG:28992","0.00","Single CPT push","1.00","2025-01-02","","",""
+
+
+"GROUP","SCPG"
+"HEADING","LOCA_ID","SCPG_TESN","SCPG_TYPE","SCPG_REF","SCPG_CSA","SCPG_RATE"
+"UNIT","","","","","cm2","mm/s"
+"TYPE","ID","X","PA","X","0DP","0DP"
+"DATA","CPT-14","1","PC","REF141","15","20"
+"DATA","CPT-14","2","PC","REF142","15","20"
+"DATA","CPT-15","1","PC","REF151","15","20"
+"DATA","CPT-14","3","PC","REF143","15","20"
+
+
+"GROUP","SCPT"
+"HEADING","LOCA_ID","SCPG_TESN","SCPT_DPTH","SCPT_RES","SCPT_FRES"
+"UNIT","","","m","MN/m2","kN/m2"
+"TYPE","ID","X","2DP","3DP","3DP"
+"DATA","CPT-14","1","0.00","0.010","0.500"
+"DATA","CPT-14","1","1.00","0.020","0.600"
+"DATA","CPT-14","1","2.00","0.030","0.700"
+"DATA","CPT-14","2","0.50","0.110","1.500"
+"DATA","CPT-14","2","1.50","0.120","1.600"
+"DATA","CPT-14","2","2.50","0.130","1.700"
+"DATA","CPT-14","2","3.50","0.140","1.800"
+"DATA","CPT-15","1","0.00","0.050","0.900"
+"DATA","CPT-15","1","1.00","0.060","1.000"
+"DATA","CPT-14","3","4.00","0.210","2.500"
+
+
+"GROUP","SCPP"
+"HEADING","LOCA_ID","SCPG_TESN","SCPP_TOP","SCPP_BASE","SCPP_REF","SCPP_CSU"
+"UNIT","","","m","m","","kN/m2"
+"TYPE","ID","X","2DP","2DP","X","0DP"
+"DATA","CPT-14","2","0.50","2.50","P142","90"
+"DATA","CPT-14","1","0.00","1.00","P141","40"
+"DATA","CPT-14","1","1.00","2.00","P141","50"
+
+
+"GROUP","GEOL"
+"HEADING","LOCA_ID","GEOL_TOP","GEOL_BASE","GEOL_DESC","GEOL_LEG","GEOL_GEOL"
+"UNIT","","m","m","","",""
+"TYPE","ID","2DP","2DP","X","X","X"
+"DATA","CPT-14","0.00","1.50","TOPSOIL","TS","Soft brown topsoil"
+"DATA","CPT-14","1.50","3.00","CLAY","CL","Firm grey clay"

@@ -99,6 +99,12 @@ def valid_ags_with_geol_path():
 
 
 @pytest.fixture(scope="session")
+def multiple_pushes_ags_path():
+    """Path to an AGS file where CPT-14 has three CPT pushes, with SCPT, SCPP and GEOL data, and CPT-15 has one."""
+    return str((Path(__file__).parent / "data" / "multiple_pushes.ags").resolve())
+
+
+@pytest.fixture(scope="session")
 def not_ags_path():
     """Path to an invalid AGS file."""
     return str((Path(__file__).parent / "data" / "not_ags.ags").resolve())

@@ -37,9 +37,11 @@ def create_from_parsed_ags(
 ) -> DownholeCollectionData:
     """Converts the in-memory dataframes of AgsContext to the data of an Evo Downhole Collection.
 
-    Collars are built from both SCPG and GEOL tables:
-    - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
-    - GEOL collars are uniquely identified by LOCA_ID only
+    Each location gets a single collar, identified by its LOCA_ID, which is also its hole_id. The collar is shared by
+    all the groups holding data of the location, such as SCPG and GEOL.
+
+    Multiple CPT pushes per location are not supported. Only the first push of each LOCA_ID in the SCPG table is
+    imported, and the rows of the other pushes are excluded from all the groups keyed by SCPG_TESN, with a warning.
 
     Every measurement group with data (SCPT, SCPP, GEOL) becomes a collection named after the group, with its rows
     linked to the collars by hole_index. SCPT is a distance collection, SCPP and GEOL are interval collections.
@@ -54,7 +56,12 @@ def create_from_parsed_ags(
     """
 
     crs_definition = ags_context.coordinate_reference_system
-    collars_df = build_collars(ags_context, crs_definition)
+    scpg_df, skipped_pushes = select_first_pushes(ags_context.get_table(SCPG))
+    tables = {
+        group: exclude_pushes(ags_context.get_table(group), skipped_pushes, group)
+        for group in AgsContext.MEASUREMENT_GROUPS
+    }
+    collars_df = build_collars(ags_context.get_table(LOCA), scpg_df, tables, crs_definition)
 
     collections: list[DistanceCollection | IntervalCollection] = []
     stations: pd.DataFrame | None = None
@@ -65,7 +72,7 @@ def create_from_parsed_ags(
             from_column, to_column = AgsContext.INTERVAL_COLUMNS[group]
             depth_columns = {"from": from_column, "to": to_column}
 
-        measurements = prepare_measurements(ags_context.get_table(group), group, depth_columns, collars_df)
+        measurements = prepare_measurements(tables[group], group, depth_columns, collars_df)
         if measurements is None:
             continue
 
@@ -129,8 +136,10 @@ def prepare_measurements(
 ) -> pd.DataFrame | None:
     """Link the rows of a measurement table to their collars and order them by hole and depth.
 
-    Tables with SCPG_TESN are matched to the collars on LOCA_ID and SCPG_TESN, location-level tables (e.g. GEOL) on
-    LOCA_ID only. Rows without a matching collar are dropped. The table itself is left unchanged.
+    Tables with SCPG_TESN are matched to the collars on LOCA_ID and the SCPG_TESN of the imported push, so that rows of
+    other pushes are never linked to a collar. Rows without a SCPG_TESN are never linked to a collar without a push,
+    such as a GEOL-only one. Location-level tables (e.g. GEOL) are matched on LOCA_ID only. Rows without a matching
+    collar are dropped. The table itself is left unchanged.
 
     :param table: The measurement table of an AGS group.
     :param group: The AGS group of the table.
@@ -149,7 +158,8 @@ def prepare_measurements(
         return None
 
     keys = ["LOCA_ID", "SCPG_TESN"] if "SCPG_TESN" in table.columns else ["LOCA_ID"]
-    lookup = collars_df[[*keys, "hole_index"]].drop_duplicates(subset=keys, keep="first")
+    # pandas matches missing keys to each other, so collars without a key value would match rows without one
+    lookup = collars_df[[*keys, "hole_index"]].dropna(subset=keys).drop_duplicates(subset=keys, keep="first")
     measurements = table.merge(lookup, on=keys, how="left")
 
     unmatched = measurements["hole_index"].isna()
@@ -310,124 +320,156 @@ def attribute_series(series: pd.Series, source: str) -> pd.Series | None:
     return None
 
 
-def build_scpg_collars(ags_context: AgsContext) -> pd.DataFrame:
-    """Builds collars from SCPG data.
+def select_first_pushes(scpg_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Select the CPT push to import for each location.
 
-    SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN).
-    Final depth is calculated from SCPT_DPTH.
+    Multiple CPT pushes per location are not supported. Only the first push of each LOCA_ID in the order of the AGS
+    data is imported. The SCPG_TESN values are not sorted, as they need not be numeric. A warning names the pushes of
+    each location that are not imported.
 
-    :param ags_context: The context containing the AGS file as dataframes.
-    :return: DataFrame of SCPG collars, or empty DataFrame if no SCPG data
+    :param scpg_df: The SCPG table.
+    :return: The SCPG rows of the imported pushes, one per LOCA_ID in the order of the AGS data, and the LOCA_ID and
+        SCPG_TESN of the pushes that are not imported.
     """
-    loca_df: pd.DataFrame = ags_context.get_table(LOCA)
-    scpg_df: pd.DataFrame = ags_context.get_table(SCPG)
-    scpt_df: pd.DataFrame = ags_context.get_table(SCPT)
+    keys = ["LOCA_ID", "SCPG_TESN"]
+    if scpg_df.empty or not set(keys).issubset(scpg_df.columns):
+        return scpg_df.copy(), pd.DataFrame(columns=keys)
 
-    if scpg_df.empty:
-        return pd.DataFrame()
+    imported = scpg_df[~scpg_df.duplicated(subset="LOCA_ID", keep="first")].reset_index(drop=True)
 
-    scpg_collars = scpg_df.copy().merge(loca_df, on="LOCA_ID", how="left")
+    pushes = scpg_df[keys].drop_duplicates()
+    skipped = pushes[pushes.duplicated(subset="LOCA_ID", keep="first")].reset_index(drop=True)
 
-    # Compute final depth per (LOCA_ID, SCPG_TESN) from SCPT
-    if not scpt_df.empty:
-        final_depths = scpt_df.groupby(["LOCA_ID", "SCPG_TESN"], dropna=False)["SCPT_DPTH"].max().reset_index()
-        final_depths = final_depths.rename(columns={"SCPT_DPTH": "final_depth"})
-        scpg_collars = scpg_collars.merge(final_depths, on=["LOCA_ID", "SCPG_TESN"], how="left")
+    imported_tesn = dict(zip(imported["LOCA_ID"], imported["SCPG_TESN"]))
+    for loca_id, skipped_tesn in skipped.groupby("LOCA_ID", sort=False)["SCPG_TESN"]:
+        if len(skipped_tesn) == 1:
+            not_imported = f"Push {quoted_list(skipped_tesn)} was"
+        else:
+            not_imported = f"Pushes {quoted_list(skipped_tesn)} were"
+        logger.warning(
+            f"Multiple CPT pushes found for LOCA_ID '{loca_id}'. "
+            f"Only the first push ('{imported_tesn[loca_id]}') was imported. "
+            f"{not_imported} not imported because multiple pushes per location are not currently supported."
+        )
 
-    # Create hole_id as composite of LOCA_ID and SCPG_TESN
-    loca_str = scpg_collars["LOCA_ID"].astype(str)
-    tesn_str = scpg_collars["SCPG_TESN"].fillna("").astype(str)
-    scpg_collars["hole_id"] = np.where(tesn_str != "", loca_str + ":" + tesn_str, loca_str)
-
-    if not scpg_collars["hole_id"].is_unique:
-        logger.warning("Duplicate hold IDs found, based on on LOCA_ID and SCPG_TESN")
-
-    return scpg_collars
+    return imported, skipped
 
 
-def build_geol_collars(ags_context: AgsContext) -> pd.DataFrame:
-    """Builds collars from GEOL data.
+def quoted_list(values: pd.Series) -> str:
+    """Join values in quotes for a log message, e.g. "'2', '3' and '4'"."""
+    quoted = [f"'{value}'" for value in values]
+    if len(quoted) == 1:
+        return quoted[0]
+    return f"{', '.join(quoted[:-1])} and {quoted[-1]}"
 
-    GEOL collars are uniquely identified by LOCA_ID only.
-    Final depth is calculated from GEOL_BASE.
 
-    :param ags_context: The context containing the AGS file as dataframes.
-    :return: DataFrame of GEOL collars, or empty DataFrame if no GEOL data
+def exclude_pushes(table: pd.DataFrame, pushes: pd.DataFrame, group: str) -> pd.DataFrame:
+    """Remove the rows of the given CPT pushes from a table keyed by SCPG_TESN.
+
+    This keeps the data of the pushes that are not imported out of every CPT group, such as SCPT and SCPP, so it is
+    never merged with the data of the imported push. Tables without SCPG_TESN, such as GEOL, are returned unchanged.
+    The table itself is left unchanged.
+
+    :param table: The table of an AGS group.
+    :param pushes: The LOCA_ID and SCPG_TESN of the pushes to remove, from select_first_pushes.
+    :param group: The AGS group of the table.
+    :return: The rows of the table that do not belong to the pushes.
     """
-    loca_df: pd.DataFrame = ags_context.get_table(LOCA)
-    geol_df: pd.DataFrame = ags_context.get_table(GEOL)
+    keys = ["LOCA_ID", "SCPG_TESN"]
+    if pushes.empty or table.empty or not set(keys).issubset(table.columns):
+        return table
 
-    if geol_df.empty:
-        return pd.DataFrame()
+    matches = table[keys].merge(pushes[keys].drop_duplicates(), on=keys, how="left", indicator=True)
+    excluded = (matches["_merge"] == "both").to_numpy()
+    if not excluded.any():
+        return table
 
-    # Get unique LOCA_IDs from GEOL
-    geol_loca_ids = geol_df["LOCA_ID"].unique()
-    geol_collars = loca_df[loca_df["LOCA_ID"].isin(geol_loca_ids)].copy()
-
-    # Compute final depth per LOCA_ID from GEOL_BASE
-    if "GEOL_BASE" in geol_df.columns:
-        final_depths = geol_df.groupby("LOCA_ID", dropna=False)["GEOL_BASE"].max().reset_index()
-        final_depths = final_depths.rename(columns={"GEOL_BASE": "final_depth"})
-        geol_collars = geol_collars.merge(final_depths, on="LOCA_ID", how="left")
-
-    # Create hole_id from LOCA_ID only (no SCPG_TESN for GEOL)
-    geol_collars["hole_id"] = geol_collars["LOCA_ID"].astype(str)
-    geol_collars["SCPG_TESN"] = pd.NA
-
-    return geol_collars
+    logger.debug(f"Excluding {excluded.sum()} rows of CPT pushes that are not imported from AGS group {group}")
+    return table[~excluded]
 
 
-def build_collars(ags_context: AgsContext, crs_definition: int | str | None) -> pd.DataFrame:
-    """Builds the collars from the AGS context.
+def final_depths(scpg_df: pd.DataFrame, tables: dict[str, pd.DataFrame]) -> pd.Series:
+    """Find the final depth of each location.
 
-    Collars are built from both SCPG and GEOL tables:
-    - SCPG collars are uniquely identified by (LOCA_ID, SCPG_TESN)
-    - GEOL collars are uniquely identified by LOCA_ID only
+    :param scpg_df: The SCPG rows of the imported pushes, from select_first_pushes.
+    :param tables: The measurement tables, keyed by AGS group.
+    :return: The deepest SCPT_DPTH of the imported push or GEOL_BASE of each location, indexed by LOCA_ID.
+    """
+    keys = ["LOCA_ID", "SCPG_TESN"]
+    depths = []
 
-    If a LOCA_ID appears in both SCPG and GEOL, both collar types are created,
-    but a warning is logged.
+    scpt_df = tables.get(SCPT, pd.DataFrame())
+    if set(keys).issubset(scpg_df.columns) and {*keys, "SCPT_DPTH"}.issubset(scpt_df.columns):
+        imported_scpt = scpt_df[[*keys, "SCPT_DPTH"]].merge(scpg_df[keys].drop_duplicates(), on=keys)
+        depths.append(imported_scpt[["LOCA_ID", "SCPT_DPTH"]].rename(columns={"SCPT_DPTH": "depth"}))
 
-    :param ags_context: The context containing the AGS file as dataframes.
+    geol_df = tables.get(GEOL, pd.DataFrame())
+    if {"LOCA_ID", "GEOL_BASE"}.issubset(geol_df.columns):
+        depths.append(geol_df[["LOCA_ID", "GEOL_BASE"]].rename(columns={"GEOL_BASE": "depth"}))
+
+    depths = [df for df in depths if not df.empty]
+    if not depths:
+        return pd.Series(dtype="float64")
+
+    combined = pd.concat(depths, ignore_index=True)
+    return pd.to_numeric(combined["depth"], errors="coerce").groupby(combined["LOCA_ID"]).max()
+
+
+def build_collars(
+    loca_df: pd.DataFrame,
+    scpg_df: pd.DataFrame,
+    tables: dict[str, pd.DataFrame],
+    crs_definition: int | str | None,
+) -> pd.DataFrame:
+    """Builds the collars, one per location, with the LOCA_ID as hole_id.
+
+    A location gets a collar when it has an imported CPT push in SCPG, or GEOL data and a LOCA row. The measurements
+    of all its groups are linked to this collar through its hole_index. The collars of the CPT locations come first,
+    in the order of the SCPG table, followed by the GEOL-only locations in the order of the LOCA table.
+
+    The final depth of a collar is the deepest SCPT_DPTH of its imported push or GEOL_BASE of its location.
+
+    :param loca_df: The LOCA table.
+    :param scpg_df: The SCPG rows of the imported pushes, one per LOCA_ID, from select_first_pushes.
+    :param tables: The measurement tables, keyed by AGS group, without the rows of the pushes that are not imported.
     :param crs_definition: The coordinate reference system shared by the LOCA rows.
     :return: A DataFrame with a row per collar. The standard columns (hole_index, hole_id, x, y, z, final_depth) come
-        first, followed by the LOCA_ID and SCPG_TESN keys and the other LOCA and SCPG columns.
+        first, followed by the LOCA_ID and the SCPG_TESN of the imported push, and the other LOCA and SCPG columns.
     """
-    scpg_collars = build_scpg_collars(ags_context)
-    geol_collars = build_geol_collars(ags_context)
+    collars = []
+    cpt_loca_ids = pd.Series(dtype="object")
+    if not scpg_df.empty and "LOCA_ID" in scpg_df.columns:
+        collars.append(scpg_df.merge(loca_df, on="LOCA_ID", how="left"))
+        cpt_loca_ids = scpg_df["LOCA_ID"]
 
-    # Check for duplicate LOCA_IDs between SCPG and GEOL
-    if not scpg_collars.empty and not geol_collars.empty:
-        scpg_loca_ids = set(scpg_collars["LOCA_ID"].unique())
-        geol_loca_ids = set(geol_collars["LOCA_ID"].unique())
-        duplicates = scpg_loca_ids & geol_loca_ids
-        if duplicates:
-            logger.warning(
-                f"Found {len(duplicates)} LOCA_IDs present in both SCPG and GEOL tables. "
-                f"Creating collars for both types. LOCA_IDs: {list(duplicates)}"
-            )
+    geol_df = tables.get(GEOL, pd.DataFrame())
+    if "LOCA_ID" in geol_df.columns and "LOCA_ID" in loca_df.columns:
+        geol_only = loca_df["LOCA_ID"].isin(geol_df["LOCA_ID"]) & ~loca_df["LOCA_ID"].isin(cpt_loca_ids)
+        collars.append(loca_df[geol_only].assign(SCPG_TESN=pd.NA))
 
-    # Combine dataframes and set hole_index
-    collars_df = pd.concat([scpg_collars, geol_collars], ignore_index=True)
+    collars = [df for df in collars if not df.empty]
+    collars_df = pd.concat(collars, ignore_index=True) if collars else loca_df.iloc[0:0].copy()
+    if "LOCA_ID" not in collars_df.columns:
+        collars_df["LOCA_ID"] = pd.Series(dtype="object")
+    if "SCPG_TESN" not in collars_df.columns:
+        collars_df["SCPG_TESN"] = pd.Series(dtype="object")
+
+    duplicates = collars_df["LOCA_ID"].duplicated(keep="first")
+    if duplicates.any():
+        logger.error(
+            f"Dropping {duplicates.sum()} duplicate collar entries with the same LOCA_ID, keeping first occurrence"
+        )
+        collars_df = collars_df[~duplicates].reset_index(drop=True)
+
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
+    collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str)
+    collars_df["final_depth"] = collars_df["LOCA_ID"].map(final_depths(scpg_df, tables)).astype("float64")
 
     assign_coordinates(collars_df, crs_definition)
 
-    # Ensure final_depth is float dtype even if NaN
-    collars_df["final_depth"] = pd.to_numeric(collars_df["final_depth"], errors="coerce").astype(float)
-
-    # Reorder columns to standard first but retain useful keys
     key_cols = ["LOCA_ID", "SCPG_TESN"]
     other_cols = [c for c in collars_df.columns if c not in COLLAR_COLUMNS + key_cols]
-    collars_df = collars_df[COLLAR_COLUMNS + key_cols + other_cols]
-
-    duplicates_count = len(collars_df) - collars_df["hole_id"].nunique()
-    if duplicates_count > 0:
-        logger.error(
-            f"Dropping {duplicates_count} duplicate collar entries with the same hole_id, keeping first occurrence"
-        )
-        collars_df = collars_df.drop_duplicates(subset=["hole_id"], keep="first").reset_index(drop=True)
-
-    return collars_df
+    return collars_df[COLLAR_COLUMNS + key_cols + other_cols]
 
 
 def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> None:

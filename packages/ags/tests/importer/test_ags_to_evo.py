@@ -16,7 +16,6 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from evo.data_converters.ags.common import AgsFileInvalidException
 from evo.data_converters.ags.importer.ags_to_downhole_collection import create_from_parsed_ags
 from evo.data_converters.ags.importer.ags_to_evo import convert_ags, publish_downhole_collections
 from evo.data_converters.common import EvoWorkspaceMetadata
@@ -35,19 +34,8 @@ def test_convert_ags_saves_elevation_from_selected_coordinate_family(
     assert len(result) == 1
     collection = result[0]
     assert isinstance(collection, DownholeCollectionData)
-    assert collection.properties["z"].tolist() == [
-        -4.78,
-        -4.78,
-        16.48,
-        0.0,
-        0.0,
-        0.0,
-        -4.78,
-        16.48,
-        0.0,
-        0.0,
-        0.0,
-    ]
+    assert collection.properties["hole_id"].tolist() == ["BH01", "BH02", "BH03", "BH04", "BH05"]
+    assert collection.properties["z"].tolist() == [-4.78, 16.48, 0.0, 0.0, 0.0]
 
 
 def test_should_convert_ags_file_without_publish(evo_metadata, valid_ags_1a_path):
@@ -130,15 +118,41 @@ def test_coordinate_crs_mismatch_is_not_published(
     evo_metadata_with_hub: EvoWorkspaceMetadata,
     valid_ags_1a_path: str,
     tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     filepath = tmp_path / "mismatched_crs.ags"
     filepath.write_text(Path(valid_ags_1a_path).read_text().replace('"OSGB"', '"WGS84"'))
     mock_clients.return_value = (Mock(), Mock())
 
-    with pytest.raises(AgsFileInvalidException, match="No complete geographic coordinate pair"):
-        asyncio.run(convert_ags(filepaths=[str(filepath)], evo_workspace_metadata=evo_metadata_with_hub))
+    result = asyncio.run(convert_ags(filepaths=[str(filepath)], evo_workspace_metadata=evo_metadata_with_hub))
 
+    assert result == []
+    assert "Failed to convert AGS file 'mismatched_crs'" in caplog.text
+    assert "No complete geographic coordinate pair" in caplog.text
     mock_collection.create.assert_not_called()
+
+
+@pytest.mark.parametrize("merge_files", [True, False])
+def test_coordinate_crs_mismatch_file_is_skipped(
+    evo_metadata: EvoWorkspaceMetadata,
+    test_elevations_ags_path: str,
+    valid_ags_1a_path: str,
+    tmp_path: Path,
+    merge_files: bool,
+) -> None:
+    filepath = tmp_path / "mismatched_crs.ags"
+    filepath.write_text(Path(valid_ags_1a_path).read_text().replace('"OSGB"', '"WGS84"'))
+
+    result = asyncio.run(
+        convert_ags(
+            filepaths=[str(filepath), test_elevations_ags_path],
+            evo_workspace_metadata=evo_metadata,
+            publish_objects=False,
+            merge_files=merge_files,
+        )
+    )
+
+    assert [collection.name for collection in result] == ["test_elevations"]
 
 
 @pytest.mark.parametrize("merge_files", [True, False])

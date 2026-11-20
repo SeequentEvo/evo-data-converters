@@ -53,6 +53,8 @@ async def convert_ags(
     - evo_workspace_metadata.hub_url is present, or
     - service_manager_widget was passed to this function.
 
+    Files that cannot be parsed or converted are logged and skipped, the other files are still converted.
+
     :param filepaths: List of paths to one or more AGS files.
     :param evo_workspace_metadata: Evo workspace metadata (optional).
     :param service_manager_widget: Service Manager Widget for use in jupyter notebooks (optional).
@@ -86,10 +88,13 @@ async def convert_ags(
         logger.error("Failed to parse AGS file(s): %s", e)
         return []
 
-    downhole_collections: list[DownholeCollectionData] = [
-        create_from_parsed_ags(context, get_object_tags(path=context.filename, input_type="AGS", extra_tags=tags or {}))
-        for context in ags_contexts
-    ]
+    downhole_collections: list[DownholeCollectionData] = []
+    for context in ags_contexts:
+        object_tags = get_object_tags(path=context.filename, input_type="AGS", extra_tags=tags or {})
+        try:
+            downhole_collections.append(create_from_parsed_ags(context, object_tags))
+        except AgsFileInvalidException as e:
+            logger.error("Failed to convert AGS file '%s': %s", context.filename, e)
 
     if not publish_objects:
         return downhole_collections
