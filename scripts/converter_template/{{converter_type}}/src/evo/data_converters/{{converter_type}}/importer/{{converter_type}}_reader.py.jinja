@@ -1,0 +1,45 @@
+#  Copyright © {{year}} Bentley Systems, Incorporated
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#      http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+from typing import Any
+
+
+class {{converter_type.upper()}}InvalidDataError(Exception):
+    """Raised when the contents of a {{converter_type.upper()}} file are malformed or fail validation."""
+
+
+class {{converter_type.upper()}}DataFileIOError(Exception):
+    """Raised when a {{converter_type.upper()}} file cannot be opened or read."""
+
+
+def read_{{converter_type}}_file(filepath: str) -> Any:
+    """Read a {{converter_type.upper()}} file from disk into an intermediate representation.
+
+    This is the single entry point used by the converter to load raw data from a
+    {{converter_type.upper()}} file. Implement the parsing for your file format here and return
+    whatever intermediate object(s) ``utils.get_geoscience_object_from_{{converter_type}}`` needs
+    to build a Geoscience Object (for example: geometry arrays, attribute values, grid
+    dimensions, coordinate information, etc.).
+
+    :param filepath: Path to the {{converter_type.upper()}} file to read.
+    :return: An intermediate representation of the file contents. Define a return type that
+        suits your format (e.g. a dataclass, tuple, or dict).
+
+    :raise {{converter_type.upper()}}DataFileIOError: If the file cannot be opened or read.
+    :raise {{converter_type.upper()}}InvalidDataError: If the file contents are invalid.
+    """
+    # TODO: Implement reading and parsing of the {{converter_type.upper()}} file.
+    #   1. Open ``filepath`` and read its contents (raise {{converter_type.upper()}}DataFileIOError
+    #      if the file cannot be opened or read).
+    #   2. Parse the contents into an intermediate representation.
+    #   3. Validate the parsed data (raise {{converter_type.upper()}}InvalidDataError on bad data).
+    #   4. Return the intermediate representation for the converter to use.
+    raise NotImplementedError("Implement read_{{converter_type}}_file for your {{converter_type.upper()}} file format.")

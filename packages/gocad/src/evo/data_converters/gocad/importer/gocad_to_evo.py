@@ -10,6 +10,7 @@
 #  limitations under the License.
 
 from typing import TYPE_CHECKING, Optional
+import warnings
 
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
@@ -17,8 +18,9 @@ import evo.logging
 from evo.data_converters.common import (
     EvoWorkspaceMetadata,
     create_evo_object_service_and_data_client,
-    publish_geoscience_objects_sync,
+    publish_geoscience_objects,
 )
+from evo.data_converters.common.crs import crs_from_any, crs_from_epsg_code
 from evo.data_converters.gocad.importer import utils
 from evo.objects.data import ObjectMetadata
 
@@ -28,26 +30,31 @@ if TYPE_CHECKING:
     from evo.notebooks import ServiceManagerWidget
 
 
-def convert_gocad(
+async def convert_gocad(
     filepath: str,
-    epsg_code: int,
+    epsg_code: Optional[int] = None,
     evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
     tags: Optional[dict[str, str]] = None,
     upload_path: str = "",
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
+    *,
+    coordinate_reference_system: str | int | None = None,
 ) -> list[BaseSpatialDataProperties_V1_0_1 | ObjectMetadata]:
     """Converts a GOCAD files into Geoscience Objects.
 
     :param filepath: Path to the GOCAD .vo file. All files referenced by this file must be stored in the same directory.
-    :param epsg_code: The EPSG code to use when creating a Coordinate Reference System object.
+    :param epsg_code: (Optional, deprecated) Integer EPSG code for the coordinate reference system. Use ``coordinate_reference_system`` instead.
     :param evo_workspace_metadata: (Optional) Evo workspace metadata.
     :param service_manager_widget: (Optional) Service Manager Widget for use in jupyter notebooks.
     :param tags: (Optional) Dict of tags to add to the Geoscience Object(s).
     :param upload_path: (Optional) Path objects will be published under.
-    :publish_objects: (Optional) Set False to return rather than publish objects.
-    :overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param publish_objects: (Optional) Set False to return rather than publish objects.
+    :param overwrite_existing_objects: (Optional) Set True to overwrite any existing object at the upload_path.
+    :param coordinate_reference_system: (Optional) Coordinate reference system: an integer or string EPSG code (e.g. ``2193`` or ``"EPSG:2193"``), an OGC WKT string, or ``None`` for unspecified.
+
+    Both epsg_code and coordinate_reference_system can't be provided, otherwise a ValueError will be raised. If neither is provided, the CRS will be set to "unspecified".
 
     One of evo_workspace_metadata or service_manager_widget is required.
 
@@ -64,15 +71,25 @@ def convert_gocad(
     :raise UnsupportedRotation: If the Gocan file contains inverted or skew rotation.
     """
 
-    object_service_client, data_client = create_evo_object_service_and_data_client(
+    object_service_client, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata, service_manager_widget=service_manager_widget
     )
 
-    geoscience_objects = [utils.get_geoscience_object_from_gocad(data_client, filepath, epsg_code, tags)]
+    if epsg_code is not None:
+        if coordinate_reference_system is not None:
+            raise ValueError("Both epsg_code and coordinate_reference_system were provided. Please provide only one.")
+        warnings.warn(
+            "The epsg_code parameter is deprecated, please use coordinate_reference_system instead.", DeprecationWarning
+        )
+        crs = crs_from_epsg_code(epsg_code)
+    else:
+        crs = crs_from_any(coordinate_reference_system)
+
+    geoscience_objects = [utils.get_geoscience_object_from_gocad(data_client, filepath, crs, tags)]
     objects_metadata = None
     if publish_objects:
         logger.debug("Publishing Geoscience Objects")
-        objects_metadata = publish_geoscience_objects_sync(
+        objects_metadata = await publish_geoscience_objects(
             geoscience_objects, object_service_client, data_client, upload_path, overwrite_existing_objects
         )
 

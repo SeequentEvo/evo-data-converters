@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from os import path
 from typing import Any, cast
@@ -51,7 +52,7 @@ class TestTimeSeriesConverter(TestCase):
             workspace_id="2cf1697f-2771-485e-848d-e6674d2ac63f",
             cache_root=self.cache_root_dir.name,
         )
-        _, data_client = create_evo_object_service_and_data_client(meta_data)
+        _, data_client = asyncio.run(create_evo_object_service_and_data_client(meta_data))
         self.data_dir = tempfile.TemporaryDirectory()
         model_file = path.join(self.data_dir.name, "new_file.epc")
         model = rqm.new_model(model_file)

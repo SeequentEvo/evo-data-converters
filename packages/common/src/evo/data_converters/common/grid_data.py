@@ -33,7 +33,7 @@ class BaseGridData:
 
     origin: list[float]
     size: list[int]
-    rotation: npt.NDArray[np.float_]
+    rotation: npt.NDArray[np.float64]
     bounding_box: list[float] | None
     mask: npt.NDArray[np.bool_] | None
     cell_attributes: dict[str, np.ndarray] | None

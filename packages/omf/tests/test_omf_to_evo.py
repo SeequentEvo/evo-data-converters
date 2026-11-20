@@ -12,25 +12,44 @@
 import re
 import tempfile
 from os import path
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 
 import pytest
+from pyproj import CRS
+from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo_schemas.objects import LineSegments_V2_1_0, Pointset_V1_2_0, TriangleMesh_V2_1_0
 
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.omf.importer import convert_omf
 
 
-@pytest.mark.usefixtures("caplog")
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
+
+
+@pytest.mark.asyncio
 class TestOMFToEvoProblems:
-    def test_should_log_warnings(self, caplog: pytest.LogCaptureFixture) -> None:
+    async def test_should_log_warnings(self, caplog: pytest.LogCaptureFixture) -> None:
         cache_root_dir = tempfile.TemporaryDirectory()
         metadata = EvoWorkspaceMetadata(
             workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name
         )
         omf_file = path.join(path.dirname(__file__), "data/duplicate_element_name.omf")
 
-        convert_omf(filepath=omf_file, evo_workspace_metadata=metadata, epsg_code=32650, publish_objects=False)
+        await convert_omf(filepath=omf_file, evo_workspace_metadata=metadata, epsg_code=32650, publish_objects=False)
 
         expected_log_message = r"WARNING  evo.data_converters:omf_to_evo.py:\d+ Problems returned reading OMF project:"
         assert any(re.search(expected_log_message, line) for line in caplog.text.splitlines())
@@ -39,21 +58,21 @@ class TestOMFToEvoProblems:
         assert any(re.search(expected_log_message, line) for line in caplog.text.splitlines())
 
 
-class TestOMFToEvoConverter(TestCase):
-    def setUp(self) -> None:
+class TestOMFToEvoConverter(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self) -> None:
         self.cache_root_dir = tempfile.TemporaryDirectory()
         self.metadata = EvoWorkspaceMetadata(
             workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
         )
-        _, data_client = create_evo_object_service_and_data_client(self.metadata)
+        _, data_client = await create_evo_object_service_and_data_client(self.metadata)
         self.data_client = data_client
 
-    def test_should_add_expected_tags(self) -> None:
+    async def test_should_add_expected_tags(self) -> None:
         omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
 
         tags = {"First tag": "first tag value", "Second tag": "second tag value"}
 
-        go_objects = convert_omf(
+        go_objects = await convert_omf(
             filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, tags=tags, publish_objects=False
         )
 
@@ -65,11 +84,49 @@ class TestOMFToEvoConverter(TestCase):
         }
         self.assertEqual(go_objects[0].tags, expected_tags)
 
-    def test_should_convert_expected_geometry_types(self) -> None:
+    async def test_should_convert_expected_geometry_types(self) -> None:
         omf_file = path.join(path.dirname(__file__), "data/one_of_everything.omf")
-        go_objects = convert_omf(
+        go_objects = await convert_omf(
             filepath=omf_file, evo_workspace_metadata=self.metadata, epsg_code=32650, publish_objects=False
         )
 
         expected_go_object_types = [TriangleMesh_V2_1_0, Pointset_V1_2_0, LineSegments_V2_1_0, TriangleMesh_V2_1_0]
         self.assertListEqual(expected_go_object_types, [type(obj) for obj in go_objects])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (32650, Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        ("EPSG:32650", Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
+    ],
+)
+async def test_coordinate_reference_system(input_crs, expected_crs) -> None:
+    cache_root_dir = tempfile.TemporaryDirectory()
+    metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
+    omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
+    go_objects = await convert_omf(
+        filepath=omf_file,
+        evo_workspace_metadata=metadata,
+        coordinate_reference_system=input_crs,
+        publish_objects=False,
+    )
+    assert all(obj.coordinate_reference_system == expected_crs for obj in go_objects)
+
+
+@pytest.mark.asyncio
+async def test_coordinate_reference_system_conflicts_with_epsg_code() -> None:
+    cache_root_dir = tempfile.TemporaryDirectory()
+    metadata = EvoWorkspaceMetadata(workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=cache_root_dir.name)
+    omf_file = path.join(path.dirname(__file__), "data/pointset_v2.omf")
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        await convert_omf(
+            filepath=omf_file,
+            evo_workspace_metadata=metadata,
+            epsg_code=32650,
+            coordinate_reference_system=32650,
+            publish_objects=False,
+        )

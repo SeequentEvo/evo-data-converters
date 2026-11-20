@@ -48,10 +48,11 @@ def mock_property_file() -> typing.Any:
 
 def test_ubc_mesh_file_importer_run(mock_mesh_file: MagicMock) -> None:
     importer = UBCMeshFileImporter("dummy_mesh_file.txt")
-    origin, spacings, size_of_dimensions = importer.run()
+    origin, spacings, size_of_dimensions, wkt_string = importer.run()
     assert np.array_equal(origin, np.array([0.0, 0.0, -3.0]))
     assert len(spacings) == 3
     assert size_of_dimensions == [3, 3, 3]
+    assert wkt_string == ""  # No CRS in this test file
 
 
 def test_floats_iter() -> None:
@@ -98,6 +99,23 @@ def test_execute_memory_error() -> None:
     with pytest.raises(UBCOOMError) as exc_info:
         ubc_file.execute()
     assert "Ran out of memory while importing grid file 'dummy_file.txt'" in str(exc_info.value)
+
+
+def test_ubc_mesh_file_importer_run_with_crs() -> None:
+    """Test that CRS information can be extracted from UBC mesh file header"""
+    mesh_file_with_crs = """3 3 3 GDA94/MGA zone 55
+0.0 0.0 0.0
+1.0 1.0 1.0
+1.0 1.0 1.0
+1.0 1.0 1.0
+"""
+    with patch("builtins.open", mock_open(read_data=mesh_file_with_crs)):
+        importer = UBCMeshFileImporter("dummy_mesh_file.txt")
+        origin, spacings, size_of_dimensions, wkt_string = importer.run()
+        assert np.array_equal(origin, np.array([0.0, 0.0, -3.0]))
+        assert len(spacings) == 3
+        assert size_of_dimensions == [3, 3, 3]
+        assert wkt_string == "GDA94/MGA zone 55"
 
 
 def test_execute_value_error_array_too_big() -> None:

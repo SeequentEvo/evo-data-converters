@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from os import path
 from unittest import TestCase
@@ -27,7 +28,11 @@ from evo_schemas.components import VectorAttribute_V1_0_0 as VectorAttribute
 from numpy.typing import DTypeLike
 from resqpy.time_series import TimeSeries
 
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import (
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+    crs_from_epsg_code,
+)
 from evo.data_converters.resqml.importer._attribute_converters import create_category_lookup_and_data
 from evo.data_converters.resqml.importer._grid_converter import (
     _build_actnum,
@@ -52,7 +57,7 @@ class TestGridConverter(TestCase):
             workspace_id="2cf1697f-2771-485e-848d-e6674d2ac63f",
             cache_root=self.cache_root_dir.name,
         )
-        _, data_client = create_evo_object_service_and_data_client(meta_data)
+        _, data_client = asyncio.run(create_evo_object_service_and_data_client(meta_data))
         self.data_dir = tempfile.TemporaryDirectory()
         model_file = path.join(self.data_dir.name, "new_file.epc")
         model = rqm.new_model(model_file)
@@ -103,7 +108,7 @@ class TestGridConverter(TestCase):
         )
 
         # Then the default code is used
-        crs = _get_crs(self.model, grid, 5519)
+        crs = _get_crs(self.model, grid, crs_from_epsg_code(5519))
         self.assertEqual(5519, crs.epsg_code)
 
     def test_get_crs_crs_on_grid(self) -> None:
@@ -133,7 +138,7 @@ class TestGridConverter(TestCase):
         grid.crs = rp_crs
 
         # Then the default EPSG code is used
-        crs = _get_crs(model, grid, 5519)
+        crs = _get_crs(model, grid, crs_from_epsg_code(5519))
         self.assertEqual(5519, crs.epsg_code)
 
     def test_get_crs_crs_on_grid_with_no_epsg_code_and_with_root_crs(self) -> None:
@@ -167,7 +172,7 @@ class TestGridConverter(TestCase):
         grid.crs = None  # pyright: ignore
 
         # Then the grid default EPSG code is used
-        crs = _get_crs(self.model, grid, 5519)
+        crs = _get_crs(self.model, grid, crs_from_epsg_code(5519))
         self.assertEqual(5519, crs.epsg_code)
 
     def test_build_actnum(self) -> None:

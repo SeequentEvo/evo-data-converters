@@ -11,7 +11,6 @@
 
 import pandas as pd
 
-
 HOLE_COLLARS_SCHEMA: dict[str, str] = {
     # Unique identifier for each row, 1-based
     "hole_index": "int",

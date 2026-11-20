@@ -9,20 +9,30 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from datetime import date, datetime
+
 import pandas as pd
 import pyarrow as pa
-from datetime import datetime, date
-
 from evo_schemas.components import (
     BoolAttribute_V1_1_0 as BoolAttribute,
+)
+from evo_schemas.components import (
     CategoryAttribute_V1_1_0 as CategoryAttribute,
+)
+from evo_schemas.components import (
     ContinuousAttribute_V1_1_0 as ContinuousAttribute,
+)
+from evo_schemas.components import (
     DateTimeAttribute_V1_1_0 as DateTimeAttribute,
+)
+from evo_schemas.components import (
     IntegerAttribute_V1_1_0 as IntegerAttribute,
+)
+from evo_schemas.components import (
     StringAttribute_V1_1_0 as StringAttribute,
 )
 
-from evo.data_converters.common.objects.attributes import AttributeFactory, PyArrowTableFactory, DataType
+from evo.data_converters.common.objects.attributes import AttributeFactory, DataType, PyArrowTableFactory
 
 
 class TestPyArrowTableFactory:

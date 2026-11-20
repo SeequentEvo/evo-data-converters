@@ -11,11 +11,10 @@
 
 import asyncio
 
-import nest_asyncio
 from evo_schemas.components import BaseSpatialDataProperties_V1_0_1
 
-from evo.common.exceptions import NotFoundException
 import evo.logging
+from evo.common.exceptions import NotFoundException, error_context
 from evo.objects import ObjectAPIClient
 from evo.objects.data import ObjectMetadata
 from evo.objects.utils import ObjectDataClient
@@ -23,32 +22,6 @@ from evo.objects.utils import ObjectDataClient
 from .generate_paths import generate_paths
 
 logger = evo.logging.getLogger("data_converters")
-
-
-def publish_geoscience_objects_sync(
-    object_models: list[BaseSpatialDataProperties_V1_0_1],
-    object_service_client: ObjectAPIClient,
-    data_client: ObjectDataClient,
-    path_prefix: str = "",
-    overwrite_existing_objects: bool = False,
-) -> list[ObjectMetadata]:
-    """
-    Publishes a list of Geoscience Objects.
-    """
-    objects_metadata = []
-    paths = generate_paths(object_models, path_prefix)
-
-    nest_asyncio.apply()
-
-    logger.debug(f"Preparing to publish {len(object_models)} objects to paths: {paths}")
-    for obj, obj_path in zip(object_models, paths):
-        object_metadata = asyncio.run(
-            publish_geoscience_object(obj_path, obj, object_service_client, data_client, overwrite_existing_objects)
-        )
-        logger.debug(f"Got object metadata: {object_metadata}")
-        objects_metadata.append(object_metadata)
-
-    return objects_metadata
 
 
 async def publish_geoscience_objects(
@@ -61,16 +34,16 @@ async def publish_geoscience_objects(
     """
     Publishes a list of Geoscience Objects.
     """
-    objects_metadata = []
     paths = generate_paths(object_models, path_prefix)
 
     logger.debug(f"Preparing to publish {len(object_models)} objects to paths: {paths}")
-    for obj, obj_path in zip(object_models, paths):
-        object_metadata = await publish_geoscience_object(
-            obj_path, obj, object_service_client, data_client, overwrite_existing_objects
+    objects_metadata = await asyncio.gather(
+        *(
+            publish_geoscience_object(obj_path, obj, object_service_client, data_client, overwrite_existing_objects)
+            for obj, obj_path in zip(object_models, paths)
         )
-        logger.debug(f"Got object metadata: {object_metadata}")
-        objects_metadata.append(object_metadata)
+    )
+    logger.debug(f"Got object metadata: {objects_metadata}")
 
     return objects_metadata
 
@@ -86,16 +59,21 @@ async def publish_geoscience_object(
     Publish a single Geoscience Object
     """
     logger.debug(f"Publishing Geoscience Object: {object_model}")
+    object_description = f"geoscience object '{object_model.name}' (schema: {object_model.schema}) at path '{path}'"
+    with error_context(f"While checking whether {object_description} already exists", logger=logger):
+        try:
+            existing_object = await object_service_client.download_object_by_path(path)
+            object_model.uuid = existing_object.metadata.id
+        except NotFoundException:
+            pass
 
-    try:
-        existing_object = await object_service_client.download_object_by_path(path)
-        object_model.uuid = existing_object.metadata.id
-    except NotFoundException:
-        pass
+    with error_context(f"While uploading data referenced by {object_description}", logger=logger):
+        await data_client.upload_referenced_data(object_model.as_dict())
 
-    await data_client.upload_referenced_data(object_model.as_dict())
     if overwrite_existing_object and object_model.uuid is not None:
-        object_metadata = await object_service_client.update_geoscience_object(object_model.as_dict())
+        with error_context(f"While updating existing {object_description} (uuid: {object_model.uuid})", logger=logger):
+            object_metadata = await object_service_client.update_geoscience_object(object_model.as_dict())
     else:
-        object_metadata = await object_service_client.create_geoscience_object(path, object_model.as_dict())
+        with error_context(f"While creating {object_description}", logger=logger):
+            object_metadata = await object_service_client.create_geoscience_object(path, object_model.as_dict())
     return object_metadata

@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 from datetime import datetime, timezone
 from os import path
 from typing import Any
@@ -51,14 +52,12 @@ from evo.data_converters.common.test_tools import EvoDataConvertersTestCase
 
 
 class TestOMFAttributeExporter(EvoDataConvertersTestCase):
-    def setUp(self) -> None:
-        EvoDataConvertersTestCase.setUp(self)
-
-        _, self.data_client = create_evo_object_service_and_data_client(self.workspace_metadata)
+    async def asyncSetUp(self) -> None:
+        _, self.data_client = await create_evo_object_service_and_data_client(self.workspace_metadata)
 
         # Convert an OMF file to Evo and use the generated Parquet files to test the exporter
         omf_file = path.join(path.dirname(__file__), "../data/one_of_everything.omf")
-        self.evo_objects = convert_omf(
+        self.evo_objects = await convert_omf(
             filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
         )
 
@@ -67,10 +66,13 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
         table = pq.read_table(parquet_file)
 
-        df = table.to_pandas()
-        df.loc[row_index] = value
+        for col_idx in range(table.num_columns):
+            col = table.column(col_idx)
+            values_list = col.to_pylist()
+            values_list[row_index] = value
+            new_col = pa.array(values_list, type=col.type)
 
-        table = pa.Table.from_pandas(df, table.schema)
+            table = table.set_column(col_idx, table.schema.field(col_idx), new_col)
 
         pq.write_table(table, parquet_file)
 
@@ -231,8 +233,13 @@ class TestOMFAttributeExporter(EvoDataConvertersTestCase):
 
     def test_should_convert_integer_attribute_to_scalar_data(self) -> None:
         omf_file = path.join(path.dirname(__file__), "../data/null_attribute_values.omf")
-        evo_objects = convert_omf(
-            filepath=omf_file, evo_workspace_metadata=self.workspace_metadata, epsg_code=32650, publish_objects=False
+        evo_objects = asyncio.run(
+            convert_omf(
+                filepath=omf_file,
+                evo_workspace_metadata=self.workspace_metadata,
+                epsg_code=32650,
+                publish_objects=False,
+            )
         )
 
         triangle_mesh_go = evo_objects[0]

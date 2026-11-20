@@ -1,8 +1,8 @@
 [project]
 name = "evo-data-converters-vtk"
 description = "Python data converters for VTK to Evo geoscience objects"
-version = "0.1.4"
-requires-python = ">=3.10"
+version = "0.4.0"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
@@ -10,24 +10,31 @@ authors = [
 ]
 
 dependencies = [
-    "evo-data-converters-common>=0.3.1",
+    "evo-data-converters-common>=0.5.0",
+    "pandas>=2.3.3",
     "vtk",
 ]
 
 [project.urls]
-Source = "https://github.com/SeequentEvo/evo-python-sdk"
-Tracker = "https://github.com/SeequentEvo/evo-python-sdk/issues"
+Source = "https://github.com/SeequentEvo/evo-data-converters"
+Tracker = "https://github.com/SeequentEvo/evo-data-converters/issues"
 Homepage = "https://www.seequent.com/"
 Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
 dev = [
     "pytest",
+    "pytest-asyncio>=1.3.0",
 ]
 
-[tool.ruff]
-src = ["src", "tests"]
-line-length = 120
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 
 [build-system]
 requires = ["hatchling", "hatch-fancy-pypi-readme"]

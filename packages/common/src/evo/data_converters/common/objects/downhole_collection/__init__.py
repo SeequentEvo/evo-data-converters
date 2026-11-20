@@ -12,7 +12,7 @@
 from .column_mapping import ColumnMapping
 from .downhole_collection import DownholeCollection
 from .hole_collars import HoleCollars
-from .tables import MeasurementTableFactory, IntervalTable, DistanceTable, MeasurementTableAdapter
+from .tables import DistanceTable, IntervalTable, MeasurementTableAdapter, MeasurementTableFactory
 
 __all__ = [
     "ColumnMapping",

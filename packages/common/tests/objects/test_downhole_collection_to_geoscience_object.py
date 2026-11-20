@@ -9,14 +9,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pytest
+from unittest.mock import Mock
+
 import pandas as pd
 import pyarrow as pa
-from unittest.mock import Mock
+import pytest
+
+from evo.data_converters.common.objects.downhole_collection import (
+    DistanceTable as DistanceMeasurementTable,
+)
 from evo.data_converters.common.objects.downhole_collection import (
     DownholeCollection,
+)
+from evo.data_converters.common.objects.downhole_collection import (
     IntervalTable as IntervalMeasurementTable,
-    DistanceTable as DistanceMeasurementTable,
 )
 from evo.data_converters.common.objects.downhole_collection_to_geoscience_object import (
     DownholeCollectionToGeoscienceObject,

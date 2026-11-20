@@ -17,7 +17,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python virtual environment with Python 3.10, 3.11, or 3.12
+* Python virtual environment with Python 3.11 or newer
 * Git
 
 ## Installation
@@ -183,7 +183,7 @@ async with hub_connector:
         epsg_code=epsg_code,
         object_service_client=service_client,
         tags=tags,
-        upload_path="path/to/my/object"
+        upload_path="path/to/my/object",
     )
 
     print("These objects have now been published:")
@@ -210,10 +210,7 @@ from evo.data_converters.common import EvoObjectMetadata
 from evo.data_converters.omf.exporter import export_omf
 
 objects = []
-objects.append(
-    EvoObjectMetadata(
-        object_id=UUID("<object_id>"),
-        version_id="<version_id>"))
+objects.append(EvoObjectMetadata(object_id=UUID("<object_id>"), version_id="<version_id>"))
 
 output_dir = "data/output"
 os.makedirs(output_dir, exist_ok=True)
@@ -231,7 +228,7 @@ export_omf(
 
 [Block models](https://developer.seequent.com/docs/guides/blockmodel) can be imported using the standard `convert_omf` function.
 
-Block models work a little bit differently for export. These use a `BlockSyncClient` rather than the `ObjectAPIClient` to access models stored in BlockSync. Create a `BlockSyncClient` using the Environment and APIConnector in the same way you would create and `ObjectAPIClient`.
+Block models work a little bit differently for export. The exporter creates a `BlockSyncClient` to access models stored in BlockSync using the Evo workspace credentials you provide. To make other BlockSync requests directly (for example, to download a parquet file), create a `BlockSyncClient` using the Environment and APIConnector.
 
 ```python
 from evo.data_converters.common import BlockSyncClient
@@ -246,6 +243,7 @@ Specify the block model UUID of the block model object you want to export and th
 **Note**: At this stage only Regular block model types are supported.
 
 ```python
+import asyncio
 import os
 from uuid import UUID
 
@@ -259,11 +257,13 @@ os.makedirs(output_dir, exist_ok=True)
 
 output_file = f"{output_dir}/{object_id}.omf"
 
-export_blocksync_omf(
-    filepath=output_file,
-    object_id=UUID(object_id),
-    version_id=version_id,
-    service_client=blocksync_client,
+asyncio.run(
+    export_blocksync_omf(
+        filepath=output_file,
+        object_id=UUID(object_id),
+        version_id=version_id,
+        evo_workspace_metadata=workspace_metadata,
+    )
 )
 
 print(f"File saved to {output_file}")

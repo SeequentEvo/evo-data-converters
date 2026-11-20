@@ -71,7 +71,7 @@ async def convert_ags(
     :raises ObjectAlreadyExistsError: If an object already exists at a path being published to,
         and overwrite_existing_objects is False.
     """
-    _, data_client = create_evo_object_service_and_data_client(
+    _, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
         service_manager_widget=service_manager_widget,
     )

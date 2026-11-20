@@ -18,7 +18,7 @@
 </p>
 <p align="center">
     <a href="https://developer.seequent.com/" target="_blank">Seequent Developer Portal</a>
-    &bull; <a href="https://community.seequent.com/" target="_blank">Seequent Community</a>
+    &bull; <a href="https://community.seequent.com/group/19-evo" target="_blank">Seequent Community</a>
     &bull; <a href="https://seequent.com" target="_blank">Seequent website</a>
 </p>
 
@@ -33,7 +33,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python virtual environment with Python 3.10, 3.11, or 3.12
+* Python virtual environment with Python 3.11 or newer
 * Microsoft Windows - this package is not currently supported on Linux or macOS
 * Deswik Spatial - https://www.deswik.com/products/spatial
 * .NET Framework v4.7.2 or higher (or other compatible .NET runtime)
@@ -49,6 +49,12 @@ The package can be installed from PyPI using pip:
     pip install evo-data-converters-duf
 
 #### Deswik Suite
+
+> [!IMPORTANT]
+> Install Deswik Suite using the `.zip` download, **not** the `.appx` package. 
+> The `.appx` version installs components in a location that the DUF converter can't access.
+>
+> ![Choose the Deswik.Suite Installer & Patch zip, not the appx](images/duf-installer.png)
 
 The `duf` data-converter package depends on an installed version of `Deswik.Suite` for interacting with DUF files. The
 package will search for `Deswik.Suite` in `C:\Program Files\Deswik`, and use the latest version installed. If you have
@@ -97,16 +103,15 @@ Then call `convert_duf`, passing it the DUF file path, EPSG code, the workspace 
 tags, optionally the flag `combine_objects_in_layers`, and finally a path you want the published objects to appear under
 in your workspace.
 
-See [the convert-duf sample notebook](https://github.com/seequentevo/evo-data-converters/blob/main/packages/duf/samples/convert-duf/convert-duf.ipynb)
+See [the convert-duf sample notebook](https://github.com/seequentevo/evo-data-converters/blob/main/packages/duf/code-samples/convert-duf/convert-duf.ipynb)
 for a complete example.
 
 **Note:** Some geometry types are not yet supported. A warning will be shown for each element that could not be
-converted. Currently, for publishing we support polyface objects and polylines, and all attribute types except for colour
-attributes.
+converted. Currently, for publishing we support polyface objects and polylines, and all attribute types except for colour attributes.
 
 ### Export objects to DUF
 
-To do.
+To do. Please check back later.
 
 ## Code of conduct
 
@@ -117,7 +122,7 @@ yourself with our [code of conduct.](https://github.com/SeequentEvo/evo-data-con
 
 Evo data converters are open source and licensed under the [Apache 2.0 license.](./LICENSE.md)
 
-Copyright © 2025 Bentley Systems, Incorporated.
+Copyright © 2026 Bentley Systems, Incorporated.
 
 Licensed under the Apache License, Version 2.0 (the "License").
 You may obtain a copy of the License at

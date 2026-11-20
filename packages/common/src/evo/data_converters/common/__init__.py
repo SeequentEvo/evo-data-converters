@@ -10,10 +10,14 @@
 #  limitations under the License.
 
 from .blockmodel_client import BlockSyncClient
+from .crs import InvalidCRSError, crs_from_any, crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified
+from .evo_client import (
+    EvoObjectMetadata,
+    EvoWorkspaceMetadata,
+    create_evo_object_service_and_data_client,
+)
 from .grid_data import BaseGridData, RegularGridData, TensorGridData
-from .crs import crs_from_epsg_code, crs_from_ogc_wkt, crs_unspecified, crs_from_any
-from .evo_client import EvoObjectMetadata, EvoWorkspaceMetadata, create_evo_object_service_and_data_client
-from .publish import publish_geoscience_objects, publish_geoscience_objects_sync
+from .publish import publish_geoscience_objects
 
 __all__ = [
     "create_evo_object_service_and_data_client",
@@ -21,7 +25,6 @@ __all__ = [
     "BlockSyncClient",
     "EvoObjectMetadata",
     "publish_geoscience_objects",
-    "publish_geoscience_objects_sync",
     "BaseGridData",
     "RegularGridData",
     "TensorGridData",
@@ -29,4 +32,5 @@ __all__ = [
     "crs_from_ogc_wkt",
     "crs_unspecified",
     "crs_from_any",
+    "InvalidCRSError",
 ]

@@ -9,12 +9,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import os
 from datetime import datetime, time, timezone
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
-import nest_asyncio
 import numpy as np
 import numpy.typing as npt
 import omf
@@ -39,19 +39,15 @@ def _create_block_sync_client(environment: Environment, api_connector: APIConnec
     return BlockSyncClient(environment, api_connector)
 
 
-def export_blocksync_omf(
+async def export_blocksync_omf(
     filepath: str,
     object_id: UUID,
     version_id: Optional[int] = None,
-    evo_workspace_metadata: EvoWorkspaceMetadata = None,
+    evo_workspace_metadata: Optional[EvoWorkspaceMetadata] = None,
     service_manager_widget: Optional["ServiceManagerWidget"] = None,
 ) -> None:
-    nest_asyncio.apply()
-
     logger.info("Creating service and data clients for interacting with BlockSync.")
-    service_client, data_client = create_evo_object_service_and_data_client(
-        evo_workspace_metadata, service_manager_widget
-    )
+    service_client, _ = await create_evo_object_service_and_data_client(evo_workspace_metadata, service_manager_widget)
 
     environment = service_client._environment
     api_connector = service_client._connector
@@ -64,7 +60,8 @@ def export_blocksync_omf(
 
     project = omf.Project(name=project_name, description=description, revision=revision)
 
-    project.elements = [blocksync_to_omf_element(str(object_id), client, version_id)]
+    element = await asyncio.to_thread(blocksync_to_omf_element, str(object_id), client, version_id)
+    project.elements = [element]
     assert project.validate()
 
     logger.info("Writing OMF project to {filepath}")

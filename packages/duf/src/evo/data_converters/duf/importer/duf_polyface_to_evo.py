@@ -15,6 +15,7 @@ from evo_schemas.components import (
     Triangles_V1_2_0,
     Triangles_V1_2_0_Indices,
     Triangles_V1_2_0_Vertices,
+    Crs_V1_0_1,
 )
 from evo_schemas.objects import TriangleMesh_V2_1_0
 
@@ -22,22 +23,22 @@ import evo.logging
 from evo.objects.utils.data import ObjectDataClient
 from numpy._typing import NDArray
 
-from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.duf.common.consts import EvoSchema
 import evo.data_converters.duf.common.deswik_types as dw
 from .utils import (
-    get_name,
     vertices_array_to_go_and_bbox,
     indices_array_to_go,
     parts_to_go,
     obj_list_and_indices_to_arrays,
+    ConvertOptions,
+    ResolveObjectNameContext,
 )
 
 
 logger = evo.logging.getLogger("data_converters")
 
 
-def _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_code, data_client):
+def _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, crs: Crs_V1_0_1, data_client):
     vertices_go, bounding_box_go = vertices_array_to_go_and_bbox(data_client, vertices_array, Triangles_V1_2_0_Vertices)
 
     indices_go = indices_array_to_go(data_client, indices_array, Triangles_V1_2_0_Indices)
@@ -48,7 +49,7 @@ def _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_c
         name=name,
         uuid=None,
         bounding_box=bounding_box_go,
-        coordinate_reference_system=crs_from_epsg_code(epsg_code),
+        coordinate_reference_system=crs,
         triangles=Triangles_V1_2_0(vertices=vertices_go, indices=indices_go),
         parts=parts_go,
     )
@@ -102,15 +103,15 @@ def indices_from_polyface(dw_facelist) -> NDArray[np.uint64]:
 def combine_duf_polyfaces(
     polyfaces: list[dw.Polyface],
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
+    options: ConvertOptions,
 ) -> TriangleMesh_V2_1_0 | None:
     if not polyfaces:
         logger.warning("No polyfaces to combine.")
         return None
 
-    layer = get_name(polyfaces[0].Layer)
-    name = f"{layer} - polyfaces"
-    logger.debug(f'Combining polyfaces from layer: "{layer}" to TriangleMesh_V2_1_0.')
+    object_name = ResolveObjectNameContext.get_name(polyfaces[0], options)
+    logger.debug(f'Combining polyfaces from layer: "{polyfaces[0].Layer.Name}" to TriangleMesh_V2_1_0.')
 
     indices_arrays = []
     for i, polyface in enumerate(polyfaces):
@@ -122,16 +123,17 @@ def combine_duf_polyfaces(
         polyfaces, indices_arrays, EvoSchema.triangle_mesh
     )
 
-    return _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_code, data_client)
+    return _create_triangle_mesh_obj(object_name, vertices_array, indices_array, parts, crs, data_client)
 
 
 def convert_duf_polyface(
     polyface: dw.Polyface,
     data_client: ObjectDataClient,
-    epsg_code: int,
+    crs: Crs_V1_0_1,
+    options: ConvertOptions,
 ) -> TriangleMesh_V2_1_0:
-    name = get_name(polyface)
-    logger.debug(f'Converting polyface: "{name}" to TriangleMesh_V2_1_0.')
+    object_name = ResolveObjectNameContext.get_name(polyface, options)
+    logger.debug(f'Converting polyface: "{object_name}" to TriangleMesh_V2_1_0.')
 
     indices_array = indices_from_polyface(polyface.FaceList)
 
@@ -139,4 +141,4 @@ def convert_duf_polyface(
         [polyface], [indices_array], EvoSchema.triangle_mesh
     )
 
-    return _create_triangle_mesh_obj(name, vertices_array, indices_array, parts, epsg_code, data_client)
+    return _create_triangle_mesh_obj(object_name, vertices_array, indices_array, parts, crs, data_client)

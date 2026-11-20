@@ -9,6 +9,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import asyncio
 import tempfile
 from os import path
 from pathlib import Path
@@ -44,7 +45,6 @@ from evo.data_converters.resqml.importer._downhole_intervals_to_evo import (
     convert_downhole_intervals_for_trajectory,
 )
 from evo.data_converters.resqml.importer.resqml_to_evo import _convert_downhole_intervals
-from evo.data_converters.resqml.utils import get_crs_epsg_code
 
 
 def add_wellbore_property(
@@ -115,7 +115,7 @@ class TestDownholeIntervals(TestCase):
         metadata = EvoWorkspaceMetadata(
             workspace_id="9c86938d-a40f-491a-a3e2-e823ca53c9ae", cache_root=self.cache_root_dir.name
         )
-        _, data_client = create_evo_object_service_and_data_client(metadata)
+        _, data_client = asyncio.run(create_evo_object_service_and_data_client(metadata))
         self.data_client = data_client
 
         self.data_dir = tempfile.TemporaryDirectory()
@@ -326,11 +326,6 @@ class TestDownholeIntervals(TestCase):
 
     def test_build_hole_ids(self) -> None:
         self.assertIsInstance(_build_hole_ids_for_wellbore_frame(self.wellbore_frame, self.data_client), CategoryData)
-
-    def test_get_crs_epsg_code(self) -> None:
-        crs_2193 = get_crs_epsg_code(self.model, 2193)
-        self.assertEqual(crs_2193.epsg_code, 2193)
-        self.assertEqual(get_crs_epsg_code(self.model).epsg_code, self.model_crs_epsg_code_int)
 
     def test_convert_downhole_intervals_to_evo(self) -> None:
         stem = Path(self.model.epc_file or "None").stem

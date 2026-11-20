@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -8,13 +8,16 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+from __future__ import annotations
 
+import enum
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import timezone
 from enum import auto, Enum
-from typing import Any
+from typing import Any, TypeAlias
 
 from dateutil.parser import ParserError, isoparse
 import numpy
@@ -51,6 +54,8 @@ from evo.data_converters.duf.xprops import get_xprops_value
 
 logger = evo.logging.getLogger("data_converters")
 
+_UNIX_EPOCH_TICKS = 621_355_968_000_000_000  # System.DateTime(1970, 1, 1).Ticks
+
 
 class AttributeType(Enum):
     String = auto()
@@ -60,6 +65,10 @@ class AttributeType(Enum):
     DateTime = auto()
     # Color = auto()  # TODO: unsure of the format DUF uses for these
     Boolean = auto()
+
+
+def _lookup_pyarrow_type(max_value: int) -> pa.DataType:
+    return pa.int32() if numpy.can_cast(numpy.min_scalar_type(max_value), "int32") else pa.int64()
 
 
 @dataclass(frozen=True)
@@ -106,8 +115,7 @@ class AttributeSpec:
         name = value_from_xproperties(layer, cls.__attr_prop_name(attr_index, "Name"), AttributeType.String)
         if evo_schema in (EvoSchema.triangle_mesh, EvoSchema.line_segments):
             if name.lower() == "id":
-                # Leapfrog does not handle columns named "ID", so rename them on the fly. We'll just hope
-                # that there isn't another column named "external_id".
+                # Leapfrog does not handle columns named "ID", so rename them.
                 evo_name = "external_id"
                 logger.warning(f"Column {name} is being converted to {evo_name}")
             else:
@@ -183,7 +191,7 @@ class AttributeSpec:
                 reverse_lookup = defaultdict(int)  # Default to zero
                 reverse_lookup.update({value: idx for idx, value in enumerate(options, start=1)})
 
-                lookup_keys_type = pa.int32() if numpy.can_cast(len(options), "int32", "safe") else pa.int64()
+                lookup_keys_type = _lookup_pyarrow_type(len(options))
                 lookup_table = pa.table(
                     [list(reverse_lookup.values()), list(reverse_lookup.keys())],
                     schema=pa.schema(
@@ -219,7 +227,7 @@ class AttributeSpec:
                     logger.warning(f"Integer column {self.name} has NaNs. Converting to double.")
                     return self._double_to_go(data_client, doubles)
                 nan_values = [max((v for v in values if v is not None), default=-1) + 1]
-                data_type = pa.int32() if numpy.can_cast(nan_values[0], "int32", "safe") else pa.int64()
+                data_type = _lookup_pyarrow_type(nan_values[0])
                 table = pa.table(
                     [values],
                     schema=pa.schema(
@@ -249,8 +257,10 @@ class AttributeSpec:
                 any_null = False
                 timestamps = []
                 for value in values:
-                    if isinstance(value, datetime):
-                        timestamp = int(value.timestamp() * 1_000_000)  # Convert to microseconds
+                    if isinstance(value, dw.DateTime):
+                        # Exact microseconds from .NET ticks (100 ns). The wall-clock time is treated as UTC, the same
+                        # as for string values below.
+                        timestamp = (value.Ticks - _UNIX_EPOCH_TICKS) // 10
                     else:
                         try:
                             timestamp = int(isoparse(value).replace(tzinfo=timezone.utc).timestamp() * 1_000_000)
@@ -318,8 +328,14 @@ class AttributeSpec:
                 return None
 
 
+def _is_blank(value: Any) -> bool:
+    # Avoid `==`/`in` comparisons: pythonnet raises TypeError when comparing .NET structs (e.g. System.DateTime)
+    # against None or str.
+    return value is None or (isinstance(value, str) and value == "")
+
+
 def _try_cast(cast_func, value) -> Any | None:
-    if value in (None, ""):
+    if _is_blank(value):
         return None
     try:
         return cast_func(value)
@@ -343,7 +359,7 @@ def value_from_xproperties(obj: dw.BaseEntity, key: str, attr_type: AttributeTyp
         case AttributeType.Double:
             return _try_cast(float, value)
         case AttributeType.DateTime | AttributeType.Boolean:
-            return value if value not in {None, ""} else None
+            return None if _is_blank(value) else value
         case _:
             logger.warning(f"Unsupported attribute type {attr_type} for key {key}, returning None.")
             return None
@@ -353,7 +369,7 @@ def validify(name: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', "_", name)[-255:]  # limit to 255 chars, keep the end
 
 
-def get_name(obj: dw.BaseEntity) -> str:
+def get_name(obj: dw.BaseEntity, include_layer: bool) -> str:
     if isinstance(obj, dw.Layer):
         return obj.Name.split("\\")[-1]
 
@@ -361,8 +377,8 @@ def get_name(obj: dw.BaseEntity) -> str:
         return validify(label)
 
     obj_name = f"{type(obj).__name__}-{obj.Guid}"
-    if (layer := getattr(obj, "Layer", None)) is not None:
-        layer_name = get_name(layer)
+    if include_layer and (layer := getattr(obj, "Layer", None)) is not None:
+        layer_name = get_name(layer, include_layer=False)
         return validify(f"{layer_name}-{obj_name}".strip("-_"))
 
     return validify(obj_name)
@@ -468,7 +484,9 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
                 attr = value_from_xproperties(obj, spec.name, spec.attr_type)
                 if spec.required and attr is None:
                     # Hopefully not going to happen
-                    logger.warning(f"Required attribute '{spec.name}' is missing in object {get_name(obj)}.")
+                    logger.warning(
+                        f"Required attribute '{spec.name}' is missing in object {get_name(obj, include_layer=True)}."
+                    )
 
                 attributes[spec].append(attr)
 
@@ -489,3 +507,82 @@ def obj_list_and_indices_to_arrays(obj_list: list[dw.BaseEntity], indices_arrays
     logger.debug(f"Num {type(obj_list[0]).__name__} attributes: {len(attribute_specs)}")
 
     return unique_vertices_array, flattened_indices_array, parts
+
+
+@dataclass
+class ResolveObjectNameContext:
+    combined: bool
+    entity: dw.BaseEntity
+
+    @property
+    def entity_type(self) -> str:
+        if isinstance(self.entity, dw.Polyline):
+            return "polylines"
+        elif isinstance(self.entity, dw.Polyface):
+            return "polyfaces"
+        else:
+            raise NotImplementedError(f"Object type {type(self.entity)} is not supported")
+
+    @property
+    def layers(self) -> list[str]:
+        layer: str = self.entity.Layer
+        if layer is None or (layer_path := layer.Name) is None or not layer_path:
+            logger.warning(f"Layers missing from {self.entity.Label}")
+            return []
+        else:
+            return layer_path.split("\\")
+
+    @classmethod
+    def make_context(cls, entity: dw.BaseEntity, options: ConvertOptions) -> ResolveObjectNameContext:
+        result = cls(
+            combined=options.combined,
+            entity=entity,
+        )
+        result.entity_type  # Accessing `object_type` ensures the entity is valid
+        return result
+
+    @classmethod
+    def get_name(cls, entity: dw.BaseEntity, options: ConvertOptions) -> str:
+        self = cls.make_context(entity, options)
+        func = options.get_name_resolver()
+        return func(self)
+
+
+ResolveObjectNameType: TypeAlias = Callable[[ResolveObjectNameContext], str]
+
+
+class ResolveObjectNameOption(enum.Enum):
+    DEFAULT = enum.auto()
+    CONCATENATE = enum.auto()
+
+    @staticmethod
+    def _pick_name_of_leaf(context: ResolveObjectNameContext) -> str:
+        if not context.combined:
+            return get_name(context.entity, include_layer=True)
+        else:
+            assert len(context.layers) >= 0
+            return f"{context.layers[-1]} - {context.entity_type}"
+
+    @staticmethod
+    def _concatenate(context: ResolveObjectNameContext) -> str:
+        if not context.combined:
+            return " - ".join([*context.layers, get_name(context.entity, include_layer=False)])
+        else:
+            assert len(context.layers) >= 0
+            return " - ".join([*context.layers, context.entity_type])
+
+
+@dataclass
+class ConvertOptions:
+    combined: bool = False
+    resolve_object_name: ResolveObjectNameOption | ResolveObjectNameType = ResolveObjectNameOption.DEFAULT
+
+    def get_name_resolver(self) -> ResolveObjectNameType:
+        if callable(self.resolve_object_name):
+            return self.resolve_object_name
+        elif self.resolve_object_name == ResolveObjectNameOption.DEFAULT:
+            return ResolveObjectNameOption._pick_name_of_leaf
+        elif self.resolve_object_name == ResolveObjectNameOption.CONCATENATE:
+            return ResolveObjectNameOption._concatenate
+        else:
+            raise NotImplementedError()

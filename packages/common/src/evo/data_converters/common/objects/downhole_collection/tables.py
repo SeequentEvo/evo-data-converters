@@ -9,11 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import evo.logging
-import pandas as pd
 import sys
 import typing
 from abc import ABC, abstractmethod
+
+import pandas as pd
+
+import evo.logging
 
 from .column_mapping import ColumnMapping
 

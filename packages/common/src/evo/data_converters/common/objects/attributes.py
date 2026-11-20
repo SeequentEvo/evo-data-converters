@@ -9,33 +9,60 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from evo.objects.utils.data import ObjectDataClient
+import typing
+from dataclasses import dataclass
+from enum import Enum
+
+import pandas as pd
+import pyarrow as pa
 from evo_schemas.components import (
     BoolAttribute_V1_1_0 as BoolAttribute,
+)
+from evo_schemas.components import (
     CategoryAttribute_V1_1_0 as CategoryAttribute,
+)
+from evo_schemas.components import (
     ContinuousAttribute_V1_1_0 as ContinuousAttribute,
+)
+from evo_schemas.components import (
     DateTimeAttribute_V1_1_0 as DateTimeAttribute,
+)
+from evo_schemas.components import (
     IntegerAttribute_V1_1_0 as IntegerAttribute,
+)
+from evo_schemas.components import (
     NanCategorical_V1_0_1 as NanCategorical,
+)
+from evo_schemas.components import (
     NanContinuous_V1_0_1 as NanContinuous,
+)
+from evo_schemas.components import (
     OneOfAttribute_V1_2_0_Item as OneOfAttribute_Item,
+)
+from evo_schemas.components import (
     StringAttribute_V1_1_0 as StringAttribute,
 )
 from evo_schemas.elements import (
     BoolArray1_V1_0_1 as BoolArray1,
+)
+from evo_schemas.elements import (
     DateTimeArray_V1_0_1 as DateTimeArray,
+)
+from evo_schemas.elements import (
     FloatArray1_V1_0_1 as FloatArray1,
+)
+from evo_schemas.elements import (
     IntegerArray1_V1_0_1 as IntegerArray1,
+)
+from evo_schemas.elements import (
     LookupTable_V1_0_1 as LookupTable,
+)
+from evo_schemas.elements import (
     StringArray_V1_0_1 as StringArray,
 )
 
 import evo.logging
-import pandas as pd
-import pyarrow as pa
-import typing
-from enum import Enum
-from dataclasses import dataclass
+from evo.objects.utils.data import ObjectDataClient
 
 logger = evo.logging.getLogger("data_converters")
 

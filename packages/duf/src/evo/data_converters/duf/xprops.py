@@ -85,8 +85,11 @@ def get_xprops_value(xproperties: dw.XProperties, key: str):
     if not found:
         return None
 
-    value = value.Value[0].Value
-    return value
+    value_list = value.Value
+    if value_list is None or len(value_list) == 0:
+        return None
+
+    return value_list[0].Value
 
 
 def _cast_to_csharp(value, csharp_type: str):

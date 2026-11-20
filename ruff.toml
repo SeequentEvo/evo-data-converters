@@ -1,0 +1,23 @@
+# Shared ruff configuration for the whole workspace
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".git-rewrite",
+    ".mypy_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "venv",
+]
+line-length = 120
+
+[lint]
+select = ["E4", "E7", "E9", "F", "I", "UP006"]
+
+[lint.per-file-ignores]
+"packages/**" = ["I", "UP006"]

@@ -18,7 +18,7 @@ import pytest
 
 from evo.data_converters.ags.common import AgsContext
 from evo.data_converters.ags.common.ags_context import GEOL, LOCA, SCPG, SCPP, SCPT
-from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
+from evo.data_converters.common import EvoWorkspaceMetadata
 
 
 @pytest.fixture(scope="session")
@@ -38,12 +38,6 @@ def evo_metadata_with_hub():
         cache_root=cache_root_dir.name,
         hub_url="https://test.hub.url",
     )
-
-
-@pytest.fixture(scope="session")
-def data_client(evo_metadata):
-    _, data_client = create_evo_object_service_and_data_client(evo_metadata)
-    return data_client
 
 
 @pytest.fixture(scope="session")

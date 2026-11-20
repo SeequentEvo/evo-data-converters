@@ -17,7 +17,7 @@ Evo is powered by Seequent, a Bentley organisation.
 
 ## Pre-requisites
 
-* Python 3.10, 3.11, or 3.12
+* Python 3.11 to 3.14 (the pinned RESQML reader requires Python <3.15)
 
 ## Installation
 
@@ -35,7 +35,7 @@ To work with RESQML files [the `resqpy` Python package](https://pypi.org/project
 
 ## Usage
 
-For examples of using this package, see the [Jupyter notebooks.](samples/convert-resqml)
+For examples of using this package, see the [Jupyter notebooks.](code-samples/convert-resqml)
 
 ### Limitations
 

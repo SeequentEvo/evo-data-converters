@@ -1,4 +1,4 @@
-#  Copyright © 2025 Bentley Systems, Incorporated
+#  Copyright © 2026 Bentley Systems, Incorporated
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -14,9 +14,27 @@ import re
 
 import numpy
 import pytest
+from pyproj import CRS
+from evo_schemas.components import Crs_V1_0_1_EpsgCode, Crs_V1_0_1_OgcWkt
 from evo_schemas.objects import LineSegments_V2_1_0, TriangleMesh_V2_1_0
 
 from packages.duf.tests.utils import convert_duf
+
+_WKT2_EXAMPLE = """\
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84", 6378137, 298.257223563,
+            LENGTHUNIT["metre", 1]]],
+    PRIMEM["Greenwich", 0,
+        ANGLEUNIT["degree", 0.0174532925199433]],
+    CS[ellipsoidal, 2],
+        AXIS["geodetic latitude", north,
+            ORDER[1],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+        AXIS["geodetic longitude", east,
+            ORDER[2],
+            ANGLEUNIT["degree", 0.0174532925199433]],
+    ID["EPSG", 4326]]"""
 
 
 def test_should_log_warnings(evo_metadata, simple_objects_path, caplog: pytest.LogCaptureFixture) -> None:
@@ -77,6 +95,37 @@ def test_import_category_with_missing_attrs(
     # that the empty string has been removed from categories on import.
     assert "" not in categories
     assert len(categories) > 0
+
+
+@pytest.mark.parametrize(
+    "input_crs, expected_crs",
+    [
+        (32650, Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        ("EPSG:32650", Crs_V1_0_1_EpsgCode(epsg_code=32650)),
+        (_WKT2_EXAMPLE, Crs_V1_0_1_OgcWkt(ogc_wkt=CRS.from_wkt(_WKT2_EXAMPLE).to_wkt("WKT2_2019"))),
+        (None, "unspecified"),
+    ],
+)
+def test_coordinate_reference_system(evo_metadata, simple_objects_path, input_crs, expected_crs) -> None:
+    go_objects = convert_duf(
+        filepath=simple_objects_path,
+        evo_workspace_metadata=evo_metadata,
+        coordinate_reference_system=input_crs,
+        publish_objects=False,
+    )
+    assert len(go_objects) == 2
+    assert go_objects[0].coordinate_reference_system == expected_crs
+
+
+def test_coordinate_reference_system_conflicts_with_epsg_code(evo_metadata, simple_objects_path) -> None:
+    with pytest.raises(ValueError, match="Both epsg_code and coordinate_reference_system were provided"):
+        convert_duf(
+            filepath=simple_objects_path,
+            evo_workspace_metadata=evo_metadata,
+            epsg_code=32650,
+            coordinate_reference_system=32650,
+            publish_objects=False,
+        )
 
 
 def test_import_object_with_missing_attrs(evo_metadata, data_client, missing_attr_and_missing_xprops_path) -> None:
@@ -190,3 +239,65 @@ def test_mismatch_of_attribute_type_spec_and_value(
 
     check_attr_values(mesh_go.parts.attributes[0])
     check_attr_values(mesh_go.parts.attributes[1])
+
+
+def test_import_unset_dotnet_datetime_attribute(evo_metadata, data_client, polyline_datetime_minvalue_path) -> None:
+    """
+    One polyline's "Date" attribute is a .NET DateTime.MinValue (Deswik's unset date) and another is the same date as
+    a "0001-01-01 00:00:00" string; the rest are date strings. MinValue hashes the same as "".
+    """
+    go_objects = convert_duf(
+        filepath=polyline_datetime_minvalue_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+
+    assert len(go_objects) == 1
+    date_attr = next(attr for attr in go_objects[0].parts.attributes if attr.name == "Date")
+    assert date_attr.attribute_type == "date_time"
+
+    dates = data_client.load_table(date_attr.values).column(0).to_pylist()
+    assert sorted(date.isoformat() for date in dates) == [
+        "0001-01-01T00:00:00+00:00",
+        "0001-01-01T00:00:00+00:00",
+        "2025-08-13T00:00:00+00:00",
+        "2025-08-13T00:00:00+00:00",
+    ]
+
+
+def test_import_polyline_missing_vertex_list(evo_metadata, polyline_missing_vertex_list_path):
+    go_objects = convert_duf(
+        filepath=polyline_missing_vertex_list_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+    # 1 out of the 4 polylines has a missing VertexList
+    assert go_objects[0].parts.chunks.length == 3
+
+
+def test_import_polyface_missing_vertex_list(evo_metadata, polyface_missing_vertex_list_path):
+    go_objects = convert_duf(
+        filepath=polyface_missing_vertex_list_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+    # The only mesh has a missing VertexList
+    assert len(go_objects) == 0
+
+
+def test_import_polyface_missing_face_list(evo_metadata, polyface_missing_face_list_path):
+    go_objects = convert_duf(
+        filepath=polyface_missing_face_list_path,
+        evo_workspace_metadata=evo_metadata,
+        epsg_code=32650,
+        combine_objects_in_layers=True,
+        publish_objects=False,
+    )
+    # The only mesh has a missing FaceList
+    assert len(go_objects) == 0

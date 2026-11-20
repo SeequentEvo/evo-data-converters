@@ -9,8 +9,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pytest
 import pandas as pd
+import pytest
+
 from evo.data_converters.common.objects.downhole_collection.tables import (
     ColumnMapping,
     DistanceTable,

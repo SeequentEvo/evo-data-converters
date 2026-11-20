@@ -20,6 +20,7 @@ from evo_schemas.components import OneOfAttribute_V1_1_0 as OneOfAttribute
 from evo_schemas.components import Triangles_V1_1_0 as Triangles
 from evo_schemas.components import Triangles_V1_1_0_Indices as TrianglesIndices
 from evo_schemas.components import Triangles_V1_1_0_Vertices as TrianglesVertices
+from evo_schemas.components import Crs_V1_0_1
 from evo_schemas.objects import TriangleMesh_V2_0_0 as TriangleMesh
 from resqpy.crs import Crs
 from resqpy.model import Model
@@ -47,7 +48,7 @@ logger = evo.logging.getLogger("data_converters.resqml")
 def convert_surface(
     model: Model,
     surface: Surface,
-    epsg_code: int,
+    default_crs: Crs_V1_0_1,
     options: RESQMLConversionOptions,
     data_client: ObjectDataClient,
 ) -> Optional[TriangleMesh]:
@@ -89,9 +90,9 @@ def convert_surface(
         evo_crs = crs_from_epsg_code(int(crs.epsg_code))
     else:
         logger.warning(
-            f"Surface {surface.citation_title} {surface.uuid} does not have an EPSG Code , using the default {epsg_code}"
+            f"Surface {surface.citation_title} {surface.uuid} does not have an EPSG Code , using the default {default_crs}"
         )
-        evo_crs = crs_from_epsg_code(epsg_code)
+        evo_crs = default_crs
 
     (node_attributes, face_attributes, triangle_attributes) = _convert_attributes(model, surface, data_client)
 

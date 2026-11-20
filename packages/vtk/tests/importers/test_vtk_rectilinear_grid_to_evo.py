@@ -46,7 +46,7 @@ def test_convert() -> None:
     vtk_data.GetCellData().AddArray(cell_data)
 
     data_client = MockDataClient()
-    result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = convert_vtk_rectilinear_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert isinstance(result, Tensor3DGrid_V1_2_0)
     assert result.name == "Test"
     assert result.coordinate_reference_system == crs_from_epsg_code(4326)
@@ -82,7 +82,7 @@ def test_blanked_cell(caplog: pytest.LogCaptureFixture) -> None:
     vtk_data.BlankCell(2)
 
     data_client = MockDataClient()
-    result = convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+    result = convert_vtk_rectilinear_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
 
     assert len(result.cell_attributes) == 1
     assert result.cell_attributes[0].name == "cell_data"
@@ -101,7 +101,7 @@ def test_blanked_point(caplog: pytest.LogCaptureFixture) -> None:
     data_client = MagicMock()
 
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        convert_vtk_rectilinear_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert "Grid with blank points are not supported" in str(ctx.value)
 
 
@@ -129,5 +129,5 @@ def test_ghost(caplog: pytest.LogCaptureFixture, geometry: int, ghost_value: int
 
     data_client = MagicMock()
     with pytest.raises(GhostValueError) as ctx:
-        convert_vtk_rectilinear_grid("Test", vtk_data, epsg_code=4326, data_client=data_client)
+        convert_vtk_rectilinear_grid("Test", vtk_data, crs=crs_from_epsg_code(4326), data_client=data_client)
     assert warning_message in str(ctx.value)

@@ -104,9 +104,9 @@ def point_raw(
     index: Optional[Union[tuple[int, int, int], tuple[int, int]]] = None,
     points_root: Optional[Any] = None,
     cache_array: bool = True,
-) -> Optional[npt.NDArray[np.float_]]:
+) -> Optional[npt.NDArray[np.float64]]:
     has_cache = getattr(grid, "points_cached", None) is not None
-    rv: Optional[npt.NDArray[np.float_]] = _grid_point_raw(
+    rv: Optional[npt.NDArray[np.float64]] = _grid_point_raw(
         grid, index=index, points_root=points_root, cache_array=cache_array
     )
     if rv is None:

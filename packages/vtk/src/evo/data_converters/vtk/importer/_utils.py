@@ -15,11 +15,10 @@ import numpy as np
 import numpy.typing as npt
 import pyarrow as pa
 import vtk
-from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0
+from evo_schemas.components import BoundingBox_V1_0_1, Rotation_V1_1_0, Crs_V1_0_1
 from scipy.spatial.transform import Rotation
 from vtk.util.numpy_support import vtk_to_numpy
 
-from evo.data_converters.common import crs_from_epsg_code
 from evo.data_converters.common.utils import convert_rotation
 
 
@@ -60,11 +59,11 @@ def check_for_ghosts(dataset: vtk.vtkDataSet) -> npt.NDArray[np.bool_] | None:
         return None
 
 
-def common_fields(name: str, epsg_code: int, dataset: vtk.vtkDataSet) -> dict:
+def common_fields(name: str, crs: Crs_V1_0_1, dataset: vtk.vtkDataSet) -> dict:
     bounding_box = get_bounding_box(dataset)
     return {
         "name": name,
-        "coordinate_reference_system": crs_from_epsg_code(epsg_code),
+        "coordinate_reference_system": crs,
         "bounding_box": bounding_box,
         "uuid": None,
     }
@@ -75,17 +74,17 @@ def is_float_array(array: vtk.vtkAbstractArray) -> bool:
 
 
 def is_integer_array(array: vtk.vtkAbstractArray) -> bool:
-    return array.GetDataType() in [
-        vtk.VTK_SIGNED_CHAR,
-        vtk.VTK_UNSIGNED_CHAR,
-        vtk.VTK_SHORT,
-        vtk.VTK_UNSIGNED_SHORT,
-        vtk.VTK_INT,
-        vtk.VTK_UNSIGNED_INT,
-        vtk.VTK_LONG,
-        vtk.VTK_UNSIGNED_LONG,
-        vtk.VTK_LONG_LONG,
-    ]
+    if array.GetDataType() == vtk.VTK_STRING:
+        return False
+    return vtk_to_numpy(array).dtype in {
+        np.dtype(np.int8),
+        np.dtype(np.uint8),
+        np.dtype(np.int16),
+        np.dtype(np.uint16),
+        np.dtype(np.int32),
+        np.dtype(np.uint32),
+        np.dtype(np.int64),
+    }
 
 
 def is_string_array(array: vtk.vtkAbstractArray) -> bool:

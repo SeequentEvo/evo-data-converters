@@ -2,27 +2,39 @@
 name = "evo-data-converters-ags"
 description = "Python data converters for AGS to Evo geoscience objects"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license-files = ["LICENSE.md"]
 dynamic = ["readme"]
 authors = [
     { name = "Seequent", email = "support@seequent.com" }
 ]
 dependencies = [
-    "evo-data-converters-common>=0.3.1",
-    "evo-objects[utils]>=0.6.3",
+    "evo-data-converters-common>=0.5.1",
+    "evo-objects[utils]>=0.6.6",
     "evo-sdk-common>=0.5.31",
     "python-ags4==1.1.0",
 ]
-classifiers = [
-    "Operating System :: Microsoft :: Windows"
-]
+
+[project.urls]
+Source = "https://github.com/SeequentEvo/evo-data-converters"
+Tracker = "https://github.com/SeequentEvo/evo-data-converters/issues"
+Homepage = "https://www.seequent.com/"
+Documentation = "https://developer.seequent.com/"
 
 [dependency-groups]
 dev = [
     "pytest",
     "requests-mock",
 ]
+
+[project.optional-dependencies]
+"notebooks" = [
+    "evo-sdk-common[notebooks]",
+    "notebook>=7.4.3",
+]
+
+[tool.uv.sources]
+evo-data-converters-common = { path = "../common", editable = true }
 
 [tool.ruff]
 src = ["src", "tests"]

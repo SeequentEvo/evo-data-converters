@@ -9,15 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import pandas as pd
 import sys
 import typing
 
+import pandas as pd
 
 from ..base_properties import BaseSpatialDataProperties
 from .column_mapping import ColumnMapping
 from .hole_collars import HoleCollars
-from .tables import MeasurementTableFactory, MeasurementTableAdapter
+from .tables import MeasurementTableAdapter, MeasurementTableFactory
 
 if sys.version_info >= (3, 12):
     from typing import override
