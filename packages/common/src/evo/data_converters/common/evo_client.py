@@ -63,6 +63,7 @@ async def _authorization_code_authorizer(
         oauth_connector=OAuthConnector(
             transport=transport,
             client_id=metadata.client_id,
+            base_uri="https://qa-ims.bentley.com",
         ),
     )
     await authorizer.login()

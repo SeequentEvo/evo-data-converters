@@ -110,6 +110,19 @@ def test_should_handle_parse_error(evo_metadata, not_ags_path, caplog):
     assert "AGS Format Rule 3" in caplog.text
 
 
+def test_should_skip_collection_without_locatable_holes(
+    evo_metadata: EvoWorkspaceMetadata, test_no_coordinates_ags_path: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    result = asyncio.run(
+        convert_ags(
+            filepaths=[test_no_coordinates_ags_path], evo_workspace_metadata=evo_metadata, publish_objects=False
+        )
+    )
+
+    assert result == []
+    assert "No holes have a complete finite coordinate pair" in caplog.text
+
+
 @patch("evo.data_converters.ags.importer.ags_to_evo.create_evo_object_service_and_data_client")
 @patch("evo.data_converters.ags.importer.ags_to_evo.DownholeCollection")
 def test_coordinate_crs_mismatch_is_not_published(
@@ -128,7 +141,7 @@ def test_coordinate_crs_mismatch_is_not_published(
 
     assert result == []
     assert "Failed to convert AGS file 'mismatched_crs'" in caplog.text
-    assert "No complete geographic coordinate pair" in caplog.text
+    assert "No holes have a complete finite coordinate pair" in caplog.text
     mock_collection.create.assert_not_called()
 
 

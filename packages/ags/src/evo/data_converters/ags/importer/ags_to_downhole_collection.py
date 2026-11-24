@@ -465,42 +465,91 @@ def build_collars(
     collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str)
     collars_df["final_depth"] = collars_df["LOCA_ID"].map(final_depths(scpg_df, tables)).astype("float64")
 
-    assign_coordinates(collars_df, crs_definition)
+    coordinate_families = assign_coordinates(collars_df, crs_definition)
+    collars_df, coordinate_families = exclude_unlocated_collars(collars_df, coordinate_families)
+    family = shared_coordinate_family(collars_df, coordinate_families)
+    assign_elevations(collars_df, family)
+    assign_vertical_datum(collars_df, family)
 
     key_cols = ["LOCA_ID", "SCPG_TESN"]
     other_cols = [c for c in collars_df.columns if c not in COLLAR_COLUMNS + key_cols]
     return collars_df[COLLAR_COLUMNS + key_cols + other_cols]
 
 
-def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> None:
-    """Assign coordinates and elevation from the same spatial coordinate family."""
+def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> pd.Series:
+    """Assign each collar's coordinates from the family compatible with its CRS."""
     if crs_definition is None:
-        logger.warning("CRS is unavailable; coordinate column family cannot be verified.")
-        family = assign_unspecified_coordinates(collars_df)
+        logger.warning("CRS is unavailable; coordinate columns cannot be verified.")
+        return assign_unspecified_coordinates(collars_df)
     elif crs_definition == "unspecified":
-        logger.warning("CRS is local or unspecified; using the local coordinate family.")
-        family = assign_family_coordinates(collars_df, "local", "local reference", require_complete=True)
+        logger.warning("CRS is local or unspecified; using local grid coordinates.")
+        return assign_family_coordinates(collars_df, "local")
     else:
-        family = assign_horizontal_coordinates(collars_df, crs_definition)
-
-    assign_elevations(collars_df, family)
-    assign_vertical_datum(collars_df, family)
+        return assign_horizontal_coordinates(collars_df, crs_definition)
 
 
-def assign_unspecified_coordinates(collars_df: pd.DataFrame) -> CoordinateFamily:
-    """Choose one coordinate family for the table when no CRS is declared."""
+def assign_unspecified_coordinates(collars_df: pd.DataFrame) -> pd.Series:
+    """Choose the first complete coordinate family for each collar when no CRS is declared."""
+    families = pd.Series(pd.NA, index=collars_df.index, dtype="object")
+    x = pd.Series(np.nan, index=collars_df.index, dtype="float64")
+    y = pd.Series(np.nan, index=collars_df.index, dtype="float64")
+
     local_reference = collars_df.get("LOCA_LREF")
-    if local_reference is not None and local_reference.fillna("").astype(str).str.strip().ne("").any():
-        return assign_family_coordinates(collars_df, "local", "LOCA_LREF", require_complete=True)
+    if local_reference is not None:
+        local_rows = local_reference.fillna("").astype(str).str.strip().ne("")
+        families.loc[local_rows] = "local"
+        local_x, local_y = family_coordinates(collars_df, "local")
+        x.loc[local_rows] = local_x.loc[local_rows]
+        y.loc[local_rows] = local_y.loc[local_rows]
 
     for family in AgsContext.UNSPECIFIED_COORDINATE_FAMILY_PRIORITY:
-        if has_complete_coordinates(collars_df, family):
-            return assign_family_coordinates(collars_df, family, "unspecified CRS", require_complete=False)
+        family_x, family_y = family_coordinates(collars_df, family)
+        complete = np.isfinite(family_x) & np.isfinite(family_y)
+        use_family = families.isna() & complete
+        x.loc[use_family] = family_x.loc[use_family]
+        y.loc[use_family] = family_y.loc[use_family]
+        families.loc[use_family] = family
 
-    collars_df[["x", "y"]] = 0.0
-    logger.warning("No valid x coordinate data found in LOCA table, defaulting to 0.0")
-    logger.warning("No valid y coordinate data found in LOCA table, defaulting to 0.0")
-    return "national"
+    collars_df["x"] = x
+    collars_df["y"] = y
+    return families
+
+
+def exclude_unlocated_collars(collars_df: pd.DataFrame, families: pd.Series) -> tuple[pd.DataFrame, pd.Series]:
+    """Drop the collars without finite x and y, renumber the rest, and fail when no collar is located."""
+    located = np.isfinite(collars_df["x"]) & np.isfinite(collars_df["y"])
+    if not located.all():
+        holes = collars_df.loc[~located, "hole_id"].tolist()
+        logger.warning(f"Excluding collars and measurements without complete finite coordinates for holes: {holes}")
+    if not located.any():
+        raise AgsFileInvalidException(
+            "No holes have a complete finite coordinate pair in the LOCA table; "
+            f"expected {expected_coordinate_columns(families)}."
+        )
+
+    collars_df = collars_df.loc[located].reset_index(drop=True)
+    collars_df["hole_index"] = range(1, len(collars_df) + 1)
+    return collars_df, families.loc[located].reset_index(drop=True)
+
+
+def expected_coordinate_columns(families: pd.Series) -> str:
+    """Describe the coordinate column pairs searched for the collars."""
+    searched = families.unique() if families.notna().all() else AgsContext.UNSPECIFIED_COORDINATE_FAMILY_PRIORITY
+    return " or ".join("/".join(AgsContext.COORDINATE_COLUMNS_BY_FAMILY[family]) for family in searched)
+
+
+def shared_coordinate_family(collars_df: pd.DataFrame, families: pd.Series) -> CoordinateFamily:
+    """Return the coordinate family of the located collars, rejecting families that no CRS can reconcile."""
+    used_families = families.unique()
+    if len(used_families) > 1:
+        holes_by_family = {
+            family: collars_df.loc[families.eq(family), "hole_id"].tolist() for family in used_families
+        }
+        raise AgsFileInvalidException(
+            f"LOCA rows use different coordinate types without a shared CRS: {holes_by_family}."
+        )
+    family: CoordinateFamily = used_families[0]
+    return family
 
 
 def numeric_column(collars_df: pd.DataFrame, column: str) -> pd.Series:
@@ -516,31 +565,10 @@ def family_coordinates(collars_df: pd.DataFrame, family: CoordinateFamily) -> tu
     return numeric_column(collars_df, x_column), numeric_column(collars_df, y_column)
 
 
-def has_complete_coordinates(collars_df: pd.DataFrame, family: CoordinateFamily) -> bool:
-    """Return whether a coordinate family contains at least one complete numeric row."""
-    x, y = family_coordinates(collars_df, family)
-    return bool((x.notna() & y.notna()).any())
-
-
-def assign_family_coordinates(
-    collars_df: pd.DataFrame,
-    family: CoordinateFamily,
-    reference: str,
-    require_complete: bool,
-) -> CoordinateFamily:
+def assign_family_coordinates(collars_df: pd.DataFrame, family: CoordinateFamily) -> pd.Series:
     """Assign x and y from one coordinate family, without mixing coordinate references."""
     collars_df["x"], collars_df["y"] = family_coordinates(collars_df, family)
-
-    missing = collars_df["x"].isna() | collars_df["y"].isna()
-    if missing.any():
-        holes = collars_df.loc[missing, "hole_id"].tolist()
-        if require_complete:
-            raise AgsFileInvalidException(
-                f"No complete {family} coordinate pair for {reference} in LOCA table for holes: {holes}."
-            )
-        logger.warning(f"No complete {family} coordinate pair for holes: {holes}, defaulting x and y to 0.0")
-        collars_df.loc[missing, ["x", "y"]] = 0.0
-    return family
+    return pd.Series(family, index=collars_df.index, dtype="object")
 
 
 def assign_elevations(collars_df: pd.DataFrame, family: CoordinateFamily) -> None:
@@ -548,11 +576,11 @@ def assign_elevations(collars_df: pd.DataFrame, family: CoordinateFamily) -> Non
     column = AgsContext.ELEVATION_COLUMN_BY_FAMILY[family]
     elevation = numeric_column(collars_df, column)
 
-    missing = elevation.isna()
-    if missing.any():
-        holes = collars_df.loc[missing, "hole_id"].tolist()
+    invalid = ~np.isfinite(elevation)
+    if invalid.any():
+        holes = collars_df.loc[invalid, "hole_id"].tolist()
         logger.warning(f"No valid z coordinate data found in {column} for holes: {holes}, defaulting to 0.0")
-    collars_df["z"] = elevation.fillna(0.0)
+    collars_df["z"] = elevation.mask(invalid, 0.0)
 
 
 def assign_vertical_datum(collars_df: pd.DataFrame, family: CoordinateFamily) -> None:
@@ -568,7 +596,7 @@ def assign_vertical_datum(collars_df: pd.DataFrame, family: CoordinateFamily) ->
     collars_df["LOCA_DATM"] = datum.mask(missing, "undeclared")
 
 
-def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int | str) -> CoordinateFamily:
+def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int | str) -> pd.Series:
     """Select the coordinate family matching a projected or geographic CRS and assign x and y."""
     crs = CRS.from_user_input(crs_definition)
     family: CoordinateFamily
@@ -579,7 +607,7 @@ def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int 
     else:
         raise AgsFileInvalidException(f"CRS {crs_definition} is neither projected nor geographic.")
 
-    return assign_family_coordinates(collars_df, family, f"CRS {crs_definition}", require_complete=True)
+    return assign_family_coordinates(collars_df, family)
 
 
 def calculate_dip_and_azimuth(

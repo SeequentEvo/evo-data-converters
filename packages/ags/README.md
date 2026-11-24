@@ -124,9 +124,10 @@ AGS TYPE codes are mapped to appropriate pandas/Python types:
 - Holes without a declared CRS adopt the CRS declared by the other holes, with a warning
 - Projected CRSs use only complete `LOCA_NATE`/`LOCA_NATN` pairs
 - Geographic CRSs use only `LOCA_LON`/`LOCA_LAT`, even when projected columns are populated
-- Raises `AgsFileInvalidException` if any imported hole lacks a complete coordinate pair in the detected CRS family
+- Holes without valid coordinates are skipped, together with their measurements, and their IDs are logged
+- Raises `AgsFileInvalidException` when no hole has valid coordinates
 - Handles LOCAL as "unspecified" CRS
-- When the CRS cannot be resolved, selects one coordinate family and logs that it cannot be verified
+- When no CRS is declared, each hole uses the first complete coordinate pair found: national grid, then local grid, then latitude/longitude; a file whose holes use different coordinate types is rejected
 - Non-standard columns such as `LOCA_EASTING`/`LOCA_NORTHING` are not read
 
 ### Importing multiple files
@@ -151,8 +152,8 @@ AGS TYPE codes are mapped to appropriate pandas/Python types:
 
 ### Assumptions & Limitations
 
-- **Coordinate families and elevation:** Local coordinates (`LOCA_LOCX`/`LOCA_LOCY`) use `LOCA_LOCZ`, which AGS defines relative to the local datum named in `LOCA_DATM`. AGS defines `LOCA_GL` as ground level relative to the datum of the location, but does not declare that vertical datum, and `LOCA_GREF`/`LOCA_LLZ` identify only the horizontal reference system. As a parser convention, national grid coordinates (`LOCA_NATE`/`LOCA_NATN`) and geographic coordinates (`LOCA_LON`/`LOCA_LAT`) use `LOCA_GL` as the collar elevation, because AGS has no separate elevation field for either family. When `LOCA_GL` is used and `LOCA_DATM` is blank or absent, the parser warns that the vertical datum is undeclared. The original `LOCA_DATM` is retained as a collar attribute, with blank or absent values represented as `"undeclared"`. The collection CRS therefore describes X/Y only; Z is stored as the source value and is not expressed in a vertical axis of that CRS. The parser does not mix coordinate families to fill missing values, so it never falls back from `LOCA_GL` to `LOCA_LOCZ` or the reverse. If the selected family's elevation is missing or non-numeric, the affected hole is logged and Z defaults to 0.0. No coordinate transformation, elevation-unit conversion, or vertical datum conversion is performed.
-- **Unspecified coordinate reference:** A declared local reference (`LOCA_GREF=LOCAL` or `LOCA_LREF`) selects the local coordinate family and requires complete `LOCA_LOCX`/`LOCA_LOCY` values. If no reference is declared, the parser chooses one available coordinate family for the table in national, local, then geographic order and logs that the family cannot be verified.
+- **Ground level:** Holes located with national grid (`LOCA_NATE`/`LOCA_NATN`) or latitude/longitude (`LOCA_LON`/`LOCA_LAT`) coordinates take their elevation from `LOCA_GL`; holes located with local grid coordinates (`LOCA_LOCX`/`LOCA_LOCY`) take it from `LOCA_LOCZ`. A missing, non-numeric, or non-finite elevation defaults to 0.0 with a warning. `LOCA_DATM` is kept as a collar attribute (`"undeclared"` when blank), and a warning is logged when `LOCA_GL` is used without it. The CRS describes X/Y only; no coordinate, unit, or vertical datum conversion is performed.
+- **Missing coordinates:** A declared local reference (`LOCA_GREF=LOCAL` or `LOCA_LREF`) selects the local grid columns. Holes without valid X/Y coordinates are skipped with their measurements and logged; if no hole has valid coordinates, the file is rejected. Zero-valued coordinates are valid.
 - **Hole identification:** `LOCA_ID` is the identity of a hole, and its `hole_id` is the `LOCA_ID` unchanged (for example `CPT-14`). Each `LOCA_ID` produces at most one collar, which is shared through `hole_index` by all of its SCPT, SCPP and GEOL data. `SCPG_TESN` is retained as a collar attribute but never forms part of the hole identity.
 - **Multiple CPT pushes:** Multiple CPT pushes (`SCPG_TESN` values) for the same `LOCA_ID` are not currently supported. Only the first push in the order of the AGS data is imported; `SCPG_TESN` values are not sorted. Rows of the other pushes are excluded from SCPG and every group keyed by `SCPG_TESN` (such as SCPT and SCPP), and a warning names the location, the imported push and the pushes that were not imported.
 - **CRS preference:** When a hole has CRS information in both `LOCA_GREF` and `LOCA_LLZ`, `LOCA_GREF` is preferred.
