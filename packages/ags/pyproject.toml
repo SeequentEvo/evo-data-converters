@@ -11,6 +11,7 @@ authors = [
 dependencies = [
     "evo-data-converters-common>=0.5.1",
     "evo-objects[utils]>=0.6.6",
+    "evo-schemas>=2025.9.12",
     "evo-sdk-common>=0.5.31",
     "python-ags4==1.1.0",
 ]

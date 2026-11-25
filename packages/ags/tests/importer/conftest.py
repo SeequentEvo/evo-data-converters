@@ -223,4 +223,12 @@ def mock_ags_context():
 
     context.get_table.side_effect = get_table_side_effect
 
+    units = {
+        LOCA: {"LOCA_NATE": "m", "LOCA_NATN": "m", "LOCA_GL": "m"},
+        SCPT: {"SCPT_DPTH": "m"},
+        SCPP: {"SCPP_TOP": "m", "SCPP_BASE": "m", "SCPP_CIC": "MN/m2"},
+        GEOL: {"GEOL_TOP": "m", "GEOL_BASE": "m"},
+    }
+    context.get_units.side_effect = lambda group: units.get(group, {}).copy()
+
     return context

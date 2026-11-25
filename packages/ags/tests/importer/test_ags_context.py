@@ -18,12 +18,15 @@ from python_ags4.AGS4 import AGS4Error
 
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException, AgsIncompatibleMergeError
 from evo.data_converters.ags.common.ags_context import (
+    DMS_UNIT,
     LOCA,
     PARSE_FAILURE_REASON,
     PROJ,
     SCPG,
     SCPT,
     ags4_errors_to_diagnostics,
+    dms_to_degrees,
+    parse_dms,
 )
 
 
@@ -228,6 +231,92 @@ def test_valid_ags(valid_ags_path):
         assert not context.tables[table_name].empty
         assert table_name in context.headings
         assert len(context.headings[table_name]) > 0
+
+
+def test_valid_ags_units(valid_ags_path):
+    """Units come from the UNIT rows, except where the conversion consumes them or the column has none"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_units = context.get_units(LOCA)
+    assert loca_units["LOCA_NATE"] == "m"
+    assert loca_units["LOCA_LAT"] == DMS_UNIT
+    assert loca_units["LOCA_LON"] == DMS_UNIT
+    assert "HEADING" not in loca_units
+    assert "LOCA_ID" not in loca_units
+    assert "LOCA_STAR" not in loca_units
+
+    scpt_units = context.get_units(SCPT)
+    assert scpt_units["SCPT_DPTH"] == "m"
+    assert scpt_units["SCPT_RES"] == "MN/m2"
+    assert scpt_units["SCPT_FRR"] == "%"
+    assert context.get_units("MISSING") == {}
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("51:28:52.498", 51 + 28 / 60 + 52.498 / 3600),
+        ("-0:07:39.6", -(7 / 60 + 39.6 / 3600)),
+        ("-0:30:00", -0.5),
+        ("+1:30", 1.5),
+        ("51:28:52.498N", 51 + 28 / 60 + 52.498 / 3600),
+        ("N51:28:52.498", 51 + 28 / 60 + 52.498 / 3600),
+        (" 0:30:00 s ", -0.5),
+        ("W 0:30", -0.5),
+        ("1:30E", 1.5),
+        ("51.5", 51.5),
+        ("-0.25", -0.25),
+        (".5", 0.5),
+        (12, 12.0),
+        (-1.5, -1.5),
+    ],
+)
+def test_parse_dms(value, expected):
+    assert parse_dms(value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", "  ", None, True, "abc", "1:60:00", "1:00:60", "-1:30N", "+1:30S", "1:30.5:10", "1:2:3:4", "N"],
+)
+def test_parse_dms_unreadable_values_are_missing(value):
+    assert pd.isna(parse_dms(value))
+
+
+def test_dms_to_degrees_warns_about_unreadable_values(caplog):
+    series = pd.Series(["51:30:00", "", None, "abc", "1:60:00"])
+
+    with caplog.at_level("WARNING"):
+        result = dms_to_degrees(series, "LOCA_LAT")
+
+    assert result.dtype == "float64"
+    assert result.iloc[0] == pytest.approx(51.5)
+    assert result.iloc[1:].isna().all()
+    assert "Could not read 2 values of LOCA_LAT as degrees, minutes and seconds" in caplog.text
+
+
+def test_dms_to_degrees_without_unreadable_values_does_not_warn(caplog):
+    with caplog.at_level("WARNING"):
+        dms_to_degrees(pd.Series(["51:30:00", ""]), "LOCA_LAT")
+
+    assert "LOCA_LAT" not in caplog.text
+
+
+def test_dms_columns_are_parsed(tmp_path, valid_ags_path):
+    """DMS values in LOCA_LAT and LOCA_LON are read as decimal degrees"""
+    text = Path(valid_ags_path).read_text()
+    loca_row = '"50.49","2025-06-17","","","","","","",""'
+    assert text.count(loca_row) == 1
+    path = tmp_path / "dms.ags"
+    path.write_text(text.replace(loca_row, '"50.49","2025-06-17","","","","","51:28:52.498N","0:07:39.6W",""'))
+
+    context = AgsContext()
+    context.parse_ags(path)
+
+    loca = context.get_table(LOCA)
+    assert loca["LOCA_LAT"].iloc[0] == pytest.approx(51.48125, abs=1e-6)
+    assert loca["LOCA_LON"].iloc[0] == pytest.approx(-0.1277, abs=1e-4)
 
 
 def test_timedelta_type_conversion(test_timedelta_ags_path):
@@ -718,3 +807,58 @@ def test_merge_handles_duplicate_loca_ids_correctly(valid_ags_2a_path, invalid_a
     assert all(scpt_merged["LOCA_ID"] == "EXAMPLE-2-CPT1")
     # Should have 7 rows (only from 2a)
     assert len(scpt_merged) == 7
+
+
+def test_units_are_merged(valid_ags_1a_path, valid_ags_1b_path):
+    """Units declared in either context are kept, and the other context is left unchanged"""
+    context1 = AgsContext()
+    context1.parse_ags(valid_ags_1a_path)
+
+    context2 = AgsContext()
+    context2.parse_ags(valid_ags_1b_path)
+    context2.set_units(SCPT, {**context2.get_units(SCPT), "SCPT_EXTRA": "kN/m2"})
+    other_units = context2.get_units(SCPT).copy()
+
+    context1.merge(other=context2)
+
+    assert context1.get_units(SCPT)["SCPT_RES"] == "MN/m2"
+    assert context1.get_units(SCPT)["SCPT_EXTRA"] == "kN/m2"
+    assert context2.get_units(SCPT) == other_units
+
+
+def test_unit_mismatch_in_merge(valid_ags_1a_path, valid_ags_1b_path, caplog):
+    """Test that a column in different units fails with validation, warns without, and keeps the first unit"""
+    context1 = AgsContext()
+    context1.parse_ags(valid_ags_1a_path)
+
+    context2 = AgsContext()
+    context2.parse_ags(valid_ags_1b_path)
+    context2.set_units(SCPT, {**context2.get_units(SCPT), "SCPT_RES": "kN/m2"})
+    scpt_rows = len(context1.get_table(SCPT))
+
+    with pytest.raises(
+        AgsIncompatibleMergeError,
+        match="Incompatible units for SCPT.SCPT_RES: first has 'MN/m2', second has 'kN/m2'",
+    ):
+        context1.merge(other=context2)
+    assert len(context1.get_table(SCPT)) == scpt_rows
+
+    context1.merge(other=context2, validate_compatibility=False)
+    assert "Incompatible units for SCPT.SCPT_RES" in caplog.text
+    assert context1.get_units(SCPT)["SCPT_RES"] == "MN/m2"
+
+
+def test_duplicate_measurement_rows_during_merge_warn(valid_ags_1a_path, caplog):
+    """Identical measurement rows from both contexts are kept once, with a warning"""
+    context1 = AgsContext()
+    context1.parse_ags(valid_ags_1a_path)
+
+    context2 = AgsContext()
+    context2.parse_ags(valid_ags_1a_path)
+    scpt_rows = len(context2.get_table(SCPT))
+
+    with caplog.at_level("WARNING"):
+        context1.merge(other=context2)
+
+    assert f"Found {scpt_rows} duplicate SCPT rows when merging contexts. Keeping one of each." in caplog.text
+    assert len(context1.get_table(SCPT)) == scpt_rows

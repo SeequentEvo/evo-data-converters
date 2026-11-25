@@ -112,6 +112,11 @@ else:
 - Each collection must use one coordinate system. Import files with different coordinate systems or coordinate types
   separately using `merge_files=False`.
 - Coordinates, units, and vertical datums are not converted.
+- Numeric attributes are tagged with their units from the AGS `UNIT` rows. Units that Evo does not recognise, such as
+  `kN/m3`, are imported without a unit and a warning is logged.
+- Files that use different units for the same column cannot be merged. Import them separately using
+  `merge_files=False`.
+- `LOCA_LAT` and `LOCA_LON` are imported in decimal degrees.
 - Missing or invalid ground-level values default to zero, so check these before using the imported data.
 - Where hole orientation is unavailable, the hole is assumed to be vertical.
 

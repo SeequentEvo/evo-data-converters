@@ -21,12 +21,14 @@ from evo.data_converters.ags.importer.ags_to_downhole_collection import (
     attribute_frame,
     attribute_series,
     build_path,
+    describe_units,
     hole_chunks,
     path_stations,
     prepare_measurements,
     to_evo_crs,
+    to_evo_unit,
 )
-from evo.objects.typed import EpsgCode
+from evo.objects.typed import AttributeDescription, EpsgCode
 
 
 class TestToEvoCrs:
@@ -87,6 +89,58 @@ class TestAttributeConversion:
         assert result.index.tolist() == [10, 11]
         assert result.columns.tolist() == ["number", "text"]
         assert result["number"].isna().tolist() == [False, True]
+
+
+class TestUnits:
+    @pytest.mark.parametrize(
+        ("ags_unit", "expected"),
+        [
+            ("m", "m"),
+            (" kN/m2 ", "kN/m2"),
+            ("%", "%"),
+            ("deg", "dega"),
+            ("DegC", "degC"),
+            ("MN/m2", "MPa"),
+            ("mg/l", "mg/L"),
+            ("", None),
+            ("  ", None),
+            (None, None),
+            ("blows", None),
+        ],
+    )
+    def test_to_evo_unit(self, ags_unit, expected):
+        assert to_evo_unit(ags_unit) == expected
+
+    def test_numeric_attributes_are_described_with_their_units(self, caplog):
+        frame = pd.DataFrame(
+            {
+                "depth": [1.0, 2.0],
+                "count": pd.array([1, 2], dtype="Int64"),
+                "flag": pd.array([True, False], dtype="boolean"),
+                "text": pd.array(["a", "b"], dtype="string"),
+                "blows": [3.0, 4.0],
+                "unitless": [5.0, 6.0],
+            }
+        )
+        units = {"depth": "m", "count": "%", "flag": "m", "text": "m", "blows": "blows", "unknown": "m"}
+
+        with caplog.at_level(logging.WARNING):
+            describe_units(frame, units, "test")
+
+        assert frame.attrs["attribute_descriptions"] == {
+            "depth": AttributeDescription(unit="m"),
+            "count": AttributeDescription(unit="%"),
+        }
+        assert "Unit 'blows' of attribute 'blows' of test is not an Evo unit" in caplog.text
+        assert "'flag'" not in caplog.text
+        assert "'text'" not in caplog.text
+
+    def test_attributes_without_units_are_not_described(self):
+        frame = pd.DataFrame({"depth": [1.0, 2.0]})
+
+        describe_units(frame, {}, "test")
+
+        assert "attribute_descriptions" not in frame.attrs
 
 
 class TestHoleChunks:

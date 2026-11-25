@@ -9,6 +9,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import math
+import re
 from functools import cached_property
 from io import StringIO
 from pathlib import Path
@@ -50,6 +52,70 @@ PARSE_FAILURE_REASON = "The AGS contents could not be parsed. Check the file for
 
 # python-ags4 rows that describe the validation run rather than a rule broken by the file
 VALIDATOR_PROCESS_KEYS: tuple[str, ...] = ("General", "Validator Process Error")
+
+# Unit of the DMS columns once converted to decimal degrees, as AGS abbreviates it
+DMS_UNIT = "deg"
+_HEMISPHERES = ("N", "S", "E", "W")
+_DMS_PATTERN = re.compile(
+    r"(?P<sign>[+-])?"
+    r"(?:(?P<degrees>\d+):(?P<minutes>\d+(?:\.\d+)?)(?::(?P<seconds>\d+(?:\.\d+)?))?"
+    r"|(?P<decimal>\d+(?:\.\d*)?|\.\d+))"
+)
+
+
+def parse_dms(value: object) -> float:
+    """Convert an AGS DMS value, such as "51:28:52.498", to decimal degrees.
+
+    Accepts degrees:minutes:seconds and degrees:minutes with an optional sign, or an optional N, S, E or W hemisphere
+    before or after the value, where S and W are negative. Values in decimal degrees are returned as they are.
+
+    :param value: The DMS value.
+    :return: The value in decimal degrees, or NaN when it is missing or cannot be read.
+    """
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if not isinstance(value, str):
+        return math.nan
+
+    text = value.strip().upper()
+    hemisphere = None
+    if text and text[0] in _HEMISPHERES:
+        hemisphere, text = text[0], text[1:].strip()
+    elif text and text[-1] in _HEMISPHERES:
+        hemisphere, text = text[-1], text[:-1].strip()
+
+    match = _DMS_PATTERN.fullmatch(text)
+    if match is None or (hemisphere is not None and match["sign"] is not None):
+        return math.nan
+
+    if match["decimal"] is not None:
+        magnitude = float(match["decimal"])
+    else:
+        minutes = float(match["minutes"])
+        seconds = float(match["seconds"] or 0)
+        if minutes >= 60 or seconds >= 60 or (match["seconds"] is not None and "." in match["minutes"]):
+            return math.nan
+        magnitude = int(match["degrees"]) + minutes / 60 + seconds / 3600
+
+    negative = match["sign"] == "-" or hemisphere in ("S", "W")
+    return -magnitude if negative else magnitude
+
+
+def dms_to_degrees(series: pd.Series, column: str) -> pd.Series:
+    """Convert a column of AGS DMS values to decimal degrees, with a warning for the values that cannot be read.
+
+    :param series: The DMS values.
+    :param column: The name of the column, for log messages.
+    :return: The values in decimal degrees, NaN where they are missing or cannot be read.
+    """
+    degrees = series.map(parse_dms).astype("float64")
+    has_value = series.notna() & series.astype(str).str.strip().ne("")
+    unread = has_value & degrees.isna()
+    if unread.any():
+        logger.warning(
+            f"Could not read {unread.sum()} values of {column} as degrees, minutes and seconds; treating them as missing"
+        )
+    return degrees
 
 
 def _normalize_crs_value(value: object) -> str | None:
@@ -122,6 +188,7 @@ class AgsContext:
 
     _tables: dict[str, pd.DataFrame]
     _headings: dict[str, list[str]]
+    _units: dict[str, dict[str, str]]
     _filename: str | None
     sources: tuple[AgsSource, ...]
 
@@ -135,6 +202,8 @@ class AgsContext:
     DISTANCE_COLUMNS: dict[str, str] = {SCPT: "SCPT_DPTH"}
     # Top and base depth columns of the measurement groups taken over an interval of the hole
     INTERVAL_COLUMNS: dict[str, tuple[str, str]] = {SCPP: ("SCPP_TOP", "SCPP_BASE"), GEOL: ("GEOL_TOP", "GEOL_BASE")}
+    # Groups whose rows are combined when merging contexts, the other groups are kept from the first context
+    MERGED_GROUPS: tuple[str, ...] = (LOCA, SCPG, HORN, *MEASUREMENT_GROUPS)
 
     # AGS validation rules that are ignored during file checks
     IGNORED_RULES: tuple[str, ...] = (
@@ -184,8 +253,12 @@ class AgsContext:
         "T": "timedelta",
         # boolean
         "YN": "bool",
-        # Note: ID, DMS, PA, PT, PU, RL, U, X, XN types fall back to string (default)
+        # degrees:minutes:seconds - converted to decimal degrees
+        "DMS": "dms",
+        # Note: ID, PA, PT, PU, RL, U, X, XN types fall back to string (default)
     }
+    # Categories whose UNIT row entry is consumed by the conversion, so it does not describe the converted values
+    UNITLESS_CATEGORIES: tuple[str, ...] = ("datetime", "timedelta", "bool")
 
     # LOCA coordinate columns (x, y) and elevation column of each coordinate family
     COORDINATE_COLUMNS_BY_FAMILY: dict[CoordinateFamily, tuple[str, str]] = {
@@ -205,6 +278,7 @@ class AgsContext:
     def __init__(self) -> None:
         self._tables = dict()
         self._headings = dict()
+        self._units = dict()
         self._filename = None
         self.sources = ()
 
@@ -297,14 +371,15 @@ class AgsContext:
 
         For each relevant table we:
 
-        1. Read the type codes from row 2.
+        1. Read the units from row 1 and the type codes from row 2.
         2. Convert the remaining rows (row 3+) to the appropriate dtype.
         3. Drop the first two metadata rows.
-        4. Store the cleaned dataframe and the original headings list.
+        4. Store the cleaned dataframe, the units of its columns and the original headings list.
 
         All other tables are discarded.
         """
         processed_tables: dict[str, pd.DataFrame] = {}
+        processed_units: dict[str, dict[str, str]] = {}
 
         for group, df in tables.items():
             if group not in self.REQUIRED_GROUPS + self.MEASUREMENT_GROUPS + self.RETAINED_GROUPS:
@@ -315,6 +390,7 @@ class AgsContext:
             unit_row: pd.Series = df.iloc[0]
             # Row 2 (index 1) holds the type codes for each column
             type_codes: list[str] = df.iloc[1].astype(str).tolist()
+            processed_units[group] = self._column_units(unit_row, type_codes)
 
             # Drop the first two rows (UNIT/TYPE) before conversion
             df: pd.DataFrame = df.iloc[2:].reset_index(drop=True)
@@ -364,6 +440,8 @@ class AgsContext:
                 elif category == "bool":
                     # Convert Y/N to boolean
                     df[col] = df[col].map({"Y": True, "N": False})
+                elif category == "dms":
+                    df[col] = dms_to_degrees(df[col], f"{group}.{col}")
                 else:
                     # Default: keep as string, preserve missing values
                     df[col] = df[col].astype(str)
@@ -376,6 +454,29 @@ class AgsContext:
         # Store the processed tables and keep the original headings dict
         self._tables = processed_tables
         self._headings = {group: headings[group] for group in processed_tables.keys()}
+        self._units = processed_units
+
+    @classmethod
+    def _column_units(cls, unit_row: pd.Series, type_codes: list[str]) -> dict[str, str]:
+        """Read the units of the columns of a group from its UNIT row.
+
+        Columns without a unit are left out, as are the columns whose UNIT entry is consumed by their conversion, such
+        as a date format. DMS columns are in decimal degrees once converted.
+
+        :param unit_row: The UNIT row of the group.
+        :param type_codes: The type codes of the columns of the group, in the same order as the UNIT row.
+        :return: The unit of each column that has one, as written in the AGS file.
+        """
+        units: dict[str, str] = {}
+        for (col, unit), typ in zip(unit_row.items(), type_codes):
+            category = cls.TYPE_CATEGORY.get(typ)
+            if col == "HEADING" or category in cls.UNITLESS_CATEGORIES:
+                continue
+            if category == "dms":
+                units[str(col)] = DMS_UNIT
+            elif isinstance(unit, str) and unit.strip():
+                units[str(col)] = unit.strip()
+        return units
 
     def validate_ags(self) -> list[str]:
         """Validate the in-memory AGS groups and coordinate reference systems, returning error messages.
@@ -423,6 +524,16 @@ class AgsContext:
         :rtype: dict[str, list[str]]
         """
         return self._headings
+
+    @property
+    def units(self) -> dict[str, dict[str, str]]:
+        """The units of the columns of each group, keyed by group and then column, as written in the AGS UNIT rows.
+
+        Columns without a unit are left out.
+
+        :returns: dictionary of column units for each group
+        """
+        return self._units
 
     @cached_property
     def proj_id(self) -> str:
@@ -477,6 +588,14 @@ class AgsContext:
         """
         return self.headings.get(group, list())
 
+    def get_units(self, group: str) -> dict[str, str]:
+        """Gets the units of the columns of a group, by group name.
+
+        :param group: Group name to retrieve the units for
+        :return: Mapping of column name to unit, or an empty dict if the group has no units
+        """
+        return self.units.get(group, dict())
+
     def set_table(self, group: str, df: pd.DataFrame) -> None:
         """Add or overwrite a table for a specific group.
 
@@ -492,6 +611,14 @@ class AgsContext:
         :param headings: List of heading strings
         """
         self._headings[group] = headings
+
+    def set_units(self, group: str, units: dict[str, str]) -> None:
+        """Add or overwrite the units of the columns of a specific group.
+
+        :param group: Group name to store the units under
+        :param units: Mapping of column name to unit
+        """
+        self._units[group] = units
 
     def crs_from_loca_gref(self) -> dict[str, int | str | None]:
         """
@@ -548,7 +675,7 @@ class AgsContext:
     def validate_merge(self, other: "AgsContext", raise_on_error: bool = True) -> list[str]:
         """Validate whether another AgsContext can be merged into this one.
 
-        Checks PROJ_ID and CRS compatibility, returning a list of incompatibility
+        Checks PROJ_ID, CRS and column unit compatibility, returning a list of incompatibility
         issues found.
 
         :param other: The AgsContext to validate for merging
@@ -580,6 +707,21 @@ class AgsContext:
                 raise AgsIncompatibleMergeError(f"Cannot merge AgsContext instances: {msg}")
             issues.append(msg)
 
+        # Check the columns are in the same units, as merged rows share one unit per column
+        for group in self.MERGED_GROUPS:
+            self_units = self.get_units(group)
+            other_units = other.get_units(group)
+            for column in self_units.keys() & other_units.keys():
+                if self_units[column] != other_units[column]:
+                    msg = (
+                        f"Incompatible units for {group}.{column}: first has '{self_units[column]}', "
+                        f"second has '{other_units[column]}'. Values will be merged as if they are in "
+                        f"'{self_units[column]}'."
+                    )
+                    if raise_on_error:
+                        raise AgsIncompatibleMergeError(f"Cannot merge AgsContext instances: {msg}")
+                    issues.append(msg)
+
         return issues
 
     def merge(self, other: "AgsContext", validate_compatibility: bool = True) -> None:
@@ -595,6 +737,7 @@ class AgsContext:
         - SCPG: Concatenate, check for duplicate (LOCA_ID, SCPG_TESN) pairs
         - HORN: Concatenate all rows for dip/azimuth measurements
         - Measurement tables (SCPT, SCPP, GEOL): Concatenate all rows
+        - Units of the merged groups: Combine per column, keeping the unit from self
 
         :param other: The AgsContext to merge into this one
         :param validate_compatibility: If True, raises error on incompatibility; if False, logs warnings
@@ -619,6 +762,11 @@ class AgsContext:
         # Measurement tables: concatenate all rows
         for group in self.MEASUREMENT_GROUPS:
             self._merge_measurement_table(group, other)
+
+        # Units: a column may only have a unit declared in one of the contexts
+        for group in self.MERGED_GROUPS:
+            if group in self.units or group in other.units:
+                self.set_units(group, {**other.get_units(group), **self.get_units(group)})
 
     def _merge_loca(self, other: "AgsContext") -> None:
         """Merge LOCA tables from another AgsContext into this one.
@@ -682,7 +830,7 @@ class AgsContext:
     def _merge_measurement_table(self, group: str, other: "AgsContext") -> None:
         """Merge a measurement table from another AgsContext into this one.
 
-        Concatenates all rows from both tables, removing duplicate rows.
+        Concatenates all rows from both tables, removing duplicate rows with a warning.
 
         :param group: The measurement group name to merge (e.g., SCPT, SCPP)
         :param other: The AgsContext to merge the measurement table from
@@ -694,6 +842,11 @@ class AgsContext:
 
                 # Concatenate and remove duplicates
                 merged_table = pd.concat([self_table, other_table], ignore_index=True)
+                duplicate_count = merged_table.duplicated().sum()
+                if duplicate_count > 0:
+                    logger.warning(
+                        f"Found {duplicate_count} duplicate {group} rows when merging contexts. Keeping one of each."
+                    )
                 merged_table = merged_table.drop_duplicates(ignore_index=True)
                 self.set_table(group, merged_table)
 

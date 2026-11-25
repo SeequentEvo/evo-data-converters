@@ -25,7 +25,13 @@ from evo.data_converters.ags.importer.ags_to_downhole_collection import (
     calculate_dip_and_azimuth,
     create_from_parsed_ags,
 )
-from evo.objects.typed import DistanceCollection, DownholeCollectionData, EpsgCode, IntervalCollection
+from evo.objects.typed import (
+    AttributeDescription,
+    DistanceCollection,
+    DownholeCollectionData,
+    EpsgCode,
+    IntervalCollection,
+)
 
 
 def get_collection(result: DownholeCollectionData, name: str) -> DistanceCollection | IntervalCollection:
@@ -104,6 +110,46 @@ class TestCreateFromParsedAgs:
 
         tagged = create_from_parsed_ags(mock_ags_context, tags={"source": "test"})
         assert tagged.tags == {"source": "test"}
+
+    def test_numeric_attributes_are_described_with_evo_units(self, mock_ags_context):
+        result = create_from_parsed_ags(mock_ags_context)
+
+        scpp = get_collection(result, SCPP)
+        assert scpp.table.attrs["attribute_descriptions"] == {"SCPP_CIC": AttributeDescription(unit="MPa")}
+        assert "attribute_descriptions" not in get_collection(result, GEOL).table.attrs
+        assert result.attributes is not None
+        assert result.attributes.attrs["attribute_descriptions"] == {
+            column: AttributeDescription(unit="m") for column in ("LOCA_NATE", "LOCA_NATN", "LOCA_GL")
+        }
+
+    def test_units_unknown_to_evo_are_left_out_with_a_warning(self, mock_ags_context, caplog):
+        units = {SCPP: {"SCPP_CIC": "kN/m3"}}
+        mock_ags_context.get_units.side_effect = lambda group: units.get(group, {})
+
+        with caplog.at_level(logging.WARNING):
+            result = create_from_parsed_ags(mock_ags_context)
+
+        assert "attribute_descriptions" not in get_collection(result, SCPP).table.attrs
+        assert "Unit 'kN/m3' of attribute 'SCPP_CIC' of SCPP is not an Evo unit" in caplog.text
+
+    def test_units_from_ags_file(self, valid_ags_path):
+        context = AgsContext()
+        context.parse_ags(valid_ags_path)
+
+        result = create_from_parsed_ags(context)
+
+        scpt_units = {
+            name: description.unit
+            for name, description in get_collection(result, SCPT).table.attrs["attribute_descriptions"].items()
+        }
+        assert scpt_units["SCPT_RES"] == "MPa"
+        assert scpt_units["SCPT_FRES"] == "kN/m2"
+        assert scpt_units["SCPT_FRR"] == "%"
+        assert result.attributes is not None
+        collar_units = result.attributes.attrs["attribute_descriptions"]
+        assert collar_units["LOCA_LAT"].unit == "dega"
+        assert collar_units["SCPG_CSA"].unit == "cm2"
+        assert "LOCA_ID" not in collar_units
 
     def test_unlocated_hole_is_reported_only_after_collection_succeeds(self, test_elevations_ags_path: str) -> None:
         context = AgsContext()

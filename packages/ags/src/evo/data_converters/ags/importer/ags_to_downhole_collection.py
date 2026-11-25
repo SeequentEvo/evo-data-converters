@@ -9,17 +9,24 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 import numpy as np
 import pandas as pd
+from evo_schemas.elements.unit import is_unit_v1_0_1
 from pyproj import CRS
 
 import evo.logging
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT, CoordinateFamily
 from evo.data_converters.ags.diagnostics import AgsDiagnostic
-from evo.objects.typed import DistanceCollection, DownholeCollectionData, EpsgCode, IntervalCollection
+from evo.objects.typed import (
+    AttributeDescription,
+    DistanceCollection,
+    DownholeCollectionData,
+    EpsgCode,
+    IntervalCollection,
+)
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -28,6 +35,20 @@ DEFAULT_DIP = 90.0
 DEFAULT_AZIMUTH = 0.0
 
 DISTANCE_UNIT = "m"
+
+# AGS abbreviations of units that Evo spells differently, other AGS units are used as they are when Evo knows them
+EVO_UNIT_ALIASES: dict[str, str] = {
+    "deg": "dega",
+    "DegC": "degC",
+    "MN/m2": "MPa",
+    "counts/s": "1/s",
+    "kNm": "kN.m",
+    "Ohm": "ohm",
+    "l/min": "L/min",
+    "l/s": "L/s",
+    "ml": "mL",
+    "mg/l": "mg/L",
+}
 
 # Standard collar columns, the other columns of the collars are kept as attributes
 COLLAR_COLUMNS = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
@@ -94,7 +115,7 @@ def create_from_parsed_ags(
             collection_class(
                 name=group,
                 holes=hole_chunks(measurements["hole_index"]),
-                table=collection_table(measurements, group, depth_columns),
+                table=collection_table(measurements, group, depth_columns, ags_context.get_units(group)),
                 unit=DISTANCE_UNIT,
             )
         )
@@ -110,6 +131,7 @@ def create_from_parsed_ags(
     properties["final"] = properties["target"] = properties["current"] = collars_df["final_depth"]
 
     collar_attributes = attribute_frame(collars_df.drop(columns=COLLAR_COLUMNS), "collars")
+    describe_units(collar_attributes, {**ags_context.get_units(SCPG), **ags_context.get_units(LOCA)}, "collars")
 
     result = DownholeCollectionData(
         name=ags_context.filename,
@@ -206,20 +228,71 @@ def prepare_measurements(
     )
 
 
-def collection_table(measurements: pd.DataFrame, group: str, depth_columns: dict[str, str]) -> pd.DataFrame:
+def collection_table(
+    measurements: pd.DataFrame,
+    group: str,
+    depth_columns: dict[str, str],
+    units: Mapping[str, str] | None = None,
+) -> pd.DataFrame:
     """Build the table of a collection from prepared measurements.
 
     The depth columns come first, named as the Downhole Collection expects them. All the other columns, including the
-    LOCA_ID and SCPG_TESN keys, follow as attributes.
+    LOCA_ID and SCPG_TESN keys, follow as attributes, described with their units when Evo knows them.
 
     :param measurements: The measurements of an AGS group, from prepare_measurements.
     :param group: The AGS group of the measurements.
     :param depth_columns: The depth columns of the group, keyed by the name they have in the Downhole Collection.
+    :param units: The AGS units of the columns of the group, keyed by column.
     """
     evo_names = {column: name for name, column in depth_columns.items()}
     depths = measurements[list(evo_names)].rename(columns=evo_names)
     attributes = attribute_frame(measurements.drop(columns=["hole_index", *evo_names]), group)
-    return pd.concat([depths, attributes], axis=1)
+    table = pd.concat([depths, attributes], axis=1)
+    # Set after the concat, which does not keep the attrs of its inputs
+    describe_units(table, units or {}, group)
+    return table
+
+
+def to_evo_unit(ags_unit: str | None) -> str | None:
+    """Find the Evo unit of an AGS unit.
+
+    :param ags_unit: The unit as written in the AGS UNIT row.
+    :return: The Evo unit, or None when there is no unit or Evo does not know it.
+    """
+    if ags_unit is None or not ags_unit.strip():
+        return None
+    unit = ags_unit.strip()
+    unit = EVO_UNIT_ALIASES.get(unit, unit)
+    return unit if is_unit_v1_0_1(unit) else None
+
+
+def describe_units(attributes: pd.DataFrame, units: Mapping[str, str], source: str) -> None:
+    """Describe the numeric attributes with their units, in the attrs the Evo SDK reads when uploading attributes.
+
+    Units that Evo does not know are left out, with a warning.
+
+    :param attributes: The attributes, updated in place.
+    :param units: The AGS units of the columns, keyed by column.
+    :param source: What the attributes belong to, for log messages.
+    """
+    descriptions: dict[str, AttributeDescription] = {}
+    for name in attributes.columns:
+        ags_unit = units.get(name)
+        if not (ags_unit and ags_unit.strip()) or not is_numeric_attribute(attributes[name]):
+            continue
+        if (evo_unit := to_evo_unit(ags_unit)) is not None:
+            descriptions[name] = AttributeDescription(unit=evo_unit)
+        else:
+            logger.warning(
+                f"Unit {ags_unit!r} of attribute {name!r} of {source} is not an Evo unit; importing it without a unit"
+            )
+    if descriptions:
+        attributes.attrs["attribute_descriptions"] = descriptions
+
+
+def is_numeric_attribute(series: pd.Series) -> bool:
+    """Whether a column is uploaded as a numeric attribute, the only kind of attribute with a unit."""
+    return pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(series)
 
 
 def hole_chunks(hole_index: pd.Series, holes: pd.Series | None = None) -> pd.DataFrame:
