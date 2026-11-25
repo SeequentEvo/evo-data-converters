@@ -9,6 +9,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 from pyproj import CRS
@@ -16,6 +18,7 @@ from pyproj import CRS
 import evo.logging
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT, CoordinateFamily
+from evo.data_converters.ags.diagnostics import AgsDiagnostic
 from evo.objects.typed import DistanceCollection, DownholeCollectionData, EpsgCode, IntervalCollection
 
 logger = evo.logging.getLogger("data_converters")
@@ -34,6 +37,8 @@ STATION_DTYPES = {"hole_index": "int64", "distance": "float64", "dip": "float64"
 def create_from_parsed_ags(
     ags_context: AgsContext,
     tags: dict[str, str] | None = None,
+    *,
+    diagnostics: list[AgsDiagnostic] | None = None,
 ) -> DownholeCollectionData:
     """Converts the in-memory dataframes of AgsContext to the data of an Evo Downhole Collection.
 
@@ -52,6 +57,7 @@ def create_from_parsed_ags(
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param tags: Optional dict of tags to add to the DownholeCollection.
+    :param diagnostics: Optional list extended with dropped-hole warnings after successful construction.
     :return: The data of the DownholeCollection, to create in Evo with DownholeCollection.create.
     """
 
@@ -61,7 +67,14 @@ def create_from_parsed_ags(
         group: exclude_pushes(ags_context.get_table(group), skipped_pushes, group)
         for group in AgsContext.MEASUREMENT_GROUPS
     }
-    collars_df = build_collars(ags_context.get_table(LOCA), scpg_df, tables, crs_definition)
+    dropped_hole_ids: list[str] = []
+    collars_df = build_collars(
+        ags_context.get_table(LOCA),
+        scpg_df,
+        tables,
+        crs_definition,
+        record_dropped_hole=dropped_hole_ids.append,
+    )
 
     collections: list[DistanceCollection | IntervalCollection] = []
     stations: pd.DataFrame | None = None
@@ -98,7 +111,7 @@ def create_from_parsed_ags(
 
     collar_attributes = attribute_frame(collars_df.drop(columns=COLLAR_COLUMNS), "collars")
 
-    return DownholeCollectionData(
+    result = DownholeCollectionData(
         name=ags_context.filename,
         tags=tags,
         coordinate_reference_system=to_evo_crs(crs_definition),
@@ -110,6 +123,18 @@ def create_from_parsed_ags(
         distance_unit=DISTANCE_UNIT,
         desurvey=None,
     )
+    if diagnostics is not None:
+        diagnostics.extend(
+            AgsDiagnostic(
+                code="hole_dropped",
+                severity="warning",
+                sources=ags_context.sources,
+                reason="The hole has no complete finite coordinate pair; its collar and measurements were not imported.",
+                hole_id=hole_id,
+            )
+            for hole_id in dropped_hole_ids
+        )
+    return result
 
 
 def to_evo_crs(crs_definition: int | str | None) -> EpsgCode | str | None:
@@ -420,6 +445,7 @@ def build_collars(
     scpg_df: pd.DataFrame,
     tables: dict[str, pd.DataFrame],
     crs_definition: int | str | None,
+    record_dropped_hole: Callable[[str], None] | None = None,
 ) -> pd.DataFrame:
     """Builds the collars, one per location, with the LOCA_ID as hole_id.
 
@@ -433,6 +459,7 @@ def build_collars(
     :param scpg_df: The SCPG rows of the imported pushes, one per LOCA_ID, from select_first_pushes.
     :param tables: The measurement tables, keyed by AGS group, without the rows of the pushes that are not imported.
     :param crs_definition: The coordinate reference system shared by the LOCA rows.
+    :param record_dropped_hole: Optional callback receiving the hole_id of each collar dropped for missing coordinates.
     :return: A DataFrame with a row per collar. The standard columns (hole_index, hole_id, x, y, z, final_depth) come
         first, followed by the LOCA_ID and the SCPG_TESN of the imported push, and the other LOCA and SCPG columns.
     """
@@ -466,7 +493,9 @@ def build_collars(
     collars_df["final_depth"] = collars_df["LOCA_ID"].map(final_depths(scpg_df, tables)).astype("float64")
 
     coordinate_families = assign_coordinates(collars_df, crs_definition)
-    collars_df, coordinate_families = exclude_unlocated_collars(collars_df, coordinate_families)
+    collars_df, coordinate_families = exclude_unlocated_collars(
+        collars_df, coordinate_families, record_dropped_hole=record_dropped_hole
+    )
     family = shared_coordinate_family(collars_df, coordinate_families)
     assign_elevations(collars_df, family)
     assign_vertical_datum(collars_df, family)
@@ -515,17 +544,29 @@ def assign_unspecified_coordinates(collars_df: pd.DataFrame) -> pd.Series:
     return families
 
 
-def exclude_unlocated_collars(collars_df: pd.DataFrame, families: pd.Series) -> tuple[pd.DataFrame, pd.Series]:
-    """Drop the collars without finite x and y, renumber the rest, and fail when no collar is located."""
+def exclude_unlocated_collars(
+    collars_df: pd.DataFrame,
+    families: pd.Series,
+    record_dropped_hole: Callable[[str], None] | None = None,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Drop the collars without finite x and y, renumber the rest, and fail when no collar is located.
+
+    :param record_dropped_hole: Optional callback receiving the hole_id of each collar dropped while others remain.
+    """
     located = np.isfinite(collars_df["x"]) & np.isfinite(collars_df["y"])
-    if not located.all():
-        holes = collars_df.loc[~located, "hole_id"].tolist()
+    holes = collars_df.loc[~located, "hole_id"].tolist()
+    if holes:
         logger.warning(f"Excluding collars and measurements without complete finite coordinates for holes: {holes}")
     if not located.any():
+        expected = expected_coordinate_columns(families)
         raise AgsFileInvalidException(
-            "No holes have a complete finite coordinate pair in the LOCA table; "
-            f"expected {expected_coordinate_columns(families)}."
+            f"No holes have a complete finite coordinate pair in the LOCA table; expected {expected}.",
+            code="invalid_coordinates",
+            reason=f"No holes have a complete finite coordinate pair. Fill in {expected}.",
         )
+    if record_dropped_hole is not None:
+        for hole_id in holes:
+            record_dropped_hole(str(hole_id))
 
     collars_df = collars_df.loc[located].reset_index(drop=True)
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
@@ -542,11 +583,11 @@ def shared_coordinate_family(collars_df: pd.DataFrame, families: pd.Series) -> C
     """Return the coordinate family of the located collars, rejecting families that no CRS can reconcile."""
     used_families = families.unique()
     if len(used_families) > 1:
-        holes_by_family = {
-            family: collars_df.loc[families.eq(family), "hole_id"].tolist() for family in used_families
-        }
+        holes_by_family = {family: collars_df.loc[families.eq(family), "hole_id"].tolist() for family in used_families}
         raise AgsFileInvalidException(
-            f"LOCA rows use different coordinate types without a shared CRS: {holes_by_family}."
+            f"LOCA rows use different coordinate types without a shared CRS: {holes_by_family}.",
+            code="invalid_coordinates",
+            reason="The LOCA rows use different coordinate types without a shared CRS.",
         )
     family: CoordinateFamily = used_families[0]
     return family
@@ -605,7 +646,11 @@ def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int 
     elif crs.is_geographic:
         family = "geographic"
     else:
-        raise AgsFileInvalidException(f"CRS {crs_definition} is neither projected nor geographic.")
+        raise AgsFileInvalidException(
+            f"CRS {crs_definition} is neither projected nor geographic.",
+            code="invalid_coordinates",
+            reason="The declared CRS cannot be used to select the AGS coordinate columns.",
+        )
 
     return assign_family_coordinates(collars_df, family)
 

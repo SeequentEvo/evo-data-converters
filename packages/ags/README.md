@@ -9,8 +9,8 @@
     </a>
 </p>
 <p align="center">
-    <a href="https://pypi.org/project/evo-data-converters-duf/">
-        <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-duf" />
+    <a href="https://pypi.org/project/evo-data-converters-ags/">
+        <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/evo-data-converters-ags" />
     </a>
     <a href="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml">
         <img src="https://github.com/SeequentEvo/evo-data-converters/actions/workflows/on-merge.yaml/badge.svg" alt=""/>
@@ -43,121 +43,82 @@ The package can be installed from PyPI using pip:
 pip install evo-data-converters-ags
 ```
 
-## AGS
+For the Jupyter notebook examples below, install `evo-data-converters-ags[notebooks]` instead.
 
-AGS (Association of Geotechnical and Geoenvironmental Specialists) is a standard data format widely used in the geotechnical and geoenvironmental industry for exchanging data. AGS files contain structured data in a tabular format, typically including borehole information, laboratory test results, and field observations.
+## AGS converter
 
-This converter currently supports **Cone Penetration Test (CPT) data** and converts AGS files into Evo Downhole Collection objects. The converter uses the [python-ags4](https://gitlab.com/ags-data-format-wg/ags-python-library) library for parsing and validating AGS files.
+Import **AGS4 Cone Penetration Test (CPT) data** into Evo as Downhole Collections, including geological descriptions
+and hole orientation data where available.
 
-**Related Resources:**
-- [AGS Data Format Specification](https://www.ags.org.uk/data-format/)
-- [AGS4.1.1 Specification PDF](https://www.ags.org.uk/content/uploads/2022/02/AGS4-v-4.1.1-2022.pdf)
-- [Evo Downhole Collection Schema](https://developer.seequent.com/docs/data-structures/geoscience-objects/schemas/downhole-collection)
+### Supported data
+
+- Files need project details (`PROJ` with a `PROJ_ID`), locations (`LOCA`), and CPT data (`SCPG` and `SCPT`).
+- Derived CPT parameters (`SCPP`), geological descriptions (`GEOL`), and hole orientation (`HORN`) are included when present.
+- Other AGS groups are not imported. AGS3 files and export to AGS are not supported.
 
 ## Usage
 
-### Publish geoscience objects from an AGS file
+### Import and publish
 
-The `convert_ags` function reads AGS files and converts them into Downhole Collection Geoscience Objects that can be published to Evo.
-Multiple projects can be imported at once, and all files within the same project (`PROJ_ID`) will be included in a downhole collection together.
+In a Jupyter notebook, sign in to Evo and import your file:
 
 ```python
-from evo.data_converters.ags.importer import convert_ags
+from evo.data_converters.ags import convert_ags
 from evo.notebooks import ServiceManagerWidget
 
-# Login to Evo
 manager = await ServiceManagerWidget.with_auth_code(client_id="your-client-id").login()
 
-# Convert and publish AGS file
-objects_metadata = await convert_ags(
-    filepaths=["path/to/your/file.ags"],
+objects = await convert_ags(
+    filepaths=["survey.ags"],
     service_manager_widget=manager,
-    tags={"source": "field_survey"},
     upload_path="cpt_data",
-    overwrite_existing_objects=False,
 )
 ```
 
+Add more filenames to `filepaths` to import several files at once. Compatible files with the same project ID are
+combined into one collection. Set `merge_files=False` to keep them separate.
+
+To convert without publishing to Evo, add `publish_objects=False`.
+
 For a complete working example, see the [convert-ags notebook](./samples/convert-ags/convert-ags.ipynb).
 
-### Export objects to AGS
+### Warnings and errors
 
-Export functionality is not yet implemented.
+If some files cannot be imported, the remaining valid files are still processed. Holes without usable coordinates
+are skipped along with their measurements.
 
-## Importing AGS - details
+Use `diagnostics` to see what needs attention. If no files can be imported, `AgsParsingError` explains the problem:
 
-### Supported AGS Groups
+```python
+from evo.data_converters.ags import AgsParsingError
 
-**Core Groups:**
-- `LOCA` - Location Details (hole/test locations with coordinates)
-- `SCPG` - Static Cone Penetration Tests - General (test metadata)
-- `SCPT` - Seismic Cone Penetration Test results (distance-based measurements)
+issues = []
+try:
+    objects = await convert_ags(
+        filepaths=["survey.ags"],
+        service_manager_widget=manager,
+        diagnostics=issues,
+    )
+except AgsParsingError as error:
+    print(error)
+else:
+    for issue in issues:
+        print(issue.reason)
+```
 
-**Optional Groups (imported if present):**
-- `SCPP` - Static Cone Penetration Tests - Derived Parameters (interval data)
-- `GEOL` - Field Geological Descriptions (interval data)
-  - Measurement rows without a matching collar are dropped with a warning. A GEOL-only location is imported as a collar.
+## Things to know
 
-**Other Groups Used (if present):**
-- `PROJ` - Project metadata (used for naming and grouping files)
-- `HORN` - Hole orientation data (for non-vertical downholes)
-- `TYPE` - Data type definitions for columns
+- Only the first CPT push at each location is imported.
+- Each collection must use one coordinate system. Import files with different coordinate systems or coordinate types
+  separately using `merge_files=False`.
+- Coordinates, units, and vertical datums are not converted.
+- Missing or invalid ground-level values default to zero, so check these before using the imported data.
+- Where hole orientation is unavailable, the hole is assumed to be vertical.
 
-Any additional groups will be discarded.
+## Resources
 
-### AGS Types
-
-AGS TYPE codes are mapped to appropriate pandas/Python types:
-
-- Integer types: 0DP
-- Float types: 1DP, 2DP, 3DP, 4DP, 5DP, MC (moisture content), scientific notation (nSCI), significant figures (nSF)
-- Datetime: DT (supports multiple formats including ISO, dd/mm/yyyy, etc.)
-- Timedelta: T (elapsed time with unit conversion)
-- Boolean: YN (Y/N values)
-- String: ID, PA, PT, PU, RL, U, X, XN and others default to string
-
-### CRS (Coordinate Reference System) Handling
-
-- Supports standard AGS abbreviations: OSGB (EPSG:27700), OSI (EPSG:29902), ITM (EPSG:2157)
-- Resolves the CRS per hole (`LOCA` row) from CRS names and EPSG codes in `LOCA_GREF`, falling back to `LOCA_LLZ`
-- Rejects a file whose holes declare different CRSs, because a downhole collection has a single CRS; during conversion that file is skipped and logged
-- Holes without a declared CRS adopt the CRS declared by the other holes, with a warning
-- Projected CRSs use only complete `LOCA_NATE`/`LOCA_NATN` pairs
-- Geographic CRSs use only `LOCA_LON`/`LOCA_LAT`, even when projected columns are populated
-- Holes without valid coordinates are skipped, together with their measurements, and their IDs are logged
-- Raises `AgsFileInvalidException` when no hole has valid coordinates
-- Handles LOCAL as "unspecified" CRS
-- When no CRS is declared, each hole uses the first complete coordinate pair found: national grid, then local grid, then latitude/longitude; a file whose holes use different coordinate types is rejected
-- Non-standard columns such as `LOCA_EASTING`/`LOCA_NORTHING` are not read
-
-### Importing multiple files
-
-- Multiple AGS files can be processed together
-- Files with the same PROJ_ID are automatically merged into a single DownholeCollection
-- Files can be imported into separate downhole collections by using the `merge_files` parameter
-
-### Non-Vertical Downholes and Geometry
-
-- HORN table data is used to calculate dip and azimuth for measurement depths
-- Measurements unspecified or outside HORN intervals default to vertical (90°/0°)
-- Measurements from SCPT form the downhole path. A hole without SCPT measurements gets a vertical station at its final depth when known and positive.
-- The final depth of a hole is the deepest SCPT depth of its imported push or GEOL base depth.
-
-### Downhole Collection Data
-
-- The converter returns typed `DownholeCollectionData` when `publish_objects=False`, and publishes typed Downhole Collection objects otherwise.
-- Measurement groups with usable rows become collections named for their AGS group: SCPT is distance data; SCPP and GEOL are interval data.
-- Attribute columns with supported integer, float, boolean, string, or datetime values are retained. Empty and unsupported columns (including elapsed-time `T` values) are omitted; unsupported values are logged.
-- Source AGS tables are not modified during conversion.
-
-### Assumptions & Limitations
-
-- **Ground level:** Holes located with national grid (`LOCA_NATE`/`LOCA_NATN`) or latitude/longitude (`LOCA_LON`/`LOCA_LAT`) coordinates take their elevation from `LOCA_GL`; holes located with local grid coordinates (`LOCA_LOCX`/`LOCA_LOCY`) take it from `LOCA_LOCZ`. A missing, non-numeric, or non-finite elevation defaults to 0.0 with a warning. `LOCA_DATM` is kept as a collar attribute (`"undeclared"` when blank), and a warning is logged when `LOCA_GL` is used without it. The CRS describes X/Y only; no coordinate, unit, or vertical datum conversion is performed.
-- **Missing coordinates:** A declared local reference (`LOCA_GREF=LOCAL` or `LOCA_LREF`) selects the local grid columns. Holes without valid X/Y coordinates are skipped with their measurements and logged; if no hole has valid coordinates, the file is rejected. Zero-valued coordinates are valid.
-- **Hole identification:** `LOCA_ID` is the identity of a hole, and its `hole_id` is the `LOCA_ID` unchanged (for example `CPT-14`). Each `LOCA_ID` produces at most one collar, which is shared through `hole_index` by all of its SCPT, SCPP and GEOL data. `SCPG_TESN` is retained as a collar attribute but never forms part of the hole identity.
-- **Multiple CPT pushes:** Multiple CPT pushes (`SCPG_TESN` values) for the same `LOCA_ID` are not currently supported. Only the first push in the order of the AGS data is imported; `SCPG_TESN` values are not sorted. Rows of the other pushes are excluded from SCPG and every group keyed by `SCPG_TESN` (such as SCPT and SCPP), and a warning names the location, the imported push and the pushes that were not imported.
-- **CRS preference:** When a hole has CRS information in both `LOCA_GREF` and `LOCA_LLZ`, `LOCA_GREF` is preferred.
-- **AGS validation rules:** Some AGS format rules are ignored during validation to accommodate real-world files (see `IGNORED_RULES` in [ags_context.py](./src/evo/data_converters/ags/common/ags_context.py)).
+- [AGS Data Format Specification](https://www.ags.org.uk/data-format/)
+- [Evo Downhole Collections](https://developer.seequent.com/docs/data-structures/geoscience-objects/schemas/downhole-collection)
 
 ## Code of conduct
 

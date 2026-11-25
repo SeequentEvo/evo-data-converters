@@ -10,13 +10,13 @@
 #  limitations under the License.
 
 
+from pathlib import Path
 from typing import TYPE_CHECKING
-
-from python_ags4.AGS4 import AGS4Error
 
 import evo.logging
 from evo.common import IContext
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
+from evo.data_converters.ags.diagnostics import AgsDiagnostic, AgsParsingError, AgsSource
 from evo.data_converters.common import EvoWorkspaceMetadata, create_evo_object_service_and_data_client
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError
 from evo.data_converters.common.generate_paths import generate_paths
@@ -26,7 +26,7 @@ from evo.objects.data import ObjectMetadata
 from evo.objects.typed import DownholeCollection, DownholeCollectionData
 
 from .ags_to_downhole_collection import create_from_parsed_ags
-from .parse_ags_files import parse_ags_files
+from .parse_ags_files import diagnostics_for_exception, parse_ags_files
 
 logger = evo.logging.getLogger("data_converters")
 
@@ -43,6 +43,8 @@ async def convert_ags(
     publish_objects: bool = True,
     overwrite_existing_objects: bool = False,
     merge_files: bool = True,
+    *,
+    diagnostics: list[AgsDiagnostic] | None = None,
 ) -> list[DownholeCollectionData] | list[ObjectMetadata]:
     """Converts one or more AGS files into a list of Downhole Collections.
 
@@ -53,7 +55,9 @@ async def convert_ags(
     - evo_workspace_metadata.hub_url is present, or
     - service_manager_widget was passed to this function.
 
-    Files that cannot be parsed or converted are logged and skipped, the other files are still converted.
+    Invalid files and incompatible merges are skipped when other inputs convert successfully. Diagnostics for skipped
+    inputs and dropped holes can be collected with the keyword-only ``diagnostics`` parameter. If no input produces a
+    collection, this raises :class:`AgsParsingError` instead of returning an empty list.
 
     :param filepaths: List of paths to one or more AGS files.
     :param evo_workspace_metadata: Evo workspace metadata (optional).
@@ -65,14 +69,30 @@ async def convert_ags(
         (optional, default False).
     :param merge_files: Whether to merge files with the same PROJ_ID into a single DownholeCollection
         (optional, default True). If False, each file will produce a separate DownholeCollection.
+    :param diagnostics: Optional list extended with structured warnings and errors after successful conversion.
+        It is left unchanged when conversion fails.
     :return: The data of the converted Downhole Collections, or the metadata of the published objects if published.
     :rtype: list[DownholeCollectionData] | list[ObjectMetadata]
     :raises MissingConnectionDetailsError: If no connection details could be derived.
     :raises ConflictingConnectionDetailsError: If both evo_workspace_metadata and service_manager_widget
         were provided, or if evo_workspace_metadata was provided without hub_url when publishing.
+    :raises AgsParsingError: If no input files are provided or none of the inputs produces a collection.
     :raises ObjectAlreadyExistsError: If an object already exists at a path being published to,
         and overwrite_existing_objects is False.
     """
+    if not filepaths:
+        raise AgsParsingError(
+            [
+                AgsDiagnostic(
+                    code="no_input_files",
+                    severity="error",
+                    sources=(),
+                    reason="Select at least one AGS file.",
+                )
+            ]
+        )
+
+    invocation_diagnostics: list[AgsDiagnostic] = []
     _, data_client = await create_evo_object_service_and_data_client(
         evo_workspace_metadata=evo_workspace_metadata,
         service_manager_widget=service_manager_widget,
@@ -82,29 +102,57 @@ async def convert_ags(
             "evo_workspace_metadata provided without hub_url, cannot publish objects."
         )
 
-    try:
-        ags_contexts: list[AgsContext] = parse_ags_files(filepaths, merge_files=merge_files)
-    except (AGS4Error, AgsFileInvalidException) as e:
-        logger.error("Failed to parse AGS file(s): %s", e)
-        return []
+    ags_contexts: list[AgsContext] = parse_ags_files(
+        filepaths, merge_files=merge_files, diagnostics=invocation_diagnostics
+    )
 
     downhole_collections: list[DownholeCollectionData] = []
     for context in ags_contexts:
         object_tags = get_object_tags(path=context.filename, input_type="AGS", extra_tags=tags or {})
+        conversion_diagnostics: list[AgsDiagnostic] = []
         try:
-            downhole_collections.append(create_from_parsed_ags(context, object_tags))
+            converted = create_from_parsed_ags(context, object_tags, diagnostics=conversion_diagnostics)
         except AgsFileInvalidException as e:
             logger.error("Failed to convert AGS file '%s': %s", context.filename, e)
+            invocation_diagnostics.extend(diagnostics_for_exception(e, context.sources))
+        else:
+            downhole_collections.append(converted)
+            invocation_diagnostics.extend(conversion_diagnostics)
 
-    if not publish_objects:
-        return downhole_collections
+    if not downhole_collections:
+        if not invocation_diagnostics:
+            invocation_diagnostics.append(
+                AgsDiagnostic(
+                    code="no_collections",
+                    severity="error",
+                    sources=tuple(AgsSource(index, Path(filepath).name) for index, filepath in enumerate(filepaths)),
+                    reason=(
+                        "No Downhole Collections were produced. "
+                        "Check that the input files contain usable location and measurement data."
+                    ),
+                )
+            )
+        raise AgsParsingError(order_diagnostics(invocation_diagnostics))
 
-    logger.debug("Publishing Downhole Collection(s)")
-    return await publish_downhole_collections(
-        downhole_collections,
-        context=data_client.get_static_context(),
-        path_prefix=upload_path,
-        overwrite_existing_objects=overwrite_existing_objects,
+    result: list[DownholeCollectionData] | list[ObjectMetadata] = downhole_collections
+    if publish_objects:
+        logger.debug("Publishing Downhole Collection(s)")
+        result = await publish_downhole_collections(
+            downhole_collections,
+            context=data_client.get_static_context(),
+            path_prefix=upload_path,
+            overwrite_existing_objects=overwrite_existing_objects,
+        )
+    if diagnostics is not None:
+        diagnostics.extend(order_diagnostics(invocation_diagnostics))
+    return result
+
+
+def order_diagnostics(diagnostics: list[AgsDiagnostic]) -> list[AgsDiagnostic]:
+    """Order invocation diagnostics by their earliest input position, keeping diagnostics without sources first."""
+    return sorted(
+        diagnostics,
+        key=lambda issue: min((source.input_index for source in issue.sources), default=-1),
     )
 
 

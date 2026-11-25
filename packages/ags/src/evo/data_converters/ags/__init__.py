@@ -9,8 +9,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from .diagnostics import AgsCode, AgsDiagnostic, AgsParsingError, AgsSource
 from .importer.ags_to_evo import convert_ags
 
 __all__ = [
+    "AgsCode",
+    "AgsDiagnostic",
+    "AgsParsingError",
+    "AgsSource",
     "convert_ags",
 ]

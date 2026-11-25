@@ -9,10 +9,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from ..diagnostics import AgsCode, AgsDiagnostic, AgsParsingError, AgsSource
 from .ags_to_downhole_collection import create_from_parsed_ags
 from .ags_to_evo import convert_ags
 
 __all__ = [
+    "AgsCode",
+    "AgsDiagnostic",
+    "AgsParsingError",
+    "AgsSource",
     "convert_ags",
     "create_from_parsed_ags",
 ]

@@ -9,9 +9,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .ags_context import AgsContext, AgsFileInvalidException
+from .ags_context import AgsContext, AgsFileInvalidException, AgsIncompatibleMergeError
 
 __all__ = [
     "AgsContext",
     "AgsFileInvalidException",
+    "AgsIncompatibleMergeError",
 ]

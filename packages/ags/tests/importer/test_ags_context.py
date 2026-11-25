@@ -13,9 +13,18 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from python_ags4 import AGS4
+from python_ags4.AGS4 import AGS4Error
 
-from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
-from evo.data_converters.ags.common.ags_context import LOCA, SCPG, SCPT
+from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException, AgsIncompatibleMergeError
+from evo.data_converters.ags.common.ags_context import (
+    LOCA,
+    PARSE_FAILURE_REASON,
+    PROJ,
+    SCPG,
+    SCPT,
+    ags4_errors_to_diagnostics,
+)
 
 
 def test_not_ags_file(not_ags_path):
@@ -33,6 +42,168 @@ def test_ags_file_missing_cpt_groups(valid_ags_no_cpt_path):
         match="Missing importable groups: one or more of SCPT, SCPP, GEOL required.",
     ):
         context.parse_ags(valid_ags_no_cpt_path)
+
+
+def test_validator_rows_are_normalized_without_raw_row_values() -> None:
+    issues = ags4_errors_to_diagnostics(
+        {
+            "AGS Format Rule 3": [{"line": 7, "group": "", "desc": "Unsafe content that should not be exposed"}],
+            "AGS Format Rule 13": [{"line": "-", "group": "PROJ", "desc": "PROJ group not found."}],
+        }
+    )
+
+    assert [(issue.rule, issue.group, issue.line) for issue in issues] == [
+        ("AGS Format Rule 3", None, 7),
+        ("AGS Format Rule 13", "PROJ", None),
+    ]
+    assert issues[0].reason == "A line does not start with a valid AGS data descriptor."
+    assert "Unsafe content" not in repr(issues)
+
+
+def test_legacy_validator_formatter_remains_available() -> None:
+    from evo.data_converters.ags.common.ags_context import ags4_errors_to_str
+
+    text = ags4_errors_to_str(
+        {
+            "AGS Format Rule 3": [{"line": 7, "group": "", "desc": "Invalid descriptor"}],
+            "AGS Format Rule 13": [{"line": "-", "group": "PROJ", "desc": "Missing group"}],
+        }
+    )
+
+    assert text == (
+        "\nAGS Format Rule 3:\n  L7, Group NULL: Invalid descriptor\n"
+        "\nAGS Format Rule 13:\n  L-, Group PROJ: Missing group\n"
+    )
+
+
+@pytest.mark.parametrize("line", ("0", "-", ""))
+def test_validator_rows_without_a_positive_line_have_no_line(line: str) -> None:
+    (issue,) = ags4_errors_to_diagnostics({"AGS Format Rule 4": [{"line": line, "group": "LOCA", "desc": "x"}]})
+
+    assert issue.line is None
+    assert issue.reason == "Correct the AGS file to comply with AGS Format Rule 4."
+
+
+def test_validator_rule_5_has_a_quoting_remedy() -> None:
+    (issue,) = ags4_errors_to_diagnostics({"AGS Format Rule 5": [{"line": "2", "group": "PROJ", "desc": "x"}]})
+
+    assert (issue.rule, issue.group, issue.line) == ("AGS Format Rule 5", "PROJ", 2)
+    assert "double quotes" in issue.reason
+
+
+def test_validator_reports_ags3_without_the_validator_process_error() -> None:
+    issues = ags4_errors_to_diagnostics(
+        {
+            "AGS Format Rule 3": [{"line": "1", "group": "", "desc": "AGS3 format which is not supported"}],
+            "Validator Process Error": [{"line": "-", "group": "", "desc": "Traceback (most recent call last)"}],
+        }
+    )
+
+    assert [(issue.rule, issue.line) for issue in issues] == [("AGS Format Rule 3", 1)]
+    assert "AGS3 files are not supported" in issues[0].reason
+    assert "Traceback" not in repr(issues)
+
+
+@pytest.mark.parametrize("process_key", ("General", "Validator Process Error"))
+def test_validator_process_rows_alone_give_a_generic_diagnostic(process_key: str) -> None:
+    (issue,) = ags4_errors_to_diagnostics({process_key: [{"line": "-", "group": "", "desc": "Internal details"}]})
+
+    assert (issue.code, issue.severity, issue.rule, issue.line) == ("invalid_file_format", "error", None, None)
+    assert "AGS4" in issue.reason
+    assert "Internal details" not in repr(issue)
+
+
+def test_validator_text_is_logged_but_not_raised(not_ags_path: str, caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level("WARNING"), pytest.raises(AgsFileInvalidException) as error:
+        AgsContext().check_ags_file(not_ags_path)
+
+    assert "Does not start with a valid data descriptor" in caplog.text
+    assert "Does not start with a valid data descriptor" not in str(error.value)
+    assert all(issue.code == "invalid_file_format" for issue in error.value.diagnostics)
+
+
+def test_validator_process_failure_is_a_generic_invalid_input(
+    valid_ags_path: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail_to_read(*args: object, **kwargs: object) -> None:
+        raise AGS4Error("internal parser detail")
+
+    monkeypatch.setattr(AGS4, "AGS4_to_dataframe", fail_to_read)
+
+    with pytest.raises(AgsFileInvalidException) as error:
+        AgsContext().check_ags_file(valid_ags_path)
+
+    assert [(issue.code, issue.rule) for issue in error.value.diagnostics] == [("invalid_file_format", None)]
+    assert "internal parser detail" not in str(error.value)
+
+
+def test_unreadable_ags_contents_are_a_typed_invalid_input(
+    valid_ags_path: str, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def fail_to_read(*args: object, **kwargs: object) -> None:
+        raise AGS4Error("internal parser detail")
+
+    monkeypatch.setattr(AgsContext, "check_ags_file", lambda self, filepath: None)
+    monkeypatch.setattr(AGS4, "AGS4_to_dataframe", fail_to_read)
+
+    with caplog.at_level("WARNING"), pytest.raises(AgsFileInvalidException) as error:
+        AgsContext().parse_ags(valid_ags_path)
+
+    assert error.value.code == "invalid_file_format"
+    assert error.value.reason == PARSE_FAILURE_REASON
+    assert isinstance(error.value.__cause__, AGS4Error)
+    assert "internal parser detail" not in str(error.value)
+    assert "internal parser detail" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "args, expected_reason",
+    (
+        ((), PARSE_FAILURE_REASON),
+        (("first", "second"), "first"),
+    ),
+)
+def test_invalid_file_exception_reason_defaults(args: tuple[str, ...], expected_reason: str) -> None:
+    error = AgsFileInvalidException(*args)
+
+    assert error.args == args
+    assert error.reason == expected_reason
+    assert (error.code, error.rule, error.group, error.line, error.diagnostics) == (
+        "invalid_file_format",
+        None,
+        None,
+        None,
+        (),
+    )
+
+
+@pytest.mark.parametrize(
+    "table",
+    (
+        None,
+        pd.DataFrame(columns=["PROJ_ID"]),
+        pd.DataFrame({"PROJ_NAME": ["Project"]}),
+    ),
+    ids=("no-proj-table", "no-proj-row", "no-proj-id-column"),
+)
+def test_missing_proj_id_is_a_typed_invalid_input(table: pd.DataFrame | None) -> None:
+    context = AgsContext()
+    if table is not None:
+        context.set_table(PROJ, table)
+
+    with pytest.raises(AgsFileInvalidException, match="PROJ_ID not found") as error:
+        _ = context.proj_id
+
+    assert error.value.code == "invalid_file_format"
+    assert error.value.reason == "Add a PROJ group containing a PROJ_ID."
+    assert isinstance(error.value.__cause__, KeyError)
+
+
+def test_blank_proj_id_is_returned_as_is() -> None:
+    context = AgsContext()
+    context.set_table(PROJ, pd.DataFrame({"PROJ_ID": [""]}))
+
+    assert context.proj_id == ""
 
 
 def test_file_not_found():
@@ -276,11 +447,31 @@ def test_coordinate_reference_system_conflicting_locations_raise(columns):
         _ = context.coordinate_reference_system
 
 
-def test_parse_ags_rejects_conflicting_crs(conflicting_crs_ags_path):
+def test_parse_ags_rejects_conflicting_crs(conflicting_crs_ags_path: str) -> None:
     """An AGS file whose LOCA rows declare different CRSs cannot be imported"""
     context = AgsContext()
-    with pytest.raises(AgsFileInvalidException, match="LOCA rows declare different coordinate reference systems"):
+    with pytest.raises(
+        AgsFileInvalidException, match="LOCA rows declare different coordinate reference systems"
+    ) as error:
         context.parse_ags(conflicting_crs_ags_path)
+
+    assert error.value.code == "invalid_coordinates"
+    assert error.value.reason == "Use one coordinate reference system for all LOCA rows."
+
+
+@pytest.mark.parametrize("include_required_groups", [True, False])
+def test_validate_ags_reports_conflicting_crs(include_required_groups: bool) -> None:
+    context = _context_with_loca(LOCA_GREF=["OSGB", "ITM", "OSGB"])
+    if include_required_groups:
+        for group in AgsContext.REQUIRED_GROUPS:
+            context.set_heading(group, ["LOCA_ID"])
+
+    errors = context.validate_ags()
+
+    assert any("different coordinate reference systems" in error for error in errors)
+    if not include_required_groups:
+        assert "Missing required group: SCPT." in errors
+        assert any("Missing importable groups" in error for error in errors)
 
 
 def test_merge_with_conflicting_crs_file_skipped(test_elevations_ags_path, conflicting_crs_ags_path, caplog):
@@ -291,7 +482,8 @@ def test_merge_with_conflicting_crs_file_skipped(test_elevations_ags_path, confl
 
     assert len(contexts) == 1
     assert contexts[0].get_table(LOCA)["LOCA_ID"].tolist() == ["BH01", "BH02", "BH03", "BH04", "BH05"]
-    assert f"Failed to parse the following AGS files: {conflicting_crs_ags_path}" in caplog.text
+    assert "Failed to parse AGS file" in caplog.text
+    assert conflicting_crs_ags_path in caplog.text
 
 
 def test_coordinate_reference_system_mismatch_in_merge(valid_ags_2a_path, invalid_ags_2d_path, caplog):
@@ -447,8 +639,11 @@ def test_merge_multiple_files_different_proj_ids(valid_ags_1a_path, valid_ags_2a
     assert context1.proj_id == "EXAMPLE-1"
     assert context2.proj_id == "EXAMPLE-2"
 
-    with pytest.raises(ValueError, match="Cannot merge AgsContext instances: Incompatible PROJ_ID"):
+    with pytest.raises(ValueError, match="Cannot merge AgsContext instances: Incompatible PROJ_ID") as error:
         context1.merge(other=context2)
+
+    assert isinstance(error.value, AgsIncompatibleMergeError)
+    assert context1.validate_merge(context2, raise_on_error=False)[0].startswith("Incompatible PROJ_ID")
 
     # Verify contexts are unchanged after failed merge
     assert len(context1.get_table(LOCA)) == 1

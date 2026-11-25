@@ -12,15 +12,17 @@
 from functools import cached_property
 from io import StringIO
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypedDict
 
 import pandas as pd
 from pyproj import CRS
 from pyproj.exceptions import CRSError
 from python_ags4 import AGS4
+from python_ags4.AGS4 import AGS4Error
 
 import evo.logging
 
+from ..diagnostics import AgsCode, AgsDiagnostic, AgsSource
 from .pandas_utils import coerce_to_object_int
 
 logger = evo.logging.getLogger("data_converters")
@@ -43,6 +45,11 @@ AGS_STANDARD_GRID_REFERENCES: dict[str, int | str] = {
     "ITM": 2157,
     "LOCAL": "unspecified",
 }
+
+PARSE_FAILURE_REASON = "The AGS contents could not be parsed. Check the file format and required groups."
+
+# python-ags4 rows that describe the validation run rather than a rule broken by the file
+VALIDATOR_PROCESS_KEYS: tuple[str, ...] = ("General", "Validator Process Error")
 
 
 def _normalize_crs_value(value: object) -> str | None:
@@ -72,9 +79,38 @@ class AgsFileInvalidException(Exception):
 
     This can be due to IO errors, corruption, file not conforming to
     specification, or missing importable groups.
+
+    The keyword-only fields describe the failure for diagnostics. ``reason`` is the user-facing remedy and defaults
+    to the first positional argument. ``diagnostics`` holds one entry per validator row when the file breaks AGS rules.
     """
 
-    pass
+    def __init__(
+        self,
+        *args: object,
+        code: AgsCode = "invalid_file_format",
+        reason: str | None = None,
+        rule: str | None = None,
+        group: str | None = None,
+        line: int | None = None,
+        diagnostics: tuple[AgsDiagnostic, ...] = (),
+    ) -> None:
+        super().__init__(*args)
+        self.code = code
+        self.reason = reason or (str(args[0]) if args else PARSE_FAILURE_REASON)
+        self.rule = rule
+        self.group = group
+        self.line = line
+        self.diagnostics = diagnostics
+
+
+class AgsIncompatibleMergeError(ValueError):
+    """Raised when AGS contexts cannot be merged due to project or CRS metadata."""
+
+
+class AgsValidationRow(TypedDict):
+    line: str | int
+    group: str
+    desc: str
 
 
 class AgsContext:
@@ -87,6 +123,7 @@ class AgsContext:
     _tables: dict[str, pd.DataFrame]
     _headings: dict[str, list[str]]
     _filename: str | None
+    sources: tuple[AgsSource, ...]
 
     # Groups required to import an AGS file as a DownholeCollection
     REQUIRED_GROUPS: tuple[str, ...] = (LOCA, SCPG, SCPT)
@@ -169,6 +206,7 @@ class AgsContext:
         self._tables = dict()
         self._headings = dict()
         self._filename = None
+        self.sources = ()
 
     @property
     def filename(self) -> str:
@@ -198,22 +236,26 @@ class AgsContext:
 
         :param filepath: path or buffer to the AGS file
         :raises FileNotFoundError: file not found at path
-        :raises AgsFileInvalidException: in-memory AGS file is invalid, error while parsing, or missing required groups
+        :raises AgsFileInvalidException: in-memory AGS file is invalid, error while parsing, missing required groups,
+            or LOCA rows declaring different coordinate reference systems
         """
-        self.check_ags_file(filepath)
-
-        if isinstance(filepath, (Path, str)):
-            self._filename = Path(filepath).stem
-
         try:
+            self.check_ags_file(filepath)
+            if isinstance(filepath, (Path, str)):
+                self._filename = Path(filepath).stem
             tables, headings = AGS4.AGS4_to_dataframe(filepath, get_line_numbers=False)
             self.set_tables_and_headings(tables, headings)
-        except AGS4.AGS4Error as e:
-            raise AgsFileInvalidException("Failed to parse AGS file") from e
+        except AGS4Error as e:
+            logger.warning(f"python-ags4 could not read the AGS file: {e}")
+            raise AgsFileInvalidException("Failed to parse AGS file", reason=PARSE_FAILURE_REASON) from e
 
         # Validate whether we can import these dataframes to a Downhole Collection
-        if errors := self.validate_ags():
-            raise AgsFileInvalidException("AGS file is invalid: ", ", ".join(errors))
+        if errors := self._validate_groups():
+            reason = " ".join(errors)
+            raise AgsFileInvalidException(f"AGS file is invalid: {reason}", reason=reason)
+
+        # Ensure the LOCA rows share a single coordinate reference system
+        _ = self.coordinate_reference_system
 
     def check_ags_file(self, filepath: Path | str | StringIO) -> None:
         """Checks an AGS file to validate conformity to AGS spec.
@@ -223,9 +265,7 @@ class AgsContext:
         :param filepath: Path to the AGS file.
         :raises AgsFileInvalidException: if file doesn't conform
         """
-        # Errors contains a dictionary keyed by rule number/name, with the value
-        # containing the line number, group name, and description.
-        ags_parse_errors: dict[str, dict[str, str | int]] = AGS4.check_file(filepath)
+        ags_parse_errors: dict[str, list[AgsValidationRow]] = AGS4.check_file(filepath)
         for rule_key in list(ags_parse_errors.keys()):
             # Remove non-error entries
             if rule_key in ("Summary of data", "Metadata"):
@@ -238,7 +278,13 @@ class AgsContext:
                 ags_parse_errors.pop(rule_key)
 
         if ags_parse_errors:
-            raise AgsFileInvalidException("AGS file is invalid: %s", ags4_errors_to_str(ags_parse_errors))
+            logger.warning("AGS validation failed:%s", ags4_errors_to_str(ags_parse_errors))
+            diagnostics = ags4_errors_to_diagnostics(ags_parse_errors)
+            raise AgsFileInvalidException(
+                "AGS file is invalid: "
+                + "; ".join(f"{issue.rule}: {issue.reason}" if issue.rule else issue.reason for issue in diagnostics),
+                diagnostics=diagnostics,
+            )
 
     def set_tables_and_headings(self, tables: dict[str, pd.DataFrame], headings: dict[str, list[str]]) -> None:
         """Sets the private `_tables` and `_headings` attributes.
@@ -332,12 +378,20 @@ class AgsContext:
         self._headings = {group: headings[group] for group in processed_tables.keys()}
 
     def validate_ags(self) -> list[str]:
-        """Validate the in-memory AGS dataframes, returning a list of error messages.
+        """Validate the in-memory AGS groups and coordinate reference systems, returning error messages.
 
         An empty list will be returned if no errors were found.
 
         :returns: list of error messages, or an empty list.
         """
+        errors = self._validate_groups()
+        try:
+            _ = self.coordinate_reference_system
+        except AgsFileInvalidException as e:
+            errors.append(str(e))
+        return errors
+
+    def _validate_groups(self) -> list[str]:
         errors: list[str] = []
 
         # Ensure all required groups are present
@@ -349,12 +403,6 @@ class AgsContext:
         if not any(group in self.headings.keys() for group in self.MEASUREMENT_GROUPS):
             measurement_groups_str = ", ".join(self.MEASUREMENT_GROUPS)
             errors.append(f"Missing importable groups: one or more of {measurement_groups_str} required.")
-
-        # Ensure the LOCA rows share a single coordinate reference system
-        try:
-            _ = self.coordinate_reference_system
-        except AgsFileInvalidException as e:
-            errors.append(str(e))
 
         return errors
 
@@ -382,13 +430,16 @@ class AgsContext:
 
         :returns: PROJ_ID string
         :rtype: str
-        :raises ValueError: if PROJ_ID is not found
+        :raises AgsFileInvalidException: if the PROJ table, its PROJ_ID column or its first row is missing
         """
         try:
             proj_id = self.get_table(PROJ).at[0, "PROJ_ID"]
-            return str(proj_id)
-        except (KeyError, ValueError):
-            raise ValueError("PROJ_ID not found in PROJ table")
+        except KeyError as e:
+            raise AgsFileInvalidException(
+                "PROJ_ID not found in PROJ table",
+                reason="Add a PROJ group containing a PROJ_ID.",
+            ) from e
+        return str(proj_id)
 
     @property
     def coordinate_reference_system(self) -> int | str | None:
@@ -481,7 +532,9 @@ class AgsContext:
         if len(declared) > 1:
             raise AgsFileInvalidException(
                 f"LOCA rows declare different coordinate reference systems: {sorted(map(str, declared))}. "
-                "A downhole collection supports a single coordinate reference system."
+                "A downhole collection supports a single coordinate reference system.",
+                code="invalid_coordinates",
+                reason="Use one coordinate reference system for all LOCA rows.",
             )
         if not declared:
             return None
@@ -499,9 +552,9 @@ class AgsContext:
         issues found.
 
         :param other: The AgsContext to validate for merging
-        :param raise_on_error: If True, raises ValueError on first incompatibility found
+        :param raise_on_error: If True, raises AgsIncompatibleMergeError on first incompatibility found
         :returns: List of incompatibility warning messages (empty if compatible)
-        :raises ValueError: If raise_on_error=True and contexts are incompatible
+        :raises AgsIncompatibleMergeError: If raise_on_error=True and contexts are incompatible
         """
         issues: list[str] = []
 
@@ -512,7 +565,7 @@ class AgsContext:
                 f"Rows from first context will be kept for duplicate LOCA_IDs and (LOCA_ID, SCPG_TESN) pairs."
             )
             if raise_on_error:
-                raise ValueError(f"Cannot merge AgsContext instances: {msg}")
+                raise AgsIncompatibleMergeError(f"Cannot merge AgsContext instances: {msg}")
             issues.append(msg)
 
         # Check CRS compatibility
@@ -524,7 +577,7 @@ class AgsContext:
                 f"This may result in incorrect spatial positioning of merged data."
             )
             if raise_on_error:
-                raise ValueError(f"Cannot merge AgsContext instances: {msg}")
+                raise AgsIncompatibleMergeError(f"Cannot merge AgsContext instances: {msg}")
             issues.append(msg)
 
         return issues
@@ -545,7 +598,7 @@ class AgsContext:
 
         :param other: The AgsContext to merge into this one
         :param validate_compatibility: If True, raises error on incompatibility; if False, logs warnings
-        :raises ValueError: If contexts are incompatible and validation is enabled
+        :raises AgsIncompatibleMergeError: If contexts are incompatible and validation is enabled
         """
         # Check compatibility and handle based on validate_compatibility flag
         issues = self.validate_merge(other, raise_on_error=validate_compatibility)
@@ -653,15 +706,55 @@ class AgsContext:
                 self.set_heading(group, other.get_headings(group))
 
 
-def ags4_errors_to_str(errors: dict[str, dict[str, str | int]]) -> str:
-    """Convert an AGS4.check_file() errors dictionary to a multiline string.
+def ags4_errors_to_str(errors: dict[str, list[AgsValidationRow]]) -> str:
+    """Render raw validator rows for logs and legacy callers, not user-facing conversion feedback."""
+    parts: list[str] = []
+    for rule, rows in errors.items():
+        parts.append(f"\n{rule}:\n")
+        for row in rows:
+            parts.append(f"  L{row['line']}, Group {row['group'] or 'NULL'}: {row['desc']}\n")
+    return "".join(parts)
 
-    :param errors: dictionary of errors from AGS4.check_file()
-    :return: multiline string representation of errors
+
+def ags4_errors_to_diagnostics(errors: dict[str, list[AgsValidationRow]]) -> tuple[AgsDiagnostic, ...]:
+    """Normalize python-ags4 validation rows to diagnostics without exposing raw row values.
+
+    Notes and failures of the validation run itself only produce a generic diagnostic when no AGS rule was reported.
     """
-    out = str()
-    for group, error_rows in errors.items():
-        out += f"\n{group}:\n"
-        for row in error_rows:
-            out += f"  L{row['line']}, Group {row['group'] or 'NULL'}: {row['desc']}\n"
-    return out
+    diagnostics = tuple(
+        _validator_row_to_diagnostic(rule, row)
+        for rule, rows in errors.items()
+        if rule not in VALIDATOR_PROCESS_KEYS
+        for row in rows
+    )
+    return diagnostics or (
+        AgsDiagnostic(
+            code="invalid_file_format",
+            severity="error",
+            sources=(),
+            reason="The file could not be validated as AGS4. Check that it is a valid AGS4 file.",
+        ),
+    )
+
+
+def _validator_row_to_diagnostic(rule: str, row: AgsValidationRow) -> AgsDiagnostic:
+    raw_line = str(row["line"])
+    line = int(raw_line) if raw_line.isdecimal() and int(raw_line) > 0 else None
+    if rule == "AGS Format Rule 3":
+        if "AGS3" in row["desc"]:
+            reason = "AGS3 files are not supported. Convert the file to AGS4."
+        else:
+            reason = "A line does not start with a valid AGS data descriptor."
+    elif rule == "AGS Format Rule 5":
+        reason = "Enclose every AGS field in double quotes."
+    else:
+        reason = f"Correct the AGS file to comply with {rule}."
+    return AgsDiagnostic(
+        code="invalid_file_format",
+        severity="error",
+        sources=(),
+        reason=reason,
+        rule=rule,
+        group=row["group"].strip() or None,
+        line=line,
+    )

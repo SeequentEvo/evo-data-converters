@@ -17,6 +17,7 @@ from pyproj import CRS
 
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPP, SCPT
+from evo.data_converters.ags.diagnostics import AgsDiagnostic
 from evo.data_converters.ags.importer.ags_to_downhole_collection import (
     DEFAULT_AZIMUTH,
     DEFAULT_DIP,
@@ -103,6 +104,36 @@ class TestCreateFromParsedAgs:
 
         tagged = create_from_parsed_ags(mock_ags_context, tags={"source": "test"})
         assert tagged.tags == {"source": "test"}
+
+    def test_unlocated_hole_is_reported_only_after_collection_succeeds(self, test_elevations_ags_path: str) -> None:
+        context = AgsContext()
+        context.parse_ags(test_elevations_ags_path)
+        loca = context.get_table(LOCA)
+        unlocated = loca["LOCA_ID"].eq("BH02")
+        loca.loc[unlocated, ["LOCA_NATE", "LOCA_NATN"]] = pd.NA
+
+        issues: list[AgsDiagnostic] = []
+        result = create_from_parsed_ags(context, diagnostics=issues)
+
+        assert result.properties["hole_id"].tolist() == ["BH01", "BH03", "BH04", "BH05"]
+        assert len(issues) == 1
+        assert issues[0].code == "hole_dropped"
+        assert issues[0].severity == "warning"
+        assert issues[0].hole_id == "BH02"
+
+    def test_unlocated_holes_do_not_emit_warnings_when_every_hole_fails(
+        self, test_no_coordinates_ags_path: str, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        context = AgsContext()
+        context.parse_ags(test_no_coordinates_ags_path)
+        issues: list[AgsDiagnostic] = []
+
+        with caplog.at_level(logging.WARNING), pytest.raises(AgsFileInvalidException) as error:
+            create_from_parsed_ags(context, diagnostics=issues)
+
+        assert error.value.code == "invalid_coordinates"
+        assert issues == []
+        assert "Excluding collars and measurements without complete finite coordinates" in caplog.text
 
     def test_one_collar_per_loca_id_shared_by_all_groups(self, mock_ags_context):
         result = create_from_parsed_ags(mock_ags_context)
@@ -478,7 +509,9 @@ class TestCoordinateColumnHandling:
         else:
             coordinate_context.set_table(LOCA, loca.drop(columns=columns))
 
-        with pytest.raises(AgsFileInvalidException, match=f"No holes have a complete finite coordinate pair.*{expected}"):
+        with pytest.raises(
+            AgsFileInvalidException, match=f"No holes have a complete finite coordinate pair.*{expected}"
+        ):
             create_from_parsed_ags(coordinate_context)
 
     def test_projected_crs_does_not_fall_back_to_local_coordinates(self, coordinate_context: AgsContext) -> None:
