@@ -52,6 +52,7 @@ def add_test_coordinates(context: AgsContext) -> None:
     loca["LOCA_NATN"] = 200.0
     loca["LOCA_GL"] = 5.0
     context.set_table(LOCA, loca)
+    context.set_units(LOCA, {**context.get_units(LOCA), "LOCA_NATE": "m", "LOCA_NATN": "m", "LOCA_GL": "m"})
 
 
 def chunk_rows(chunks: pd.DataFrame) -> list[tuple[int, int, int]]:
@@ -123,8 +124,10 @@ class TestCreateFromParsedAgs:
         }
 
     def test_units_unknown_to_evo_are_left_out_with_a_warning(self, mock_ags_context, caplog):
-        units = {SCPP: {"SCPP_CIC": "kN/m3"}}
-        mock_ags_context.get_units.side_effect = lambda group: units.get(group, {})
+        get_units = mock_ags_context.get_units.side_effect
+        mock_ags_context.get_units.side_effect = lambda group: (
+            {**get_units(group), "SCPP_CIC": "kN/m3"} if group == SCPP else get_units(group)
+        )
 
         with caplog.at_level(logging.WARNING):
             result = create_from_parsed_ags(mock_ags_context)
@@ -352,6 +355,12 @@ class TestCreateFromParsedAgs:
             return horn.copy() if group == HORN else original_get_table(group)
 
         mock_ags_context.get_table.side_effect = get_table
+        get_units = mock_ags_context.get_units.side_effect
+        mock_ags_context.get_units.side_effect = lambda group: (
+            {"HORN_TOP": "m", "HORN_BASE": "m", "HORN_INCL": "deg", "HORN_ORNT": "deg"}
+            if group == HORN
+            else get_units(group)
+        )
         result = create_from_parsed_ags(mock_ags_context)
 
         assert result.path["dip"].tolist() == [85.0, 85.0, 80.0, 80.0, 75.0]
@@ -497,6 +506,7 @@ class TestCoordinateColumnHandling:
         loca["LOCA_LON"] = 174.8
         loca["LOCA_LAT"] = -41.3
         loca["LOCA_GREF"] = "OSGB"
+        context.set_units(LOCA, {**context.get_units(LOCA), "LOCA_LOCX": "m", "LOCA_LOCY": "m", "LOCA_LOCZ": "m"})
         return context
 
     @staticmethod
@@ -514,15 +524,28 @@ class TestCoordinateColumnHandling:
 
     @pytest.mark.parametrize("crs_name", ["WGS84", "NZGD2000"])
     @pytest.mark.parametrize("crs_column", ["LOCA_LLZ", "LOCA_GREF"])
-    def test_geographic_crs_uses_lon_lat(self, coordinate_context: AgsContext, crs_name: str, crs_column: str) -> None:
+    def test_geographic_crs_uses_unscaled_lon_lat(
+        self, coordinate_context: AgsContext, crs_name: str, crs_column: str
+    ) -> None:
         loca = coordinate_context.get_table(LOCA)
         loca["LOCA_GREF"] = ""
         loca[crs_column] = crs_name
 
         result = create_from_parsed_ags(coordinate_context)
 
-        assert to_pyproj(result.coordinate_reference_system).is_geographic
+        crs = to_pyproj(result.coordinate_reference_system)
+        assert crs is not None and crs.is_geographic
         assert result.properties[["x", "y"]].values.tolist() == [[174.8, -41.3]]
+        assert result.distance_unit == coordinate_context.get_units("SCPT")["SCPT_DPTH"]
+
+    def test_projected_crs_with_survey_foot_axes(self, coordinate_context: AgsContext) -> None:
+        coordinate_context.get_table(LOCA)["LOCA_GREF"] = "EPSG:2263"
+
+        dhc = create_from_parsed_ags(coordinate_context)
+
+        assert dhc.distance_unit == "ft[US]"
+        assert dhc.properties["x"].iloc[0] == pytest.approx(575784 * 3937 / 1200, rel=1e-12)
+        assert dhc.collections[0].unit == "m"
 
     @pytest.mark.parametrize(
         ("crs_name", "epsg"), [("OSGB", 27700), ("OSI", 29902), ("ITM", 2157), ("EPSG:2193", 2193)]

@@ -9,7 +9,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
+from math import isclose
 
 import numpy as np
 import pandas as pd
@@ -33,8 +34,7 @@ logger = evo.logging.getLogger("data_converters")
 # Orientation of a vertical hole, used where the AGS file gives none
 DEFAULT_DIP = 90.0
 DEFAULT_AZIMUTH = 0.0
-
-DISTANCE_UNIT = "m"
+METRES_PER_UNIT = {"m": 1.0, "cm": 0.01, "mm": 0.001, "km": 1000.0, "ft": 0.3048, "ft[US]": 1200 / 3937, "in": 0.0254}
 
 # AGS abbreviations of units that Evo spells differently, other AGS units are used as they are when Evo knows them
 EVO_UNIT_ALIASES: dict[str, str] = {
@@ -84,16 +84,19 @@ def create_from_parsed_ags(
 
     crs_definition = ags_context.coordinate_reference_system
     scpg_df, skipped_pushes = select_first_pushes(ags_context.get_table(SCPG))
-    tables = {
-        group: exclude_pushes(ags_context.get_table(group), skipped_pushes, group)
-        for group in AgsContext.MEASUREMENT_GROUPS
+    source = {group: ags_context.get_table(group) for group in AgsContext.LINEAR_COLUMNS}
+    linear_units = {
+        group: AgsContext.linear_units(group, source[group], ags_context.get_units(group))
+        for group in AgsContext.LINEAR_COLUMNS
     }
+    tables = {group: exclude_pushes(source[group], skipped_pushes, group) for group in AgsContext.MEASUREMENT_GROUPS}
     dropped_hole_ids: list[str] = []
-    collars_df = build_collars(
-        ags_context.get_table(LOCA),
+    collars_df, distance_unit = build_collars(
+        source[LOCA],
         scpg_df,
         tables,
         crs_definition,
+        linear_units,
         record_dropped_hole=dropped_hole_ids.append,
     )
 
@@ -110,19 +113,26 @@ def create_from_parsed_ags(
         if measurements is None:
             continue
 
+        group_units = linear_units[group]
+        # A distance table keeps its own unit; an interval table shares one unit between its endpoints.
+        collection_unit = next((group_units[col] for col in depth_columns.values() if col in group_units), None)
+        collection_depths = depths_in_unit(measurements, depth_columns.values(), group_units, collection_unit)
         collection_class = DistanceCollection if "distance" in depth_columns else IntervalCollection
         collections.append(
             collection_class(
                 name=group,
                 holes=hole_chunks(measurements["hole_index"]),
-                table=collection_table(measurements, group, depth_columns, ags_context.get_units(group)),
-                unit=DISTANCE_UNIT,
+                table=collection_table(collection_depths, group, depth_columns, ags_context.get_units(group)),
+                unit=collection_unit,
             )
         )
 
         # Only the first distance table is used when building the hole path geometry
         if stations is None and "distance" in depth_columns:
-            stations = path_stations(measurements, depth_columns["distance"], ags_context.get_table(HORN))
+            depth = depth_columns["distance"]
+            horn = depths_in_unit(source[HORN], ("HORN_TOP", "HORN_BASE"), linear_units[HORN], collection_unit)
+            stations = path_stations(measurements, depth, horn)
+            stations["distance"] = scale_lengths(stations["distance"], depth, group_units, distance_unit)
 
     path, holes = build_path(collars_df, stations)
 
@@ -142,7 +152,7 @@ def create_from_parsed_ags(
         properties=properties,
         attributes=None if collar_attributes.empty else collar_attributes,
         collections=collections,
-        distance_unit=DISTANCE_UNIT,
+        distance_unit=distance_unit,
         desurvey=None,
     )
     if diagnostics is not None:
@@ -486,31 +496,64 @@ def exclude_pushes(table: pd.DataFrame, pushes: pd.DataFrame, group: str) -> pd.
     return table[~excluded]
 
 
-def final_depths(scpg_df: pd.DataFrame, tables: dict[str, pd.DataFrame]) -> pd.Series:
+def scale_lengths(values: pd.Series, column: str, units: dict[str, str], target_unit: str) -> pd.Series:
+    """Scale derived geometry only; matching units need no conversion factor."""
+    source_unit = units.get(column)
+    if source_unit is None or source_unit == target_unit:
+        return values
+    if source_unit not in METRES_PER_UNIT or target_unit not in METRES_PER_UNIT:
+        if not values.notna().any():
+            return values
+        raise AgsFileInvalidException(
+            f"Cannot convert {column} from {source_unit!r} to {target_unit!r} for shared geometry. "
+            "Use matching units or a supported conversion.",
+            code="invalid_coordinates",
+            group=column.partition("_")[0],
+        )
+    converted: pd.Series = values * (METRES_PER_UNIT[source_unit] / METRES_PER_UNIT[target_unit])
+    return converted
+
+
+def depths_in_unit(
+    table: pd.DataFrame, columns: Iterable[str], units: dict[str, str], target: str | None
+) -> pd.DataFrame:
+    """Return a table with only the mismatched depth columns rescaled, never changing the source."""
+    if target is None:
+        return table
+    changed = {
+        col: scale_lengths(pd.to_numeric(table[col], errors="coerce").astype("float64"), col, units, target)
+        for col in columns
+        if col in units and units[col] != target
+    }
+    return table.assign(**changed) if changed else table
+
+
+def final_depths(
+    scpg_df: pd.DataFrame, tables: dict[str, pd.DataFrame], units: dict[str, dict[str, str]], distance_unit: str
+) -> pd.Series:
     """Find the final depth of each location.
 
     :param scpg_df: The SCPG rows of the imported pushes, from select_first_pushes.
     :param tables: The measurement tables, keyed by AGS group.
-    :return: The deepest SCPT_DPTH of the imported push or GEOL_BASE of each location, indexed by LOCA_ID.
+    :return: The deepest SCPT_DPTH of the imported push or GEOL_BASE, in the collar unit, indexed by LOCA_ID.
     """
     keys = ["LOCA_ID", "SCPG_TESN"]
-    depths = []
+    depths: list[pd.Series] = []
 
     scpt_df = tables.get(SCPT, pd.DataFrame())
     if set(keys).issubset(scpg_df.columns) and {*keys, "SCPT_DPTH"}.issubset(scpt_df.columns):
         imported_scpt = scpt_df[[*keys, "SCPT_DPTH"]].merge(scpg_df[keys].drop_duplicates(), on=keys)
-        depths.append(imported_scpt[["LOCA_ID", "SCPT_DPTH"]].rename(columns={"SCPT_DPTH": "depth"}))
+        deepest = pd.to_numeric(imported_scpt["SCPT_DPTH"], errors="coerce").groupby(imported_scpt["LOCA_ID"]).max()
+        depths.append(scale_lengths(deepest, "SCPT_DPTH", units[SCPT], distance_unit))
 
     geol_df = tables.get(GEOL, pd.DataFrame())
     if {"LOCA_ID", "GEOL_BASE"}.issubset(geol_df.columns):
-        depths.append(geol_df[["LOCA_ID", "GEOL_BASE"]].rename(columns={"GEOL_BASE": "depth"}))
+        deepest = pd.to_numeric(geol_df["GEOL_BASE"], errors="coerce").groupby(geol_df["LOCA_ID"]).max()
+        depths.append(scale_lengths(deepest, "GEOL_BASE", units[GEOL], distance_unit))
 
-    depths = [df for df in depths if not df.empty]
     if not depths:
         return pd.Series(dtype="float64")
-
-    combined = pd.concat(depths, ignore_index=True)
-    return pd.to_numeric(combined["depth"], errors="coerce").groupby(combined["LOCA_ID"]).max()
+    return pd.concat(depths, axis=1).max(axis=1)
 
 
 def build_collars(
@@ -518,8 +561,9 @@ def build_collars(
     scpg_df: pd.DataFrame,
     tables: dict[str, pd.DataFrame],
     crs_definition: int | str | None,
+    units: dict[str, dict[str, str]],
     record_dropped_hole: Callable[[str], None] | None = None,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, str]:
     """Builds the collars, one per location, with the LOCA_ID as hole_id.
 
     A location gets a collar when it has an imported CPT push in SCPG, or GEOL data and a LOCA row. The measurements
@@ -532,9 +576,11 @@ def build_collars(
     :param scpg_df: The SCPG rows of the imported pushes, one per LOCA_ID, from select_first_pushes.
     :param tables: The measurement tables, keyed by AGS group, without the rows of the pushes that are not imported.
     :param crs_definition: The coordinate reference system shared by the LOCA rows.
+    :param units: The source units of the geometry columns, keyed by group and column.
     :param record_dropped_hole: Optional callback receiving the hole_id of each collar dropped for missing coordinates.
     :return: A DataFrame with a row per collar. The standard columns (hole_index, hole_id, x, y, z, final_depth) come
-        first, followed by the LOCA_ID and the SCPG_TESN of the imported push, and the other LOCA and SCPG columns.
+        first, followed by the LOCA_ID and the SCPG_TESN of the imported push, and the other LOCA and SCPG columns;
+        also returns the unit of the depths, elevations and linear x/y. Longitude and latitude stay in degrees.
     """
     collars = []
     cpt_loca_ids = pd.Series(dtype="object")
@@ -563,29 +609,52 @@ def build_collars(
 
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
     collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str)
-    collars_df["final_depth"] = collars_df["LOCA_ID"].map(final_depths(scpg_df, tables)).astype("float64")
-
-    coordinate_families = assign_coordinates(collars_df, crs_definition)
+    coordinate_families, crs_unit = assign_coordinates(collars_df, crs_definition)
     collars_df, coordinate_families = exclude_unlocated_collars(
         collars_df, coordinate_families, record_dropped_hole=record_dropped_hole
     )
     family = shared_coordinate_family(collars_df, coordinate_families)
-    assign_elevations(collars_df, family)
+    loca_units = units[LOCA]
+    if family == "geographic":
+        # Longitude and latitude stay in degrees; the depths and elevations share the unit of the measured depths.
+        distance_unit = measured_depth_unit(units)
+    else:
+        x_col, y_col = AgsContext.COORDINATE_COLUMNS_BY_FAMILY[family]
+        distance_unit = crs_unit or loca_units[x_col]
+        collars_df["x"] = scale_lengths(collars_df["x"], x_col, loca_units, distance_unit)
+        collars_df["y"] = scale_lengths(collars_df["y"], y_col, loca_units, distance_unit)
+    assign_elevations(collars_df, family, loca_units, distance_unit)
     assign_vertical_datum(collars_df, family)
+    depths = final_depths(scpg_df, tables, units, distance_unit)
+    collars_df["final_depth"] = collars_df["LOCA_ID"].map(depths).astype("float64")
 
     key_cols = ["LOCA_ID", "SCPG_TESN"]
     other_cols = [c for c in collars_df.columns if c not in COLLAR_COLUMNS + key_cols]
-    return collars_df[COLLAR_COLUMNS + key_cols + other_cols]
+    return collars_df[COLLAR_COLUMNS + key_cols + other_cols], distance_unit
 
 
-def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> pd.Series:
-    """Assign each collar's coordinates from the family compatible with its CRS."""
+def measured_depth_unit(units: dict[str, dict[str, str]]) -> str:
+    """Return the unit of the first measured depths, else of LOCA_GL, else metres."""
+    for group in AgsContext.MEASUREMENT_GROUPS:
+        if group in AgsContext.DISTANCE_COLUMNS:
+            columns: tuple[str, ...] = (AgsContext.DISTANCE_COLUMNS[group],)
+        else:
+            columns = AgsContext.INTERVAL_COLUMNS[group]
+        group_units = units.get(group, {})
+        unit = next((group_units[column] for column in columns if column in group_units), None)
+        if unit is not None:
+            return unit
+    return units.get(LOCA, {}).get(AgsContext.ELEVATION_COLUMN_BY_FAMILY["geographic"], "m")
+
+
+def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> tuple[pd.Series, str | None]:
+    """Assign the source coordinates and return their families and the unit required by the CRS, if any."""
     if crs_definition is None:
         logger.warning("CRS is unavailable; coordinate columns cannot be verified.")
-        return assign_unspecified_coordinates(collars_df)
+        return assign_unspecified_coordinates(collars_df), None
     elif crs_definition == "unspecified":
         logger.warning("CRS is local or unspecified; using local grid coordinates.")
-        return assign_family_coordinates(collars_df, "local")
+        return assign_family_coordinates(collars_df, "local"), None
     else:
         return assign_horizontal_coordinates(collars_df, crs_definition)
 
@@ -685,10 +754,12 @@ def assign_family_coordinates(collars_df: pd.DataFrame, family: CoordinateFamily
     return pd.Series(family, index=collars_df.index, dtype="object")
 
 
-def assign_elevations(collars_df: pd.DataFrame, family: CoordinateFamily) -> None:
+def assign_elevations(
+    collars_df: pd.DataFrame, family: CoordinateFamily, units: dict[str, str], distance_unit: str
+) -> None:
     """Assign the elevation field associated with the selected coordinate family."""
     column = AgsContext.ELEVATION_COLUMN_BY_FAMILY[family]
-    elevation = numeric_column(collars_df, column)
+    elevation = scale_lengths(numeric_column(collars_df, column), column, units, distance_unit)
 
     invalid = ~np.isfinite(elevation)
     if invalid.any():
@@ -710,22 +781,26 @@ def assign_vertical_datum(collars_df: pd.DataFrame, family: CoordinateFamily) ->
     collars_df["LOCA_DATM"] = datum.mask(missing, "undeclared")
 
 
-def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int | str) -> pd.Series:
+def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int | str) -> tuple[pd.Series, str | None]:
     """Select the coordinate family matching a projected or geographic CRS and assign x and y."""
     crs = CRS.from_user_input(crs_definition)
-    family: CoordinateFamily
     if crs.is_projected:
-        family = "national"
-    elif crs.is_geographic:
-        family = "geographic"
-    else:
+        axes = crs.axis_info
+        for unit, metres in METRES_PER_UNIT.items():
+            if axes and all(isclose(axis.unit_conversion_factor, metres, rel_tol=1e-12) for axis in axes):
+                return assign_family_coordinates(collars_df, "national"), unit
         raise AgsFileInvalidException(
-            f"CRS {crs_definition} is neither projected nor geographic.",
+            "The projected CRS axes must share one supported linear unit for downhole geometry.",
             code="invalid_coordinates",
-            reason="The declared CRS cannot be used to select the AGS coordinate columns.",
+            group=LOCA,
         )
-
-    return assign_family_coordinates(collars_df, family)
+    if crs.is_geographic:
+        return assign_family_coordinates(collars_df, "geographic"), None
+    raise AgsFileInvalidException(
+        f"CRS {crs_definition} is neither projected nor geographic.",
+        code="invalid_coordinates",
+        reason="The declared CRS cannot be used to select the AGS coordinate columns.",
+    )
 
 
 def calculate_dip_and_azimuth(

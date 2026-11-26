@@ -100,10 +100,9 @@ try:
         diagnostics=issues,
     )
 except AgsParsingError as error:
-    print(error)
-else:
-    for issue in issues:
-        print(issue.reason)
+    issues = error.diagnostics
+for issue in issues:
+    print(issue.code, issue.group, issue.reason)
 ```
 
 ## Things to know
@@ -111,12 +110,18 @@ else:
 - Only the first CPT push at each location is imported.
 - Each collection must use one coordinate system. Import files with different coordinate systems or coordinate types
   separately using `merge_files=False`.
-- Coordinates, units, and vertical datums are not converted.
-- Numeric attributes are tagged with their units from the AGS `UNIT` rows. Units that Evo does not recognise, such as
-  `kN/m3`, are imported without a unit and a warning is logged.
-- Files that use different units for the same column cannot be merged. Import them separately using
-  `merge_files=False`.
-- `LOCA_LAT` and `LOCA_LON` are imported in decimal degrees.
+- Source values and units are preserved wherever possible, rather than converting everything to metres.
+  Coordinates, elevations and depths are converted only where needed to keep hole positions and paths consistent.
+- Holes are positioned in the file's coordinate system, without reprojection or vertical datum conversion. With a
+  latitude/longitude system such as WGS 84, longitude and latitude are used as-is in degrees, while depths and
+  elevations keep their length unit.
+- Coordinate and depth fields need recognised length units. Automatic conversion supports `m`, `cm`, `mm`, `km`,
+  `in`, `ft` (international feet) and `ft[US]` (US survey feet). Missing units or unsupported conversions are reported
+  as errors. Unrecognised units on other measurements are omitted with a warning; their values are kept.
+- Files declaring different units for the same column cannot be combined. The conflicting file is skipped and
+  reported in `diagnostics`; use `merge_files=False` to import the files separately.
+- Final hole depth comes from the deepest imported CPT reading or geological interval. The recorded final depth
+  (`LOCA_FDEP`) is kept as extra data, not used to override it.
 - Missing or invalid ground-level values default to zero, so check these before using the imported data.
 - Where hole orientation is unavailable, the hole is assumed to be vertical.
 

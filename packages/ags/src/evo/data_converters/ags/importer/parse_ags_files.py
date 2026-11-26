@@ -58,10 +58,8 @@ def parse_ags_files(
                         code="incompatible_merge",
                         severity="error",
                         sources=(source,),
-                        reason=(
-                            "Files with the same PROJ_ID must have compatible coordinate reference systems, "
-                            "project metadata and column units."
-                        ),
+                        reason=e.reason,
+                        group=e.group,
                     )
                 )
                 continue

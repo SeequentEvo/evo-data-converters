@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Literal, TypedDict
 
 import pandas as pd
+from evo_schemas.elements.unit_length import UnitLength_V1_0_1_UnitCategories
 from pyproj import CRS
 from pyproj.exceptions import CRSError
 from python_ags4 import AGS4
@@ -55,6 +56,7 @@ VALIDATOR_PROCESS_KEYS: tuple[str, ...] = ("General", "Validator Process Error")
 
 # Unit of the DMS columns once converted to decimal degrees, as AGS abbreviates it
 DMS_UNIT = "deg"
+EVO_LENGTH_UNITS = frozenset(unit.value for unit in UnitLength_V1_0_1_UnitCategories)
 _HEMISPHERES = ("N", "S", "E", "W")
 _DMS_PATTERN = re.compile(
     r"(?P<sign>[+-])?"
@@ -170,7 +172,19 @@ class AgsFileInvalidException(Exception):
 
 
 class AgsIncompatibleMergeError(ValueError):
-    """Raised when AGS contexts cannot be merged due to project or CRS metadata."""
+    """Raised when AGS contexts cannot be merged due to project, CRS or unit metadata."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        group: str | None = None,
+        reason: str = "Files with the same PROJ_ID must have compatible coordinate reference systems, "
+        "project metadata and column units.",
+    ) -> None:
+        super().__init__(message)
+        self.group = group
+        self.reason = reason
 
 
 class AgsValidationRow(TypedDict):
@@ -270,6 +284,17 @@ class AgsContext:
         "national": "LOCA_GL",
         "local": "LOCA_LOCZ",
         "geographic": "LOCA_GL",
+    }
+    LINEAR_COLUMNS: dict[str, tuple[str, ...]] = {
+        LOCA: (
+            *COORDINATE_COLUMNS_BY_FAMILY["national"],
+            *COORDINATE_COLUMNS_BY_FAMILY["local"],
+            ELEVATION_COLUMN_BY_FAMILY["national"],
+            ELEVATION_COLUMN_BY_FAMILY["local"],
+        ),
+        SCPT: (DISTANCE_COLUMNS[SCPT],),
+        **INTERVAL_COLUMNS,
+        HORN: ("HORN_TOP", "HORN_BASE"),
     }
 
     # Used only when the file does not identify a coordinate reference system.
@@ -394,9 +419,7 @@ class AgsContext:
 
             # Drop the first two rows (UNIT/TYPE) before conversion
             df: pd.DataFrame = df.iloc[2:].reset_index(drop=True)
-
-            # Ensure the dataframe has at least one data row
-            if len(df) < 1:
+            if df.empty:
                 logger.warning(f"Table {group!r} has no data rows; skipping type conversion.")
                 processed_tables[group] = df
                 continue
@@ -441,6 +464,17 @@ class AgsContext:
                     # Convert Y/N to boolean
                     df[col] = df[col].map({"Y": True, "N": False})
                 elif category == "dms":
+                    declared = unit_row[col]
+                    if (
+                        isinstance(declared, str)
+                        and declared.strip() not in ("", "deg", "dega", "DMS")
+                        and (df[col].notna() & df[col].astype(str).str.strip().ne("")).any()
+                    ):
+                        raise AgsFileInvalidException(
+                            f"{col} has DMS values but declares unit {declared!r}. Use degrees for DMS coordinates.",
+                            code="invalid_coordinates",
+                            group=group,
+                        )
                     df[col] = dms_to_degrees(df[col], f"{group}.{col}")
                 else:
                     # Default: keep as string, preserve missing values
@@ -449,12 +483,33 @@ class AgsContext:
             # Convert all NaN-like values (NaT, None, NaN) to pd.NA
             df = df.mask(df.isna(), pd.NA)
 
+            self.linear_units(group, df, processed_units[group])
             processed_tables[group] = df
 
         # Store the processed tables and keep the original headings dict
         self._tables = processed_tables
         self._headings = {group: headings[group] for group in processed_tables.keys()}
         self._units = processed_units
+
+    @classmethod
+    def linear_units(cls, group: str, table: pd.DataFrame, units: dict[str, str]) -> dict[str, str]:
+        """Check source geometry units without changing values. A populated column cannot borrow another file's unit."""
+        declared: dict[str, str] = {}
+        for column in cls.LINEAR_COLUMNS.get(group, ()):
+            if column not in table:
+                continue
+            unit = units.get(column, "")
+            values = table[column]
+            if unit in EVO_LENGTH_UNITS:
+                declared[column] = unit
+            elif (values.notna() & values.astype(str).str.strip().ne("")).any():
+                problem = f"unsupported unit {unit!r}" if unit else "no unit"
+                raise AgsFileInvalidException(
+                    f"{column} has {problem}. Specify an Evo length unit in the {group} UNIT row.",
+                    code="invalid_coordinates",
+                    group=group,
+                )
+        return declared
 
     @classmethod
     def _column_units(cls, unit_row: pd.Series, type_codes: list[str]) -> dict[str, str]:
@@ -527,7 +582,7 @@ class AgsContext:
 
     @property
     def units(self) -> dict[str, dict[str, str]]:
-        """The units of the columns of each group, keyed by group and then column, as written in the AGS UNIT rows.
+        """Source units keyed by group and column, except for DMS values parsed as decimal degrees.
 
         Columns without a unit are left out.
 
@@ -711,16 +766,19 @@ class AgsContext:
         for group in self.MERGED_GROUPS:
             self_units = self.get_units(group)
             other_units = other.get_units(group)
-            for column in self_units.keys() & other_units.keys():
+            for column in sorted(self_units.keys() & other_units.keys()):
                 if self_units[column] != other_units[column]:
                     msg = (
                         f"Incompatible units for {group}.{column}: first has '{self_units[column]}', "
-                        f"second has '{other_units[column]}'. Values will be merged as if they are in "
-                        f"'{self_units[column]}'."
+                        f"second has '{other_units[column]}'."
                     )
                     if raise_on_error:
-                        raise AgsIncompatibleMergeError(f"Cannot merge AgsContext instances: {msg}")
-                    issues.append(msg)
+                        raise AgsIncompatibleMergeError(
+                            f"Cannot merge AgsContext instances: {msg}",
+                            group=group,
+                            reason=f"{msg} Import the files separately or use the same unit.",
+                        )
+                    issues.append(f"{msg} Values will be merged as if they are in '{self_units[column]}'.")
 
         return issues
 
