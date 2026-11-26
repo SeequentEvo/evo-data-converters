@@ -115,6 +115,7 @@ for issue in issues:
 - Grid coordinates and latitude/longitude are supported. Coordinates should match their declared reference.
   No reprojection or vertical datum conversion is performed.
 - Use recognised length units for grid coordinates and depths, and degrees or radians for longitude/latitude.
+  Coordinates without a usable unit are kept as extra data, but are not used to position holes.
 - Final hole depth comes from the deepest imported CPT reading or geological interval. The recorded final depth
   (`LOCA_FDEP`) is kept as extra data, not used to override it.
 - Missing or invalid ground levels default to zero, so check them before using the imported data.

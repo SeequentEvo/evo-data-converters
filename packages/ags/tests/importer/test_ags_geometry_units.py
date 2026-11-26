@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from evo.data_converters.ags import AgsDiagnostic, AgsParsingError, AgsSource, convert_ags
-from evo.data_converters.ags.common import AgsContext
+from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.importer import create_from_parsed_ags
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.objects.typed import DownholeCollectionData
@@ -304,13 +304,124 @@ def test_decimal_angles_scale_only_collar_geometry(
     assert (units["LOCA_LON"].unit, units["LOCA_LAT"].unit) == ("dega" if lon_unit == "deg" else lon_unit, lat_unit)
 
 
-@pytest.mark.parametrize("unit", ["", "m"])
-def test_decimal_angles_require_angular_units(
-    decimal_loca_path: Path, evo_metadata: EvoWorkspaceMetadata, tmp_path: Path, unit: str
+@pytest.mark.parametrize(("unit", "problem"), [("", "no unit"), ("m", "unsupported unit 'm'")])
+def test_decimal_angles_without_an_angular_unit_reject_only_holes_that_need_them(
+    decimal_loca_path: Path, evo_metadata: EvoWorkspaceMetadata, tmp_path: Path, unit: str, problem: str
 ) -> None:
     path = with_units(str(decimal_loca_path), tmp_path / "bad.ags", LOCA_LON=unit, LOCA_LAT="rad")
+    issues: list[AgsDiagnostic] = []
+    (dhc,) = asyncio.run(
+        convert_ags([str(path)], evo_workspace_metadata=evo_metadata, publish_objects=False, diagnostics=issues)
+    )
+    assert isinstance(dhc, DownholeCollectionData)
+    assert dhc.coordinate_reference_system == 27700
+    assert dhc.properties[["x", "y"]].to_numpy().tolist() == [[575784.0, 5807006.0]]
+    (ignored,) = [issue for issue in issues if issue.code == "coordinates_ignored"]
+    assert (ignored.severity, ignored.group, ignored.sources) == ("warning", "LOCA", (AgsSource(0, path.name),))
+    assert ignored.reason.startswith(f"LOCA_LON has {problem}")
+
+    unpositioned = tmp_path / "unpositioned.ags"
+    unpositioned.write_text(path.read_text().replace('"575784.00","5807006.00","OSGB"', '"","",""'))
     with pytest.raises(AgsParsingError) as error:
-        asyncio.run(convert_ags([str(path)], evo_workspace_metadata=evo_metadata, publish_objects=False))
+        asyncio.run(convert_ags([str(unpositioned)], evo_workspace_metadata=evo_metadata, publish_objects=False))
     (issue,) = error.value.diagnostics
-    assert (issue.code, issue.group, issue.sources) == ("invalid_coordinates", "LOCA", (AgsSource(0, path.name),))
-    assert "LOCA_LON" in issue.reason
+    assert (issue.code, issue.group, issue.sources) == (
+        "invalid_coordinates",
+        "LOCA",
+        (AgsSource(0, unpositioned.name),),
+    )
+    assert issue.reason.startswith(f"LOCA_LON has {problem}, so LOCA_ID 'EXAMPLE-1-CPT1' cannot be positioned.")
+
+
+@pytest.mark.parametrize(("gref", "crs"), [("EPSG:32631", 32631), ("", None)])
+def test_unit_less_angles_are_kept_as_data_when_projected_coordinates_position_holes(
+    decimal_loca_path: Path, evo_metadata: EvoWorkspaceMetadata, tmp_path: Path, gref: str, crs: int | None
+) -> None:
+    path = tmp_path / "projected.ags"
+    path.write_text(decimal_loca_path.read_text().replace('"OSGB"', f'"{gref}"').replace('"WGS84"', '""'))
+    issues: list[AgsDiagnostic] = []
+    (dhc,) = asyncio.run(
+        convert_ags([str(path)], evo_workspace_metadata=evo_metadata, publish_objects=False, diagnostics=issues)
+    )
+    assert isinstance(dhc, DownholeCollectionData)
+    assert dhc.coordinate_reference_system == crs
+    assert dhc.properties[["x", "y"]].to_numpy().tolist() == [[575784.0, 5807006.0]]
+    assert dhc.attributes is not None
+    assert dhc.attributes[["LOCA_LON", "LOCA_LAT"]].to_numpy().tolist() == [[1.2, -0.5]]
+    assert not {"LOCA_LON", "LOCA_LAT"} & dhc.attributes.attrs["attribute_descriptions"].keys()
+    ignored = [issue for issue in issues if issue.code == "coordinates_ignored"]
+    assert [issue.reason.split(" ", 1)[0] for issue in ignored] == ["LOCA_LON", "LOCA_LAT"]
+    assert all(issue.severity == "warning" and issue.hole_id is None for issue in ignored)
+
+    # The same angles with a unit import unchanged and without a warning
+    declared = with_units(str(path), tmp_path / "declared.ags", LOCA_LON="deg", LOCA_LAT="deg")
+    issues.clear()
+    asyncio.run(
+        convert_ags([str(declared)], evo_workspace_metadata=evo_metadata, publish_objects=False, diagnostics=issues)
+    )
+    assert "coordinates_ignored" not in {issue.code for issue in issues}
+
+
+def test_unusable_elevation_rejects_only_when_the_selected_coordinates_use_it(
+    test_coordinate_columns_ags_path: str,
+) -> None:
+    ctx = AgsContext()
+    ctx.parse_ags(test_coordinate_columns_ags_path)
+    ctx.get_table("LOCA")[["LOCA_LOCX", "LOCA_LOCY", "LOCA_LON", "LOCA_LAT"]] = None
+    units = ctx.get_units("LOCA")
+    ctx.set_units("LOCA", {column: unit for column, unit in units.items() if column != "LOCA_LOCZ"})
+
+    issues: list[AgsDiagnostic] = []
+    dhc = create_from_parsed_ags(ctx, diagnostics=issues)
+    assert dhc.properties["hole_id"].tolist() == ["BH01", "BH04"]
+    assert dhc.properties["z"].tolist() == [5.0, 0.0]
+    assert dhc.attributes is not None
+    assert dhc.attributes["LOCA_LOCZ"].dropna().tolist() == [15.0]
+    ignored = [issue for issue in issues if issue.code == "coordinates_ignored"]
+    assert [issue.reason for issue in ignored] == [
+        "LOCA_LOCZ has no unit, so it was kept as data but not used to position holes."
+    ]
+
+    ctx.set_units("LOCA", {column: unit for column, unit in units.items() if column != "LOCA_GL"})
+    with pytest.raises(AgsFileInvalidException) as error:
+        create_from_parsed_ags(ctx)
+    assert (error.value.code, error.value.group) == ("invalid_coordinates", "LOCA")
+    assert str(error.value).startswith("LOCA_GL has no unit, so LOCA_ID 'BH01' cannot be positioned.")
+
+
+@pytest.mark.parametrize("populated", [True, False])
+def test_merge_keeps_unit_less_angles_without_a_unit(
+    decimal_loca_path: Path,
+    valid_ags_1b_path: str,
+    evo_metadata: EvoWorkspaceMetadata,
+    tmp_path: Path,
+    populated: bool,
+) -> None:
+    first = tmp_path / "first.ags"
+    first.write_text(decimal_loca_path.read_text().replace('"WGS84"', '""'))
+    # The second file declares a unit; it conflicts only when its own angles are populated
+    second = with_units(valid_ags_1b_path, tmp_path / "second.ags", LOCA_LON="deg", LOCA_LAT="deg")
+    second.write_text(second.read_text().replace('"DMS","DMS","X"', '"4DP","4DP","X"'))
+    if populated:
+        second.write_text(
+            second.read_text().replace(
+                '"50.49","2025-06-17","","","","","","",""', '"50.49","2025-06-17","","","","","-0.5","1.2",""'
+            )
+        )
+    issues: list[AgsDiagnostic] = []
+    results = asyncio.run(
+        convert_ags(
+            [str(first), str(second)], evo_workspace_metadata=evo_metadata, publish_objects=False, diagnostics=issues
+        )
+    )
+    if not populated:
+        (dhc,) = results
+        assert isinstance(dhc, DownholeCollectionData)
+        assert dhc.properties["hole_id"].tolist() == ["EXAMPLE-1-CPT1", "EXAMPLE-1-CPT2"]
+        assert dhc.attributes is not None
+        assert "LOCA_LON" not in dhc.attributes.attrs["attribute_descriptions"]
+        assert "incompatible_merge" not in {issue.code for issue in issues}
+    else:
+        (incompatible,) = [issue for issue in issues if issue.code == "incompatible_merge"]
+        assert incompatible.sources == (AgsSource(1, second.name),)
+        assert "LOCA.LOCA_LAT: first has no unit, second has 'deg'" in incompatible.reason

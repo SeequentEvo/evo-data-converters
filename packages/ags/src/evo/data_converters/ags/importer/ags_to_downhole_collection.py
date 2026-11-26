@@ -186,6 +186,16 @@ def create_from_parsed_ags(
             )
             for column, value in ags_context.unresolved_crs()
         )
+        diagnostics.extend(
+            AgsDiagnostic(
+                code="coordinates_ignored",
+                severity="warning",
+                sources=ags_context.sources,
+                reason=f"{column} has {problem}, so it was kept as data but not used to position holes.",
+                group=LOCA,
+            )
+            for column, problem in ags_context.unusable_geometry_columns().items()
+        )
         diagnostics.extend(collar_warnings)
     return result
 

@@ -563,6 +563,7 @@ def test_coordinate_reference_system_local_gref(valid_ags_path):
     loca_table["LOCA_GREF"] = "LOCAL"
     loca_table["LOCA_LOCX"] = 100.0
     loca_table["LOCA_LOCY"] = 200.0
+    context.set_units(LOCA, {**context.get_units(LOCA), "LOCA_LOCX": "m", "LOCA_LOCY": "m"})
 
     assert context.coordinate_reference_system == "unspecified"
 
@@ -583,6 +584,17 @@ def _context_with_loca(**columns: list[str]) -> AgsContext:
                 **columns,
             }
         ),
+    )
+    context.set_units(
+        LOCA,
+        {
+            "LOCA_NATE": "m",
+            "LOCA_NATN": "m",
+            "LOCA_LON": "deg",
+            "LOCA_LAT": "deg",
+            "LOCA_LOCX": "m",
+            "LOCA_LOCY": "m",
+        },
     )
     return context
 

@@ -14,7 +14,7 @@ import re
 from functools import cache, cached_property
 from io import StringIO
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Any, Literal, NoReturn, TypedDict
 
 import pandas as pd
 from evo_schemas.elements.unit_length import UnitLength_V1_0_1_UnitCategories
@@ -146,13 +146,30 @@ def dms_to_degrees(series: pd.Series, column: str) -> pd.Series:
     :return: The values in decimal degrees, NaN where they are missing or cannot be read.
     """
     degrees = series.map(parse_dms).astype("float64")
-    has_value = series.notna() & series.astype(str).str.strip().ne("")
-    unread = has_value & degrees.isna()
+    unread = _populated(series) & degrees.isna()
     if unread.any():
         logger.warning(
             f"Could not read {unread.sum()} values of {column} as degrees, minutes and seconds; treating them as missing"
         )
     return degrees
+
+
+def _populated(series: pd.Series) -> pd.Series:
+    """Return which values are present and not blank."""
+    populated: pd.Series = series.notna() & series.astype(str).str.strip().ne("")
+    return populated
+
+
+def _is_populated(value: Any) -> bool:
+    return not pd.isna(value) and bool(str(value).strip())
+
+
+def _describe_unit(unit: str | None) -> str:
+    return f"'{unit}'" if unit else "no unit"
+
+
+def _unit_problem(unit: str | None) -> str:
+    return f"unsupported unit '{unit}'" if unit else "no unit"
 
 
 def _normalize_crs_value(value: object) -> str | None:
@@ -352,6 +369,8 @@ class AgsContext:
         **INTERVAL_COLUMNS,
         HORN: ("HORN_TOP", "HORN_BASE"),
     }
+    # LOCA columns that can position holes, used only when they have a usable unit
+    GEOMETRY_COLUMNS: tuple[str, ...] = (*LINEAR_COLUMNS[LOCA], *COORDINATE_COLUMNS_BY_FAMILY["geographic"])
 
     # Used only when the file does not identify a coordinate reference system.
     UNSPECIFIED_COORDINATE_FAMILY_PRIORITY: tuple[CoordinateFamily, ...] = ("national", "local", "geographic")
@@ -524,7 +543,7 @@ class AgsContext:
                     if (
                         isinstance(declared, str)
                         and declared.strip() not in ("", "deg", "dega", "DMS")
-                        and (df[col].notna() & df[col].astype(str).str.strip().ne("")).any()
+                        and _populated(df[col]).any()
                     ):
                         raise AgsFileInvalidException(
                             f"{col} has DMS values but declares unit {declared!r}. Use degrees for DMS coordinates.",
@@ -549,23 +568,43 @@ class AgsContext:
 
     @classmethod
     def geometry_units(cls, group: str, table: pd.DataFrame, units: dict[str, str]) -> dict[str, str]:
-        """Validate geometry units before merge, keeping the original units on the source attributes."""
-        declared = cls.linear_units(group, table, units)
-        if group == LOCA:
-            for column in cls.COORDINATE_COLUMNS_BY_FAMILY["geographic"]:
-                if column not in table:
-                    continue
-                unit = units.get(column, "")
-                if unit in GEOGRAPHIC_UNITS:
-                    declared[column] = GEOGRAPHIC_UNITS[unit]
-                elif (table[column].notna() & table[column].astype(str).str.strip().ne("")).any():
-                    problem = f"unsupported unit {unit!r}" if unit else "no unit"
-                    raise AgsFileInvalidException(
-                        f"{column} has {problem}. Specify degrees or radians in the LOCA UNIT row.",
-                        code="invalid_coordinates",
-                        group=LOCA,
-                    )
-        return declared
+        """Return the source units of the geometry columns, keeping the original units on the source attributes.
+
+        LOCA columns without a usable unit are left out; they are only rejected when a hole needs them to be
+        positioned, see coordinate_references_by_location. The depth columns of the other groups are checked here.
+        """
+        if group != LOCA:
+            return cls.linear_units(group, table, units)
+        return {
+            column: unit
+            for column in cls.GEOMETRY_COLUMNS
+            if column in table and (unit := cls.usable_geometry_unit(column, units.get(column))) is not None
+        }
+
+    @classmethod
+    def usable_geometry_unit(cls, column: str, unit: str | None) -> str | None:
+        """Return the unit that positions holes from a LOCA geometry column, or None when the unit cannot be used."""
+        if column in cls.COORDINATE_COLUMNS_BY_FAMILY["geographic"]:
+            return GEOGRAPHIC_UNITS.get(unit or "")
+        return unit if unit in EVO_LENGTH_UNITS else None
+
+    @classmethod
+    def _unusable_unit_hint(cls, group: str, column: str) -> str:
+        if column in cls.COORDINATE_COLUMNS_BY_FAMILY["geographic"]:
+            return f"Specify degrees or radians in the {group} UNIT row."
+        return f"Specify an Evo length unit in the {group} UNIT row."
+
+    def unusable_geometry_columns(self) -> dict[str, str]:
+        """Return the populated LOCA geometry columns whose unit cannot be used, with the problem of each unit."""
+        loca = self.get_table(LOCA)
+        units = self.get_units(LOCA)
+        return {
+            column: _unit_problem(units.get(column))
+            for column in self.GEOMETRY_COLUMNS
+            if column in loca
+            and self.usable_geometry_unit(column, units.get(column)) is None
+            and _populated(loca[column]).any()
+        }
 
     @classmethod
     def linear_units(cls, group: str, table: pd.DataFrame, units: dict[str, str]) -> dict[str, str]:
@@ -575,13 +614,11 @@ class AgsContext:
             if column not in table:
                 continue
             unit = units.get(column, "")
-            values = table[column]
             if unit in EVO_LENGTH_UNITS:
                 declared[column] = unit
-            elif (values.notna() & values.astype(str).str.strip().ne("")).any():
-                problem = f"unsupported unit {unit!r}" if unit else "no unit"
+            elif _populated(table[column]).any():
                 raise AgsFileInvalidException(
-                    f"{column} has {problem}. Specify an Evo length unit in the {group} UNIT row.",
+                    f"{column} has {_unit_problem(unit)}. {cls._unusable_unit_hint(group, column)}",
                     code="invalid_coordinates",
                     group=group,
                 )
@@ -706,25 +743,34 @@ class AgsContext:
 
         Complete pairs with a resolved reference are preferred in AGS order: geographic,
         national, then local. If no complete pair has a resolved reference, the first complete pair
-        is retained without assigning it another family's CRS.
+        is retained without assigning it another family's CRS. Pairs without a usable unit are not used;
+        a location is rejected only when it cannot be positioned without them.
         """
         loca = self.get_table(LOCA)
         if "LOCA_ID" not in loca:
             return {}
+        usable_units = self.geometry_units(LOCA, loca, self.get_units(LOCA))
 
         coordinate_references: dict[str, CoordinateReference] = {}
         unresolved_candidates: dict[str, CoordinateReference] = {}
-        unresolved_rows: dict[str, pd.Series] = {}
+        rows: dict[str, pd.Series] = {}
         warned_crs_values: set[tuple[str, str]] = set()
         for _, row in loca.iterrows():
             loca_id = str(row["LOCA_ID"])
+            rows[loca_id] = row
             fallback: CoordinateReference | None = None
+            blocked_column: str | None = None
             for family, x_column, y_column, reference_column in COORDINATE_REFERENCE_CANDIDATES:
                 if not self._has_complete_coordinate_pair(row, x_column, y_column):
                     continue
 
                 gref = _normalize_crs_value(row.get("LOCA_GREF"))
                 if family == "national" and gref == "LOCAL":
+                    continue
+
+                unusable = [column for column in (x_column, y_column) if column not in usable_units]
+                if unusable:
+                    blocked_column = blocked_column or unusable[0]
                     continue
 
                 reference = _normalize_crs_value(row.get(reference_column))
@@ -755,7 +801,8 @@ class AgsContext:
             else:
                 if fallback is not None:
                     unresolved_candidates[loca_id] = fallback
-                    unresolved_rows[loca_id] = row
+                elif blocked_column is not None:
+                    self._raise_unusable_geometry_unit(blocked_column, loca_id)
 
         # An unreferenced row can share another row's CRS only when it has that same coordinate family.
         declared_references = [reference for reference in coordinate_references.values() if reference[1] is not None]
@@ -770,27 +817,32 @@ class AgsContext:
                 x_column, y_column = next(
                     (x, y) for family, x, y, _ in COORDINATE_REFERENCE_CANDIDATES if family == shared_family
                 )
-                if self._has_complete_coordinate_pair(unresolved_rows[loca_id], x_column, y_column):
+                if self._has_complete_coordinate_pair(rows[loca_id], x_column, y_column):
                     coordinate_references[loca_id] = (shared_family, None)
                 else:
                     coordinate_references[loca_id] = fallback
             else:
                 coordinate_references[loca_id] = fallback
 
+        for loca_id, (family, _) in coordinate_references.items():
+            elevation_column = self.ELEVATION_COLUMN_BY_FAMILY[family]
+            if elevation_column not in usable_units and _is_populated(rows[loca_id].get(elevation_column)):
+                self._raise_unusable_geometry_unit(elevation_column, loca_id)
+
         return coordinate_references
+
+    def _raise_unusable_geometry_unit(self, column: str, loca_id: str) -> NoReturn:
+        problem = _unit_problem(self.get_units(LOCA).get(column))
+        raise AgsFileInvalidException(
+            f"{column} has {problem}, so LOCA_ID '{loca_id}' cannot be positioned. "
+            f"{self._unusable_unit_hint(LOCA, column)}",
+            code="invalid_coordinates",
+            group=LOCA,
+        )
 
     @staticmethod
     def _has_complete_coordinate_pair(row: pd.Series, x_column: str, y_column: str) -> bool:
-        try:
-            x_value, y_value = row[x_column], row[y_column]
-            return (
-                not pd.isna(x_value)
-                and bool(str(x_value).strip())
-                and not pd.isna(y_value)
-                and bool(str(y_value).strip())
-            )
-        except KeyError:
-            return False
+        return _is_populated(row.get(x_column)) and _is_populated(row.get(y_column))
 
     @staticmethod
     def _validate_crs_coordinate_family(
@@ -974,11 +1026,18 @@ class AgsContext:
         for group in self.MERGED_GROUPS:
             self_units = self.get_units(group)
             other_units = other.get_units(group)
-            for column in sorted(self_units.keys() & other_units.keys()):
-                if self_units[column] != other_units[column]:
+            columns = self_units.keys() & other_units.keys()
+            if group == LOCA:
+                # A populated geometry column without a unit cannot share the other file's unit
+                columns |= self.populated_columns(LOCA, self.GEOMETRY_COLUMNS) & other.populated_columns(
+                    LOCA, self.GEOMETRY_COLUMNS
+                )
+            for column in sorted(columns):
+                self_unit, other_unit = self_units.get(column), other_units.get(column)
+                if self_unit != other_unit:
                     msg = (
-                        f"Incompatible units for {group}.{column}: first has '{self_units[column]}', "
-                        f"second has '{other_units[column]}'."
+                        f"Incompatible units for {group}.{column}: first has {_describe_unit(self_unit)}, "
+                        f"second has {_describe_unit(other_unit)}."
                     )
                     if raise_on_error:
                         raise AgsIncompatibleMergeError(
@@ -986,9 +1045,19 @@ class AgsContext:
                             group=group,
                             reason=f"{msg} Import the files separately or use the same unit.",
                         )
-                    issues.append(f"{msg} Values will be merged as if they are in '{self_units[column]}'.")
+                    merged_as = f"as if they are in '{self_unit}'" if self_unit and other_unit else "without a unit"
+                    issues.append(f"{msg} Values will be merged {merged_as}.")
 
         return issues
+
+    def populated_columns(self, group: str, columns: tuple[str, ...]) -> set[str]:
+        """Return which of the columns have at least one value in the group."""
+        table = self.get_table(group)
+        return {column for column in columns if column in table and _populated(table[column]).any()}
+
+    def _unitless_geometry_columns(self) -> set[str]:
+        units = self.get_units(LOCA)
+        return {column for column in self.populated_columns(LOCA, self.GEOMETRY_COLUMNS) if not units.get(column)}
 
     def merge(self, other: "AgsContext", validate_compatibility: bool = True) -> None:
         """Merge another AgsContext into this one (in-place).
@@ -1003,7 +1072,8 @@ class AgsContext:
         - SCPG: Concatenate, check for duplicate (LOCA_ID, SCPG_TESN) pairs
         - HORN: Concatenate all rows for dip/azimuth measurements
         - Measurement tables (SCPT, SCPP, GEOL): Concatenate all rows
-        - Units of the merged groups: Combine per column, keeping the unit from self
+        - Units of the merged groups: Combine per column, keeping the unit from self. A populated LOCA geometry
+          column without a unit stays without a unit, so it is not used to position holes.
 
         :param other: The AgsContext to merge into this one
         :param validate_compatibility: If True, raises error on incompatibility; if False, logs warnings
@@ -1011,6 +1081,7 @@ class AgsContext:
         """
         # Check compatibility and handle based on validate_compatibility flag
         issues = self.validate_merge(other, raise_on_error=validate_compatibility)
+        unitless_geometry = self._unitless_geometry_columns() | other._unitless_geometry_columns()
 
         # Log any issues as warnings when validation is disabled
         for issue in issues:
@@ -1032,7 +1103,10 @@ class AgsContext:
         # Units: a column may only have a unit declared in one of the contexts
         for group in self.MERGED_GROUPS:
             if group in self.units or group in other.units:
-                self.set_units(group, {**other.get_units(group), **self.get_units(group)})
+                units = {**other.get_units(group), **self.get_units(group)}
+                if group == LOCA:
+                    units = {column: unit for column, unit in units.items() if column not in unitless_geometry}
+                self.set_units(group, units)
 
     def _merge_loca(self, other: "AgsContext") -> None:
         """Merge LOCA tables from another AgsContext into this one.
