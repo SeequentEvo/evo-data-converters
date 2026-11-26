@@ -161,6 +161,11 @@ def mock_ags_context():
     context = Mock(spec=AgsContext)
     context.filename = "test_file.ags"
     context.coordinate_reference_system = "EPSG:27700"
+    context.coordinate_references_by_location.return_value = {
+        "BH01": ("national", 27700),
+        "BH02": ("national", 27700),
+        "BH03": ("national", 27700),
+    }
 
     # LOCA table
     loca_df = pd.DataFrame(

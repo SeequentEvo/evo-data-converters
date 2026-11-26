@@ -28,7 +28,7 @@ from evo.data_converters.ags.importer.ags_to_evo import convert_ags, order_diagn
 from evo.data_converters.common import EvoWorkspaceMetadata
 from evo.data_converters.common.exceptions import ConflictingConnectionDetailsError
 from evo.objects.data import ObjectMetadata
-from evo.objects.typed import DownholeCollectionData
+from evo.objects.typed import DownholeCollectionData, EpsgCode
 
 
 def test_convert_ags_saves_elevation_from_selected_coordinate_family(
@@ -506,6 +506,37 @@ def test_public_conversion_reports_dropped_hole(
     assert issues[0].code == "hole_dropped"
     assert issues[0].hole_id == "BH02"
     assert issues[0].sources == (AgsSource(0, "partial_coordinates.ags"),)
+
+
+@pytest.mark.parametrize(
+    ("grid", "expected_crs", "codes"),
+    [("NZTM 2000", EpsgCode(2193), []), ("NOT A GRID", None, ["unresolved_crs"])],
+)
+def test_public_conversion_resolves_grid_names(
+    evo_metadata: EvoWorkspaceMetadata,
+    test_elevations_ags_path: str,
+    tmp_path: Path,
+    grid: str,
+    expected_crs: EpsgCode | None,
+    codes: list[str],
+) -> None:
+    filepath = tmp_path / "grid.ags"
+    filepath.write_text(Path(test_elevations_ags_path).read_text().replace('"OSGB"', f'"{grid}"'))
+    issues: list[AgsDiagnostic] = []
+
+    result = asyncio.run(
+        convert_ags(
+            filepaths=[str(filepath)],
+            evo_workspace_metadata=evo_metadata,
+            publish_objects=False,
+            diagnostics=issues,
+        )
+    )
+
+    assert len(result) == 1
+    assert result[0].coordinate_reference_system == expected_crs
+    assert [issue.code for issue in issues] == codes
+    assert all(issue.sources == (AgsSource(0, "grid.ags"),) for issue in issues)
 
 
 def test_merge_failure_reports_incoming_file_and_keeps_accepted_collection(

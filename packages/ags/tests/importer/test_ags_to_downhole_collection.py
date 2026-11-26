@@ -523,13 +523,10 @@ class TestCoordinateColumnHandling:
         return context.get_table(LOCA)
 
     @pytest.mark.parametrize("crs_name", ["WGS84", "NZGD2000"])
-    @pytest.mark.parametrize("crs_column", ["LOCA_LLZ", "LOCA_GREF"])
-    def test_geographic_crs_uses_unscaled_lon_lat(
-        self, coordinate_context: AgsContext, crs_name: str, crs_column: str
-    ) -> None:
+    def test_geographic_crs_uses_unscaled_lon_lat(self, coordinate_context: AgsContext, crs_name: str) -> None:
         loca = coordinate_context.get_table(LOCA)
         loca["LOCA_GREF"] = ""
-        loca[crs_column] = crs_name
+        loca["LOCA_LLZ"] = crs_name
 
         result = create_from_parsed_ags(coordinate_context)
 
@@ -548,43 +545,92 @@ class TestCoordinateColumnHandling:
         assert dhc.collections[0].unit == "m"
 
     @pytest.mark.parametrize(
-        ("crs_name", "epsg"), [("OSGB", 27700), ("OSI", 29902), ("ITM", 2157), ("EPSG:2193", 2193)]
+        ("crs_name", "epsg"),
+        [
+            ("OSGB", 27700),
+            ("OSI", 29902),
+            ("ITM", 2157),
+            ("EPSG:2193", 2193),
+            ("NZTM 2000", 2193),
+            ("BNG", 27700),
+            ("RD", 28992),
+            ("Lambert 93", 2154),
+            ("UTM 33N", 32633),
+            ("UTM55S", 32755),
+            ("MGA55", 28355),
+        ],
     )
     def test_nate_natn_have_projected_crs(self, coordinate_context: AgsContext, crs_name: str, epsg: int) -> None:
         loca = coordinate_context.get_table(LOCA)
         loca["LOCA_GREF"] = crs_name
-        loca["LOCA_LLZ"] = "WGS84"
+        loca["LOCA_LLZ"] = ""
+        issues: list[AgsDiagnostic] = []
 
-        result = create_from_parsed_ags(coordinate_context)
+        result = create_from_parsed_ags(coordinate_context, diagnostics=issues)
 
         assert result.coordinate_reference_system == EpsgCode(epsg)
         assert result.properties[["x", "y"]].values.tolist() == [[575784.0, 5807006.0]]
+        assert issues == []
+
+    def test_unresolved_crs_is_reported_and_left_unspecified(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA).drop(columns=["LOCA_LOCX", "LOCA_LOCY", "LOCA_LON", "LOCA_LAT"])
+        loca["LOCA_GREF"] = "MGA94"
+        coordinate_context.set_table(LOCA, loca)
+        issues: list[AgsDiagnostic] = []
+
+        result = create_from_parsed_ags(coordinate_context, diagnostics=issues)
+
+        assert result.coordinate_reference_system is None
+        assert result.properties[["x", "y"]].values.tolist() == [[575784.0, 5807006.0]]
+        assert [(issue.code, issue.severity, issue.group) for issue in issues] == [("unresolved_crs", "warning", LOCA)]
+        assert issues[0].sources == coordinate_context.sources
+        assert "LOCA_GREF value 'MGA94' is not a recognised coordinate reference system" in issues[0].reason
+
+    def test_unresolved_llz_is_reported_when_gref_resolves(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_GREF"] = "NZTM 2000"
+        loca["LOCA_LLZ"] = "NOT A DATUM"
+        issues: list[AgsDiagnostic] = []
+
+        result = create_from_parsed_ags(coordinate_context, diagnostics=issues)
+
+        assert result.coordinate_reference_system == EpsgCode(2193)
+        assert [issue.code for issue in issues] == ["unresolved_crs"]
+        assert "LOCA_LLZ value 'NOT A DATUM'" in issues[0].reason
 
     @pytest.mark.parametrize(
-        ("crs_name", "columns", "expected"),
+        ("reference_column", "crs_name", "expected_coordinates"),
         [
-            ("WGS84", ["LOCA_LON", "LOCA_LAT"], "LOCA_LON/LOCA_LAT"),
-            ("OSGB", ["LOCA_NATE", "LOCA_NATN", "LOCA_LOCX", "LOCA_LOCY"], "LOCA_NATE/LOCA_NATN"),
+            ("LOCA_LLZ", "WGS84", [[174.8, -41.3]]),
+            ("LOCA_GREF", "OSGB", [[575784.0, 5807006.0]]),
         ],
     )
-    @pytest.mark.parametrize("empty_columns", [False, True])
-    def test_crs_coordinate_mismatch_raises(
-        self, coordinate_context: AgsContext, crs_name: str, columns: list[str], expected: str, empty_columns: bool
+    def test_reference_selects_only_its_coordinate_pair(
+        self, coordinate_context: AgsContext, reference_column: str, crs_name: str, expected_coordinates: list
     ) -> None:
         loca = coordinate_context.get_table(LOCA)
-        loca["LOCA_GREF"] = crs_name
-        if empty_columns:
-            loca[columns] = pd.NA
-        else:
-            coordinate_context.set_table(LOCA, loca.drop(columns=columns))
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LLZ"] = ""
+        loca[reference_column] = crs_name
 
-        with pytest.raises(
-            AgsFileInvalidException, match=f"No holes have a complete finite coordinate pair.*{expected}"
-        ):
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.properties[["x", "y"]].values.tolist() == expected_coordinates
+
+    def test_coordinate_reference_does_not_fall_back_to_another_complete_pair(
+        self, coordinate_context: AgsContext
+    ) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca[["LOCA_NATE", "LOCA_NATN", "LOCA_LON", "LOCA_LAT", "LOCA_LOCX", "LOCA_LOCY"]] = pd.NA
+        loca["LOCA_GREF"] = "OSGB"
+
+        with pytest.raises(AgsFileInvalidException, match="No holes have a complete finite coordinate pair"):
             create_from_parsed_ags(coordinate_context)
 
     def test_projected_crs_does_not_fall_back_to_local_coordinates(self, coordinate_context: AgsContext) -> None:
-        coordinate_context.get_table(LOCA)["LOCA_NATN"] = pd.NA
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_NATN"] = pd.NA
+        loca[["LOCA_LOCX", "LOCA_LOCY", "LOCA_LON", "LOCA_LAT"]] = pd.NA
 
         with pytest.raises(AgsFileInvalidException, match="No holes have a complete finite coordinate pair"):
             create_from_parsed_ags(coordinate_context)
@@ -594,17 +640,20 @@ class TestCoordinateColumnHandling:
         loca["LOCA_NATN"] = pd.NA
         loca["LOCA_LOCX"] = pd.NA
 
-        with pytest.raises(AgsFileInvalidException, match="No holes have a complete finite coordinate pair"):
-            create_from_parsed_ags(coordinate_context)
+        result = create_from_parsed_ags(coordinate_context)
+
+        assert result.coordinate_reference_system is None
+        assert result.properties[["x", "y"]].values.tolist() == [[174.8, -41.3]]
 
     def test_unlocated_local_reference_hole_without_crs_is_excluded(
         self, coordinate_context: AgsContext, caplog: pytest.LogCaptureFixture
     ) -> None:
-        coordinate_context.get_table(LOCA)["LOCA_GREF"] = ""
+        coordinate_context.get_table(LOCA)["LOCA_GREF"] = "OSGB"
         loca = self._add_hole(coordinate_context, "SITE")
         site = loca["LOCA_ID"] == "SITE"
         loca.loc[site, "LOCA_LREF"] = "SITE GRID"
         loca.loc[site, ["LOCA_LOCX", "LOCA_LOCY"]] = pd.NA
+        loca.loc[site, ["LOCA_NATE", "LOCA_NATN", "LOCA_LON", "LOCA_LAT"]] = pd.NA
 
         result = create_from_parsed_ags(coordinate_context)
 
@@ -632,7 +681,8 @@ class TestCoordinateColumnHandling:
 
     def test_zero_coordinates_are_valid(self, coordinate_context: AgsContext) -> None:
         loca = coordinate_context.get_table(LOCA)
-        loca["LOCA_GREF"] = "WGS84"
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LLZ"] = "WGS84"
         loca[["LOCA_LON", "LOCA_LAT"]] = 0.0
 
         result = create_from_parsed_ags(coordinate_context)
@@ -644,26 +694,25 @@ class TestCoordinateColumnHandling:
         self, coordinate_context: AgsContext, invalid_coordinate: str
     ) -> None:
         loca = coordinate_context.get_table(LOCA)
-        loca["LOCA_GREF"] = "WGS84"
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LLZ"] = "WGS84"
         loca["LOCA_LON"] = invalid_coordinate
 
         with pytest.raises(AgsFileInvalidException, match="No holes have a complete finite coordinate pair"):
             create_from_parsed_ags(coordinate_context)
 
-    def test_projected_crs_in_llz_uses_projected_columns(self, coordinate_context: AgsContext) -> None:
+    def test_projected_crs_in_llz_is_rejected_for_geographic_coordinates(self, coordinate_context: AgsContext) -> None:
         loca = coordinate_context.get_table(LOCA)
         loca["LOCA_GREF"] = ""
         loca["LOCA_LLZ"] = "EPSG:2193"
 
-        result = create_from_parsed_ags(coordinate_context)
-
-        assert result.coordinate_reference_system == EpsgCode(2193)
-        assert result.properties[["x", "y"]].values.tolist() == [[575784.0, 5807006.0]]
+        with pytest.raises(AgsFileInvalidException, match="LOCA_LON/LOCA_LAT are geographic coordinates"):
+            create_from_parsed_ags(coordinate_context)
 
     def test_unsupported_crs_type_raises(self, coordinate_context: AgsContext) -> None:
         coordinate_context.get_table(LOCA)["LOCA_GREF"] = "EPSG:4978"
 
-        with pytest.raises(AgsFileInvalidException, match="neither projected nor geographic"):
+        with pytest.raises(AgsFileInvalidException, match="projected or geocentric CRS"):
             create_from_parsed_ags(coordinate_context)
 
     @pytest.mark.parametrize("crs_name", ["", "LOCAL"])
@@ -834,6 +883,7 @@ class TestCoordinateColumnHandling:
         loca["LOCA_GREF"] = ""
         loca["LOCA_LREF"] = "SITE GRID"
         loca[["LOCA_LOCX", "LOCA_LOCY"]] = pd.NA
+        loca[["LOCA_NATE", "LOCA_NATN", "LOCA_LON", "LOCA_LAT"]] = pd.NA
 
         with pytest.raises(AgsFileInvalidException, match="No holes have a complete finite coordinate pair"):
             create_from_parsed_ags(coordinate_context)

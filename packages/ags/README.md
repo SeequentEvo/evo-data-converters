@@ -115,6 +115,9 @@ for issue in issues:
 - Holes are positioned in the file's coordinate system, without reprojection or vertical datum conversion. With a
   latitude/longitude system such as WGS 84, longitude and latitude are used as-is in degrees, while depths and
   elevations keep their length unit.
+- Each location's reference must match its coordinates: `LOCA_GREF` for grid coordinates, `LOCA_LLZ` for
+  longitude/latitude, and `LOCA_LREF` for local coordinates. Coordinates are not reprojected; unrecognised or
+  mismatched references are reported in diagnostics.
 - Coordinate and depth fields need recognised length units. Automatic conversion supports `m`, `cm`, `mm`, `km`,
   `in`, `ft` (international feet) and `ft[US]` (US survey feet). Missing units or unsupported conversions are reported
   as errors. Unrecognised units on other measurements are omitted with a warning; their values are kept.

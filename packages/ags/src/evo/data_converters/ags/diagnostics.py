@@ -18,6 +18,7 @@ AgsCode = Literal[
     "invalid_file_format",
     "incompatible_merge",
     "invalid_coordinates",
+    "unresolved_crs",
     "hole_dropped",
     "no_collections",
 ]
@@ -43,7 +44,8 @@ class AgsDiagnostic:
     """A structured problem found while importing AGS inputs.
 
     ``code`` and the optional location fields are the consumer contract; ``reason`` is a short English remedy.
-    An ``error`` rejects the affected file or merged group, a ``warning`` describes a hole that was not imported.
+    An ``error`` rejects the affected file or merged group. A ``warning`` reports data that was imported without some
+    of its content, such as a dropped hole or an unrecognised coordinate reference system.
     ``sources`` lists every input of the affected file or merged group, and is empty for request-level problems.
     """
 

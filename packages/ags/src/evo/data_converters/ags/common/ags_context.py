@@ -11,7 +11,7 @@
 
 import math
 import re
-from functools import cached_property
+from functools import cache, cached_property
 from io import StringIO
 from pathlib import Path
 from typing import Literal, TypedDict
@@ -41,13 +41,39 @@ UNIT = "UNIT"
 HORN = "HORN"
 
 CoordinateFamily = Literal["national", "local", "geographic"]
+CoordinateReference = tuple[CoordinateFamily, int | str | None]
 
-AGS_STANDARD_GRID_REFERENCES: dict[str, int | str] = {
+CRS_COLUMNS: tuple[str, ...] = ("LOCA_GREF", "LOCA_LLZ")
+COORDINATE_REFERENCE_CANDIDATES: tuple[tuple[CoordinateFamily, str, str, str], ...] = (
+    ("geographic", "LOCA_LON", "LOCA_LAT", "LOCA_LLZ"),
+    ("national", "LOCA_NATE", "LOCA_NATN", "LOCA_GREF"),
+    ("local", "LOCA_LOCX", "LOCA_LOCY", "LOCA_LREF"),
+)
+
+# CRS names used in AGS files that pyproj does not recognise, keyed in upper case without spaces, "_" or "-"
+CRS_NAME_ALIASES: dict[str, int | str] = {
+    # AGS standard grid references
     "OSGB": 27700,
     "OSI": 29902,
     "ITM": 2157,
     "LOCAL": "unspecified",
+    # Other national grids
+    "BNG": 27700,
+    "NZTM": 2193,
+    "NZTM2000": 2193,
+    "RD": 28992,
+    "RDNEW": 28992,
+    "RDOLD": 28991,
+    "LAMBERT93": 2154,
+    "BELG72": 31370,
+    "ETRS89LAEA": 3035,
+    "ETRS89LCC": 3034,
+    "HGRS87": 2100,
+    "PTTM06": 3763,
 }
+# Zoned grids, such as "UTM 33N" for WGS 84 / UTM zone 33N and "MGA55" for GDA94 / MGA zone 55
+_UTM_ZONE_PATTERN = re.compile(r"UTM(?:ZONE)?(?P<zone>\d{1,2})(?P<hemisphere>[NS])")
+_MGA_ZONE_PATTERN = re.compile(r"MGA(?:ZONE)?(?P<zone>\d{2})")
 
 PARSE_FAILURE_REASON = "The AGS contents could not be parsed. Check the file format and required groups."
 
@@ -126,20 +152,41 @@ def _normalize_crs_value(value: object) -> str | None:
     return str(value).upper().strip()
 
 
-def _crs_from_loca_value(column: str, value: str) -> int | str | None:
-    if column == "LOCA_GREF" and value in AGS_STANDARD_GRID_REFERENCES:
-        return AGS_STANDARD_GRID_REFERENCES[value]
-
+def _defined_epsg(code: int) -> int | None:
     try:
-        crs = CRS.from_user_input(value)
+        CRS.from_epsg(code)
     except CRSError:
-        logger.warning(f"Could not determine CRS from {column}: {value}")
         return None
+    return code
 
-    epsg = crs.to_epsg()
-    if epsg is None:
-        logger.warning(f"Could not determine EPSG code from {column}: {value}")
-    return epsg
+
+@cache
+def resolve_crs_name(value: str) -> int | str | None:
+    """Resolve the CRS named in LOCA_GREF or LOCA_LLZ to an EPSG code.
+
+    Accepts the AGS grid references and the other grid names of `CRS_NAME_ALIASES`, any name or code pyproj
+    recognises, such as "EPSG:2193" or "WGS 84", and zoned grids such as "UTM33N", "UTM55S" and "MGA55".
+
+    :param value: The normalized CRS name, in upper case.
+    :return: The EPSG code, "unspecified" for a local grid, or None when the CRS cannot be resolved to an EPSG code.
+    """
+    compact = re.sub(r"[\s_-]", "", value)
+    if compact in CRS_NAME_ALIASES:
+        return CRS_NAME_ALIASES[compact]
+
+    for candidate in dict.fromkeys((value, "".join(value.split()))):
+        try:
+            crs = CRS.from_user_input(candidate)
+        except CRSError:
+            continue
+        return crs.to_epsg()
+
+    if utm := _UTM_ZONE_PATTERN.fullmatch(compact):
+        zone = int(utm["zone"])
+        return (32600 if utm["hemisphere"] == "N" else 32700) + zone if 1 <= zone <= 60 else None
+    if mga := _MGA_ZONE_PATTERN.fullmatch(compact):
+        return _defined_epsg(28300 + int(mga["zone"]))
+    return None
 
 
 class AgsFileInvalidException(Exception):
@@ -611,21 +658,138 @@ class AgsContext:
     def coordinate_reference_system(self) -> int | str | None:
         """Gets the coordinate reference system shared by the LOCA rows of the in-memory AGS file.
 
-        The CRS is resolved per LOCA row, preferring `LOCA_GREF` over `LOCA_LLZ`. Rows without
-        a CRS adopt the CRS declared by the other rows.
+        Each CRS is resolved against its coordinate pair: LOCA_LLZ for longitude/latitude,
+        LOCA_GREF for national grid coordinates, and LOCA_LREF for local coordinates.
+        Rows without a CRS adopt the CRS declared by the other rows when their coordinates
+        use the same family.
 
         :returns: epsg code as integer or "unspecified" if a CRS can be determined, None otherwise.
-        :raises AgsFileInvalidException: if LOCA rows declare different coordinate reference systems.
+        :raises AgsFileInvalidException: if LOCA rows declare different CRSs or a CRS does not match its pair.
         """
-        crs_gref = self.crs_from_loca_gref()
-        crs_llz = self.crs_from_loca_llz()
-
-        both = [loca_id for loca_id, crs in crs_gref.items() if crs is not None and crs_llz[loca_id] is not None]
-        if both:
-            logger.warning(f"Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF for LOCA_IDs: {both}")
-
-        crs_by_location = {loca_id: crs if crs is not None else crs_llz[loca_id] for loca_id, crs in crs_gref.items()}
+        crs_by_location = {
+            loca_id: coordinate_reference[1]
+            for loca_id, coordinate_reference in self.coordinate_references_by_location().items()
+        }
         return self._shared_crs(crs_by_location)
+
+    def coordinate_references_by_location(self) -> dict[str, CoordinateReference]:
+        """Select each location's coordinate pair together with the reference for that pair.
+
+        Complete pairs with a resolved reference are preferred in AGS order: geographic,
+        national, then local. If no complete pair has a resolved reference, the first complete pair
+        is retained without assigning it another family's CRS.
+        """
+        loca = self.get_table(LOCA)
+        if "LOCA_ID" not in loca:
+            return {}
+
+        coordinate_references: dict[str, CoordinateReference] = {}
+        unresolved_candidates: dict[str, CoordinateReference] = {}
+        unresolved_rows: dict[str, pd.Series] = {}
+        warned_crs_values: set[tuple[str, str]] = set()
+        for _, row in loca.iterrows():
+            loca_id = str(row["LOCA_ID"])
+            fallback: CoordinateReference | None = None
+            for family, x_column, y_column, reference_column in COORDINATE_REFERENCE_CANDIDATES:
+                if not self._has_complete_coordinate_pair(row, x_column, y_column):
+                    continue
+
+                gref = _normalize_crs_value(row.get("LOCA_GREF"))
+                if family == "national" and gref == "LOCAL":
+                    continue
+
+                reference = _normalize_crs_value(row.get(reference_column))
+                if family == "local" and reference is None and gref == "LOCAL":
+                    crs: int | str | None = "unspecified"
+                elif family == "local" and reference is not None:
+                    crs = resolve_crs_name(reference) or "unspecified"
+                else:
+                    crs = resolve_crs_name(reference) if reference is not None else None
+
+                candidate: CoordinateReference = (family, crs)
+                if fallback is None:
+                    fallback = candidate
+                if crs is None:
+                    warning_key = (reference_column, reference) if reference is not None else None
+                    if (
+                        warning_key is not None
+                        and reference_column in CRS_COLUMNS
+                        and warning_key not in warned_crs_values
+                    ):
+                        logger.warning(f"Could not determine CRS from {reference_column}: {reference}")
+                        warned_crs_values.add(warning_key)
+                    continue
+
+                self._validate_crs_coordinate_family(loca_id, family, reference_column, reference, crs)
+                coordinate_references[loca_id] = candidate
+                break
+            else:
+                if fallback is not None:
+                    unresolved_candidates[loca_id] = fallback
+                    unresolved_rows[loca_id] = row
+
+        # An unreferenced row can share another row's CRS only when it has that same coordinate family.
+        declared_references = [reference for reference in coordinate_references.values() if reference[1] is not None]
+        self._shared_crs(
+            {loca_id: reference[1] for loca_id, reference in coordinate_references.items() if reference[1] is not None}
+        )
+        declared_families = {family for family, _ in declared_references}
+        shared_family = next(iter(declared_families)) if len(declared_families) == 1 else None
+
+        for loca_id, fallback in unresolved_candidates.items():
+            if shared_family is not None:
+                x_column, y_column = next(
+                    (x, y) for family, x, y, _ in COORDINATE_REFERENCE_CANDIDATES if family == shared_family
+                )
+                if self._has_complete_coordinate_pair(unresolved_rows[loca_id], x_column, y_column):
+                    coordinate_references[loca_id] = (shared_family, None)
+                else:
+                    coordinate_references[loca_id] = fallback
+            else:
+                coordinate_references[loca_id] = fallback
+
+        return coordinate_references
+
+    @staticmethod
+    def _has_complete_coordinate_pair(row: pd.Series, x_column: str, y_column: str) -> bool:
+        try:
+            x_value, y_value = row[x_column], row[y_column]
+            return (
+                not pd.isna(x_value)
+                and bool(str(x_value).strip())
+                and not pd.isna(y_value)
+                and bool(str(y_value).strip())
+            )
+        except KeyError:
+            return False
+
+    @staticmethod
+    def _validate_crs_coordinate_family(
+        loca_id: str,
+        family: CoordinateFamily,
+        reference_column: str,
+        reference: str | None,
+        crs: int | str,
+    ) -> None:
+        if crs == "unspecified":
+            return
+
+        parsed_crs = CRS.from_user_input(crs)
+        is_compatible = parsed_crs.is_geographic if family == "geographic" else parsed_crs.is_projected
+        if not is_compatible:
+            expected = "geographic" if family == "geographic" else "projected"
+            actual = "geographic" if parsed_crs.is_geographic else "projected or geocentric"
+            x_column, y_column = next(
+                (x, y) for candidate_family, x, y, _ in COORDINATE_REFERENCE_CANDIDATES if candidate_family == family
+            )
+            value = reference or str(crs)
+            raise AgsFileInvalidException(
+                f"{reference_column} value '{value}' for LOCA_ID '{loca_id}' identifies a {actual} CRS, "
+                f"but {x_column}/{y_column} are {expected} coordinates.",
+                code="invalid_coordinates",
+                reason=f"Use a CRS matching the coordinate pair declared by {reference_column}.",
+                group=LOCA,
+            )
 
     def get_table(self, group: str) -> pd.DataFrame:
         """Gets a table by group name.
@@ -694,15 +858,30 @@ class AgsContext:
             loca_id: crs if isinstance(crs, int) else None for loca_id, crs in self._crs_by_location("LOCA_LLZ").items()
         }
 
+    def unresolved_crs(self) -> list[tuple[str, str]]:
+        """Gets the CRS names declared in LOCA_GREF or LOCA_LLZ that cannot be resolved to an EPSG code.
+
+        :returns: The distinct (column, value) pairs in order of appearance, with the values normalized to upper case.
+        """
+        loca = self.get_table(LOCA)
+        return [
+            (column, value)
+            for column in CRS_COLUMNS
+            if column in loca
+            for value in dict.fromkeys(map(_normalize_crs_value, loca[column]))
+            if value is not None and resolve_crs_name(value) is None
+        ]
+
     def _crs_by_location(self, column: str) -> dict[str, int | str | None]:
         loca = self.get_table(LOCA)
         if "LOCA_ID" not in loca:
             return {}
         values = loca[column] if column in loca else pd.Series(pd.NA, index=loca.index)
         normalized = [_normalize_crs_value(value) for value in values]
-        crs_by_value = {
-            value: _crs_from_loca_value(column, value) for value in dict.fromkeys(normalized) if value is not None
-        }
+        crs_by_value = {value: resolve_crs_name(value) for value in dict.fromkeys(normalized) if value is not None}
+        for value, crs in crs_by_value.items():
+            if crs is None:
+                logger.warning(f"Could not determine CRS from {column}: {value}")
         return {
             str(loca_id): crs_by_value[value] if value is not None else None
             for loca_id, value in zip(loca["LOCA_ID"], normalized)

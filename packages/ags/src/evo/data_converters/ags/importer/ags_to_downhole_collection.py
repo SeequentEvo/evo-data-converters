@@ -19,7 +19,15 @@ from pyproj import CRS
 
 import evo.logging
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
-from evo.data_converters.ags.common.ags_context import GEOL, HORN, LOCA, SCPG, SCPT, CoordinateFamily
+from evo.data_converters.ags.common.ags_context import (
+    GEOL,
+    HORN,
+    LOCA,
+    SCPG,
+    SCPT,
+    CoordinateFamily,
+    CoordinateReference,
+)
 from evo.data_converters.ags.diagnostics import AgsDiagnostic
 from evo.objects.typed import (
     AttributeDescription,
@@ -78,7 +86,8 @@ def create_from_parsed_ags(
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param tags: Optional dict of tags to add to the DownholeCollection.
-    :param diagnostics: Optional list extended with dropped-hole warnings after successful construction.
+    :param diagnostics: Optional list extended with unresolved-CRS and dropped-hole warnings after successful
+        construction.
     :return: The data of the DownholeCollection, to create in Evo with DownholeCollection.create.
     """
 
@@ -89,6 +98,7 @@ def create_from_parsed_ags(
         group: AgsContext.linear_units(group, source[group], ags_context.get_units(group))
         for group in AgsContext.LINEAR_COLUMNS
     }
+    coordinate_references = ags_context.coordinate_references_by_location()
     tables = {group: exclude_pushes(source[group], skipped_pushes, group) for group in AgsContext.MEASUREMENT_GROUPS}
     dropped_hole_ids: list[str] = []
     collars_df, distance_unit = build_collars(
@@ -96,6 +106,7 @@ def create_from_parsed_ags(
         scpg_df,
         tables,
         crs_definition,
+        coordinate_references,
         linear_units,
         record_dropped_hole=dropped_hole_ids.append,
     )
@@ -156,6 +167,19 @@ def create_from_parsed_ags(
         desurvey=None,
     )
     if diagnostics is not None:
+        diagnostics.extend(
+            AgsDiagnostic(
+                code="unresolved_crs",
+                severity="warning",
+                sources=ags_context.sources,
+                reason=(
+                    f"{column} value '{value}' is not a recognised coordinate reference system, so it was ignored. "
+                    "Use an EPSG code, such as 'EPSG:2193'."
+                ),
+                group=LOCA,
+            )
+            for column, value in ags_context.unresolved_crs()
+        )
         diagnostics.extend(
             AgsDiagnostic(
                 code="hole_dropped",
@@ -561,6 +585,7 @@ def build_collars(
     scpg_df: pd.DataFrame,
     tables: dict[str, pd.DataFrame],
     crs_definition: int | str | None,
+    coordinate_references: Mapping[str, CoordinateReference],
     units: dict[str, dict[str, str]],
     record_dropped_hole: Callable[[str], None] | None = None,
 ) -> tuple[pd.DataFrame, str]:
@@ -609,7 +634,7 @@ def build_collars(
 
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
     collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str)
-    coordinate_families, crs_unit = assign_coordinates(collars_df, crs_definition)
+    coordinate_families, crs_unit = assign_coordinates(collars_df, crs_definition, coordinate_references)
     collars_df, coordinate_families = exclude_unlocated_collars(
         collars_df, coordinate_families, record_dropped_hole=record_dropped_hole
     )
@@ -647,16 +672,35 @@ def measured_depth_unit(units: dict[str, dict[str, str]]) -> str:
     return units.get(LOCA, {}).get(AgsContext.ELEVATION_COLUMN_BY_FAMILY["geographic"], "m")
 
 
-def assign_coordinates(collars_df: pd.DataFrame, crs_definition: int | str | None) -> tuple[pd.Series, str | None]:
-    """Assign the source coordinates and return their families and the unit required by the CRS, if any."""
+def assign_coordinates(
+    collars_df: pd.DataFrame,
+    crs_definition: int | str | None,
+    coordinate_references: Mapping[str, CoordinateReference],
+) -> tuple[pd.Series, str | None]:
+    """Assign each collar the coordinate pair selected with its own CRS reference."""
     if crs_definition is None:
         logger.warning("CRS is unavailable; coordinate columns cannot be verified.")
-        return assign_unspecified_coordinates(collars_df), None
     elif crs_definition == "unspecified":
         logger.warning("CRS is local or unspecified; using local grid coordinates.")
-        return assign_family_coordinates(collars_df, "local"), None
-    else:
-        return assign_horizontal_coordinates(collars_df, crs_definition)
+
+    families = pd.Series(pd.NA, index=collars_df.index, dtype="object")
+    for index, loca_id in collars_df["LOCA_ID"].items():
+        selected = coordinate_references.get(str(loca_id))
+        if selected is not None:
+            families.at[index] = selected[0]
+
+    x = pd.Series(np.nan, index=collars_df.index, dtype="float64")
+    y = pd.Series(np.nan, index=collars_df.index, dtype="float64")
+    for family in ("geographic", "national", "local"):
+        selected = families.eq(family)
+        if selected.any():
+            x_column, y_column = AgsContext.COORDINATE_COLUMNS_BY_FAMILY[family]
+            x.loc[selected] = numeric_column(collars_df.loc[selected], x_column)
+            y.loc[selected] = numeric_column(collars_df.loc[selected], y_column)
+
+    collars_df["x"] = x
+    collars_df["y"] = y
+    return families, coordinate_axis_unit(crs_definition)
 
 
 def assign_unspecified_coordinates(collars_df: pd.DataFrame) -> pd.Series:
@@ -781,21 +825,23 @@ def assign_vertical_datum(collars_df: pd.DataFrame, family: CoordinateFamily) ->
     collars_df["LOCA_DATM"] = datum.mask(missing, "undeclared")
 
 
-def assign_horizontal_coordinates(collars_df: pd.DataFrame, crs_definition: int | str) -> tuple[pd.Series, str | None]:
-    """Select the coordinate family matching a projected or geographic CRS and assign x and y."""
+def coordinate_axis_unit(crs_definition: int | str | None) -> str | None:
+    """Return a projected CRS axis unit, rejecting unsupported or non-horizontal CRSs."""
+    if crs_definition is None or crs_definition == "unspecified":
+        return None
     crs = CRS.from_user_input(crs_definition)
     if crs.is_projected:
         axes = crs.axis_info
         for unit, metres in METRES_PER_UNIT.items():
             if axes and all(isclose(axis.unit_conversion_factor, metres, rel_tol=1e-12) for axis in axes):
-                return assign_family_coordinates(collars_df, "national"), unit
+                return unit
         raise AgsFileInvalidException(
             "The projected CRS axes must share one supported linear unit for downhole geometry.",
             code="invalid_coordinates",
             group=LOCA,
         )
     if crs.is_geographic:
-        return assign_family_coordinates(collars_df, "geographic"), None
+        return None
     raise AgsFileInvalidException(
         f"CRS {crs_definition} is neither projected nor geographic.",
         code="invalid_coordinates",

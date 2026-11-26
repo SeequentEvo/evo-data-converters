@@ -27,6 +27,7 @@ from evo.data_converters.ags.common.ags_context import (
     ags4_errors_to_diagnostics,
     dms_to_degrees,
     parse_dms,
+    resolve_crs_name,
 )
 
 
@@ -432,6 +433,58 @@ def test_crs_from_loca_llz_invalid(valid_ags_path, caplog):
     assert "Could not determine CRS from LOCA_LLZ: INVALID_CRS" in caplog.text
 
 
+@pytest.mark.parametrize(
+    ("crs_name", "expected"),
+    [
+        ("NZTM 2000", 2193),
+        ("NZTM2000", 2193),
+        ("NZTM", 2193),
+        ("BNG", 27700),
+        ("RD NEW", 28992),
+        ("RDOLD", 28991),
+        ("LAMBERT93", 2154),
+        ("BELG72", 31370),
+        ("ETRS89_LAEA", 3035),
+        ("ETRS89 LCC", 3034),
+        ("HGRS87", 2100),
+        ("PT-TM06", 3763),
+        ("UTM33N", 32633),
+        ("UTM ZONE 55S", 32755),
+        ("MGA56", 28356),
+        ("EPSG: 2193", 2193),
+        ("WGS 84", 4326),
+        ("ETRS89_UTM32N", 25832),
+        ("LOCAL", "unspecified"),
+    ],
+)
+def test_resolve_crs_name_recognises_grid_names(crs_name: str, expected: int | str) -> None:
+    """Test the grid names used in AGS files resolve to EPSG codes, including those pyproj does not recognise"""
+    assert resolve_crs_name(crs_name.upper()) == expected
+
+
+@pytest.mark.parametrize("crs_name", ["MGA94", "MGA2020", "UTM61N", "UTM0S", "SCP", "UNKNOWN_CRS"])
+def test_resolve_crs_name_rejects_unknown_names_and_zones(crs_name: str) -> None:
+    """Test unknown grid names and zones that do not exist are not resolved"""
+    assert resolve_crs_name(crs_name) is None
+
+
+def test_crs_from_loca_llz_grid_name(valid_ags_path: str) -> None:
+    """Test LOCA_LLZ accepts the same grid names as LOCA_GREF"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    context.get_table(LOCA)["LOCA_LLZ"] = "NZTM 2000"
+
+    assert context.crs_from_loca_llz() == {"EXAMPLE-1-CPT1": 2193}
+
+
+def test_unresolved_crs_lists_distinct_values_per_column() -> None:
+    """Test unresolved_crs lists each unrecognised CRS name once, ignoring recognised, local and empty values"""
+    context = _context_with_loca(LOCA_GREF=["NZTM 2000", "not a grid", "NOT A GRID"], LOCA_LLZ=["LOCAL", "", "MGA94"])
+
+    assert context.unresolved_crs() == [("LOCA_GREF", "NOT A GRID"), ("LOCA_LLZ", "MGA94")]
+
+
 def test_coordinate_reference_system_gref_only(valid_ags_path):
     """Test coordinate_reference_system returns GREF value when only GREF is available"""
     context = AgsContext()
@@ -449,25 +502,47 @@ def test_coordinate_reference_system_llz_only(valid_ags_path):
     context.parse_ags(valid_ags_path)
 
     loca_table = context.get_table(LOCA)
+    loca_table[["LOCA_NATE", "LOCA_NATN"]] = pd.NA
+    loca_table[["LOCA_LON", "LOCA_LAT"]] = [174.8, -41.3]
     loca_table["LOCA_LLZ"] = "EPSG:4326"
 
     assert context.coordinate_reference_system == 4326
 
 
-def test_coordinate_reference_system_both_prefers_gref(valid_ags_path, caplog):
-    """Test coordinate_reference_system prefers GREF when both are available"""
+def test_coordinate_reference_system_uses_the_reference_for_the_selected_pair(valid_ags_path):
+    """Test a complete geographic pair uses LOCA_LLZ rather than the national-grid reference"""
     context = AgsContext()
     context.parse_ags(valid_ags_path)
 
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_GREF"] = "OSGB"
+    loca_table[["LOCA_LON", "LOCA_LAT"]] = [174.8, -41.3]
     loca_table["LOCA_LLZ"] = "EPSG:4326"
 
-    assert context.coordinate_reference_system == 27700
-    assert (
-        "Found CRS for both LOCA_GREF and LOCA_LLZ, preferring LOCA_GREF for LOCA_IDs: ['EXAMPLE-1-CPT1']"
-        in caplog.text
-    )
+    assert context.coordinate_reference_system == 4326
+
+
+def test_coordinate_reference_system_does_not_apply_llz_to_national_coordinates(valid_ags_path: str) -> None:
+    """Test LOCA_LLZ is ignored when the longitude/latitude pair is absent"""
+    context = AgsContext()
+    context.parse_ags(valid_ags_path)
+
+    loca_table = context.get_table(LOCA)
+    loca_table["LOCA_GREF"] = ""
+    loca_table["LOCA_LLZ"] = "EPSG:2193"
+    loca_table[["LOCA_LON", "LOCA_LAT"]] = pd.NA
+
+    assert context.coordinate_reference_system is None
+
+
+def test_coordinate_reference_system_rejects_reference_with_wrong_coordinate_family() -> None:
+    context = _context_with_loca(LOCA_LLZ=["EPSG:2193"] * 3)
+
+    with pytest.raises(AgsFileInvalidException, match="LOCA_LON/LOCA_LAT are geographic coordinates") as error:
+        _ = context.coordinate_reference_system
+
+    assert error.value.code == "invalid_coordinates"
+    assert error.value.group == LOCA
 
 
 def test_coordinate_reference_system_neither_available(valid_ags_path):
@@ -486,25 +561,41 @@ def test_coordinate_reference_system_local_gref(valid_ags_path):
 
     loca_table = context.get_table(LOCA)
     loca_table["LOCA_GREF"] = "LOCAL"
+    loca_table["LOCA_LOCX"] = 100.0
+    loca_table["LOCA_LOCY"] = 200.0
 
     assert context.coordinate_reference_system == "unspecified"
 
 
 def _context_with_loca(**columns: list[str]) -> AgsContext:
     context = AgsContext()
-    context.set_table(LOCA, pd.DataFrame({"LOCA_ID": ["BH01", "BH02", "BH03"], **columns}))
+    context.set_table(
+        LOCA,
+        pd.DataFrame(
+            {
+                "LOCA_ID": ["BH01", "BH02", "BH03"],
+                "LOCA_NATE": [100.0, 100.0, 100.0],
+                "LOCA_NATN": [200.0, 200.0, 200.0],
+                "LOCA_LON": [174.8, 174.8, 174.8],
+                "LOCA_LAT": [-41.3, -41.3, -41.3],
+                "LOCA_LOCX": [1.0, 1.0, 1.0],
+                "LOCA_LOCY": [2.0, 2.0, 2.0],
+                **columns,
+            }
+        ),
+    )
     return context
 
 
 def test_coordinate_reference_system_resolved_per_location():
-    """Test equivalent CRS declarations from different LOCA rows and columns resolve to one CRS"""
-    context = _context_with_loca(LOCA_GREF=["OSGB", "EPSG:27700", ""], LOCA_LLZ=["", "", "EPSG:27700"])
+    """Test equivalent national-grid references resolve to one CRS across LOCA rows"""
+    context = _context_with_loca(LOCA_GREF=["OSGB", "EPSG:27700", ""])
 
     assert context.coordinate_reference_system == 27700
 
 
 def test_coordinate_reference_system_rows_without_crs_adopt_shared_crs(caplog):
-    """Test LOCA rows without a CRS adopt the CRS declared by the other rows, with a warning"""
+    """Test rows without a reference adopt a shared CRS only when they have that coordinate family"""
     context = _context_with_loca(LOCA_GREF=["OSGB", "", "OSGB"])
 
     assert context.coordinate_reference_system == 27700
@@ -523,7 +614,7 @@ def test_coordinate_reference_system_invalid_value_warns_once(caplog):
     "columns",
     [
         {"LOCA_GREF": ["OSGB", "OSGB", "ITM"]},
-        {"LOCA_GREF": ["OSGB", "", ""], "LOCA_LLZ": ["", "WGS84", ""]},
+        {"LOCA_GREF": ["OSGB", "", "OSGB"], "LOCA_LLZ": ["", "WGS84", ""]},
         {"LOCA_GREF": ["OSGB", "LOCAL", "OSGB"]},
     ],
     ids=["different_gref", "gref_and_llz_rows", "national_and_local"],
