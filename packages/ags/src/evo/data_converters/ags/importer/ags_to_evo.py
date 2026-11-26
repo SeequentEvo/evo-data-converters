@@ -56,8 +56,8 @@ async def convert_ags(
     - service_manager_widget was passed to this function.
 
     Invalid files and incompatible merges are skipped when other inputs convert successfully. Diagnostics for skipped
-    inputs and dropped holes can be collected with the keyword-only ``diagnostics`` parameter. If no input produces a
-    collection, this raises :class:`AgsParsingError` instead of returning an empty list.
+    inputs, dropped holes, coordinate references and defaulted ground levels can be collected with the keyword-only
+    ``diagnostics`` parameter. If no input produces a collection, this raises :class:`AgsParsingError`.
 
     :param filepaths: List of paths to one or more AGS files.
     :param evo_workspace_metadata: Evo workspace metadata (optional).

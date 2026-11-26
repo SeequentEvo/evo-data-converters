@@ -19,6 +19,8 @@ AgsCode = Literal[
     "incompatible_merge",
     "invalid_coordinates",
     "unresolved_crs",
+    "missing_crs",
+    "ground_level_defaulted",
     "hole_dropped",
     "no_collections",
 ]

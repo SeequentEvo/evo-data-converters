@@ -20,6 +20,8 @@ from pyproj import CRS
 import evo.logging
 from evo.data_converters.ags.common import AgsContext, AgsFileInvalidException
 from evo.data_converters.ags.common.ags_context import (
+    COORDINATE_REFERENCE_CANDIDATES,
+    GEOGRAPHIC_UNITS,
     GEOL,
     HORN,
     LOCA,
@@ -28,7 +30,7 @@ from evo.data_converters.ags.common.ags_context import (
     CoordinateFamily,
     CoordinateReference,
 )
-from evo.data_converters.ags.diagnostics import AgsDiagnostic
+from evo.data_converters.ags.diagnostics import AgsCode, AgsDiagnostic
 from evo.objects.typed import (
     AttributeDescription,
     DistanceCollection,
@@ -46,7 +48,7 @@ METRES_PER_UNIT = {"m": 1.0, "cm": 0.01, "mm": 0.001, "km": 1000.0, "ft": 0.3048
 
 # AGS abbreviations of units that Evo spells differently, other AGS units are used as they are when Evo knows them
 EVO_UNIT_ALIASES: dict[str, str] = {
-    "deg": "dega",
+    **GEOGRAPHIC_UNITS,
     "DegC": "degC",
     "MN/m2": "MPa",
     "counts/s": "1/s",
@@ -61,6 +63,7 @@ EVO_UNIT_ALIASES: dict[str, str] = {
 # Standard collar columns, the other columns of the collars are kept as attributes
 COLLAR_COLUMNS = ["hole_index", "hole_id", "x", "y", "z", "final_depth"]
 STATION_DTYPES = {"hole_index": "int64", "distance": "float64", "dip": "float64", "azimuth": "float64"}
+CollarWarning = Callable[[AgsCode, str, str | None], None]
 
 
 def create_from_parsed_ags(
@@ -86,29 +89,32 @@ def create_from_parsed_ags(
 
     :param ags_context: The context containing the AGS file as dataframes.
     :param tags: Optional dict of tags to add to the DownholeCollection.
-    :param diagnostics: Optional list extended with unresolved-CRS and dropped-hole warnings after successful
-        construction.
+    :param diagnostics: Optional list extended with coordinate and collar warnings after successful construction.
     :return: The data of the DownholeCollection, to create in Evo with DownholeCollection.create.
     """
 
     crs_definition = ags_context.coordinate_reference_system
     scpg_df, skipped_pushes = select_first_pushes(ags_context.get_table(SCPG))
     source = {group: ags_context.get_table(group) for group in AgsContext.LINEAR_COLUMNS}
-    linear_units = {
-        group: AgsContext.linear_units(group, source[group], ags_context.get_units(group))
+    geometry_units = {
+        group: AgsContext.geometry_units(group, source[group], ags_context.get_units(group))
         for group in AgsContext.LINEAR_COLUMNS
     }
     coordinate_references = ags_context.coordinate_references_by_location()
     tables = {group: exclude_pushes(source[group], skipped_pushes, group) for group in AgsContext.MEASUREMENT_GROUPS}
-    dropped_hole_ids: list[str] = []
+    collar_warnings: list[AgsDiagnostic] = []
+
+    def record_warning(code: AgsCode, reason: str, hole_id: str | None) -> None:
+        collar_warnings.append(AgsDiagnostic(code, "warning", ags_context.sources, reason, hole_id=hole_id, group=LOCA))
+
     collars_df, distance_unit = build_collars(
         source[LOCA],
         scpg_df,
         tables,
         crs_definition,
         coordinate_references,
-        linear_units,
-        record_dropped_hole=dropped_hole_ids.append,
+        geometry_units,
+        record_warning=record_warning if diagnostics is not None else None,
     )
 
     collections: list[DistanceCollection | IntervalCollection] = []
@@ -124,7 +130,7 @@ def create_from_parsed_ags(
         if measurements is None:
             continue
 
-        group_units = linear_units[group]
+        group_units = geometry_units[group]
         # A distance table keeps its own unit; an interval table shares one unit between its endpoints.
         collection_unit = next((group_units[col] for col in depth_columns.values() if col in group_units), None)
         collection_depths = depths_in_unit(measurements, depth_columns.values(), group_units, collection_unit)
@@ -141,7 +147,7 @@ def create_from_parsed_ags(
         # Only the first distance table is used when building the hole path geometry
         if stations is None and "distance" in depth_columns:
             depth = depth_columns["distance"]
-            horn = depths_in_unit(source[HORN], ("HORN_TOP", "HORN_BASE"), linear_units[HORN], collection_unit)
+            horn = depths_in_unit(source[HORN], ("HORN_TOP", "HORN_BASE"), geometry_units[HORN], collection_unit)
             stations = path_stations(measurements, depth, horn)
             stations["distance"] = scale_lengths(stations["distance"], depth, group_units, distance_unit)
 
@@ -180,16 +186,7 @@ def create_from_parsed_ags(
             )
             for column, value in ags_context.unresolved_crs()
         )
-        diagnostics.extend(
-            AgsDiagnostic(
-                code="hole_dropped",
-                severity="warning",
-                sources=ags_context.sources,
-                reason="The hole has no complete finite coordinate pair; its collar and measurements were not imported.",
-                hole_id=hole_id,
-            )
-            for hole_id in dropped_hole_ids
-        )
+        diagnostics.extend(collar_warnings)
     return result
 
 
@@ -587,7 +584,7 @@ def build_collars(
     crs_definition: int | str | None,
     coordinate_references: Mapping[str, CoordinateReference],
     units: dict[str, dict[str, str]],
-    record_dropped_hole: Callable[[str], None] | None = None,
+    record_warning: CollarWarning | None = None,
 ) -> tuple[pd.DataFrame, str]:
     """Builds the collars, one per location, with the LOCA_ID as hole_id.
 
@@ -602,7 +599,7 @@ def build_collars(
     :param tables: The measurement tables, keyed by AGS group, without the rows of the pushes that are not imported.
     :param crs_definition: The coordinate reference system shared by the LOCA rows.
     :param units: The source units of the geometry columns, keyed by group and column.
-    :param record_dropped_hole: Optional callback receiving the hole_id of each collar dropped for missing coordinates.
+    :param record_warning: Optional callback for problems with dropped or imported collars.
     :return: A DataFrame with a row per collar. The standard columns (hole_index, hole_id, x, y, z, final_depth) come
         first, followed by the LOCA_ID and the SCPG_TESN of the imported push, and the other LOCA and SCPG columns;
         also returns the unit of the depths, elevations and linear x/y. Longitude and latitude stay in degrees.
@@ -635,20 +632,22 @@ def build_collars(
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
     collars_df["hole_id"] = collars_df["LOCA_ID"].astype(str)
     coordinate_families, crs_unit = assign_coordinates(collars_df, crs_definition, coordinate_references)
-    collars_df, coordinate_families = exclude_unlocated_collars(
-        collars_df, coordinate_families, record_dropped_hole=record_dropped_hole
-    )
+    collars_df, coordinate_families = exclude_unlocated_collars(collars_df, coordinate_families, record_warning)
     family = shared_coordinate_family(collars_df, coordinate_families)
+    if record_warning is not None:
+        report_missing_crs(collars_df, family, coordinate_references, crs_definition, record_warning)
     loca_units = units[LOCA]
     if family == "geographic":
-        # Longitude and latitude stay in degrees; the depths and elevations share the unit of the measured depths.
+        for axis, column in zip(("x", "y"), AgsContext.COORDINATE_COLUMNS_BY_FAMILY[family], strict=True):
+            if loca_units[column] == "rad":
+                collars_df[axis] = np.rad2deg(collars_df[axis])
         distance_unit = measured_depth_unit(units)
     else:
         x_col, y_col = AgsContext.COORDINATE_COLUMNS_BY_FAMILY[family]
         distance_unit = crs_unit or loca_units[x_col]
         collars_df["x"] = scale_lengths(collars_df["x"], x_col, loca_units, distance_unit)
         collars_df["y"] = scale_lengths(collars_df["y"], y_col, loca_units, distance_unit)
-    assign_elevations(collars_df, family, loca_units, distance_unit)
+    assign_elevations(collars_df, family, loca_units, distance_unit, record_warning)
     assign_vertical_datum(collars_df, family)
     depths = final_depths(scpg_df, tables, units, distance_unit)
     collars_df["final_depth"] = collars_df["LOCA_ID"].map(depths).astype("float64")
@@ -656,6 +655,30 @@ def build_collars(
     key_cols = ["LOCA_ID", "SCPG_TESN"]
     other_cols = [c for c in collars_df.columns if c not in COLLAR_COLUMNS + key_cols]
     return collars_df[COLLAR_COLUMNS + key_cols + other_cols], distance_unit
+
+
+def report_missing_crs(
+    collars: pd.DataFrame,
+    family: CoordinateFamily,
+    references: Mapping[str, CoordinateReference],
+    shared_crs: int | str | None,
+    warn: CollarWarning,
+) -> None:
+    """Warn for absent references on retained collars, not explicitly local or unrecognised references."""
+    column = next(ref for candidate, _, _, ref in COORDINATE_REFERENCE_CANDIDATES if candidate == family)
+    values = collars.get(column, pd.Series("", index=collars.index)).astype("string").fillna("").str.strip()
+    missing = [hole for hole in collars.loc[values.eq(""), "hole_id"] if references[hole][1] is None]
+    if not missing:
+        return
+    if shared_crs is None:
+        reason = f"No {column} reference was supplied. The coordinates were imported without a CRS."
+        if len(missing) == len(collars):
+            warn("missing_crs", reason, None)
+            return
+    else:
+        reason = f"No {column} reference was supplied. The collection's CRS ({shared_crs}) was assumed."
+    for hole in missing:
+        warn("missing_crs", reason, hole)
 
 
 def measured_depth_unit(units: dict[str, dict[str, str]]) -> str:
@@ -733,11 +756,11 @@ def assign_unspecified_coordinates(collars_df: pd.DataFrame) -> pd.Series:
 def exclude_unlocated_collars(
     collars_df: pd.DataFrame,
     families: pd.Series,
-    record_dropped_hole: Callable[[str], None] | None = None,
+    record_warning: CollarWarning | None = None,
 ) -> tuple[pd.DataFrame, pd.Series]:
     """Drop the collars without finite x and y, renumber the rest, and fail when no collar is located.
 
-    :param record_dropped_hole: Optional callback receiving the hole_id of each collar dropped while others remain.
+    :param record_warning: Optional callback for each dropped collar while others remain.
     """
     located = np.isfinite(collars_df["x"]) & np.isfinite(collars_df["y"])
     holes = collars_df.loc[~located, "hole_id"].tolist()
@@ -750,9 +773,13 @@ def exclude_unlocated_collars(
             code="invalid_coordinates",
             reason=f"No holes have a complete finite coordinate pair. Fill in {expected}.",
         )
-    if record_dropped_hole is not None:
+    if record_warning is not None:
         for hole_id in holes:
-            record_dropped_hole(str(hole_id))
+            record_warning(
+                "hole_dropped",
+                "The hole has no complete finite coordinate pair; its collar and measurements were not imported.",
+                str(hole_id),
+            )
 
     collars_df = collars_df.loc[located].reset_index(drop=True)
     collars_df["hole_index"] = range(1, len(collars_df) + 1)
@@ -799,7 +826,11 @@ def assign_family_coordinates(collars_df: pd.DataFrame, family: CoordinateFamily
 
 
 def assign_elevations(
-    collars_df: pd.DataFrame, family: CoordinateFamily, units: dict[str, str], distance_unit: str
+    collars_df: pd.DataFrame,
+    family: CoordinateFamily,
+    units: dict[str, str],
+    distance_unit: str,
+    record_warning: CollarWarning | None = None,
 ) -> None:
     """Assign the elevation field associated with the selected coordinate family."""
     column = AgsContext.ELEVATION_COLUMN_BY_FAMILY[family]
@@ -809,6 +840,11 @@ def assign_elevations(
     if invalid.any():
         holes = collars_df.loc[invalid, "hole_id"].tolist()
         logger.warning(f"No valid z coordinate data found in {column} for holes: {holes}, defaulting to 0.0")
+        if record_warning is not None:
+            for hole in holes:
+                record_warning(
+                    "ground_level_defaulted", f"{column} is missing or invalid; ground level was set to zero.", hole
+                )
     collars_df["z"] = elevation.mask(invalid, 0.0)
 
 

@@ -82,6 +82,15 @@ VALIDATOR_PROCESS_KEYS: tuple[str, ...] = ("General", "Validator Process Error")
 
 # Unit of the DMS columns once converted to decimal degrees, as AGS abbreviates it
 DMS_UNIT = "deg"
+GEOGRAPHIC_UNITS = {
+    "deg": "dega",
+    "dega": "dega",
+    "degree": "dega",
+    "degrees": "dega",
+    "rad": "rad",
+    "radian": "rad",
+    "radians": "rad",
+}
 EVO_LENGTH_UNITS = frozenset(unit.value for unit in UnitLength_V1_0_1_UnitCategories)
 _HEMISPHERES = ("N", "S", "E", "W")
 _DMS_PATTERN = re.compile(
@@ -530,13 +539,33 @@ class AgsContext:
             # Convert all NaN-like values (NaT, None, NaN) to pd.NA
             df = df.mask(df.isna(), pd.NA)
 
-            self.linear_units(group, df, processed_units[group])
+            self.geometry_units(group, df, processed_units[group])
             processed_tables[group] = df
 
         # Store the processed tables and keep the original headings dict
         self._tables = processed_tables
         self._headings = {group: headings[group] for group in processed_tables.keys()}
         self._units = processed_units
+
+    @classmethod
+    def geometry_units(cls, group: str, table: pd.DataFrame, units: dict[str, str]) -> dict[str, str]:
+        """Validate geometry units before merge, keeping the original units on the source attributes."""
+        declared = cls.linear_units(group, table, units)
+        if group == LOCA:
+            for column in cls.COORDINATE_COLUMNS_BY_FAMILY["geographic"]:
+                if column not in table:
+                    continue
+                unit = units.get(column, "")
+                if unit in GEOGRAPHIC_UNITS:
+                    declared[column] = GEOGRAPHIC_UNITS[unit]
+                elif (table[column].notna() & table[column].astype(str).str.strip().ne("")).any():
+                    problem = f"unsupported unit {unit!r}" if unit else "no unit"
+                    raise AgsFileInvalidException(
+                        f"{column} has {problem}. Specify degrees or radians in the LOCA UNIT row.",
+                        code="invalid_coordinates",
+                        group=LOCA,
+                    )
+        return declared
 
     @classmethod
     def linear_units(cls, group: str, table: pd.DataFrame, units: dict[str, str]) -> dict[str, str]:

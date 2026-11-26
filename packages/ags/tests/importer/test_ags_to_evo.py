@@ -336,11 +336,11 @@ def test_partial_success_reports_bad_file_with_original_input_index(
     )
 
     assert len(result) == 1
-    assert issues
-    assert all(issue.code == "invalid_file_format" for issue in issues)
-    assert all(issue.sources[0].input_index == 1 for issue in issues)
-    assert all(issue.sources[0].filename == "not_ags.ags" for issue in issues)
-    assert issues[0].rule == "AGS Format Rule 3"
+    warning, *errors = issues
+    assert (warning.code, warning.sources) == ("ground_level_defaulted", (AgsSource(0, "valid_ags_1a.ags"),))
+    assert all(issue.code == "invalid_file_format" for issue in errors)
+    assert all(issue.sources == (AgsSource(1, "not_ags.ags"),) for issue in errors)
+    assert errors[0].rule == "AGS Format Rule 3"
     json.dumps([asdict(issue) for issue in issues])
 
 
@@ -359,7 +359,8 @@ def test_preexisting_diagnostics_are_preserved_on_success(
     )
 
     assert len(result) == 1
-    assert issues == [existing]
+    assert issues[0] == existing
+    assert [issue.code for issue in issues[1:]] == ["ground_level_defaulted"]
 
 
 def test_failure_does_not_modify_diagnostics(evo_metadata: EvoWorkspaceMetadata, not_ags_path: str) -> None:
@@ -502,15 +503,17 @@ def test_public_conversion_reports_dropped_hole(
 
     assert len(result) == 1
     assert result[0].properties["hole_id"].tolist() == ["BH01", "BH03", "BH04", "BH05"]
-    assert len(issues) == 1
-    assert issues[0].code == "hole_dropped"
-    assert issues[0].hole_id == "BH02"
-    assert issues[0].sources == (AgsSource(0, "partial_coordinates.ags"),)
+    assert [(issue.code, issue.hole_id) for issue in issues] == [
+        ("hole_dropped", "BH02"),
+        ("ground_level_defaulted", "BH04"),
+        ("ground_level_defaulted", "BH05"),
+    ]
+    assert all(issue.sources == (AgsSource(0, filepath.name),) and issue.severity == "warning" for issue in issues)
 
 
 @pytest.mark.parametrize(
     ("grid", "expected_crs", "codes"),
-    [("NZTM 2000", EpsgCode(2193), []), ("NOT A GRID", None, ["unresolved_crs"])],
+    [("NZTM 2000", EpsgCode(2193), []), ("NOT A GRID", None, ["unresolved_crs"]), ("", None, ["missing_crs"])],
 )
 def test_public_conversion_resolves_grid_names(
     evo_metadata: EvoWorkspaceMetadata,
@@ -535,7 +538,9 @@ def test_public_conversion_resolves_grid_names(
 
     assert len(result) == 1
     assert result[0].coordinate_reference_system == expected_crs
-    assert [issue.code for issue in issues] == codes
+    assert [issue.code for issue in issues] == [*codes, "ground_level_defaulted", "ground_level_defaulted"]
+    assert all(issue.hole_id is None for issue in issues[: len(codes)])
+    assert all(issue.severity == "warning" and issue.group == "LOCA" for issue in issues)
     assert all(issue.sources == (AgsSource(0, "grid.ags"),) for issue in issues)
 
 
@@ -554,9 +559,10 @@ def test_merge_failure_reports_incoming_file_and_keeps_accepted_collection(
 
     assert len(result) == 1
     assert result[0].name == "valid_ags_2a"
-    assert len(issues) == 1
-    assert issues[0].code == "incompatible_merge"
-    assert issues[0].sources == (AgsSource(1, "invalid_ags_2d.ags"),)
+    assert [(issue.code, issue.sources) for issue in issues] == [
+        ("ground_level_defaulted", (AgsSource(0, "valid_ags_2a.ags"),)),
+        ("incompatible_merge", (AgsSource(1, "invalid_ags_2d.ags"),)),
+    ]
 
 
 def test_unexpected_merge_error_propagates_unchanged(
@@ -603,8 +609,9 @@ def test_partial_publish_publishes_only_surviving_collections(
 
     assert result == [metadata]
     mock_collection.create.assert_awaited_once()
-    assert issues
-    assert all(issue.sources[0].input_index == 1 for issue in issues)
+    assert issues[0].code == "ground_level_defaulted"
+    assert any(issue.code == "invalid_file_format" for issue in issues[1:])
+    assert all(issue.sources[0].input_index == 1 for issue in issues[1:])
 
 
 def test_same_basename_failures_remain_distinguishable(evo_metadata: EvoWorkspaceMetadata, tmp_path: Path) -> None:
@@ -662,7 +669,9 @@ def test_disappearing_input_does_not_cancel_surviving_files(
 
     assert [collection.name for collection in result] == ["valid_ags_1a", "valid_ags_2a"]
     assert [(issue.code, issue.sources) for issue in issues] == [
+        ("ground_level_defaulted", (AgsSource(0, "valid_ags_1a.ags"),)),
         ("file_not_found", (AgsSource(1, "disappearing.ags"),)),
+        ("ground_level_defaulted", (AgsSource(2, "valid_ags_2a.ags"),)),
     ]
 
 
@@ -746,9 +755,10 @@ def test_raw_ags4_error_does_not_cancel_later_files(
         )
 
     assert len(result) == 1
-    assert len(issues) == 1
-    assert issues[0].code == "invalid_file_format"
-    assert issues[0].sources == (AgsSource(0, "not_ags.ags"),)
+    assert [(issue.code, issue.sources) for issue in issues] == [
+        ("invalid_file_format", (AgsSource(0, "not_ags.ags"),)),
+        ("ground_level_defaulted", (AgsSource(1, "valid_ags_1a.ags"),)),
+    ]
 
 
 @patch("evo.data_converters.ags.importer.ags_to_evo.create_from_parsed_ags")

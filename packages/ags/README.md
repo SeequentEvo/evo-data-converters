@@ -108,24 +108,16 @@ for issue in issues:
 ## Things to know
 
 - Only the first CPT push at each location is imported.
-- Each collection must use one coordinate system. Import files with different coordinate systems or coordinate types
-  separately using `merge_files=False`.
-- Source values and units are preserved wherever possible, rather than converting everything to metres.
-  Coordinates, elevations and depths are converted only where needed to keep hole positions and paths consistent.
-- Holes are positioned in the file's coordinate system, without reprojection or vertical datum conversion. With a
-  latitude/longitude system such as WGS 84, longitude and latitude are used as-is in degrees, while depths and
-  elevations keep their length unit.
-- Each location's reference must match its coordinates: `LOCA_GREF` for grid coordinates, `LOCA_LLZ` for
-  longitude/latitude, and `LOCA_LREF` for local coordinates. Coordinates are not reprojected; unrecognised or
-  mismatched references are reported in diagnostics.
-- Coordinate and depth fields need recognised length units. Automatic conversion supports `m`, `cm`, `mm`, `km`,
-  `in`, `ft` (international feet) and `ft[US]` (US survey feet). Missing units or unsupported conversions are reported
-  as errors. Unrecognised units on other measurements are omitted with a warning; their values are kept.
-- Files declaring different units for the same column cannot be combined. The conflicting file is skipped and
-  reported in `diagnostics`; use `merge_files=False` to import the files separately.
+- Combined files must use compatible coordinate systems and matching units for shared columns.
+  Use `merge_files=False` to import incompatible files separately.
+- Source values and units are preserved wherever possible. Hole geometry is converted only where needed for
+  consistent positioning.
+- Grid coordinates and latitude/longitude are supported. Coordinates should match their declared reference.
+  No reprojection or vertical datum conversion is performed.
+- Use recognised length units for grid coordinates and depths, and degrees or radians for longitude/latitude.
 - Final hole depth comes from the deepest imported CPT reading or geological interval. The recorded final depth
   (`LOCA_FDEP`) is kept as extra data, not used to override it.
-- Missing or invalid ground-level values default to zero, so check these before using the imported data.
+- Missing or invalid ground levels default to zero, so check them before using the imported data.
 - Where hole orientation is unavailable, the hole is assumed to be vertical.
 
 ## Resources

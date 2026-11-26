@@ -165,7 +165,11 @@ class TestCreateFromParsedAgs:
         result = create_from_parsed_ags(context, diagnostics=issues)
 
         assert result.properties["hole_id"].tolist() == ["BH01", "BH03", "BH04", "BH05"]
-        assert len(issues) == 1
+        assert [(issue.code, issue.hole_id) for issue in issues] == [
+            ("hole_dropped", "BH02"),
+            ("ground_level_defaulted", "BH04"),
+            ("ground_level_defaulted", "BH05"),
+        ]
         assert issues[0].code == "hole_dropped"
         assert issues[0].severity == "warning"
         assert issues[0].hole_id == "BH02"
@@ -506,6 +510,7 @@ class TestCoordinateColumnHandling:
         loca["LOCA_LON"] = 174.8
         loca["LOCA_LAT"] = -41.3
         loca["LOCA_GREF"] = "OSGB"
+        loca["LOCA_GL"] = 0.0
         context.set_units(LOCA, {**context.get_units(LOCA), "LOCA_LOCX": "m", "LOCA_LOCY": "m", "LOCA_LOCZ": "m"})
         return context
 
@@ -674,10 +679,29 @@ class TestCoordinateColumnHandling:
         loca = self._add_hole(coordinate_context, "UNDECLARED")
         loca.loc[loca["LOCA_ID"] == "UNDECLARED", "LOCA_GREF"] = ""
 
-        result = create_from_parsed_ags(coordinate_context)
+        issues: list[AgsDiagnostic] = []
+        result = create_from_parsed_ags(coordinate_context, diagnostics=issues)
 
         assert result.coordinate_reference_system == EpsgCode(27700)
         assert result.properties[["x", "y"]].values.tolist() == [[575784.0, 5807006.0]] * 2
+        (issue,) = issues
+        assert (issue.code, issue.hole_id, issue.group) == ("missing_crs", "UNDECLARED", LOCA)
+        assert "27700" in issue.reason
+
+    def test_declared_local_grid_warns_only_for_defaulted_local_elevation(self, coordinate_context: AgsContext) -> None:
+        loca = coordinate_context.get_table(LOCA)
+        loca["LOCA_LREF"] = "SITE GRID"
+        loca["LOCA_GREF"] = ""
+        loca["LOCA_LOCZ"] = pd.NA
+        issues: list[AgsDiagnostic] = []
+
+        result = create_from_parsed_ags(coordinate_context, diagnostics=issues)
+
+        assert result.coordinate_reference_system is None
+        assert result.properties["z"].tolist() == [0.0]
+        (issue,) = issues
+        assert (issue.code, issue.hole_id) == ("ground_level_defaulted", "EXAMPLE-1-CPT1")
+        assert "LOCA_LOCZ" in issue.reason
 
     def test_zero_coordinates_are_valid(self, coordinate_context: AgsContext) -> None:
         loca = coordinate_context.get_table(LOCA)
@@ -838,9 +862,12 @@ class TestCoordinateColumnHandling:
         loca["LOCA_GL"] = invalid_level
         loca["LOCA_LOCZ"] = invalid_level
 
-        result = create_from_parsed_ags(coordinate_context)
+        issues: list[AgsDiagnostic] = []
+        result = create_from_parsed_ags(coordinate_context, diagnostics=issues)
 
         assert result.properties["z"].tolist() == [0.0]
+        (issue,) = issues
+        assert (issue.code, issue.group, issue.hole_id) == ("ground_level_defaulted", LOCA, "EXAMPLE-1-CPT1")
         assert "No valid z coordinate data found" in caplog.text
         assert result.properties["hole_id"].iloc[0] in caplog.text
 

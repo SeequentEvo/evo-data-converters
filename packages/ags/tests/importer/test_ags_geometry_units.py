@@ -11,6 +11,7 @@
 
 import asyncio
 import csv
+from math import degrees
 from pathlib import Path
 
 import pytest
@@ -161,7 +162,12 @@ def test_merge_rejects_different_source_units_even_if_convertible(
     )
     assert isinstance(first, DownholeCollectionData)
     assert first.properties["hole_id"].tolist() == ["EXAMPLE-1-CPT1"]
-    (issue,) = issues
+    defaulted, issue = issues
+    assert (defaulted.code, defaulted.hole_id, defaulted.sources) == (
+        "ground_level_defaulted",
+        "EXAMPLE-1-CPT1",
+        (AgsSource(0, Path(valid_ags_1a_path).name),),
+    )
     assert (issue.code, issue.severity, issue.group, issue.sources) == (
         "incompatible_merge",
         "error",
@@ -267,3 +273,44 @@ def test_dms_is_an_attribute_and_positions_holes_under_a_geographic_crs(
     (issue,) = error.value.diagnostics
     assert (issue.code, issue.group, issue.sources) == ("invalid_coordinates", "LOCA", (AgsSource(0, conflict.name),))
     assert "LOCA_LAT" in issue.reason and "'cm'" in issue.reason
+
+
+@pytest.fixture
+def decimal_loca_path(valid_ags_1a_path: str, tmp_path: Path) -> Path:
+    path = tmp_path / "decimal.ags"
+    path.write_text(
+        Path(valid_ags_1a_path)
+        .read_text()
+        .replace('"DMS","DMS","X"', '"4DP","4DP","X"')
+        .replace('"50.49","2025-06-17","","","","","","",""', '"50.49","2025-06-17","","","","","-0.5","1.2","WGS84"')
+    )
+    return path
+
+
+@pytest.mark.parametrize(("lon_unit", "lat_unit"), [("rad", "rad"), ("deg", "rad"), ("rad", "dega")])
+def test_decimal_angles_scale_only_collar_geometry(
+    decimal_loca_path: Path, evo_metadata: EvoWorkspaceMetadata, tmp_path: Path, lon_unit: str, lat_unit: str
+) -> None:
+    path = with_units(str(decimal_loca_path), tmp_path / "angles.ags", LOCA_LON=lon_unit, LOCA_LAT=lat_unit)
+    (dhc,) = asyncio.run(convert_ags([str(path)], evo_workspace_metadata=evo_metadata, publish_objects=False))
+    assert isinstance(dhc, DownholeCollectionData)
+    assert dhc.coordinate_reference_system == 4326
+    assert dhc.properties[["x", "y"]].to_numpy()[0].tolist() == pytest.approx(
+        [degrees(1.2) if lon_unit == "rad" else 1.2, degrees(-0.5) if lat_unit == "rad" else -0.5]
+    )
+    assert dhc.attributes is not None
+    assert dhc.attributes[["LOCA_LON", "LOCA_LAT"]].to_numpy().tolist() == [[1.2, -0.5]]
+    units = dhc.attributes.attrs["attribute_descriptions"]
+    assert (units["LOCA_LON"].unit, units["LOCA_LAT"].unit) == ("dega" if lon_unit == "deg" else lon_unit, lat_unit)
+
+
+@pytest.mark.parametrize("unit", ["", "m"])
+def test_decimal_angles_require_angular_units(
+    decimal_loca_path: Path, evo_metadata: EvoWorkspaceMetadata, tmp_path: Path, unit: str
+) -> None:
+    path = with_units(str(decimal_loca_path), tmp_path / "bad.ags", LOCA_LON=unit, LOCA_LAT="rad")
+    with pytest.raises(AgsParsingError) as error:
+        asyncio.run(convert_ags([str(path)], evo_workspace_metadata=evo_metadata, publish_objects=False))
+    (issue,) = error.value.diagnostics
+    assert (issue.code, issue.group, issue.sources) == ("invalid_coordinates", "LOCA", (AgsSource(0, path.name),))
+    assert "LOCA_LON" in issue.reason
