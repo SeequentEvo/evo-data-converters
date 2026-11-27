@@ -3,6 +3,42 @@
   "schema_version": "2.0",
   "converters": [
     {
+      "id": "ags",
+      "name": "AGS",
+      "package": "evo-data-converters-ags",
+      "status": "implemented",
+      "extensions": {
+        "anyOf": [
+          ".ags"
+        ]
+      },
+      "platform": [
+        "Cross-platform (Python)"
+      ],
+      "import": {
+        "supported": true,
+        "source_types": [
+          "AGS4 Cone Penetration Test (CPT) data"
+        ],
+        "produces_evo_objects": [
+          "downhole-collection"
+        ],
+        "produces_evo_schema_versions": {
+          "downhole-collection": [
+            "1.3.1"
+          ]
+        }
+      },
+      "export": {
+        "supported": false,
+        "supports_evo_objects": []
+      },
+      "limitations": [
+        "Only Cone Penetration Test (CPT) and geology (GEOL) data are converted; other AGS groups are ignored.",
+        "Files that fail AGS4 validation are skipped."
+      ]
+    },
+    {
       "id": "duf",
       "name": "DUF",
       "package": "evo-data-converters-duf",

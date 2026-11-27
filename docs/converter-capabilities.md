@@ -2,6 +2,7 @@
 This page is generated from `packages/*/converter-capabilities.json`.
 | Converter | Status | Import | Export | Extensions | Evo Objects (Import) | Key Limitations |
 |---|---|---|---|---|---|---|
+| AGS | implemented | Yes | No | Any of: .ags | downhole-collection | Only Cone Penetration Test (CPT) and geology (GEOL) data are converted; other AGS groups are ignored., Files that fail AGS4 validation are skipped. |
 | DUF | implemented | Yes | No | Any of: .duf | triangle-mesh, line-segments | Some DUF geometry types are not supported., TriangleMesh: Per-face colour data is ignored on import., TriangleMesh: Negative face index visibility semantics are ignored; all faces are forced visible. |
 | GOCAD | implemented | Yes | No | Any of: .vo | regular-3d-grid | Current converter path is focused on voxel grid data. |
 | Image | implemented | Yes | No | Any of: .jpeg, .jpg, .png, .tif, .tiff, .bmp, .gif | regular-2d-grid | No Evo-to-image exporter is currently provided. |
@@ -13,6 +14,20 @@ This page is generated from `packages/*/converter-capabilities.json`.
 | VTK | implemented | Yes | No | Any of: .vti, .vtr, .vtu, .vtm, .xml | regular-3d-grid, regular-masked-3d-grid, tensor-3d-grid, unstructured-tet-grid, unstructured-hex-grid, unstructured-grid | Only XML VTK files are supported., VTK data object types outside the supported set are skipped with a warning., Individual grid conversion errors are caught per-grid and skipped. |
 
 ## Detailed Capabilities
+### AGS
+- Package: `evo-data-converters-ags`
+- Status: `implemented`
+- Import supported: `Yes`
+- Export supported: `No`
+- Extensions: Any of: .ags
+- Platform/runtime notes: Cross-platform (Python)
+- Import source types: AGS4 Cone Penetration Test (CPT) data
+- Evo objects produced: downhole-collection
+- Evo schema versions produced: downhole-collection: 1.3.1
+- Evo objects export supports: -
+- Evo schema versions export supports: -
+- Limitations: Only Cone Penetration Test (CPT) and geology (GEOL) data are converted; other AGS groups are ignored., Files that fail AGS4 validation are skipped.
+
 ### DUF
 - Package: `evo-data-converters-duf`
 - Status: `implemented`

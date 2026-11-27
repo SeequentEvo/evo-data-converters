@@ -11,9 +11,119 @@
 
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, Mock
+
+import pyarrow as pa
+import pytest
 
 # The repository-level `scripts` package (used by test_converter_capabilities.py) isn't
 # installed; make it importable when tests run from within packages/common.
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+
+@pytest.fixture
+def mock_data_client():
+    """Create a mock ObjectDataClient that returns valid schemas for different table types."""
+    client = Mock()
+
+    def save_table_side_effect(table):
+        """Return appropriate schema based on table structure."""
+        num_rows = table.num_rows
+        column_names = set(table.column_names)
+
+        # LookupTable: has 'key' and 'value' columns
+        if column_names == {"key", "value"}:
+            return {
+                "data": None,
+                "length": num_rows,
+                "keys_data_type": "int32",
+                "values_data_type": "string",
+            }
+
+        # FloatArray2: has 'from' and 'to' columns (for intervals)
+        if column_names == {"from", "to"}:
+            return {
+                "data": None,
+                "length": num_rows,
+            }
+
+        # FloatArray3: has 'x', 'y', 'z' columns OR 'final', 'target', 'current'
+        if column_names == {"x", "y", "z"} or column_names == {"final", "target", "current"}:
+            return {
+                "data": None,
+                "length": num_rows,
+            }
+
+        # DownholeDirectionVector: has 'distance', 'azimuth', 'dip' columns
+        if column_names == {"distance", "azimuth", "dip"}:
+            return {
+                "data": None,
+                "length": num_rows,
+            }
+
+        # HoleChunks: has 'hole_index', 'offset', 'count' columns
+        if column_names == {"hole_index", "offset", "count"}:
+            return {
+                "data": None,
+                "length": num_rows,
+            }
+
+        # Single 'data' column - determine type from schema
+        if column_names == {"data"}:
+            data_field = table.schema.field("data")
+            data_type = data_field.type
+
+            # IntegerArray1: int types
+            if data_type in (pa.int32(), pa.int64()):
+                dtype_str = "int32" if data_type == pa.int32() else "int64"
+                return {
+                    "data": None,
+                    "length": num_rows,
+                    "data_type": dtype_str,
+                }
+
+            # FloatArray1: float64
+            if data_type == pa.float64():
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+            # StringArray: string type
+            if pa.types.is_string(data_type) or pa.types.is_large_string(data_type):
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+            # DateTimeArray: timestamp types
+            if pa.types.is_timestamp(data_type):
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+            # BoolArray1: boolean type
+            if pa.types.is_boolean(data_type):
+                return {
+                    "data": None,
+                    "length": num_rows,
+                }
+
+        # FloatArray1: single 'values' column
+        if column_names == {"values"}:
+            return {
+                "data": None,
+                "length": num_rows,
+            }
+
+        # Default for any other array types
+        return {
+            "data": None,
+            "length": num_rows,
+        }
+
+    client.save_table = MagicMock(side_effect=save_table_side_effect)
+    return client
