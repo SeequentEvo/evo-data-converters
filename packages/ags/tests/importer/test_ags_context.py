@@ -462,7 +462,10 @@ def test_resolve_crs_name_recognises_grid_names(crs_name: str, expected: int | s
     assert resolve_crs_name(crs_name.upper()) == expected
 
 
-@pytest.mark.parametrize("crs_name", ["MGA94", "MGA2020", "UTM61N", "UTM0S", "SCP", "UNKNOWN_CRS"])
+@pytest.mark.parametrize(
+    "crs_name",
+    ["MGA94", "MGA2020", "UTM61N", "UTM0S", "ETRS89_UTM27N", "ETRS89_UTM39N", "SCP", "UNKNOWN_CRS"],
+)
 def test_resolve_crs_name_rejects_unknown_names_and_zones(crs_name: str) -> None:
     """Test unknown grid names and zones that do not exist are not resolved"""
     assert resolve_crs_name(crs_name) is None

@@ -74,6 +74,7 @@ CRS_NAME_ALIASES: dict[str, int | str] = {
 # Zoned grids, such as "UTM 33N" for WGS 84 / UTM zone 33N and "MGA55" for GDA94 / MGA zone 55
 _UTM_ZONE_PATTERN = re.compile(r"UTM(?:ZONE)?(?P<zone>\d{1,2})(?P<hemisphere>[NS])")
 _MGA_ZONE_PATTERN = re.compile(r"MGA(?:ZONE)?(?P<zone>\d{2})")
+_ETRS89_UTM_ZONE_PATTERN = re.compile(r"ETRS89UTM(?P<zone>\d{2})N")
 
 PARSE_FAILURE_REASON = "The AGS contents could not be parsed. Check the file format and required groups."
 
@@ -191,7 +192,8 @@ def resolve_crs_name(value: str) -> int | str | None:
     """Resolve the CRS named in LOCA_GREF or LOCA_LLZ to an EPSG code.
 
     Accepts the AGS grid references and the other grid names of `CRS_NAME_ALIASES`, any name or code pyproj
-    recognises, such as "EPSG:2193" or "WGS 84", and zoned grids such as "UTM33N", "UTM55S" and "MGA55".
+    recognises, such as "EPSG:2193" or "WGS 84", and zoned grids such as "UTM33N", "UTM55S", "MGA55" and
+    "ETRS89_UTM32N".
 
     :param value: The normalized CRS name, in upper case.
     :return: The EPSG code, "unspecified" for a local grid, or None when the CRS cannot be resolved to an EPSG code.
@@ -212,6 +214,9 @@ def resolve_crs_name(value: str) -> int | str | None:
         return (32600 if utm["hemisphere"] == "N" else 32700) + zone if 1 <= zone <= 60 else None
     if mga := _MGA_ZONE_PATTERN.fullmatch(compact):
         return _defined_epsg(28300 + int(mga["zone"]))
+    if etrs89_utm := _ETRS89_UTM_ZONE_PATTERN.fullmatch(compact):
+        zone = int(etrs89_utm["zone"])
+        return 25800 + zone if 28 <= zone <= 38 else None
     return None
 
 
